@@ -1,0 +1,14 @@
+[odeviced]
+
+[kernel26]
+# set 1 to disable the module
+disable=0
+
+[idlenotifier]
+# set 1 to disable the module
+disable=0
+# add inut nodes to ignore for idle activity
+ignoreinput=2,3,4
+
+[powercontrol-neo]
+disable=0
