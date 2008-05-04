@@ -29,7 +29,7 @@ if options.modem not in pygsm.allModems():
 else:
     if "OPHONED_DEBUG" in os.environ:
         openlog( "py-ophoned", LOG_PERROR, LOG_DAEMON )
-        LOG( LOG_INFO, "Using modem '%s' % options.modem" )
+        LOG( LOG_INFO, "Using modem '%s'" % options.modem )
 
 from controller import Controller
-Controller( options.modem ).run()
+Controller( pygsm.modem( options.modem ) ).run()
