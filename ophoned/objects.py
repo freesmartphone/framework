@@ -1,8 +1,10 @@
+import types
 import config
 from config import LOG, LOG_INFO, LOG_ERR, LOG_DEBUG
 import dbus
 import dbus.service
 from modem import phoneFactory
+from pygsm.attention import DumbParser
 from gobject import timeout_add
 
 DBUS_INTERFACE_DEVICE = "org.freesmartphone.GSM.Device"
@@ -32,16 +34,13 @@ class AbstractAsyncResponse( object ):
     def __init__( self, dbus_result, dbus_error ):
         self.dbus_result = dbus_result
         self.dbus_error = dbus_error
-        #print "(async response object %s generated)" % self
+        print "(async response object %s generated)" % self
+
+    def __call__( self, answer, result ):
+        assert False, "Pure Virtual Function called"
 
     def __del__( self ):
-        pass
-        #print "(async response object %s destroyed)" % self
-
-    def __call__( self, *args, **kwargs ):
-        pass
-        #print "someone called me with args=%s, kwargs=%s" % ( repr(args), repr(kwargs) )
-        #print "i could now call", self.dbus_result, "or", self.dbus_error
+        print "(async response object %s destroyed)" % self
 
 class AsyncResponseNone( AbstractAsyncResponse ):
     pass
@@ -49,6 +48,28 @@ class AsyncResponseNone( AbstractAsyncResponse ):
 class AsyncResponseBool( AbstractAsyncResponse ) :
     def __call__( self, answer, result ):
         self.dbus_result( result == 1 )
+
+class AsyncMultipleResponseDict( AbstractAsyncResponse ):
+    def __init__( self, dbus_result, dbus_error ):
+        AbstractAsyncResponse.__init__( self, dbus_result, dbus_error )
+        self.expected = {}
+        self.result = {}
+
+    def addResponse( self, response, resultkey ):
+        assert response not in self.expected, "duplicated response key '%s'" % response
+        assert type( resultkey ) == types.StringType, "resultkey needs to be a string"
+        self.expected[response] = resultkey
+
+    def __call__( self, question, response ):
+        print "have been called for question=", repr(question), "response=", repr(response)
+        print "self.expected=", repr( self.expected )
+        print "self.result=", repr( self.result )
+        assert question in self.expected, "got unexpected reply '%s'" % question
+        self.result[question] = response
+        del self.expected[question]
+        print "self.expected keys now=", repr(self.expected.keys())
+        if not self.expected:
+            self.dbus_result( self.result )
 
 class Device( dbus.service.Object ):
     DBUS_INTERFACE = "%s.%s" % ( config.DBUS_INTERFACE_PREFIX, "Device" )
@@ -69,6 +90,19 @@ class Device( dbus.service.Object ):
     #
     # dbus
     #
+    @dbus.service.method( DBUS_INTERFACE_DEVICE, "", "a{sv}",
+                          async_callbacks=( "dbus_ok", "dbus_error" ) )
+    def GetInfo( self, dbus_ok, dbus_error ):
+        response = AsyncMultipleResponseDict( dbus_ok, dbus_error )
+        response.addResponse( "+CGMI", "manufacturer" )
+        response.addResponse( "+CGMM", "model" )
+        response.addResponse( "+CGMR", "revision" )
+        response.addResponse( "+CGSN", "imei" )
+        self.modem.request( '+CGMI', response, parser=DumbParser(response) )
+        self.modem.request( '+CGMM', response, parser=DumbParser(response) )
+        self.modem.request( '+CGMR', response, parser=DumbParser(response) )
+        self.modem.request( '+CGSN', response, parser=DumbParser(response) )
+
     @dbus.service.method( DBUS_INTERFACE_DEVICE, "", "b",
                           async_callbacks=( "dbus_ok", "dbus_error" ) )
     def GetAntennaPower( self, dbus_ok, dbus_error ):

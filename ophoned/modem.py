@@ -15,13 +15,13 @@ def phoneFactory( baseModemClass ):
             timeout_add(1000, self.__connect_to_dbus)
 
         def __connect_to_dbus(self):
-            try:
+            if 1: #try:
                 self.open()
 #                self.device_inquire()
 #                self.sim_inquire()
 #                self.network_inquire()
                 return False
-            except Exception, e:
+            #except Exception, e:
                 self.close()
                 LOG(LOG_WARNING, __name__, '__connect_to_dbus', e)
                 return True
