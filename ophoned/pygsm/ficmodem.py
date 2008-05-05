@@ -3,11 +3,11 @@
 
 # copyright: m. dietrich
 # license: gpl
-__revision = '$Rev$'
+__revision = '$Rev: 252 $'
 
 from genericmodem import *
 
-class TiCalypsoModem(GenericModem):
+class FicModem(GenericModem):
 	'''
 	there is no documentation about specialities of fic's ti modem but the
 	libgsmd which (as documented there) lacks several features as well.

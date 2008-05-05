@@ -7,11 +7,11 @@ else:
     modems["testing"] = testingmodem.Modem
 
 try:
-    import ticalypso
+    import ficmodem
 except ImportError:
     pass
 else:
-    modems["ti_calypso"] = ticalypso.TiCalypsoModem
+    modems["ti_calypso"] = ficmodem.FicModem
 
 try:
     import genericmodem

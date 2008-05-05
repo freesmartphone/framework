@@ -3,7 +3,7 @@
 
 # copyright: m. dietrich
 # license: gpl
-__revision = '$Rev$'
+__revision = '$Rev: 256 $'
 
 ######################## low level attention-modem stuff
 # the serial does all the initialization of the serial port for this
@@ -16,8 +16,7 @@ from gobject import source_remove, io_add_watch, IO_IN, timeout_add
 # some names and common functions
 from freesmartphone import *
 # config and logging support
-from base import LOG_ERR, LOG_WARNING, LOG_INFO, LOG_DEBUG, LOG, log_debug
-from base import config
+from base import log_info, log_debug, config, LOG_ERR, LOG_WARNING, LOG_INFO, LOG_DEBUG, LOG
 #
 from time import time
 
@@ -82,8 +81,8 @@ class MuxedLines(object):
 		LOG(LOG_DEBUG, __name__, '__init__')
 		self.bus = bus
 		self.rr, self.um, = None, None,
-		if log_debug:
-			self.debuglog = open('/tmp/gsm.log', 'w')
+		if config.get('logging', 'debug') == 'True':
+			self.debuglog = open('/media/card/gsm.log', 'w')
 		else:
 			self.debuglog = None
 
@@ -92,7 +91,7 @@ class MuxedLines(object):
 		assert self.rr is None and self.um is None, 'already open'
 		muxer = self.bus.get_object(config.get('gsm', 'bus'), config.get('gsm', 'obj'))
 		try:
-			muxer = Interface(muxer, DIN_MUXER)
+			muxer = Interface(muxer, 'org.freesmartphone.GSM.MUX')
 
 			LOG(LOG_DEBUG, __name__, '__init__', 'creating the request response channel')
 			self.rr = Serial()
@@ -130,7 +129,7 @@ class MuxedLines(object):
 			self.um.iow = io_add_watch(self.um, IO_IN, self.__read_um)
 			LOG(LOG_DEBUG, __name__, '__init__', 'opened', self.um.port)
 
-			muxer.connect_to_signal('deactivate', self.__mux_deactivate, dbus_interface=DIN_MUXER)
+			muxer.connect_to_signal('deactivate', self.__mux_deactivate, dbus_interface='org.mobile.mux.RemoteInterface')
 		except Exception, e:
 			self.close()
 			raise e
@@ -182,11 +181,11 @@ class MuxedLines(object):
 
 	finals = ('+CME ERROR', '+CMS ERROR', 'BUSY', 'CONNECT', 'ERROR', 'NO ANSWER', 'NO CARRIER', 'NO DIALTONE', 'OK', )
 	def __read_rr(self, source, condition):
+		#print "__READ_RR: ENTER"
 		assert self.rr is source
-		assert condition == IO_IN
 		line = source.readline().strip()
 		if self.debuglog: print >> self.debuglog, time(), source.port, 'read', line
-		try:
+		if True: #try:
 			LOG(LOG_DEBUG, __name__, '__read_rr', 'read line', line)
 			if line.startswith('+CRING'): return True # hm, can't switch that unsol. spam off here...
 			if line: # ignore empty lines
@@ -201,13 +200,13 @@ class MuxedLines(object):
 						self.__next_rr()
 				else:
 					LOG(LOG_WARNING, __name__, '__read_rr', 'no parser for line', line)
-		except Exception, e:
-			LOG(LOG_ERR, __name__, '__read_rr', e, line)
+		#except Exception, e:
+		#	LOG(LOG_ERR, __name__, '__read_rr', e, line)
+		#print "__READ_RR: LEAVE"
 		return True
 
 	def __read_um(self, source, condition):
 		assert self.um is source
-		assert condition == IO_IN
 		line = source.readline().strip()
 		if self.debuglog: print >> self.debuglog, time(), source.port, 'read', line
 		try:
@@ -234,11 +233,13 @@ class MuxedLines(object):
 		return True
 
 	def __next_rr(self):
+		#print "next_rr:ENTER"
 		if self.rr.request_stack:
 			command, self.rr.request_parser, self.rr.request_timeout = self.rr.request_stack.pop(0)
 			self.__attention_write(self.rr, command)
 			if self.rr.request_timeout:
 				self.rr.tow = timeout_add(self.rr.request_timeout, self.__timeout_rr)
+		#print "next_rr:LEAVE"
 		return False
 
 	def __timeout_rr(self):
@@ -277,6 +278,7 @@ class MuxedLines(object):
 
 	@staticmethod
 	def parse_types(values):
+		#print "parse_types: ENTER"
 		values = values.split(',')
 		for idx, val in enumerate(values):
 			try:
@@ -288,6 +290,7 @@ class MuxedLines(object):
 					val = int(val)
 			except: pass
 			values[idx] = val
+		#print "parse_types: LEAVE"
 		return values
 
 # vim:tw=0:nowrap

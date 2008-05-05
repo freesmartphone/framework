@@ -3,21 +3,9 @@
 
 # copyright: m. dietrich
 # license: gpl
-__revision = '$Rev$'
+__revision = '$Rev: 256 $'
 
 from attention import *
-
-class SinglelineParser(StandardParser):
-	def __init__(self, callback, error):
-		StandardParser.__init__(self, callback, error)
-
-	def done(self, name):
-		LOG(LOG_DEBUG, __name__, 'done', name)
-		if self._callback is not None:
-			LOG(LOG_DEBUG, __name__, 'callback')
-			self._callback()
-			self._callback = None
-			self._error = None
 
 class MultilineParser(StandardParser):
 	def __init__(self, callback, error):
@@ -140,8 +128,6 @@ class GenericModem(MuxedLines):
 		self.activate('+CCWA=1') # call wating
 		self.activate('+CRC=1') # cellular result codes: extended
 		self.activate('+CSNS=0') # single numbering scheme: voice
-		self.activate('+CTZU=1') # timezone update
-		self.activate('+CTZR=1') # timezone reporting
 
 		self.request('Z') # soft reset
 		self.request('E0V1') # echo off, verbose result on
@@ -152,7 +138,6 @@ class GenericModem(MuxedLines):
 		self.request('+CMGF=1') # meesage format: pdu mode sms disable, text
 		self.request('+CSCS="8859-1"') # caharacter set conversion
 		self.request('+CSDH=1;') # show text mode parameters: show values
-		self.request('+CPBS=?', self.responseCPBS) # get phonebook storage
 
 	####################################################### 
 	### device
@@ -183,7 +168,7 @@ class GenericModem(MuxedLines):
 	def responseCGSN(self, _name, imei):
 		LOG(LOG_DEBUG, __name__, 'imei', imei)
 		_device_info = dict(self._device_info,
-			imei=imei,
+			imei=str(imei),
 			)
 		#if _device_info != self._device_info:
 		self.DeviceInfo(_device_info)
@@ -306,9 +291,6 @@ class GenericModem(MuxedLines):
 	def unsolCMTI(self, _name, storage, idx, ):
 		self.MessageReceived({str(idx): "NEW"})
 
-	def responseCPBS(self, *values):
-		LOG(LOG_ERR, __name__, *values)
-
 	@staticmethod
 	def gsm_signal(sig):
 		if sig == 99:
@@ -339,15 +321,13 @@ class GenericModem(MuxedLines):
 		self.request('+CGMR', self.responseCGMR) # <revision>
 		self.request('+CGSN', self.responseCGSN) # <serial number>
 
-	def device_function(self, fun=1):
-		self.request('+CFUN=%d;+CFUN?'% fun, self.responseCFUN, timeout=20000) # phone function full
-
 	def sim_inquire(self):
 		self.request('+CPIN?', self.responseCPIN) # pin status
 		self.request('+CIMI', self.responseCIMI) # ismsi
 		self.request('+CNUM', self.responseCNUM) # subscriber number
 
 	def sim_send_pin(self, pin):
+		self.request('+CFUN=1;+CFUN?', self.responseCFUN, timeout=20000) # phone function full
 		self.request('+CPIN="%s";+CPIN?'% pin, self.responseCPIN, timeout=20000) # pin
 		self.sim_inquire()
 		self.network_inquire()
@@ -361,25 +341,24 @@ class GenericModem(MuxedLines):
 		self.activate('+CNMI=2,1,2,1,0', timeout=5000) # new message indications to te
 
 	def network_register(self, no=0):
+		self.request('+CFUN=1;+CFUN?', self.responseCFUN, timeout=20000) # phone function full
 		self.request('+COPS=%d;+COPS?'% no, self.responseCOPS, timeout=20000) # operator selection
 		self.request('+CPAS', self.responseCPAS) # request phone activity status
 		self.request('+WS46?', self.responseWS46) # wireless network
 		self.activate('+CNMI=2,1,2,1,0', timeout=5000) # new message indications to te
 
 	def call_accept(self):
-		self.request('A', timeout=5000, parser=StandardParser(), )
-		self.request('+CPAS', self.responseCPAS) # request phone activity status
+		self.request('A', parser=StandardParser())
 
 	def call_release(self):
 		if self.rr.request:
 			self.rr.write('\r\n')
-		self.request('H', timeout=5000, parser=StandardParser())
+		self.request('H', parser=StandardParser())
 		#self.request('+CHUP', parser=StandardParser()) # neo1973 does not hangup on CHUP
 		self.request('+CPAS', self.responseCPAS) # request phone activity status
 
 	def call_initiate(self, number):
 		self.request('D%s;'% number, self.responseD, 0)
-		self.request('+CPAS', self.responseCPAS) # request phone activity status
 
 	def messages_list_all(self, response, error):
 		self.request('+CMGL="ALL"', timeout=5000, parser=CMGLParser(response, error))
@@ -388,10 +367,10 @@ class GenericModem(MuxedLines):
 		self.request('+CMGR=%d'% idx, timeout=5000, parser=CMGRParser(response, error))
 
 	def messages_delete(self, idx, response, error):
-		self.request('+CMGD=%d,0'% idx, timeout=5000, parser=SinglelineParser(response, error))
+		self.request('+CMGD=%d,0'% idx, timeout=5000, parser=StandardParser(response, error))
 
 	def messages_delete_all(self, response, error):
-		self.request('+CMGD=0,4', timeout=5000, parser=SinglelineParser(response, error))
+		self.request('+CMGD=0,4', timeout=5000, parser=StandardParser(response, error))
 
 	def messages_store(self, number, text, response, error):
 		parser = CMGSParser(response, error)
@@ -404,18 +383,16 @@ class GenericModem(MuxedLines):
 		self.request(GsmCommand('%s\r\n\x1a'% text), timeout=20000, parser=parser)
 
 	def phonebook_list_all(self, response, error):
-		self.request('+CPBF=""', timeout=5000, parser=MultilineParser(response, error)) # Find phonebook entries 
+		self.request('+CPBF', timeout=5000, parser=StandardParser(response, error)) # Find phonebook entries 
 
-	def phonebook_get(self, idx, response, error):
-		#self.request('+CPBS=""') # select phonebook storage
-		self.request('+CPBR=%s'% idx, timeout=5000, parser=StandardParser(response, error)) # Read phonebook entries 
+	def phonebook_get(self, response, error):
+		self.request('+CPBR', timeout=5000, parser=StandardParser(response, error)) # Read phonebook entries 
 
 	def phonebook_delete(self, idx, response, error):
 		self.request('+CPBR', timeout=5000, parser=StandardParser(response, error)) # Read phonebook entries 
 
-	def phone_store(self, idx, number, text, response, error):
-		type = number[0] == '+' and 145 or 129
-		self.request('+CPBW=%d,"%s",%d,"%s"'% (idx, number, type, name, ), timeout=5000, parser=StandardParser(response, error)) # Write phonebook entry 
+	def phone_store(self, response, error):
+		self.request('+CPBW', timeout=5000, parser=StandardParser(response, error)) # Write phonebook entry 
 
 #self.request('+CPBS', parser=StandardParser(response, error)) # Select phonebook memory storage 
 #from datetime import datetime
