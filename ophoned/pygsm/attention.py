@@ -68,6 +68,22 @@ class StandardParser(object):
 			self._callback = None
 			self._error = None
 
+class DumbParser(StandardParser):
+	def feed(self, line):
+		LOG(LOG_DEBUG, __name__, 'feed', line)
+		if ': ' in line:
+			name, value = line.split(': ', 1)
+		else:
+			name, value = line, [line, ]
+		if name in MuxedLines.finals:
+			if name != 'OK':
+				self.error(name, value)
+			else:
+				self.done(name)
+			return True
+		self.callback(name, value)
+		return False
+
 class GsmCommand(object):
 	def __init__(self, s):
 		self.s = s
