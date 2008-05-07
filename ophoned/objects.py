@@ -3,6 +3,7 @@ import config
 from config import LOG, LOG_INFO, LOG_ERR, LOG_DEBUG
 import dbus
 import dbus.service
+from dbus import DBusException
 from modem import phoneFactory
 from pygsm.attention import DumbParser
 from gobject import timeout_add
@@ -11,6 +12,9 @@ DBUS_INTERFACE_DEVICE = "org.freesmartphone.GSM.Device"
 DBUS_INTERFACE_SIM = "org.freesmartphone.GSM.Sim"
 DBUS_INTERFACE_NETWORK = "org.freesmartphone.GSM.Network"
 DBUS_INTERFACE_CALL = "org.freesmartphone.GSM.Call"
+
+DBUS_INTERFACE_SERVER = "org.freesmartphone.GSM.Server"
+DBUS_INTERFACE_TEST = "org.freesmartphone.test"
 
 class Server( dbus.service.Object ):
     DBUS_INTERFACE = "%s.%s" % ( config.DBUS_INTERFACE_PREFIX, "Server" )
@@ -26,9 +30,13 @@ class Server( dbus.service.Object ):
     #
     # dbus
     #
-    @dbus.service.method( DBUS_INTERFACE, "", "s" )
+    @dbus.service.method( DBUS_INTERFACE_TEST, "", "s" )
     def GetVersion( self ):
-        return config.VERSION
+        return "foo"
+
+    @dbus.service.method( DBUS_INTERFACE_SERVER, "", "s" )
+    def GetVersion( self ):
+        return "bar"
 
 class AbstractAsyncResponse( object ):
     def __init__( self, dbus_result, dbus_error ):
@@ -36,17 +44,31 @@ class AbstractAsyncResponse( object ):
         self.dbus_error = dbus_error
         print "(async response object %s generated)" % self
 
-    def __call__( self, answer, result ):
+    def handleResult( self, *args ):
         assert False, "Pure Virtual Function called"
+
+    def handleError( self, *args ):
+        print "(async: handle error)", repr(args)
+
+    def handleCmeError( self, number, string ):
+        print "(async: handle cme error)", repr(number), repr(string)
+
+    def handleCmsError( self, number, string ):
+        print "(async: handle cms error)", repr(number), repr(string)
 
     def __del__( self ):
         print "(async response object %s destroyed)" % self
 
 class AsyncResponseNone( AbstractAsyncResponse ):
-    pass
+    def handleResult( self, *args ):
+        self.dbus_result( None )
+    def handleError( self, *args ):
+        print "(async: handle error)", repr(args)
+        e = DBusException( "foo", "bar", "yo", "offenbar beliebig viele Parameter".split() )
+        self.dbus_error( e )
 
 class AsyncResponseBool( AbstractAsyncResponse ) :
-    def __call__( self, answer, result ):
+    def handleResult( self, answer, result ):
         self.dbus_result( result == 1 )
 
 class AsyncMultipleResponseDict( AbstractAsyncResponse ):
@@ -60,12 +82,12 @@ class AsyncMultipleResponseDict( AbstractAsyncResponse ):
         assert type( resultkey ) == types.StringType, "resultkey needs to be a string"
         self.expected[response] = resultkey
 
-    def __call__( self, question, response ):
+    def handleResult( self, question, response ):
         print "have been called for question=", repr(question), "response=", repr(response)
         print "self.expected=", repr( self.expected )
         print "self.result=", repr( self.result )
         assert question in self.expected, "got unexpected reply '%s'" % question
-        self.result[question] = response
+        self.result[self.expected[question]] = response
         del self.expected[question]
         print "self.expected keys now=", repr(self.expected.keys())
         if not self.expected:
@@ -103,6 +125,19 @@ class Device( dbus.service.Object ):
         self.modem.request( '+CGMR', response, parser=DumbParser(response) )
         self.modem.request( '+CGSN', response, parser=DumbParser(response) )
 
+    @dbus.service.method( DBUS_INTERFACE_DEVICE, "", "a{sv}",
+                          async_callbacks=( "dbus_ok", "dbus_error" ) )
+    def GetFeatures( self, dbus_ok, dbus_error ):
+        response = AsyncMultipleResponseDict( dbus_ok, dbus_error )
+        response.addResponse( "+CGMI", "manufacturer" )
+        response.addResponse( "+CGMM", "model" )
+        response.addResponse( "+CGMR", "revision" )
+        response.addResponse( "+CGSN", "imei" )
+        self.modem.request( '+CGMI', response, parser=DumbParser(response) )
+        self.modem.request( '+CGMM', response, parser=DumbParser(response) )
+        self.modem.request( '+CGMR', response, parser=DumbParser(response) )
+        self.modem.request( '+CGSN', response, parser=DumbParser(response) )
+
     @dbus.service.method( DBUS_INTERFACE_DEVICE, "", "b",
                           async_callbacks=( "dbus_ok", "dbus_error" ) )
     def GetAntennaPower( self, dbus_ok, dbus_error ):
@@ -111,7 +146,7 @@ class Device( dbus.service.Object ):
     @dbus.service.method( DBUS_INTERFACE_DEVICE, "b", "",
                           async_callbacks=( "dbus_ok", "dbus_error" ) )
     def SetAntennaPower( self, power, dbus_ok, dbus_error ):
-        self.modem.request( '+CFUN=%d' % 1 if power else 0, AsyncResponseNone( dbus_ok, dbus_error ), timeout = 5000 )
+        self.modem.request( '+CFUN=%d' % ( 1 if power else 0 ), AsyncResponseNone( dbus_ok, dbus_error ), timeout = 20000 )
 
 if __name__ == "__main__":
     import dbus

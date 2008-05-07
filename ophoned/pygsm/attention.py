@@ -23,8 +23,14 @@ from time import time
 
 class StandardParser(object):
 	def __init__(self, callback=None, error=None):
-		self._callback = callback
-		self._error = error
+		if hasattr( callback, "handleResult" ):
+			self._callback = callback.handleResult
+		else:
+			self._callback = callback
+		if hasattr( callback, "handleError" ):
+			self._error = callback.handleError
+		else:
+			self._error = error
 
 	def feed(self, line):
 		LOG(LOG_DEBUG, __name__, 'feed', line)
@@ -56,7 +62,8 @@ class StandardParser(object):
 			LOG(LOG_ERR, __name__, 'error', values)
 		else:
 			LOG(LOG_DEBUG, __name__, 'error', values)
-			self._error(DBusException(values))
+			#self._error(DBusException(values))
+			self._error(*values)
 			self._callback = None
 			self._error = None
 
@@ -72,16 +79,16 @@ class DumbParser(StandardParser):
 	def feed(self, line):
 		LOG(LOG_DEBUG, __name__, 'feed', line)
 		if ': ' in line:
-			name, value = line.split(': ', 1)
+			name, values = line.split(': ', 1)
 		else:
-			name, value = line, [line, ]
+			name, values = line, [line, ]
 		if name in MuxedLines.finals:
 			if name != 'OK':
-				self.error(name, value)
+				self.error(name, values)
 			else:
 				self.done(name)
 			return True
-		self.callback(name, value)
+		self.callback(name, values)
 		return False
 
 class GsmCommand(object):
@@ -107,7 +114,7 @@ class MuxedLines(object):
 		LOG(LOG_DEBUG, __name__, 'open')
 		assert self.rr is None and self.um is None, 'already open'
 		muxer = self.bus.get_object(config.get('gsm', 'bus'), config.get('gsm', 'obj'))
-		try:
+		if 1:
 			muxer = Interface(muxer, DIN_MUXER)
 
 			LOG(LOG_DEBUG, __name__, '__init__', 'creating the request response channel')
@@ -122,11 +129,11 @@ class MuxedLines(object):
 			self.rr.open()
 			self.rr.request_parser = StandardParser()
 			self.rr.request_timeout = 200
-			self.rr.request = '\r\nAT\r\n'
+			#self.rr.request = '\r\n\r\nAT\r\n'
 			self.rr.write(self.rr.request) # channel wakeup
 			self.rr.request_stack = []
-			self.rr.tow = timeout_add(200, self.__timeout_rr)
 			self.rr.iow = io_add_watch(self.rr, IO_IN, self.__read_rr)
+			#self.rr.tow = timeout_add(2000, self.__timeout_rr)
 			LOG(LOG_DEBUG, __name__, '__init__', 'opened', self.rr.port)
 
 			LOG(LOG_DEBUG, __name__, '__init__', 'creating the unsolicicated messages channel')
@@ -140,18 +147,18 @@ class MuxedLines(object):
 			if not self.um.port: raise Exception('empty response from muxer')
 			self.um.open()
 			self.um.request_stack = []
-			self.um.request = '\r\nAT\r\n'
+			#self.um.request = '\r\nAT\r\n'
 			self.um.write(self.um.request) # channel wakeup
-			self.um.tow = timeout_add(200, self.__timeout_um)
 			self.um.iow = io_add_watch(self.um, IO_IN, self.__read_um)
+			#self.um.tow = timeout_add(2000, self.__timeout_um)
 			LOG(LOG_DEBUG, __name__, '__init__', 'opened', self.um.port)
 
 			muxer.connect_to_signal('deactivate', self.__mux_deactivate, dbus_interface=DIN_MUXER)
-		except Exception, e:
-			self.close()
-			raise e
-		finally:
-			del muxer
+		#except Exception, e:
+			#self.close()
+			#raise e
+		#finally:
+			#del muxer
 
 	def close(self, hard=False):
 		LOG(LOG_DEBUG, __name__, 'close')
@@ -178,6 +185,7 @@ class MuxedLines(object):
 			LOG(LOG_ERR, __name__, 'error', e)
 
 	def request(self, command, callback=None, timeout=500, parser=None):
+		print "request"
 		if parser is None:
 			parser = StandardParser(callback)
 		if self.rr.request_parser:
@@ -259,8 +267,7 @@ class MuxedLines(object):
 
 	def __timeout_rr(self):
 		LOG(LOG_ERR, __name__, '__timeout_rr', 'request timed out', self.rr.request, self.rr.request_timeout, )
-		try: self.rr.request_parser.error('timeout', self.rr.request)
-		except: pass
+		self.rr.request_parser.error('timeout', self.rr.request)
 		self.rr.request_parser = None
 		self.rr.request_timeout = None
 		self.rr.request = None
@@ -302,7 +309,8 @@ class MuxedLines(object):
 					val = float(val)
 				else:
 					val = int(val)
-			except: pass
+			except ValueError:
+				pass
 			values[idx] = val
 		return values
 

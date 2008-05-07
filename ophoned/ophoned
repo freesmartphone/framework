@@ -13,6 +13,7 @@ import pygsm
 from optparse import OptionParser
 from config import LOG, LOG_ERR, LOG_WARNING, LOG_INFO, LOG_DEBUG
 from syslog import openlog, LOG_PERROR, LOG_DAEMON
+import sys
 import os
 
 parser = OptionParser()
@@ -32,4 +33,9 @@ else:
         LOG( LOG_INFO, "Using modem '%s'" % options.modem )
 
 from controller import Controller
-Controller( pygsm.modem( options.modem ) ).run()
+c = Controller( pygsm.modem( options.modem ) )
+try:
+    c.run()
+except KeyboardInterrupt:
+    print >>sys.stderr, "ctrl-c: exiting."
+    sys.exit( 0 )

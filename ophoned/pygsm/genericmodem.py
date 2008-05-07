@@ -89,7 +89,7 @@ class GenericModem(MuxedLines):
 	def __init__(self, bus):
 		MuxedLines.__init__(self, bus)
 		self.__reset_fields()
-	
+
 	def __reset_fields(self):
 		self._device_info = dict(
 			manufacturer=Empty,
@@ -122,10 +122,10 @@ class GenericModem(MuxedLines):
 			stat=Empty,
 			subaddr=Empty,
 			type=Empty,
-			validity=Empty, 
+			validity=Empty,
 			wireless_selected_46=Empty,
 			)
-	
+
 	def open(self):
 		MuxedLines.open(self)
 		self.__reset_fields()
@@ -147,14 +147,14 @@ class GenericModem(MuxedLines):
 		self.request('E0V1') # echo off, verbose result on
 		self.request('+CMEE=2') # report mobile equipment error
 		self.request('+CRC=1') # cellular result codes, enable extended format
-		self.request('+CFUN=1;+CFUN?', self.responseCFUN, timeout=5000) # phone function full
+		#self.request('+CFUN=1;+CFUN?', self.responseCFUN, timeout=5000) # phone function full
 		self.request('+CPMS="SM","SM","SM"') # preferred message storage: sim memory for mo,mt,bm
 		self.request('+CMGF=1') # meesage format: pdu mode sms disable, text
 		self.request('+CSCS="8859-1"') # caharacter set conversion
 		self.request('+CSDH=1;') # show text mode parameters: show values
 		self.request('+CPBS=?', self.responseCPBS) # get phonebook storage
 
-	####################################################### 
+	#######################################################
 	### device
 	def responseCGMI(self, _name, *manufacturer):
 		manufacturer = ','.join(manufacturer)
@@ -228,7 +228,7 @@ class GenericModem(MuxedLines):
 			ci=ci and int(ci, 16) or Empty,
 			)
 		#if _network_status != self._network_status:
-		self.NetworkStatus(_network_status)
+		#self.NetworkStatus(_network_status)
 	def responseCREG(self, _name, n, stat=Empty, lac=Empty, ci=Empty, ):
 		LOG(LOG_DEBUG, __name__, 'network registration', stat, lac, ci)
 		_network_status = dict(self._network_status,
@@ -270,32 +270,32 @@ class GenericModem(MuxedLines):
 		self.NetworkStatus(_network_status)
 	def unsolCLIP(self, _name, number, type, subaddr=Empty, satype=Empty, alpha=Empty, cli_validity=Empty, ):
 		LOG(LOG_DEBUG, __name__, 'calling line identification presentation', number, type, subaddr, satype, alpha, cli_validity)
-		_network_status = dict(self._network_status, 
+		_network_status = dict(self._network_status,
 			number=number,
 			type=type,
 			subaddr=subaddr,
 			satype=satype,
 			alpha=alpha,
-			validity=cli_validity, 
+			validity=cli_validity,
 			)
 		#if _network_status != self._network_status:
-		self.NetworkStatus(_network_status)
+		#self.NetworkStatus(_network_status)
 	def unsolCRING(self, _name, *values):
 		LOG(LOG_DEBUG, __name__, 'ring', *values)
-		_network_status = dict(self._network_status, 
+		_network_status = dict(self._network_status,
 			phone_activity_status=3,
 			)
 		#if _network_status != self._network_status:
-		self.NetworkStatus(_network_status)
+		#self.NetworkStatus(_network_status)
 	def responseCOLP(self, _name, number, type, subaddr=Empty, satype=Empty, alpha=Empty, cli_validity=Empty, ):
 		LOG(LOG_DEBUG, __name__, 'connected line identification presentation', number, type, subaddr, satype, alpha, cli_validity)
-		_network_status = dict(self._network_status, 
+		_network_status = dict(self._network_status,
 			number=number,
 			type=type,
 			subaddr=subaddr,
 			satype=satype,
 			alpha=alpha,
-			validity=cli_validity, 
+			validity=cli_validity,
 			)
 		#if _network_status != self._network_status:
 		self.NetworkStatus(_network_status)
@@ -404,20 +404,20 @@ class GenericModem(MuxedLines):
 		self.request(GsmCommand('%s\r\n\x1a'% text), timeout=20000, parser=parser)
 
 	def phonebook_list_all(self, response, error):
-		self.request('+CPBF=""', timeout=5000, parser=MultilineParser(response, error)) # Find phonebook entries 
+		self.request('+CPBF=""', timeout=5000, parser=MultilineParser(response, error)) # Find phonebook entries
 
 	def phonebook_get(self, idx, response, error):
 		#self.request('+CPBS=""') # select phonebook storage
-		self.request('+CPBR=%s'% idx, timeout=5000, parser=StandardParser(response, error)) # Read phonebook entries 
+		self.request('+CPBR=%s'% idx, timeout=5000, parser=StandardParser(response, error)) # Read phonebook entries
 
 	def phonebook_delete(self, idx, response, error):
-		self.request('+CPBR', timeout=5000, parser=StandardParser(response, error)) # Read phonebook entries 
+		self.request('+CPBR', timeout=5000, parser=StandardParser(response, error)) # Read phonebook entries
 
 	def phone_store(self, idx, number, text, response, error):
 		type = number[0] == '+' and 145 or 129
-		self.request('+CPBW=%d,"%s",%d,"%s"'% (idx, number, type, name, ), timeout=5000, parser=StandardParser(response, error)) # Write phonebook entry 
+		self.request('+CPBW=%d,"%s",%d,"%s"'% (idx, number, type, name, ), timeout=5000, parser=StandardParser(response, error)) # Write phonebook entry
 
-#self.request('+CPBS', parser=StandardParser(response, error)) # Select phonebook memory storage 
+#self.request('+CPBS', parser=StandardParser(response, error)) # Select phonebook memory storage
 #from datetime import datetime
 #if not c:
 #	c = datetime.now()
