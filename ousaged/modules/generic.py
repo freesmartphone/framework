@@ -26,6 +26,8 @@ class AbstractResource( object ):
         self.usageControl = usageControl
         self.name = "Abstract"
         self.users = []
+        self.policy = 'auto'
+        self.isEnabled = False
 
     def _enable( self ):
         pass
@@ -33,19 +35,33 @@ class AbstractResource( object ):
     def _disable( self ):
         pass
 
+    def _update( self ):
+        if not self.isEnabled and (self.users or self.policy == 'enabled'):
+            self._enable()
+            self.isEnabled = True
+            self.usageControl.ResourceChanged( self.name, True )
+        elif self.isEnabled and not (self.users or self.policy == 'enabled'):
+            self._disable()
+            self.isEnabled = False
+            self.usageControl.ResourceChanged( self.name, False )
+
+    def setPolicy( self, policy ):
+        assert policy in ['disabled', 'auto', 'enabled'], "Unknown policy %s" % ( policy )
+        if self.isEnabled:
+            assert policy in ['auto', 'enabled'], "Can't change to policy %s for %s" % ( policy, self.name )
+        self.policy = policy
+        self._update()
+
     def request( self, user ):
+        assert self.policy in ['auto', 'enabled'], "Request for %s is not allowed" % ( self.name )
         assert user not in self.users, "User %s already requested %s" % ( user, self.name )
         self.users.append( user )
-        if len( self.users ) == 1:
-            self._enable()
-            self.usageControl.ResourceChanged( self.name, True )
+        self._update()
 
     def release( self, user ):
         assert user in self.users, "User %s did non request %s before releasing it" % ( user, self.name )
         self.users.remove( user )
-        if len( self.users ) == 0:
-            self._disable()
-            self.usageControl.ResourceChanged( self.name, False )
+        self._update()
 
     def cleanup( self, user ):
         if user in self.users:
@@ -103,6 +119,14 @@ class GenericUsageControl( dbus.service.Object ):
     @dbus.service.method( DBUS_INTERFACE, "s", "as" )
     def GetResourceUsers( self, resourcename ):
         return self.resources[resourcename].users
+
+    @dbus.service.method( DBUS_INTERFACE, "s", "s" )
+    def GetResourcePolicy( self, resourcename ):
+        return self.resources[resourcename].policy
+
+    @dbus.service.method( DBUS_INTERFACE, "ss", "" )
+    def SetResourcePolicy( self, resourcename, policy ):
+        self.resources[resourcename].setPolicy( policy )
 
     @dbus.service.method( DBUS_INTERFACE, "s", "b", sender_keyword='sender' )
     def RequestResource( self, resourcename, sender ):
