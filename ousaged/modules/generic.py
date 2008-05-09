@@ -159,3 +159,27 @@ def factory( prefix, bus, config ):
 if __name__ == "__main__":
     import dbus
     bus = dbus.SystemBus()
+
+    def requestInterfaceForObject( prefix, interface, object ):
+        proxy = bus.get_object( prefix, object )
+        #print( proxy.Introspect( dbus_interface = "org.freedesktop.DBus.Introspectable" ) )
+        iface = dbus.Interface( proxy, interface )
+        return iface
+
+    usage = requestInterfaceForObject( DBUS_INTERFACE_PREFIX, GenericUsageControl.DBUS_INTERFACE, DBUS_PATH_PREFIX )
+
+    print "Found resources:", usage.ListResources()
+    print "GSM users list:", usage.GetResourceUsers("GSM")
+    print "Requesting GSM..."
+    usage.RequestResource("GSM")
+    print "GSM users list:", usage.GetResourceUsers("GSM")
+    print "Releasing GSM..."
+    usage.ReleaseResource("GSM")
+    print "GSM users list:", usage.GetResourceUsers("GSM")
+    print "Disabling GSM..."
+    usage.SetResourcePolicy("GSM", "disabled")
+    print "Enabling GSM..."
+    usage.SetResourcePolicy("GSM", "enabled")
+    print "Setting GSM to auto..."
+    usage.SetResourcePolicy("GSM", "auto")
+
