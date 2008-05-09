@@ -39,28 +39,30 @@ class AbstractResource( object ):
         if not self.isEnabled and (self.users or self.policy == 'enabled'):
             self._enable()
             self.isEnabled = True
-            self.usageControl.ResourceChanged( self.name, True )
         elif self.isEnabled and not (self.users or self.policy == 'enabled'):
             self._disable()
             self.isEnabled = False
-            self.usageControl.ResourceChanged( self.name, False )
 
     def setPolicy( self, policy ):
         assert policy in ['disabled', 'auto', 'enabled'], "Unknown policy %s" % ( policy )
-        if self.isEnabled:
+        if self.users:
             assert policy in ['auto', 'enabled'], "Can't change to policy %s for %s" % ( policy, self.name )
-        self.policy = policy
-        self._update()
+        if self.policy != policy:
+            self.policy = policy
+            self.usageControl.ResourceChanged( self.name )
+            self._update()
 
     def request( self, user ):
         assert self.policy in ['auto', 'enabled'], "Request for %s is not allowed" % ( self.name )
         assert user not in self.users, "User %s already requested %s" % ( user, self.name )
         self.users.append( user )
+        self.usageControl.ResourceChanged( self.name )
         self._update()
 
     def release( self, user ):
         assert user in self.users, "User %s did non request %s before releasing it" % ( user, self.name )
         self.users.remove( user )
+        self.usageControl.ResourceChanged( self.name )
         self._update()
 
     def cleanup( self, user ):
@@ -120,6 +122,10 @@ class GenericUsageControl( dbus.service.Object ):
     def GetResourceUsers( self, resourcename ):
         return self.resources[resourcename].users
 
+    @dbus.service.method( DBUS_INTERFACE, "s", "b" )
+    def GetResourceState( self, resourcename ):
+        return self.resources[resourcename].isEnabled
+
     @dbus.service.method( DBUS_INTERFACE, "s", "s" )
     def GetResourcePolicy( self, resourcename ):
         return self.resources[resourcename].policy
@@ -140,9 +146,9 @@ class GenericUsageControl( dbus.service.Object ):
     #
     # dbus signals
     #
-    @dbus.service.signal( DBUS_INTERFACE, "sb" )
-    def ResourceChanged( self, resourcename, status ):
-        LOG( LOG_INFO, "%s has been %s" % (resourcename, "enabled" if status else "disabled" ) )
+    @dbus.service.signal( DBUS_INTERFACE, "s" )
+    def ResourceChanged( self, resourcename ):
+        pass
 
 #----------------------------------------------------------------------------#
 def factory( prefix, bus, config ):
