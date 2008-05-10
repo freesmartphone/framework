@@ -18,3 +18,4 @@ def phoneFactory( baseModemClass ):
                 LOG(LOG_WARNING, __name__, '__connect_to_dbus', e)
                 return True
     return GsmPhone
+

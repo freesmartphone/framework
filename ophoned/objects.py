@@ -1,3 +1,12 @@
+#!/usr/bin/env python
+"""
+The Open Device Daemon - Python Implementation
+
+(C) 2008 Michael 'Mickey' Lauer <mlauer@vanille-media.de>
+(C) 2008 Openmoko, Inc.
+GPLv2 or later
+"""
+
 import types
 import config
 from config import LOG, LOG_INFO, LOG_ERR, LOG_DEBUG

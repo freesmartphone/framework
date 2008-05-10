@@ -7,6 +7,7 @@ The Open Device Daemon - Python Implementation
 GPLv2 or later
 """
 
+import dbus
 import gobject
 import serial
 import Queue
@@ -48,8 +49,12 @@ class PeekholeQueue( Queue.Queue ):
 class VirtualChannel( object ):
 #=========================================================================#
     """
-    This class represents a virtual multiplexed channel
+    This class represents a serial channel
     over which GSM 07.07 / 07.05 (AT) commands are transported.
+
+    This class supports two modes:
+    * standalone (talking over a serial port of the modem)
+    * multiplexed (talking over a multiplexed virtual channel to the modem)
     """
 
     DEBUGLOG = 1
@@ -58,7 +63,7 @@ class VirtualChannel( object ):
     # public API
     #
     @loggedFunction
-    def __init__( self, bus, name=None ):
+    def __init__( self, bus, name=None, **kwargs ):
         """Construct"""
         self.name = name or self.__class__.__name__
         self.bus = bus
@@ -70,20 +75,16 @@ class VirtualChannel( object ):
         if VirtualChannel.DEBUGLOG:
             self.debugFile = open( "/tmp/%s.log" % self.name, "w" )
 
-    def _requestChannelPath( self ):
-        oMuxer = self.bus.get_object( "org.pyneo.muxer", "/org/pyneo/Muxer" )
-        self.iMuxer = dbus.Interface( oMuxer, "org.freesmartphone.GSM.MUX" )
-        return self.iMuxer.AllocChannel( self.name )
-
     @loggedFunction
-    def open( self ):
+    def open( self, path="MUX" ):
         """
         Allocate a virtual channel and open a serial port.
         Returns True, if successful. False, otherwise.
         """
         assert not self.connected, "already connected"
 
-        path = self._requestChannelPath()
+        if path == "MUX":
+            path = self._requestChannelPath()
         if not path:
             return False
 
@@ -104,7 +105,85 @@ class VirtualChannel( object ):
         # nonblocking
         # fcntl.fcntl( self.serial.fd, fcntl.F_SETFL, os.O_NONBLOCK )
 
-        # ugly hack wrt. modem lazy init... send \r\n until we actually get an OK
+        if not self._lowlevelInit():
+            return False
+
+        # set up I/O watches for mainloop
+        self.watchReadyToRead = gobject.io_add_watch( self.serial.fd, gobject.IO_IN, self._readyToRead )
+        self.watchReadyToSend = gobject.io_add_watch( self.serial.fd, gobject.IO_OUT, self._readyToSend )
+        self.watchHUP = gobject.io_add_watch( self.serial.fd, gobject.IO_HUP, self._hup )
+        self.connected = self.serial.isOpen()
+        return self.connected
+
+    def launchKeepAlive( self ):
+        """Setup a keep-alive timeout."""
+        if self.connected:
+            self.timeoutKeepAlive = gobject.timeout_add( 7000, self._modemKeepAlive )
+            self._modemKeepAlive()
+
+
+    def readyToRead( self, data ):
+        """
+        Called when a data block has been successfully received from the source.
+
+        The default implementation does nothing.
+        """
+        pass
+
+    def readyToSend( self ):
+        """
+        Called when the source is ready to receive data.
+
+        The default implementation does nothing.
+        """
+        pass
+
+    @loggedFunction
+    def write( self, data ):
+        """Write data to the modem."""
+        self._write( data )
+
+    @loggedFunction
+    def close( self ):
+        """
+        Close the serial port and free the virtual channel.
+        Returns True, if serial port could be closed. False, otherwise.
+        """
+        if not self.connected:
+            return True
+        if self.timeoutKeepAlive:
+            gobject.source_remove( self.timeoutKeepAlive )
+        if self.watchReadyToSend:
+            gobject.source_remove( self.watchReadyToSend )
+        if self.watchReadyToRead:
+            gobject.source_remove( self.watchReadyToRead )
+        if self.serial.isOpen():
+            self.serial.close()
+        self.connected = self.serial.isOpen()
+        return not self.connected
+
+    #
+    # private API
+    #
+    def _requestChannelPath( self ):
+        """Allocate a new channel from the MUXer."""
+        oMuxer = self.bus.get_object( "org.pyneo.muxer", "/org/pyneo/Muxer" )
+        self.iMuxer = dbus.Interface( oMuxer, "org.freesmartphone.GSM.MUX" )
+        return self.iMuxer.AllocChannel( self.name )
+
+    @loggedFunction
+    def _lowlevelInit( self ):
+        """
+        Low level initialization of channel.
+
+        This is actually an ugly hack which is unfortunately
+        necessary since some multiplexers in modems have problems
+        wrt. to initialization (swallowing first bunch of commands etc.)
+        To work around this, we send \r\n until we actually get an
+        'OK' from the modem. We try this for 5 times, then we reopen
+        the serial line. If after 10 times, we still have no response,
+        we assume that the modem is broken and fail.
+        """
         for i in itertools.count():
             print "(modem init... try #%d)" % ( i+1 )
             select.select( [], [self.serial.fd], [], 0.5 )
@@ -143,57 +222,11 @@ class VirtualChannel( object ):
                 return False
         print "(modem responding)"
         self.serial.flushInput()
+        return True
 
-        # set up I/O watches for mainloop
-        self.watchReadyToRead = gobject.io_add_watch( self.serial.fd, gobject.IO_IN, self._readyToRead )
-        self.watchReadyToSend = gobject.io_add_watch( self.serial.fd, gobject.IO_OUT, self._readyToSend )
-        self.watchHUP = gobject.io_add_watch( self.serial.fd, gobject.IO_HUP, self._hup )
-        self.connected = self.serial.isOpen()
-        return self.connected
-
-    def launchKeepAlive( self ):
-            if self.connected:
-                self.timeoutKeepAlive = gobject.timeout_add( 7000, self._modemKeepAlive )
-                self._modemKeepAlive()
-
-
-    def readyToRead( self, data ):
-        pass
-
-    def readyToSend( self ):
-        pass
-
-    @loggedFunction
-    def write( self, data ):
-        """
-        Write data to the modem.
-        """
-        self._write( data )
-
-    @loggedFunction
-    def close( self ):
-        """
-        Close the serial port and free the virtual channel.
-        Returns True, if serial port could be closed. False, otherwise.
-        """
-        if not self.connected:
-            return True
-        if self.timeoutKeepAlive:
-            gobject.source_remove( self.timeoutKeepAlive )
-        if self.watchReadyToSend:
-            gobject.source_remove( self.watchReadyToSend )
-        if self.watchReadyToRead:
-            gobject.source_remove( self.watchReadyToRead )
-        if self.serial.isOpen():
-            self.serial.close()
-        self.connected = self.serial.isOpen()
-        return not self.connected
-
-    #
-    # private API
-    #
     @loggedFunction
     def _hup( self, source, condition ):
+        """Called, if there is a HUP condition on the source."""
         assert source == self.serial.fd, "HUP on bogus source"
         assert condition == gobject.IO_HUP, "HUP on bogus condition"
         self.close()
@@ -201,7 +234,7 @@ class VirtualChannel( object ):
 
     @loggedFunction
     def _readyToRead( self, source, condition ):
-        """Data available"""
+        """Called, if data is available on the source."""
         assert source == self.serial.fd, "ready to read on bogus source"
         assert condition == gobject.IO_IN, "ready to read on bogus condition"
         try:
@@ -217,7 +250,7 @@ class VirtualChannel( object ):
 
     @loggedFunction
     def _readyToSend( self, source, condition ):
-        """Port ready to send"""
+        """Called, if source is ready to receive data."""
         assert source == self.serial.fd, "ready to write on bogus source"
         assert condition == gobject.IO_OUT, "ready to write on bogus condition"
         self.readyToSend()
@@ -249,6 +282,7 @@ class VirtualChannel( object ):
         self.close()
 
     def _modemKeepAlive( self, *args ):
+        """Send a carriage-return to the modem to keep it from falling asleep."""
         if self.connected:
             self.enqueue( "\r\n" )
         return True
@@ -256,34 +290,63 @@ class VirtualChannel( object ):
 #=========================================================================#
 class QueuedVirtualChannel( VirtualChannel ):
 #=========================================================================#
+    """
+    A virtual channel featuring a command queue.
+
+    Once you put a command into the command queue, it sets up a
+    watch on 'ready-to-send'. Once the watch triggers, one command
+    is taken out of the command queue and sent over the channel.
+
+    When the response arrives, the next command is taken out of the queue.
+    If there are no more commands, the 'ready-to-send' watch is removed.
+    """
+
     def __init__( self, *args, **kwargs ):
+        """Construct."""
         VirtualChannel.__init__( self, *args, **kwargs )
         self.q = PeekholeQueue()
 
         self.parser = parser.LowlevelAtParser( self._handleResponseToRequest, self._handleUnsolicitedResponse )
 
+        self.watchTimeout = None
+        if "timeout" in kwargs:
+            self.timeout = kwargs["timeout"]
+        else:
+            self.timeout = 5000 # 5 seconds default
+
     @loggedFunction
     def enqueue( self, data ):
+        """
+        Enqueue data block for sending over the channel.
+        """
         self.q.put( data )
         if not self.connected:
             return
         if self.q.qsize() == 1 and not self.watchReadyToSend:
             self.watchReadyToSend = gobject.io_add_watch( self.serial.fd, gobject.IO_OUT, self._readyToSend )
 
+    def pendingCommands( self ):
+        """Returns number of pending commands."""
+        return len( self.q.queue )
+
     @loggedFunction
     def readyToSend( self ):
+        """Reimplemented for internal purposes."""
         if self.q.empty():
             print "(nothing in request queue)"
+            self.watchReadyToSend = None
             return False
 
         print "(sending to port: %s)" % repr(self.q.peek())
         if VirtualChannel.DEBUGLOG:
             self.debugFile.write( self.q.peek() )
         self.serial.write( self.q.peek() )
+        self.watchTimeout = gobject.timeout_add( self.timeout, self._handleCommandTimeout )
         return False
 
     @loggedFunction
     def readyToRead( self, data ):
+        """Reimplemented for internal purposes."""
         self.parser.feed( data, not self.q.empty() )
 
     @loggedFunction
@@ -292,9 +355,18 @@ class QueuedVirtualChannel( VirtualChannel ):
 
     @loggedFunction
     def _handleResponseToRequest( self, response ):
+        # stop timer
+        assert self.watchTimeout, "timeout not set"
+        gobject.source_remove( self.watchTimeout )
+        self.watchTimeout = None
+        # handle response
         self.handleResponseToRequest( self.q.get().strip(), response )
         # relaunch
         self.watchReadyToSend = gobject.io_add_watch( self.serial.fd, gobject.IO_OUT, self._readyToSend )
+
+    @loggedFunction
+    def _handleCommandTimeout( self ):
+        self.handleCommandTimeout( self.q.get().strip() )
 
     def handleUnsolicitedResponse( self, response ):
         print "(unsolicited data incoming: %s)" % response
@@ -302,20 +374,23 @@ class QueuedVirtualChannel( VirtualChannel ):
     def handleResponseToRequest( self, request, response ):
         print "(COMPLETED %s => %s)" % ( request, response )
 
+    def handleCommandTimeout( self, request ):
+        print "(TIMEOUT '%s' => ???)" % ( request )
+
 #=========================================================================#
 class AtCommandChannel( QueuedVirtualChannel ):
 #=========================================================================#
-
     @loggedFunction
     def enqueue( self, command ):
-        self.q.put( "AT%s\r\n" % command )
+        # self.q.put( "AT%s\r\n" % command )
+        self.q.put( "\r\nAT%s\r\n" % command )
         if not self.connected:
             return
-        if self.q.qsize() == 1 and not self.watchReadyToSend:
+        if not self.watchReadyToSend:
             self.watchReadyToSend = gobject.io_add_watch( self.serial.fd, gobject.IO_OUT, self._readyToSend )
 
 #=========================================================================#
-class GenericModem( AtCommandChannel ):
+class GenericModemChannel( AtCommandChannel ):
 #=========================================================================#
     def __init__( self, *args, **kwargs ):
         QueuedVirtualChannel.__init__( self, *args, **kwargs )
@@ -326,16 +401,11 @@ class GenericModem( AtCommandChannel ):
         self.enqueue('+CRC=1') # cellular result codes, enable extended format
 
 #=========================================================================#
-class UnsolicitedResponseChannel( GenericModem ):
+class UnsolicitedResponseChannel( GenericModemChannel ):
 #=========================================================================#
 
-    # idea: put something into the command queue,
-    # if the command queue was empty before, it requests
-    # the clear to send, then sends a request on every clear-to-send
-    # if the queue is empty, disable the watch for clear to send
-
     def __init__( self, *args, **kwargs ):
-        GenericModem.__init__( self, *args, **kwargs )
+        GenericModemChannel.__init__( self, *args, **kwargs )
 
         self.enqueue('+CREG=2') # enable network registration and location information unsolicited result code
         self.enqueue('+CLIP=1') # calling line identification presentation enable
@@ -351,9 +421,9 @@ class UnsolicitedResponseChannel( GenericModem ):
         else:
             self.callback = self
 
-        self.prefixmap = { '+': 'plus', '%': 'percent', '@': 'at' }
+        self.prefixmap = { '+': 'plus', '%': 'percent', '@': 'at', '/': 'slash', '#': 'hash' }
 
-    # FIXME: Think about chain of command pattern here when handling AT responses
+    # FIXME: Consider chain of command pattern here when handling AT responses
     @loggedFunction
     def handleUnsolicitedResponse( self, data ):
         if not data.startswith( '+' ):
@@ -385,12 +455,14 @@ def cleanup( *args, **kwargs ):
 if __name__ == "__main__":
     import dbus
     bus = dbus.SystemBus()
-    v = GenericModem( bus )
+
+    a = GenericModemChannel( bus, timeout=5000 )
+    b = GenericModemChannel( bus, timeout=10000 )
+    u = UnsolicitedResponseChannel( bus )
+
     gobject.threads_init()
     import thread
     thread.start_new_thread( run, () )
-
-    u = UnsolicitedResponseChannel( bus )
 
     import atexit
     atexit.register( cleanup, () )
