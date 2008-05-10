@@ -5,7 +5,7 @@ sys.path.append( ".." )
 try:
     from config import LOG
 except ImportError:
-    from odeviced.config import LOG
+    from ousaged.config import LOG
 sys.path = realpath[:]
 
 # helpers
