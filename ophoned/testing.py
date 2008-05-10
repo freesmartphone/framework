@@ -13,8 +13,11 @@ import Queue
 import select
 import itertools
 import fcntl, os
+import parser
 
+#=========================================================================#
 def loggedFunction( fn ):
+#=========================================================================#
     """
     This decorator logs the name of a function or, if applicable,
     a method including the classname.
@@ -31,6 +34,15 @@ def loggedFunction( fn ):
         print "%s> %s.%s: LEAVE" % ( '|...' * calldepth, classname, fn.__name__ )
         return result
     return logIt
+
+#=========================================================================#
+class PeekholeQueue( Queue.Queue ):
+#=========================================================================#
+    def peek( self ):
+        if self.empty():
+            return None
+        else:
+            return self.queue[0]
 
 #=========================================================================#
 class VirtualChannel( object ):
@@ -130,7 +142,7 @@ class VirtualChannel( object ):
                 self.serial.close()
                 return False
         print "(modem responding)"
-        #self.serial.flushInput()
+        self.serial.flushInput()
 
         # set up I/O watches for mainloop
         self.watchReadyToRead = gobject.io_add_watch( self.serial.fd, gobject.IO_IN, self._readyToRead )
@@ -246,11 +258,13 @@ class QueuedVirtualChannel( VirtualChannel ):
 #=========================================================================#
     def __init__( self, *args, **kwargs ):
         VirtualChannel.__init__( self, *args, **kwargs )
-        self.q = Queue.Queue()
+        self.q = PeekholeQueue()
+
+        self.parser = parser.LowlevelAtParser( self._handleResponseToRequest, self._handleUnsolicitedResponse )
 
     @loggedFunction
-    def enqueue( self, command ):
-        self.q.put( "AT%s\r\n" % command )
+    def enqueue( self, data ):
+        self.q.put( data )
         if not self.connected:
             return
         if self.q.qsize() == 1 and not self.watchReadyToSend:
@@ -260,23 +274,48 @@ class QueuedVirtualChannel( VirtualChannel ):
     def readyToSend( self ):
         if self.q.empty():
             print "(nothing in request queue)"
-            return
+            return False
 
-        print "(sending to port: %s)" % repr(self.q.queue[0])
+        print "(sending to port: %s)" % repr(self.q.peek())
         if VirtualChannel.DEBUGLOG:
-            self.debugFile.write( self.q.queue[0] )
-        self.serial.write( self.q.queue[0] )
+            self.debugFile.write( self.q.peek() )
+        self.serial.write( self.q.peek() )
+        return False
 
     @loggedFunction
     def readyToRead( self, data ):
-        if self.q.empty():
-            print "=> unsolicited message: '%s'" % ( data.strip() )
-        else:
-            print "=> AT command '%s' received '%s' as response" % ( self.q.get().strip(), data.strip() )
+        self.parser.feed( data, not self.q.empty() )
+
+    @loggedFunction
+    def _handleUnsolicitedResponse( self, response ):
+        self.handleUnsolicitedResponse( response )
+
+    @loggedFunction
+    def _handleResponseToRequest( self, response ):
+        self.handleResponseToRequest( self.q.get().strip(), response )
+        # relaunch
+        self.watchReadyToSend = gobject.io_add_watch( self.serial.fd, gobject.IO_OUT, self._readyToSend )
+
+    def handleUnsolicitedResponse( self, response ):
+        print "(unsolicited data incoming: %s)" % response
+
+    def handleResponseToRequest( self, request, response ):
+        print "(COMPLETED %s => %s)" % ( request, response )
+
+#=========================================================================#
+class AtCommandChannel( QueuedVirtualChannel ):
+#=========================================================================#
+
+    @loggedFunction
+    def enqueue( self, command ):
+        self.q.put( "AT%s\r\n" % command )
+        if not self.connected:
+            return
+        if self.q.qsize() == 1 and not self.watchReadyToSend:
             self.watchReadyToSend = gobject.io_add_watch( self.serial.fd, gobject.IO_OUT, self._readyToSend )
 
 #=========================================================================#
-class GenericModem( QueuedVirtualChannel ):
+class GenericModem( AtCommandChannel ):
 #=========================================================================#
     def __init__( self, *args, **kwargs ):
         QueuedVirtualChannel.__init__( self, *args, **kwargs )
@@ -306,6 +345,33 @@ class UnsolicitedResponseChannel( GenericModem ):
         self.enqueue('+CSNS=0') # single numbering scheme: voice
         self.enqueue('+CTZU=1') # timezone update
         self.enqueue('+CTZR=1') # timezone reporting
+
+        if "callback" in kwargs:
+            self.callback = kwargs["callback"]
+        else:
+            self.callback = self
+
+        self.prefixmap = { '+': 'plus', '%': 'percent', '@': 'at' }
+
+    # FIXME: Think about chain of command pattern here when handling AT responses
+    @loggedFunction
+    def handleUnsolicitedResponse( self, data ):
+        if not data.startswith( '+' ):
+            return False
+        if not ':':
+            return False
+        command, values = data.split( ':', 1 )
+
+        methodname = "%s%s" % ( self.prefixmap[command[0]], command[1:] )
+
+        if not hasattr( self.callback, methodname ):
+            return False
+
+        getattr( self.callback, methodname )( values )
+        return True
+
+    def plusCREG( self, values ):
+        print "REGISTRATION STATUS:", values
 
 def run():
     from dbus.mainloop.glib import DBusGMainLoop
