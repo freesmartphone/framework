@@ -15,26 +15,7 @@ import select
 import itertools
 import fcntl, os
 import parser
-
-#=========================================================================#
-def loggedFunction( fn ):
-#=========================================================================#
-    """
-    This decorator logs the name of a function or, if applicable,
-    a method including the classname.
-    """
-    import inspect
-    def logIt( *args, **kwargs ):
-        calldepth = len( inspect.stack() )
-        try:
-            classname = args[0].__class__.__name__
-        except AttributeError:
-            classname = ""
-        print "%s> %s.%s: ENTER" % ( '|...' * calldepth, classname, fn.__name__ )
-        result = fn( *args, **kwargs )
-        print "%s> %s.%s: LEAVE" % ( '|...' * calldepth, classname, fn.__name__ )
-        return result
-    return logIt
+from decor import logged
 
 #=========================================================================#
 class PeekholeQueue( Queue.Queue ):
@@ -62,7 +43,7 @@ class VirtualChannel( object ):
     #
     # public API
     #
-    @loggedFunction
+    @logged
     def __init__( self, bus, name=None, **kwargs ):
         """Construct"""
         self.name = name or self.__class__.__name__
@@ -75,7 +56,7 @@ class VirtualChannel( object ):
         if VirtualChannel.DEBUGLOG:
             self.debugFile = open( "/tmp/%s.log" % self.name, "w" )
 
-    @loggedFunction
+    @logged
     def open( self, path="MUX" ):
         """
         Allocate a virtual channel and open a serial port.
@@ -138,12 +119,12 @@ class VirtualChannel( object ):
         """
         pass
 
-    @loggedFunction
+    @logged
     def write( self, data ):
         """Write data to the modem."""
         self._write( data )
 
-    @loggedFunction
+    @logged
     def close( self ):
         """
         Close the serial port and free the virtual channel.
@@ -171,7 +152,7 @@ class VirtualChannel( object ):
         self.iMuxer = dbus.Interface( oMuxer, "org.freesmartphone.GSM.MUX" )
         return self.iMuxer.AllocChannel( self.name )
 
-    @loggedFunction
+    @logged
     def _lowlevelInit( self ):
         """
         Low level initialization of channel.
@@ -224,7 +205,7 @@ class VirtualChannel( object ):
         self.serial.flushInput()
         return True
 
-    @loggedFunction
+    @logged
     def _hup( self, source, condition ):
         """Called, if there is a HUP condition on the source."""
         assert source == self.serial.fd, "HUP on bogus source"
@@ -232,7 +213,7 @@ class VirtualChannel( object ):
         self.close()
         # TODO add restart functionality ?
 
-    @loggedFunction
+    @logged
     def _readyToRead( self, source, condition ):
         """Called, if data is available on the source."""
         assert source == self.serial.fd, "ready to read on bogus source"
@@ -248,7 +229,7 @@ class VirtualChannel( object ):
         self.readyToRead( data )
         return True
 
-    @loggedFunction
+    @logged
     def _readyToSend( self, source, condition ):
         """Called, if source is ready to receive data."""
         assert source == self.serial.fd, "ready to write on bogus source"
@@ -276,7 +257,7 @@ class VirtualChannel( object ):
     else:
         _write = _slowButCorrectWrite
 
-    @loggedFunction
+    @logged
     def __del__( self ):
         """Destruct"""
         self.close()
@@ -314,12 +295,12 @@ class QueuedVirtualChannel( VirtualChannel ):
         else:
             self.timeout = 5000 # 5 seconds default
 
-    @loggedFunction
-    def enqueue( self, data ):
+    @logged
+    def enqueue( self, data, response_cb=None, error_cb=None ):
         """
         Enqueue data block for sending over the channel.
         """
-        self.q.put( data )
+        self.q.put( ( data, response_cb, error_cb ) )
         if not self.connected:
             return
         if self.q.qsize() == 1 and not self.watchReadyToSend:
@@ -329,7 +310,7 @@ class QueuedVirtualChannel( VirtualChannel ):
         """Returns number of pending commands."""
         return len( self.q.queue )
 
-    @loggedFunction
+    @logged
     def readyToSend( self ):
         """Reimplemented for internal purposes."""
         if self.q.empty():
@@ -339,51 +320,60 @@ class QueuedVirtualChannel( VirtualChannel ):
 
         print "(sending to port: %s)" % repr(self.q.peek())
         if VirtualChannel.DEBUGLOG:
-            self.debugFile.write( self.q.peek() )
-        self.serial.write( self.q.peek() )
+            self.debugFile.write( self.q.peek()[0] )
+        self.serial.write( self.q.peek()[0] )
         self.watchTimeout = gobject.timeout_add( self.timeout, self._handleCommandTimeout )
         return False
 
-    @loggedFunction
+    @logged
     def readyToRead( self, data ):
         """Reimplemented for internal purposes."""
         self.parser.feed( data, not self.q.empty() )
 
-    @loggedFunction
+    @logged
     def _handleUnsolicitedResponse( self, response ):
         self.handleUnsolicitedResponse( response )
 
-    @loggedFunction
+    @logged
     def _handleResponseToRequest( self, response ):
         # stop timer
         assert self.watchTimeout, "timeout not set"
         gobject.source_remove( self.watchTimeout )
         self.watchTimeout = None
         # handle response
-        self.handleResponseToRequest( self.q.get().strip(), response )
+        self.handleResponseToRequest( self.q.get(), response )
         # relaunch
         self.watchReadyToSend = gobject.io_add_watch( self.serial.fd, gobject.IO_OUT, self._readyToSend )
 
-    @loggedFunction
+    @logged
     def _handleCommandTimeout( self ):
-        self.handleCommandTimeout( self.q.get().strip() )
+        self.handleCommandTimeout( self.q.get() )
 
     def handleUnsolicitedResponse( self, response ):
         print "(unsolicited data incoming: %s)" % response
 
     def handleResponseToRequest( self, request, response ):
-        print "(COMPLETED %s => %s)" % ( request, response )
+        reqstring, ok_cb, error_cb = request
+        if not ok_cb and not error_cb:
+            print "(COMPLETED '%s' => %s)" % ( reqstring.strip(), response )
+        else:
+            ok_cb( reqstring.strip(), response )
 
     def handleCommandTimeout( self, request ):
-        print "(TIMEOUT '%s' => ???)" % ( request )
+        reqstring, ok_cb, error_cb = request
+        if not ok_cb and not error_cb:
+            print "(TIMEOUT '%s' => ???)" % ( reqstring.strip(), request )
+        else:
+            error_cb( reqstring.strip(), "modem timeout: %d" % self.timeout )
 
 #=========================================================================#
 class AtCommandChannel( QueuedVirtualChannel ):
 #=========================================================================#
-    @loggedFunction
-    def enqueue( self, command ):
+    @logged
+    def enqueue( self, command, response_cb=None, error_cb=None ):
         # self.q.put( "AT%s\r\n" % command )
-        self.q.put( "\r\nAT%s\r\n" % command )
+        # send \r\n beforehand?
+        self.q.put( ( ( "AT%s\r\n" % command ), response_cb, error_cb ) )
         if not self.connected:
             return
         if not self.watchReadyToSend:
@@ -424,7 +414,7 @@ class UnsolicitedResponseChannel( GenericModemChannel ):
         self.prefixmap = { '+': 'plus', '%': 'percent', '@': 'at', '/': 'slash', '#': 'hash' }
 
     # FIXME: Consider chain of command pattern here when handling AT responses
-    @loggedFunction
+    @logged
     def handleUnsolicitedResponse( self, data ):
         if not data.startswith( '+' ):
             return False
