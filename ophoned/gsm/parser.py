@@ -12,6 +12,7 @@ Parser Module
 
 #=========================================================================#
 class LowlevelAtParser( object ):
+#=========================================================================#
     """
     A really simple lowlevel AT response parser.
 
@@ -27,7 +28,6 @@ class LowlevelAtParser( object ):
     * Handle multiline requests
     * Seamless handover to binary mode parsers
     """
-#=========================================================================#
 
     def __init__( self, response, unsolicited ):
         self.response = response
@@ -47,7 +47,8 @@ class LowlevelAtParser( object ):
                         self.lines = []
                     else:
                         self.lines.append( self.curline )
-                        if self.curline == "OK" or self.curline == "ERROR" \
+                        if self.curline == "OK" \
+                            or self.curline == "ERROR" \
                             or self.curline.startswith( "+CME ERROR" ) \
                             or self.curline.startswith( "+CMS ERROR" ) \
                             or self.curline.startswith( "BUSY" ) \

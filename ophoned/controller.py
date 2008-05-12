@@ -40,7 +40,7 @@ class Controller( object ):
         return False
 
     def timeout( self ):
-        print( "alive and kicking" )
+        print( "ophoned: alive and kicking" )
         return True
 
     def run( self ):

@@ -13,10 +13,8 @@ from config import LOG, LOG_INFO, LOG_ERR, LOG_DEBUG
 import dbus
 import dbus.service
 from dbus import DBusException
-from gsm import channel
+from gsm import channel, mediator
 from gobject import timeout_add, idle_add
-
-from gsm import mediator
 
 DBUS_INTERFACE_DEVICE = "org.freesmartphone.GSM.Device"
 DBUS_INTERFACE_SIM = "org.freesmartphone.GSM.Sim"
@@ -26,7 +24,9 @@ DBUS_INTERFACE_CALL = "org.freesmartphone.GSM.Call"
 DBUS_INTERFACE_SERVER = "org.freesmartphone.GSM.Server"
 DBUS_INTERFACE_TEST = "org.freesmartphone.test"
 
+#=========================================================================#
 class Server( dbus.service.Object ):
+#=========================================================================#
     DBUS_INTERFACE = "%s.%s" % ( config.DBUS_INTERFACE_PREFIX, "Server" )
 
     def __init__( self, bus, device ):
@@ -48,7 +48,9 @@ class Server( dbus.service.Object ):
     def Bar( self ):
         return "bar"
 
+#=========================================================================#
 class AbstractAsyncResponse( object ):
+#=========================================================================#
     def __init__( self, dbus_result, dbus_error ):
         self.dbus_result = dbus_result
         self.dbus_error = dbus_error
@@ -69,7 +71,9 @@ class AbstractAsyncResponse( object ):
     def __del__( self ):
         print "(async response object %s destroyed)" % self
 
+#=========================================================================#
 class AsyncResponseNone( AbstractAsyncResponse ):
+#=========================================================================#
     def handleResult( self, *args ):
         self.dbus_result( None )
     def handleError( self, *args ):
@@ -77,11 +81,15 @@ class AsyncResponseNone( AbstractAsyncResponse ):
         e = DBusException( "foo", "bar", "yo", "offenbar beliebig viele Parameter".split() )
         self.dbus_error( e )
 
+#=========================================================================#
 class AsyncResponseBool( AbstractAsyncResponse ) :
+#=========================================================================#
     def handleResult( self, answer, result ):
         self.dbus_result( result == 1 )
 
+#=========================================================================#
 class AsyncMultipleResponseDict( AbstractAsyncResponse ):
+#=========================================================================#
     def __init__( self, dbus_result, dbus_error ):
         AbstractAsyncResponse.__init__( self, dbus_result, dbus_error )
         self.expected = {}
@@ -103,7 +111,9 @@ class AsyncMultipleResponseDict( AbstractAsyncResponse ):
         if not self.expected:
             self.dbus_result( self.result )
 
+#=========================================================================#
 class Device( dbus.service.Object ):
+#=========================================================================#
     DBUS_INTERFACE = "%s.%s" % ( config.DBUS_INTERFACE_PREFIX, "Device" )
 
     def __init__( self, bus, modemClass ):
@@ -149,13 +159,16 @@ class Device( dbus.service.Object ):
     #
     def _initChannels( self ):
         for channel in self.channels:
+            print "trying to open", repr(channel)
             if not channel.isOpen():
                 if not channel.open():
                     LOG( LOG_ERR, "could not open channel %s - retrying in 2 seconds" % repr(channel) )
                     gobject.timeout_add( 2000, self._initChannel )
         return False
 
+#=========================================================================#
 if __name__ == "__main__":
+#=========================================================================#
     import dbus
     bus = dbus.SystemBus()
 

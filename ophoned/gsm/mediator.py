@@ -11,23 +11,45 @@ from decor import logged
 import error
 
 #=========================================================================#
-class DeviceGetInfo( object ):
+class AbstractMediator( object ):
 #=========================================================================#
-
     @logged
     def __init__( self, dbus_object, dbus_ok, dbus_error ):
         self.object = dbus_object
         self.ok = dbus_ok
         self.error = dbus_error
+        self.trigger()
 
-        assert hasattr( dbus_object, "channel" ), "dbus server object not properly configured"
+    def trigger( self ):
+        assert False, "pure virtual function called"
 
+    @logged
+    def __del__( self, *args, **kwargs ):
+        pass
+
+    def _rightHandSide( self, line ):
+        try:
+            result = line.split( ':', 1 )[1]
+        except IndexError:
+            result = line
+        return result.strip( '" ' )
+
+#=========================================================================#
+class DeviceGetInfo( AbstractMediator ):
+#=========================================================================#
+    def trigger( self ):
         self.object.channel.enqueue( "+CGMR;+CGMM;+CGMI;+CGSN", self.responseFromChannel, self.errorFromChannel )
 
     @logged
     def responseFromChannel( self, request, response ):
-        print "*** got response to", request, "from Channel", response
-        self.ok( {"response": response} )
+        assert response[-1] == "OK"
+        assert len( response ) == 5
+        result = {}
+        result.update( revision=self._rightHandSide( response[0] ),
+                       model=self._rightHandSide( response[1] ),
+                       manufacturer=self._rightHandSide( response[2] ),
+                       imei=self._rightHandSide( response[3] ) )
+        self.ok( result )
 
     @logged
     def errorFromChannel( self, request, error ):
@@ -35,11 +57,7 @@ class DeviceGetInfo( object ):
         if category == "timeout":
             self.error( error.DeviceTimeout( "device did not answer within %dms" % details ) )
         else:
-            self.error( DeviceException( "Unknown", "%s, %s" % ( category, repr(details ) ) ) )
-
-    @logged
-    def __del__( self, *args, **kwargs ):
-        pass
+            self.error( error.DeviceFailed( "%s: %s" % ( category, repr(details ) ) ) )
 
 #=========================================================================#
 def enableModemExtensions( modem ):

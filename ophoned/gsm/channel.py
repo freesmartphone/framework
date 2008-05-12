@@ -218,7 +218,7 @@ class VirtualChannel( object ):
         except IOError:
             inWaiting = 0
         data = self.serial.read( inWaiting )
-        print "got %d bytes: %s" % ( len(data), repr(data) )
+        print "(%s: got %d bytes: %s)" % ( repr(self), len(data), repr(data) )
         if VirtualChannel.DEBUGLOG:
             self.debugFile.write( data )
         self.readyToRead( data )
@@ -310,11 +310,11 @@ class QueuedVirtualChannel( VirtualChannel ):
     def readyToSend( self ):
         """Reimplemented for internal purposes."""
         if self.q.empty():
-            print "(nothing in request queue)"
+            print "(%s: nothing in request queue)" % repr(self)
             self.watchReadyToSend = None
             return False
 
-        print "(sending to port: %s)" % repr(self.q.peek()[0])
+        print "(%s: sending to port: %s)" % ( repr(self), repr(self.q.peek()[0]) )
         if VirtualChannel.DEBUGLOG:
             self.debugFile.write( self.q.peek()[0] )
         self.serial.write( self.q.peek()[0] )
@@ -347,22 +347,22 @@ class QueuedVirtualChannel( VirtualChannel ):
         self.handleCommandTimeout( self.q.get() )
 
     def handleUnsolicitedResponse( self, response ):
-        print "(unsolicited data incoming: %s)" % response
+        print "(%s: unsolicited data incoming: %s)" % ( repr(self), response )
 
     def handleResponseToRequest( self, request, response ):
         reqstring, ok_cb, error_cb = request
         if not ok_cb and not error_cb:
-            print "(COMPLETED '%s' => %s)" % ( reqstring.strip(), response )
+            print "(%s: COMPLETED '%s' => %s)" % ( repr(self), reqstring.strip(), response )
         else:
-            print "(COMPLETED '%s' => %s)" % ( reqstring.strip(), response )
+            print "(%s: COMPLETED '%s' => %s)" % ( repr(self), reqstring.strip(), response )
             ok_cb( reqstring.strip(), response )
 
     def handleCommandTimeout( self, request ):
         reqstring, ok_cb, error_cb = request
         if not ok_cb and not error_cb:
-            print "(TIMEOUT '%s' => ???)" % ( reqstring.strip() )
+            print "(%s: TIMEOUT '%s' => ???)" % ( repr(self), reqstring.strip() )
         else:
-            print "(TIMEOUT '%s' => ???)" % ( reqstring.strip() )
+            print "(%s: TIMEOUT '%s' => ???)" % ( repr(self), reqstring.strip() )
             error_cb( reqstring.strip(), ( "timeout", self.timeout ) )
 
 #=========================================================================#
@@ -403,7 +403,7 @@ class KeepAliveChannel( AtCommandChannel ):
         self._modemKeepAlive()
 
     def _modemKeepAlive( self, *args ):
-        """Send a carriage-return to the modem to keep it from falling asleep."""
+        """Send a keep-alive-command to the modem to keep it from falling asleep."""
         if self.connected and ( self.keepAliveCommand is not None ):
             self.enqueue( self.keepAliveCommand )
         return True
@@ -451,37 +451,38 @@ class UnsolicitedResponseChannel( GenericModemChannel ):
     def plusCREG( self, values ):
         print "REGISTRATION STATUS:", values
 
-def run():
-    from dbus.mainloop.glib import DBusGMainLoop
-    DBusGMainLoop( set_as_default=True )
-    run.mainloop = gobject.MainLoop()
-    run.mainloop.run()
-
-def cleanup( *args, **kwargs ):
-    run.mainloop.quit()
-
-def reader( serport ):
-    while True:
-        data = serport.read()
-        print ">>>>>>>>>>>>> GOT %d bytes '%s'" % ( len(data), repr(data) )
+#=========================================================================#
+# testing stuff here
+#=========================================================================#
 
 def launchReadThread( serport ):
     import thread
     thread.start_new_thread( reader, (serport,) )
 
 if __name__ == "__main__":
-    import dbus
-    bus = dbus.SystemBus()
+    import dbus, sys, thread, atexit
 
+    def run():
+        dbus.mainloop.glib.DBusGMainLoop( set_as_default=True )
+        run.mainloop = gobject.MainLoop()
+        run.mainloop.run()
+
+    def cleanup( *args, **kwargs ):
+        run.mainloop.quit()
+
+    def reader( serport ):
+        while True:
+            data = serport.read()
+            print ">>>>>>>>>>>>> GOT %d bytes '%s'" % ( len(data), repr(data) )
+
+    bus = dbus.SystemBus()
     a = GenericModemChannel( bus, timeout=5000 )
     k = KeepAliveChannel( bus, timeout=0 ) # we don't care
     b = GenericModemChannel( bus, timeout=10000 )
     u = UnsolicitedResponseChannel( bus )
 
     gobject.threads_init()
-    import sys, thread
     if len( sys.argv ) == 1:
         thread.start_new_thread( run, () )
 
-    import atexit
     atexit.register( cleanup, () )

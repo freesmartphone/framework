@@ -7,13 +7,20 @@ The Open Device Daemon - Python Implementation
 GPLv2 or later
 """
 
+FUNCTION_DEBUG = False
+# FUNCTION_DEBUG = True
+
+from decorator import decorator
+
 #=========================================================================#
 def logged( fn ):
 #=========================================================================#
     """
-    This decorator logs the name of a function or, if applicable,
-    a method including the classname.
+    Decorator that logs the name of a function each time it is called.
+    If the function is a bound method, it also prints the classname.
     """
+    if not FUNCTION_DEBUG:
+        return fn
     import inspect
     def logIt( *args, **kwargs ):
         calldepth = len( inspect.stack() )
@@ -26,4 +33,3 @@ def logged( fn ):
         print "%s> %s.%s: LEAVE" % ( '|...' * calldepth, classname, fn.__name__ )
         return result
     return logIt
-
