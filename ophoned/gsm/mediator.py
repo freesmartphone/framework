@@ -8,6 +8,7 @@ GPLv2 or later
 """
 
 from decor import logged
+import error
 
 #=========================================================================#
 class DeviceGetInfo( object ):
@@ -29,9 +30,12 @@ class DeviceGetInfo( object ):
         self.ok( {"response": response} )
 
     @logged
-    def errorFromChannel( self, request, err ):
-        print "*** got error to", request, "from Channel", err
-        self.error( "timeout" )
+    def errorFromChannel( self, request, error ):
+        category, details = error
+        if category == "timeout":
+            self.error( error.DeviceTimeout( "device did not answer within %dms" % details ) )
+        else:
+            self.error( DeviceException( "Unknown", "%s, %s" % ( category, repr(details ) ) ) )
 
     @logged
     def __del__( self, *args, **kwargs ):

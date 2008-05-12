@@ -51,7 +51,7 @@ class VirtualChannel( object ):
         self.connected = False
         self.watchReadyToSend = None
         self.watchReadyToRead = None
-        self.timeoutKeepAlive = None
+        self.keepAliveCommand = None
 
         if VirtualChannel.DEBUGLOG:
             self.debugFile = open( "/tmp/%s.log" % self.name, "w" )
@@ -96,12 +96,8 @@ class VirtualChannel( object ):
         self.connected = self.serial.isOpen()
         return self.connected
 
-    def launchKeepAlive( self ):
-        """Setup a keep-alive timeout."""
-        if self.connected:
-            self.timeoutKeepAlive = gobject.timeout_add( 7000, self._modemKeepAlive )
-            self._modemKeepAlive()
-
+    def isOpen( self ):
+        return self.connected
 
     def readyToRead( self, data ):
         """
@@ -132,8 +128,6 @@ class VirtualChannel( object ):
         """
         if not self.connected:
             return True
-        if self.timeoutKeepAlive:
-            gobject.source_remove( self.timeoutKeepAlive )
         if self.watchReadyToSend:
             gobject.source_remove( self.watchReadyToSend )
         if self.watchReadyToRead:
@@ -211,6 +205,7 @@ class VirtualChannel( object ):
         assert source == self.serial.fd, "HUP on bogus source"
         assert condition == gobject.IO_HUP, "HUP on bogus condition"
         self.close()
+        self.mainloop.quit()
         # TODO add restart functionality ?
 
     @logged
@@ -262,12 +257,6 @@ class VirtualChannel( object ):
         """Destruct"""
         self.close()
 
-    def _modemKeepAlive( self, *args ):
-        """Send a carriage-return to the modem to keep it from falling asleep."""
-        if self.connected:
-            self.enqueue( "\r\n" )
-        return True
-
 #=========================================================================#
 class QueuedVirtualChannel( VirtualChannel ):
 #=========================================================================#
@@ -295,6 +284,11 @@ class QueuedVirtualChannel( VirtualChannel ):
         else:
             self.timeout = 5000 # 5 seconds default
 
+        if "wakeup" in kwargs:
+            self.wakeup = kwargs["wakeup"]
+        else:
+            self.wakeup = None # no wakeup necessary (default)
+
     @logged
     def enqueue( self, data, response_cb=None, error_cb=None ):
         """
@@ -304,10 +298,12 @@ class QueuedVirtualChannel( VirtualChannel ):
         if not self.connected:
             return
         if self.q.qsize() == 1 and not self.watchReadyToSend:
+            if self.wakeup:
+                self._lowlevelInit()
             self.watchReadyToSend = gobject.io_add_watch( self.serial.fd, gobject.IO_OUT, self._readyToSend )
 
     def pendingCommands( self ):
-        """Returns number of pending commands."""
+        """Return the number of pending commands."""
         return len( self.q.queue )
 
     @logged
@@ -318,11 +314,12 @@ class QueuedVirtualChannel( VirtualChannel ):
             self.watchReadyToSend = None
             return False
 
-        print "(sending to port: %s)" % repr(self.q.peek())
+        print "(sending to port: %s)" % repr(self.q.peek()[0])
         if VirtualChannel.DEBUGLOG:
             self.debugFile.write( self.q.peek()[0] )
         self.serial.write( self.q.peek()[0] )
-        self.watchTimeout = gobject.timeout_add( self.timeout, self._handleCommandTimeout )
+        if self.timeout:
+            self.watchTimeout = gobject.timeout_add( self.timeout, self._handleCommandTimeout )
         return False
 
     @logged
@@ -337,9 +334,9 @@ class QueuedVirtualChannel( VirtualChannel ):
     @logged
     def _handleResponseToRequest( self, response ):
         # stop timer
-        assert self.watchTimeout, "timeout not set"
-        gobject.source_remove( self.watchTimeout )
-        self.watchTimeout = None
+        if self.watchTimeout is not None:
+            gobject.source_remove( self.watchTimeout )
+            self.watchTimeout = None
         # handle response
         self.handleResponseToRequest( self.q.get(), response )
         # relaunch
@@ -357,27 +354,23 @@ class QueuedVirtualChannel( VirtualChannel ):
         if not ok_cb and not error_cb:
             print "(COMPLETED '%s' => %s)" % ( reqstring.strip(), response )
         else:
+            print "(COMPLETED '%s' => %s)" % ( reqstring.strip(), response )
             ok_cb( reqstring.strip(), response )
 
     def handleCommandTimeout( self, request ):
         reqstring, ok_cb, error_cb = request
         if not ok_cb and not error_cb:
-            print "(TIMEOUT '%s' => ???)" % ( reqstring.strip(), request )
+            print "(TIMEOUT '%s' => ???)" % ( reqstring.strip() )
         else:
-            error_cb( reqstring.strip(), "modem timeout: %d" % self.timeout )
+            print "(TIMEOUT '%s' => ???)" % ( reqstring.strip() )
+            error_cb( reqstring.strip(), ( "timeout", self.timeout ) )
 
 #=========================================================================#
 class AtCommandChannel( QueuedVirtualChannel ):
 #=========================================================================#
     @logged
     def enqueue( self, command, response_cb=None, error_cb=None ):
-        # self.q.put( "AT%s\r\n" % command )
-        # send \r\n beforehand?
-        self.q.put( ( ( "AT%s\r\n" % command ), response_cb, error_cb ) )
-        if not self.connected:
-            return
-        if not self.watchReadyToSend:
-            self.watchReadyToSend = gobject.io_add_watch( self.serial.fd, gobject.IO_OUT, self._readyToSend )
+        QueuedVirtualChannel.enqueue( self, "AT%s\r\n" % command, response_cb, error_cb )
 
 #=========================================================================#
 class GenericModemChannel( AtCommandChannel ):
@@ -389,6 +382,31 @@ class GenericModemChannel( AtCommandChannel ):
         self.enqueue('E0V1') # echo off, verbose result on
         self.enqueue('+CMEE=2') # report mobile equipment error
         self.enqueue('+CRC=1') # cellular result codes, enable extended format
+
+#=========================================================================#
+class KeepAliveChannel( AtCommandChannel ):
+#=========================================================================#
+    def __init__( self, *args, **kwargs ):
+        QueuedVirtualChannel.__init__( self, *args, **kwargs )
+
+        self.enqueue('Z') # soft reset
+        self.enqueue('E0V1') # echo off, verbose result on
+        self.enqueue('+CMEE=2') # report mobile equipment error
+        self.enqueue('+CRC=1') # cellular result codes, enable extended format
+
+        self.launchKeepAlive( 7000, "" )
+
+    def launchKeepAlive( self, timeout, command ):
+        """Setup a keep-alive timeout."""
+        self.keepAliveCommand = command
+        self.timeoutKeepAlive = gobject.timeout_add( timeout, self._modemKeepAlive )
+        self._modemKeepAlive()
+
+    def _modemKeepAlive( self, *args ):
+        """Send a carriage-return to the modem to keep it from falling asleep."""
+        if self.connected and ( self.keepAliveCommand is not None ):
+            self.enqueue( self.keepAliveCommand )
+        return True
 
 #=========================================================================#
 class UnsolicitedResponseChannel( GenericModemChannel ):
@@ -442,17 +460,28 @@ def run():
 def cleanup( *args, **kwargs ):
     run.mainloop.quit()
 
+def reader( serport ):
+    while True:
+        data = serport.read()
+        print ">>>>>>>>>>>>> GOT %d bytes '%s'" % ( len(data), repr(data) )
+
+def launchReadThread( serport ):
+    import thread
+    thread.start_new_thread( reader, (serport,) )
+
 if __name__ == "__main__":
     import dbus
     bus = dbus.SystemBus()
 
     a = GenericModemChannel( bus, timeout=5000 )
+    k = KeepAliveChannel( bus, timeout=0 ) # we don't care
     b = GenericModemChannel( bus, timeout=10000 )
     u = UnsolicitedResponseChannel( bus )
 
     gobject.threads_init()
-    import thread
-    thread.start_new_thread( run, () )
+    import sys, thread
+    if len( sys.argv ) == 1:
+        thread.start_new_thread( run, () )
 
     import atexit
     atexit.register( cleanup, () )

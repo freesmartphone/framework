@@ -41,11 +41,11 @@ class Server( dbus.service.Object ):
     # dbus
     #
     @dbus.service.method( DBUS_INTERFACE_TEST, "", "s" )
-    def GetVersion( self ):
+    def Foo( self ):
         return "foo"
 
     @dbus.service.method( DBUS_INTERFACE_SERVER, "", "s" )
-    def GetVersion( self ):
+    def Bar( self ):
         return "bar"
 
 class AbstractAsyncResponse( object ):
@@ -112,9 +112,14 @@ class Device( dbus.service.Object ):
         dbus.service.Object.__init__( self, bus, self.path )
         LOG( LOG_INFO, "%s initialized. Serving %s at %s" % ( self.__class__.__name__, self.interface, self.path ) )
 
-        self.channel = channel.GenericModemChannel( bus )
+        self.channels = []
+        self.channels.append( channel.GenericModemChannel( bus ) )
+        self.channels.append( channel.UnsolicitedResponseChannel( bus ) )
+        self.channels.append( channel.KeepAliveChannel( bus ) )
 
-        idle_add( self._initChannel )
+        self.channel = self.channels[0]
+
+        idle_add( self._initChannels )
 
     #
     # dbus
@@ -142,15 +147,23 @@ class Device( dbus.service.Object ):
     #
     # internal API
     #
-    def _initChannel( self ):
-        if not self.channel.open():
-            LOG( LOG_ERR, "could not open modem channel - retrying in 2 seconds" )
-            gobject.timeout_add( 2000, self._initChannel )
+    def _initChannels( self ):
+        for channel in self.channels:
+            if not channel.isOpen():
+                if not channel.open():
+                    LOG( LOG_ERR, "could not open channel %s - retrying in 2 seconds" % repr(channel) )
+                    gobject.timeout_add( 2000, self._initChannel )
         return False
 
 if __name__ == "__main__":
     import dbus
     bus = dbus.SystemBus()
+
+    def testing( device ):
+        try:
+            device.GetInfo()
+        except Exception, e:
+            return e
 
     # testing 'Server'
     proxy = bus.get_object( config.DBUS_BUS_NAME, config.DBUS_PATH_PREFIX+"/Server" )
