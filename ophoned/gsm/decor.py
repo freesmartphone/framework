@@ -7,8 +7,8 @@ The Open Device Daemon - Python Implementation
 GPLv2 or later
 """
 
-FUNCTION_DEBUG = False
-# FUNCTION_DEBUG = True
+# FUNCTION_DEBUG = False
+FUNCTION_DEBUG = True
 
 from decorator import decorator
 
@@ -31,5 +31,10 @@ def logged( fn ):
         print "%s> %s.%s: ENTER" % ( '|...' * calldepth, classname, fn.__name__ )
         result = fn( *args, **kwargs )
         print "%s> %s.%s: LEAVE" % ( '|...' * calldepth, classname, fn.__name__ )
+
+        logIt.__dict__ = fn.__dict__
+        logIt.__name__ = fn.__name__
+        logIt.__doc__ = fn.__doc__
+
         return result
     return logIt

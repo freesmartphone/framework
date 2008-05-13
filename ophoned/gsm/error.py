@@ -10,7 +10,7 @@ GPLv2 or later
 from dbus import DBusException
 
 #=========================================================================#
-# base exceptions
+# Base exceptions
 #=========================================================================#
 
 class AbstractDeviceException( DBusException ):
@@ -25,8 +25,11 @@ class AbstractNetworkException( DBusException ):
 class AbstractCallException( DBusException ):
     _dbus_error_name = "org.freesmartphone.GSM.Call"
 
+class UnsupportedCommand( DBusException ):
+    _dbus_error_name = "org.freesmartphone.GSM.UnsupportedCommand"
+
 #=========================================================================#
-# device exceptions
+# Device exceptions
 #=========================================================================#
 
 class DeviceTimeout( AbstractDeviceException ):
@@ -42,13 +45,38 @@ class DeviceFailed( AbstractDeviceException ):
 # SIM exceptions
 #=========================================================================#
 
+class SimNotPresent( AbstractSimException ):
+    _dbus_error_name = "org.freesmartphone.GSM.SIM.NotPresent"
+
+class SimAuthFailed( AbstractSimException ):
+    _dbus_error_name = "org.freesmartphone.GSM.SIM.AuthFailed"
+
+class SimBlocked( AbstractSimException ):
+    _dbus_error_name = "org.freesmartphone.GSM.SIM.Blocked"
+
+class SimNotFound( AbstractSimException ):
+    _dbus_error_name = "org.freesmartphone.GSM.SIM.NotFound"
+
+class SimMemoryFull( AbstractSimException ):
+    _dbus_error_name = "org.freesmartphone.GSM.SIM.MemoryFull"
 
 #=========================================================================#
-# network exceptions
+# Network exceptions
 #=========================================================================#
 
+class NetworkNotPresent( AbstractNetworkException ):
+    _dbus_error_name = "org.freesmartphone.Network.NotPresent"
+
+class NetworkUnauthorized( AbstractNetworkException ):
+    _dbus_error_name = "org.freesmartphone.Network.Unauthorized"
+
+class NetworkNotFound( AbstractNetworkException ):
+    _dbus_error_name = "org.freesmartphone.Network.NotFound"
 
 #=========================================================================#
-# call exceptions
+# Call exceptions
 #=========================================================================#
+
+class CallNotFound( AbstractCallException ):
+    _dbus_error_name = "org.freesmartphone.Call.NotFound"
 

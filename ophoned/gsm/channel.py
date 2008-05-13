@@ -308,6 +308,7 @@ class QueuedVirtualChannel( VirtualChannel ):
     @logged
     def readyToSend( self ):
         """Reimplemented for internal purposes."""
+        print "(%s queue is: %s)" % ( repr(self), repr(self.q.queue) )
         if self.q.empty():
             print "(%s: nothing in request queue)" % repr(self)
             self.watchReadyToSend = None
@@ -337,9 +338,11 @@ class QueuedVirtualChannel( VirtualChannel ):
             gobject.source_remove( self.watchTimeout )
             self.watchTimeout = None
         # handle response
-        self.handleResponseToRequest( self.q.get(), response )
+        request = self.q.get()
+        self.handleResponseToRequest( request, response )
         # relaunch
-        self.watchReadyToSend = gobject.io_add_watch( self.serial.fd, gobject.IO_OUT, self._readyToSend )
+        if not self.watchReadyToSend:
+            self.watchReadyToSend = gobject.io_add_watch( self.serial.fd, gobject.IO_OUT, self._readyToSend )
 
     @logged
     def _handleCommandTimeout( self ):
@@ -354,7 +357,14 @@ class QueuedVirtualChannel( VirtualChannel ):
             print "(%s: COMPLETED '%s' => %s)" % ( repr(self), reqstring.strip(), response )
         else:
             print "(%s: COMPLETED '%s' => %s)" % ( repr(self), reqstring.strip(), response )
-            ok_cb( reqstring.strip(), response )
+
+            # check whether given callback is a generator
+            # if so, advance and give result, if not
+            # call it as usual
+            if hasattr( ok_cb, "send" ):
+                ok_cb.send( response )
+            else:
+                ok_cb( reqstring.strip(), response )
 
     def handleCommandTimeout( self, request ):
         reqstring, ok_cb, error_cb = request
@@ -380,7 +390,7 @@ class GenericModemChannel( AtCommandChannel ):
 
         self.enqueue('Z') # soft reset
         self.enqueue('E0V1') # echo off, verbose result on
-        self.enqueue('+CMEE=2') # report mobile equipment error
+        self.enqueue('+CMEE=1') # report mobile equipment errors in numerical format
         self.enqueue('+CRC=1') # cellular result codes, enable extended format
 
     def launchKeepAlive( self, timeout, command ):
@@ -457,6 +467,17 @@ class UnsolicitedResponseChannel( GenericModemChannel ):
 #=========================================================================#
 # testing stuff here
 #=========================================================================#
+def error( r, o ):
+    print r, o
+
+def queryModem( command ):
+    def genfunc():
+        genfunc.result = (yield)
+
+    g = genfunc()
+    g.next()
+    misc.enqueue( command, g, error )
+    return g
 
 def launchReadThread( serport ):
     import thread
@@ -466,6 +487,7 @@ if __name__ == "__main__":
     import dbus, sys, thread, atexit
 
     def run():
+        import dbus.mainloop.glib
         dbus.mainloop.glib.DBusGMainLoop( set_as_default=True )
         run.mainloop = gobject.MainLoop()
         run.mainloop.run()
@@ -479,10 +501,13 @@ if __name__ == "__main__":
             print ">>>>>>>>>>>>> GOT %d bytes '%s'" % ( len(data), repr(data) )
 
     bus = dbus.SystemBus()
-    a = GenericModemChannel( bus, timeout=5000 )
-    k = KeepAliveChannel( bus, timeout=0 ) # we don't care
-    b = GenericModemChannel( bus, timeout=10000 )
-    u = UnsolicitedResponseChannel( bus )
+    misc = GenericModemChannel( bus, timeout=5000 )
+    call = GenericModemChannel( bus, timeout=10000 )
+    unsol = UnsolicitedResponseChannel( bus )
+    unsol.launchKeepAlive( 8000, "" )
+    call.open()
+    unsol.open()
+    misc.open()
 
     gobject.threads_init()
     if len( sys.argv ) == 1:

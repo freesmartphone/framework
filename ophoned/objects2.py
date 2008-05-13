@@ -104,7 +104,7 @@ class Device( dbus.service.Object ):
     @dbus.service.method( DBUS_INTERFACE_DEVICE, "b", "",
                           async_callbacks=( "dbus_ok", "dbus_error" ) )
     def SetAntennaPower( self, power, dbus_ok, dbus_error ):
-        mediator.DeviceSetAntennaPower( self, dbus_ok, dbus_error )
+        mediator.DeviceSetAntennaPower( self, dbus_ok, dbus_error, power=power )
 
     #
     # internal API
