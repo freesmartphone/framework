@@ -60,6 +60,31 @@ class DeviceGetInfo( AbstractMediator ):
             self.error( error.DeviceFailed( "%s: %s" % ( category, repr(details ) ) ) )
 
 #=========================================================================#
+class DeviceGetAntennaPower( AbstractMediator ):
+#=========================================================================#
+    def trigger( self ):
+        self.object.channel.enqueue( "+CFUN?", self.responseFromChannel, self.errorFromChannel )
+
+    @logged
+    def responseFromChannel( self, request, response ):
+        assert response[-1] == "OK"
+        self.ok( not self._rightHandSide( response[0] ) == "0" )
+
+    @logged
+    def errorFromChannel( self, request, error ):
+        category, details = error
+        if category == "timeout":
+            self.error( error.DeviceTimeout( "device did not answer within %dms" % details ) )
+        else:
+            self.error( error.DeviceFailed( "%s: %s" % ( category, repr(details ) ) ) )
+
+
+#=========================================================================#
+class DeviceGetAntennaPower( AbstractMediator ):
+#=========================================================================#
+    pass
+
+#=========================================================================#
 def enableModemExtensions( modem ):
 #=========================================================================#
     """

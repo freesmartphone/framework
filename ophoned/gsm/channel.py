@@ -51,7 +51,6 @@ class VirtualChannel( object ):
         self.connected = False
         self.watchReadyToSend = None
         self.watchReadyToRead = None
-        self.keepAliveCommand = None
 
         if VirtualChannel.DEBUGLOG:
             self.debugFile = open( "/tmp/%s.log" % self.name, "w" )
@@ -371,6 +370,7 @@ class AtCommandChannel( QueuedVirtualChannel ):
     @logged
     def enqueue( self, command, response_cb=None, error_cb=None ):
         QueuedVirtualChannel.enqueue( self, "AT%s\r\n" % command, response_cb, error_cb )
+    enqueueRaw = QueuedVirtualChannel.enqueue
 
 #=========================================================================#
 class GenericModemChannel( AtCommandChannel ):
@@ -382,19 +382,6 @@ class GenericModemChannel( AtCommandChannel ):
         self.enqueue('E0V1') # echo off, verbose result on
         self.enqueue('+CMEE=2') # report mobile equipment error
         self.enqueue('+CRC=1') # cellular result codes, enable extended format
-
-#=========================================================================#
-class KeepAliveChannel( AtCommandChannel ):
-#=========================================================================#
-    def __init__( self, *args, **kwargs ):
-        QueuedVirtualChannel.__init__( self, *args, **kwargs )
-
-        self.enqueue('Z') # soft reset
-        self.enqueue('E0V1') # echo off, verbose result on
-        self.enqueue('+CMEE=2') # report mobile equipment error
-        self.enqueue('+CRC=1') # cellular result codes, enable extended format
-
-        self.launchKeepAlive( 7000, "" )
 
     def launchKeepAlive( self, timeout, command ):
         """Setup a keep-alive timeout."""
@@ -429,27 +416,43 @@ class UnsolicitedResponseChannel( GenericModemChannel ):
         else:
             self.callback = self
 
-        self.prefixmap = { '+': 'plus', '%': 'percent', '@': 'at', '/': 'slash', '#': 'hash' }
+        self.prefixmap = { '+': 'plus',
+                           '%': 'percent',
+                           '@': 'at',
+                           '/': 'slash',
+                           '#': 'hash',
+                           '_': 'underscore' }
 
-    # FIXME: Consider chain of command pattern here when handling AT responses
+        self.delegate = None
+
     @logged
     def handleUnsolicitedResponse( self, data ):
-        if not data.startswith( '+' ):
+        if not data[0] in self.prefixmap:
             return False
-        if not ':':
+        if not ':' in data:
             return False
         command, values = data.split( ':', 1 )
 
-        methodname = "%s%s" % ( self.prefixmap[command[0]], command[1:] )
-
-        if not hasattr( self.callback, methodname ):
+        if not self.delegate:
             return False
 
-        getattr( self.callback, methodname )( values )
+        methodname = "%s%s" % ( self.prefixmap[command[0]], command[1:] )
+
+        try:
+            method = getattr( self.delegate, methodname )
+        except AttributeError:
+            return False
+        else:
+            method( values )
+
         return True
 
-    def plusCREG( self, values ):
-        print "REGISTRATION STATUS:", values
+    def setDelegate( self, object ):
+        """
+        Set a delegate object to which all unsolicited responses are delegated.
+        """
+        assert self.delegate is None, "delegate already set"
+        self.delegate = object
 
 #=========================================================================#
 # testing stuff here
