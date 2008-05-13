@@ -13,9 +13,8 @@ from config import LOG, LOG_INFO, LOG_ERR, LOG_DEBUG
 import dbus
 import dbus.service
 from dbus import DBusException
-from modem import phoneFactory
-from pygsm.attention import DumbParser
-from gobject import timeout_add
+from gsm import channel, mediator, unsol
+from gobject import timeout_add, idle_add
 
 DBUS_INTERFACE_DEVICE = "org.freesmartphone.GSM.Device"
 DBUS_INTERFACE_SIM = "org.freesmartphone.GSM.Sim"
@@ -25,7 +24,9 @@ DBUS_INTERFACE_CALL = "org.freesmartphone.GSM.Call"
 DBUS_INTERFACE_SERVER = "org.freesmartphone.GSM.Server"
 DBUS_INTERFACE_TEST = "org.freesmartphone.test"
 
+#=========================================================================#
 class Server( dbus.service.Object ):
+#=========================================================================#
     DBUS_INTERFACE = "%s.%s" % ( config.DBUS_INTERFACE_PREFIX, "Server" )
 
     def __init__( self, bus, device ):
@@ -40,83 +41,47 @@ class Server( dbus.service.Object ):
     # dbus
     #
     @dbus.service.method( DBUS_INTERFACE_TEST, "", "s" )
-    def GetVersion( self ):
+    def Foo( self ):
         return "foo"
 
     @dbus.service.method( DBUS_INTERFACE_SERVER, "", "s" )
-    def GetVersion( self ):
+    def Bar( self ):
         return "bar"
 
-class AbstractAsyncResponse( object ):
-    def __init__( self, dbus_result, dbus_error ):
-        self.dbus_result = dbus_result
-        self.dbus_error = dbus_error
-        print "(async response object %s generated)" % self
-
-    def handleResult( self, *args ):
-        assert False, "Pure Virtual Function called"
-
-    def handleError( self, *args ):
-        print "(async: handle error)", repr(args)
-
-    def handleCmeError( self, number, string ):
-        print "(async: handle cme error)", repr(number), repr(string)
-
-    def handleCmsError( self, number, string ):
-        print "(async: handle cms error)", repr(number), repr(string)
-
-    def __del__( self ):
-        print "(async response object %s destroyed)" % self
-
-class AsyncResponseNone( AbstractAsyncResponse ):
-    def handleResult( self, *args ):
-        self.dbus_result( None )
-    def handleError( self, *args ):
-        print "(async: handle error)", repr(args)
-        e = DBusException( "foo", "bar", "yo", "offenbar beliebig viele Parameter".split() )
-        self.dbus_error( e )
-
-class AsyncResponseBool( AbstractAsyncResponse ) :
-    def handleResult( self, answer, result ):
-        self.dbus_result( result == 1 )
-
-class AsyncMultipleResponseDict( AbstractAsyncResponse ):
-    def __init__( self, dbus_result, dbus_error ):
-        AbstractAsyncResponse.__init__( self, dbus_result, dbus_error )
-        self.expected = {}
-        self.result = {}
-
-    def addResponse( self, response, resultkey ):
-        assert response not in self.expected, "duplicated response key '%s'" % response
-        assert type( resultkey ) == types.StringType, "resultkey needs to be a string"
-        self.expected[response] = resultkey
-
-    def handleResult( self, question, response ):
-        print "have been called for question=", repr(question), "response=", repr(response)
-        print "self.expected=", repr( self.expected )
-        print "self.result=", repr( self.result )
-        assert question in self.expected, "got unexpected reply '%s'" % question
-        self.result[self.expected[question]] = response
-        del self.expected[question]
-        print "self.expected keys now=", repr(self.expected.keys())
-        if not self.expected:
-            self.dbus_result( self.result )
-
+#=========================================================================#
 class Device( dbus.service.Object ):
+#=========================================================================#
+    """
+    This class handles the dbus interface of org.freesmartphone.GSM.*
+
+    We're using the following mapping of channels to commands:
+    * Channel 1: Call Handling
+    * Channel 2: Unsolicited Responses (optional: keep-alive)
+    * Channel 3: Miscellaneous (everything non-call)
+    * Channel 4: GPRS
+
+    Since our virtual channels can handle interleaved request/response,
+    we could also send additional stuff on channel 2.
+    """
     DBUS_INTERFACE = "%s.%s" % ( config.DBUS_INTERFACE_PREFIX, "Device" )
 
-    def __init__( self, bus, modemClass ):
+    def __init__( self, bus, modemtype ):
         self.interface = self.DBUS_INTERFACE
         self.path = config.DBUS_PATH_PREFIX + "/Device"
         dbus.service.Object.__init__( self, bus, self.path )
         LOG( LOG_INFO, "%s initialized. Serving %s at %s" % ( self.__class__.__name__, self.interface, self.path ) )
 
-        self.modem = phoneFactory( modemClass )( bus )
-        timeout_add( 6000, self.keepModemAlive )
+        self.channels = {}
+        self.channels["CALL"] = channel.GenericModemChannel( bus )
+        self.channels["UNSOL"] = channel.UnsolicitedResponseChannel( bus )
+        self.channels["MISC"] = channel.GenericModemChannel( bus )
 
-    def keepModemAlive( self ):
-        self.modem.request( "\r\nAT\r\n" )
-        return True
+        self.channel = self.channels["MISC"] # default channel
+
+        self.channels["UNSOL"].launchKeepAlive( 7000, "" )
+        self.channels["UNSOL"].setDelegate( unsol.UnsolicitedResponseDelegate( self ) )
+
+        idle_add( self._initChannels )
 
     #
     # dbus
@@ -124,42 +89,46 @@ class Device( dbus.service.Object ):
     @dbus.service.method( DBUS_INTERFACE_DEVICE, "", "a{sv}",
                           async_callbacks=( "dbus_ok", "dbus_error" ) )
     def GetInfo( self, dbus_ok, dbus_error ):
-        response = AsyncMultipleResponseDict( dbus_ok, dbus_error )
-        response.addResponse( "+CGMI", "manufacturer" )
-        response.addResponse( "+CGMM", "model" )
-        response.addResponse( "+CGMR", "revision" )
-        response.addResponse( "+CGSN", "imei" )
-        self.modem.request( '+CGMI', response, parser=DumbParser(response) )
-        self.modem.request( '+CGMM', response, parser=DumbParser(response) )
-        self.modem.request( '+CGMR', response, parser=DumbParser(response) )
-        self.modem.request( '+CGSN', response, parser=DumbParser(response) )
+        mediator.DeviceGetInfo( self, dbus_ok, dbus_error )
 
     @dbus.service.method( DBUS_INTERFACE_DEVICE, "", "a{sv}",
                           async_callbacks=( "dbus_ok", "dbus_error" ) )
     def GetFeatures( self, dbus_ok, dbus_error ):
-        response = AsyncMultipleResponseDict( dbus_ok, dbus_error )
-        response.addResponse( "+CGMI", "manufacturer" )
-        response.addResponse( "+CGMM", "model" )
-        response.addResponse( "+CGMR", "revision" )
-        response.addResponse( "+CGSN", "imei" )
-        self.modem.request( '+CGMI', response, parser=DumbParser(response) )
-        self.modem.request( '+CGMM', response, parser=DumbParser(response) )
-        self.modem.request( '+CGMR', response, parser=DumbParser(response) )
-        self.modem.request( '+CGSN', response, parser=DumbParser(response) )
+        mediator.DeviceGetFeatures( self, dbus_ok, dbus_error )
 
     @dbus.service.method( DBUS_INTERFACE_DEVICE, "", "b",
                           async_callbacks=( "dbus_ok", "dbus_error" ) )
     def GetAntennaPower( self, dbus_ok, dbus_error ):
-        self.modem.request( '+CFUN?', AsyncResponseBool( dbus_ok, dbus_error ) )
+        mediator.DeviceGetAntennaPower( self, dbus_ok, dbus_error )
 
     @dbus.service.method( DBUS_INTERFACE_DEVICE, "b", "",
                           async_callbacks=( "dbus_ok", "dbus_error" ) )
     def SetAntennaPower( self, power, dbus_ok, dbus_error ):
-        self.modem.request( '+CFUN=%d' % ( 1 if power else 0 ), AsyncResponseNone( dbus_ok, dbus_error ), timeout = 20000 )
+        mediator.DeviceSetAntennaPower( self, dbus_ok, dbus_error, power=power )
 
+    #
+    # internal API
+    #
+    def _initChannels( self ):
+        for channel in self.channels:
+            print "trying to open", channel
+            if not self.channels[channel].isOpen():
+                if not self.channels[channel].open():
+                    LOG( LOG_ERR, "could not open channel %s - retrying in 2 seconds" % channel )
+                    gobject.timeout_add( 2000, self._initChannel )
+        return False
+
+#=========================================================================#
 if __name__ == "__main__":
+#=========================================================================#
     import dbus
     bus = dbus.SystemBus()
+
+    def testing( device ):
+        try:
+            device.GetInfo()
+        except Exception, e:
+            return e
 
     # testing 'Server'
     proxy = bus.get_object( config.DBUS_BUS_NAME, config.DBUS_PATH_PREFIX+"/Server" )

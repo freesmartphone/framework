@@ -32,6 +32,7 @@ class AbstractMediator( object ):
     def trigger( self ):
         assert False, "pure virtual function called"
 
+    @logged
     def responseFromChannel( self, request, response ):
         if response[-1].startswith( "ERROR" ):
             self._error( error.DeviceFailed( "command %s failed" % request ) )
@@ -61,10 +62,32 @@ class AbstractMediator( object ):
             result = line
         return result.strip( '" ' )
 
+    @logged
     def _handleCmeCmsError( self, line ):
         category, text = const.parseError( line )
-        # TODO add specific exceptions
-        self._error( error.DeviceFailed( "%s ERROR: %s" % ( category, text ) ) )
+        code = int( line.split( ':', 1 )[1] )
+        e = error.DeviceFailed( "Unhandled %s ERROR: %s" % ( category, text ) )
+
+        if category == "CME":
+            if code == 10:
+                e = error.SimNotPresent()
+            elif code in ( 32, 262 ):
+                e = error.SimBlocked( text )
+            elif code in ( 5, 6, 7, 11, 12, 15, 17, 18, 48 ):
+                e = error.SimAuthFailed( text )
+
+        elif category == "CMS":
+            if code == 310:
+                e = error.SimNotPresent()
+            elif code in ( 311, 312, 316, 317, 318 ):
+                e = error.SimAuthFailed()
+            elif code == 322:
+                e = error.SimMemoryFull()
+
+        else:
+            assert False, "should never reach that"
+
+        self._error( e )
 
 #=========================================================================#
 class DeviceGetInfo( AbstractMediator ):
@@ -121,7 +144,8 @@ class DeviceSetAntennaPower( AbstractMediator ):
 #=========================================================================#
 class DeviceGetFeatures( AbstractMediator ):
 #=========================================================================#
-    pass
+    def __init__( self, dbus_object, dbus_ok, dbus_error, **kwargs ):
+        dbus_error( error.UnsupportedCommand( self.__class__.__name__ ) )
 
 #=========================================================================#
 def enableModemExtensions( modem ):

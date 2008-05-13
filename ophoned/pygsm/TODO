@@ -1,9 +1,0 @@
-* IMPROVE: work around modem bug #1380 (sleeps per virtual channel)
-* IMPROVE: remove layering violations (combinated functions):
-  Modem classes should not know about API or be
-  optimized for one type of API.
-  All functions like device_inquire, sim_inquire should rather be
-  part of a mixin class.
-* FIX: reading loop on startup (init race condition?)
-* IMPROVE: Attention.request() add two callbacks for error handling (1. timeout, 2. other)
-* IMPROVE: Attention.activate() add three callbacks for result handling (1. ok, 2. timeout, 3. other)

@@ -7,7 +7,7 @@ The Open Device Daemon - Python Implementation
 GPLv2 or later
 """
 
-__version__ = "0.0.0"
+__version__ = "0.1.0"
 
 import pygsm
 from optparse import OptionParser
@@ -16,24 +16,24 @@ from syslog import openlog, LOG_PERROR, LOG_DAEMON
 import sys
 import os
 
-parser = OptionParser()
-parser.add_option( "-m", "--modem", dest = "modem",
-    help = "select modem. Available options = %s " % pygsm.allModems() )
+#parser = OptionParser()
+#parser.add_option( "-m", "--modem", dest = "modem",
+    #help = "select modem. Available options = %s " % pygsm.allModems() )
 
-options, args = parser.parse_args()
+#options, args = parser.parse_args()
 
-if options.modem is None:
-    options.modem = "ti_calypso"
+#if options.modem is None:
+    #options.modem = "ti_calypso"
 
-if options.modem not in pygsm.allModems():
-    parser.error( "Sorry, need to give a valid modem such as %s" % pygsm.allModems() )
-else:
-    if "OPHONED_DEBUG" in os.environ:
-        openlog( "py-ophoned", LOG_PERROR, LOG_DAEMON )
-        LOG( LOG_INFO, "Using modem '%s'" % options.modem )
+#if options.modem not in pygsm.allModems():
+    #parser.error( "Sorry, need to give a valid modem such as %s" % pygsm.allModems() )
+#else:
+
+if "OPHONED_DEBUG" in os.environ:
+    openlog( "py-ophoned", LOG_PERROR, LOG_DAEMON )
 
 from controller import Controller
-c = Controller( pygsm.modem( options.modem ) )
+c = Controller()
 try:
     c.run()
 except KeyboardInterrupt:

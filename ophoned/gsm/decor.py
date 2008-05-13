@@ -28,7 +28,7 @@ def logged( fn ):
             classname = args[0].__class__.__name__
         except AttributeError:
             classname = ""
-        print "%s> %s.%s: ENTER" % ( '|...' * calldepth, classname, fn.__name__ )
+        print "%s> %s.%s: ENTER %s,%s" % ( '|...' * calldepth, classname, fn.__name__, repr(args[1:]), repr(kwargs) )
         result = fn( *args, **kwargs )
         print "%s> %s.%s: LEAVE" % ( '|...' * calldepth, classname, fn.__name__ )
 

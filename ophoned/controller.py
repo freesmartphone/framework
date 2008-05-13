@@ -13,17 +13,11 @@ import dbus.service
 from dbus.mainloop.glib import DBusGMainLoop
 import gobject
 from config import LOG, LOG_ERR, LOG_WARNING, LOG_INFO, LOG_DEBUG
-
-USE_NEW_GSM = True
-
-if USE_NEW_GSM:
-    import objects2 as objects
-else:
-    import objects
+import objects
 
 class Controller( object ):
 
-    def __init__( self, modemClass ):
+    def __init__( self, modemtype=None ):
         DBusGMainLoop( set_as_default=True )
         self.mainloop = gobject.MainLoop()
         gobject.idle_add( self.idle )
@@ -32,11 +26,11 @@ class Controller( object ):
         self.busname = dbus.service.BusName( config.DBUS_BUS_NAME, self.bus )
 
         self.objects = {}
-        self.objects["device"] = objects.Device( self.bus, modemClass )
+        self.objects["device"] = objects.Device( self.bus, modemtype )
         self.objects["server"] = objects.Server( self.bus, self.objects["device"] )
 
     def idle( self ):
-        print( "in-mainloop initializer" )
+        print( "ophoned: in mainloop" )
         return False
 
     def timeout( self ):
