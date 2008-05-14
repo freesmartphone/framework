@@ -289,11 +289,11 @@ class QueuedVirtualChannel( VirtualChannel ):
             self.wakeup = None # no wakeup necessary (default)
 
     @logged
-    def enqueue( self, data, response_cb=None, error_cb=None ):
+    def enqueue( self, data, response_cb=None, error_cb=None, timeout=None ):
         """
         Enqueue data block for sending over the channel.
         """
-        self.q.put( ( data, response_cb, error_cb ) )
+        self.q.put( ( data, response_cb, error_cb, timeout or self.timeout ) )
         if not self.connected:
             return
         if self.q.qsize() == 1 and not self.watchReadyToSend:
@@ -316,10 +316,10 @@ class QueuedVirtualChannel( VirtualChannel ):
 
         print "(%s: sending to port: %s)" % ( repr(self), repr(self.q.peek()[0]) )
         if VirtualChannel.DEBUGLOG:
-            self.debugFile.write( self.q.peek()[0] )
-        self.serial.write( self.q.peek()[0] )
-        if self.timeout:
-            self.watchTimeout = gobject.timeout_add( self.timeout, self._handleCommandTimeout )
+            self.debugFile.write( self.q.peek()[0] ) # channel data
+        self.serial.write( self.q.peek()[0] ) # channel data
+        if self.q.peek()[3]: # channel timeout
+            self.watchTimeout = gobject.timeout_add( self.q.peek()[3], self._handleCommandTimeout )
         return False
 
     @logged
@@ -352,7 +352,7 @@ class QueuedVirtualChannel( VirtualChannel ):
         print "(%s: unsolicited data incoming: %s)" % ( repr(self), response )
 
     def handleResponseToRequest( self, request, response ):
-        reqstring, ok_cb, error_cb = request
+        reqstring, ok_cb, error_cb, timeout = request
         if not ok_cb and not error_cb:
             print "(%s: COMPLETED '%s' => %s)" % ( repr(self), reqstring.strip(), response )
         else:
@@ -367,19 +367,19 @@ class QueuedVirtualChannel( VirtualChannel ):
                 ok_cb( reqstring.strip(), response )
 
     def handleCommandTimeout( self, request ):
-        reqstring, ok_cb, error_cb = request
+        reqstring, ok_cb, error_cb, timeout = request
         if not ok_cb and not error_cb:
             print "(%s: TIMEOUT '%s' => ???)" % ( repr(self), reqstring.strip() )
         else:
             print "(%s: TIMEOUT '%s' => ???)" % ( repr(self), reqstring.strip() )
-            error_cb( reqstring.strip(), ( "timeout", self.timeout ) )
+            error_cb( reqstring.strip(), ( "timeout", timeout ) )
 
 #=========================================================================#
 class AtCommandChannel( QueuedVirtualChannel ):
 #=========================================================================#
     @logged
-    def enqueue( self, command, response_cb=None, error_cb=None ):
-        QueuedVirtualChannel.enqueue( self, "AT%s\r\n" % command, response_cb, error_cb )
+    def enqueue( self, command, response_cb=None, error_cb=None, timeout=None ):
+        QueuedVirtualChannel.enqueue( self, "AT%s\r\n" % command, response_cb, error_cb, timeout )
     enqueueRaw = QueuedVirtualChannel.enqueue
 
 #=========================================================================#
