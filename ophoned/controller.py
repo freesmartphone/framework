@@ -14,6 +14,7 @@ from dbus.mainloop.glib import DBusGMainLoop
 import gobject
 from config import LOG, LOG_ERR, LOG_WARNING, LOG_INFO, LOG_DEBUG
 import objects
+import signal
 
 class Controller( object ):
 
@@ -24,9 +25,12 @@ class Controller( object ):
         gobject.timeout_add( 10000, self.timeout )
         self.bus = dbus.SystemBus()
         self.busname = dbus.service.BusName( config.DBUS_BUS_NAME, self.bus )
+        self.modemtype = modemtype
+        self._createObjects()
 
+    def _createObjects( self ):
         self.objects = {}
-        self.objects["device"] = objects.Device( self.bus, modemtype )
+        self.objects["device"] = objects.Device( self.bus, self.modemtype )
         self.objects["server"] = objects.Server( self.bus, self.objects["device"] )
 
     def idle( self ):
@@ -39,6 +43,13 @@ class Controller( object ):
 
     def run( self ):
         self.mainloop.run()
+
+    def rerun( self ):
+        print( "ophoned: relaunching" )
+        reload( objects )
+        self.objects["device"].__class__ = objects.Device
+        self.objects["server"].__class__ = objects.Server
+        self.run()
 
 class Provider( object ):
     def __init__( self, status, index, longname, shortname = "" ):

@@ -148,6 +148,18 @@ class DeviceGetFeatures( AbstractMediator ):
         dbus_error( error.UnsupportedCommand( self.__class__.__name__ ) )
 
 #=========================================================================#
+class SimGetAuthStatus( AbstractMediator ):
+#=========================================================================#
+    def trigger( self ):
+        self._object.channel.enqueue( "+CPIN?", self.responseFromChannel, self.errorFromChannel )
+
+    @logged
+    def responseFromChannel( self, request, response ):
+        assert response[-1] == "OK"
+        assert len( response ) == 2
+        self._ok( self._rightHandSide( response[0] ) )
+
+#=========================================================================#
 def enableModemExtensions( modem ):
 #=========================================================================#
     """

@@ -9,7 +9,6 @@ GPLv2 or later
 
 __version__ = "0.1.0"
 
-import pygsm
 from optparse import OptionParser
 from config import LOG, LOG_ERR, LOG_WARNING, LOG_INFO, LOG_DEBUG
 from syslog import openlog, LOG_PERROR, LOG_DAEMON
@@ -34,8 +33,10 @@ if "OPHONED_DEBUG" in os.environ:
 
 from controller import Controller
 c = Controller()
-try:
-    c.run()
-except KeyboardInterrupt:
-    print >>sys.stderr, "ctrl-c: exiting."
-    sys.exit( 0 )
+
+while True:
+    try:
+        c.run()
+    except KeyboardInterrupt:
+        c.rerun()
+

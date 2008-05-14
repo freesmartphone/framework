@@ -72,9 +72,9 @@ class Device( dbus.service.Object ):
         LOG( LOG_INFO, "%s initialized. Serving %s at %s" % ( self.__class__.__name__, self.interface, self.path ) )
 
         self.channels = {}
-        self.channels["CALL"] = channel.GenericModemChannel( bus )
-        self.channels["UNSOL"] = channel.UnsolicitedResponseChannel( bus )
-        self.channels["MISC"] = channel.GenericModemChannel( bus )
+        self.channels["CALL"] = channel.GenericModemChannel( bus, "ophoned.call" )
+        self.channels["UNSOL"] = channel.UnsolicitedResponseChannel( bus, "ophoned.unsolicited" )
+        self.channels["MISC"] = channel.GenericModemChannel( bus, "ophoned.misc" )
 
         self.channel = self.channels["MISC"] # default channel
 
@@ -84,7 +84,7 @@ class Device( dbus.service.Object ):
         idle_add( self._initChannels )
 
     #
-    # dbus
+    # dbus org.freesmartphone.GSM.Device
     #
     @dbus.service.method( DBUS_INTERFACE_DEVICE, "", "a{sv}",
                           async_callbacks=( "dbus_ok", "dbus_error" ) )
@@ -105,6 +105,15 @@ class Device( dbus.service.Object ):
                           async_callbacks=( "dbus_ok", "dbus_error" ) )
     def SetAntennaPower( self, power, dbus_ok, dbus_error ):
         mediator.DeviceSetAntennaPower( self, dbus_ok, dbus_error, power=power )
+
+    #
+    # dbus org.freesmartphone.GSM.SIM
+    #
+
+    @dbus.service.method( DBUS_INTERFACE_SIM, "", "s",
+                          async_callbacks=( "dbus_ok", "dbus_error" ) )
+    def GetAuthStatus( self, dbus_ok, dbus_error ):
+        mediator.SimGetAuthStatus( self, dbus_ok, dbus_error )
 
     #
     # internal API
@@ -133,10 +142,12 @@ if __name__ == "__main__":
     # testing 'Server'
     proxy = bus.get_object( config.DBUS_BUS_NAME, config.DBUS_PATH_PREFIX+"/Server" )
     print( proxy.Introspect( dbus_interface = "org.freedesktop.DBus.Introspectable" ) )
-    server = dbus.Interface(proxy, Server.DBUS_INTERFACE )
+    server = dbus.Interface(proxy, DBUS_INTERFACE_SERVER )
 
     # testing 'Device'
     proxy = bus.get_object( config.DBUS_BUS_NAME, config.DBUS_PATH_PREFIX+"/Device" )
     print( proxy.Introspect( dbus_interface = "org.freedesktop.DBus.Introspectable" ) )
-    device = dbus.Interface(proxy, Device.DBUS_INTERFACE )
-
+    device = dbus.Interface(proxy, DBUS_INTERFACE_DEVICE )
+    sim = dbus.Interface(proxy, DBUS_INTERFACE_SIM )
+    network = dbus.Interface(proxy, DBUS_INTERFACE_NETWORK )
+    call = dbus.Interface(proxy, DBUS_INTERFACE_CALL )

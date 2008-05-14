@@ -10,8 +10,6 @@ GPLv2 or later
 # FUNCTION_DEBUG = False
 FUNCTION_DEBUG = True
 
-from decorator import decorator
-
 #=========================================================================#
 def logged( fn ):
 #=========================================================================#
