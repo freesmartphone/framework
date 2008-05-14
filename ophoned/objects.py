@@ -115,6 +115,15 @@ class Device( dbus.service.Object ):
     def GetAuthStatus( self, dbus_ok, dbus_error ):
         mediator.SimGetAuthStatus( self, dbus_ok, dbus_error )
 
+    @dbus.service.signal( DBUS_INTERFACE_SIM, "s" )
+    def AuthStatus( self, status ):
+        pass
+
+    @dbus.service.method( DBUS_INTERFACE_SIM, "s", "",
+                          async_callbacks=( "dbus_ok", "dbus_error" ) )
+    def SendAuthCode( self, code, dbus_ok, dbus_error ):
+        mediator.SimSendAuthCode( self, dbus_ok, dbus_error, code=code )
+
     #
     # internal API
     #

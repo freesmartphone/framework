@@ -71,6 +71,8 @@ class AbstractMediator( object ):
         if category == "CME":
             if code == 10:
                 e = error.SimNotPresent()
+            elif code == 16:
+                e = error.SimAuthFailed( "SIM Authorization code not accepted" )
             elif code in ( 32, 262 ):
                 e = error.SimBlocked( text )
             elif code in ( 5, 6, 7, 11, 12, 15, 17, 18, 48 ):
@@ -155,9 +157,25 @@ class SimGetAuthStatus( AbstractMediator ):
 
     @logged
     def responseFromChannel( self, request, response ):
-        assert response[-1] == "OK"
-        assert len( response ) == 2
-        self._ok( self._rightHandSide( response[0] ) )
+        if response[-1] == "OK":
+            self._ok( self._rightHandSide( response[0] ) )
+        else:
+            AbstractMediator.responseFromChannel( self, request, response )
+
+#=========================================================================#
+class SimSendAuthCode( AbstractMediator ):
+#=========================================================================#
+    def trigger( self ):
+        self._object.channel.enqueue( '+CPIN="%s"' % self.code, self.responseFromChannel, self.errorFromChannel )
+
+    @logged
+    def responseFromChannel( self, request, response ):
+        if response[-1] == "OK":
+            self._ok()
+            if response[0].startswith( "+CPIN" ):
+                self._object.AuthStatus( self._rightHandSide( response[0] ) )
+        else:
+            AbstractMediator.responseFromChannel( self, request, response )
 
 #=========================================================================#
 def enableModemExtensions( modem ):
