@@ -1,0 +1,5 @@
+General Question:
+* How much can we rely on ophoned being the only one talking to the modem?
+  If so, we can simplify a lot on keeping internal state instead of
+  poking the modem every time.
+
