@@ -30,7 +30,7 @@ class GenericPowerControl( dbus.service.Object ):
 
     def __init__( self, bus, index, node ):
         self.interface = self.DBUS_INTERFACE
-        self.path = DBUS_PATH_PREFIX + "/PowerControl/%s" % index
+        self.path = DBUS_PATH_PREFIX + "/PowerControl/%s" % node.split("/")[-1]
         dbus.service.Object.__init__( self, bus, self.path )
         LOG( LOG_INFO, "%s initialized. Serving %s at %s" % ( self.__class__.__name__, self.interface, self.path ) )
         self.node = node
