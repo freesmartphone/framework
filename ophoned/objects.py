@@ -124,6 +124,16 @@ class Device( dbus.service.Object ):
     def SendAuthCode( self, code, dbus_ok, dbus_error ):
         mediator.SimSendAuthCode( self, dbus_ok, dbus_error, code=code )
 
+    @dbus.service.method( DBUS_INTERFACE_SIM, "iss", "",
+                          async_callbacks=( "dbus_ok", "dbus_error" ) )
+    def StoreEntry( self, index, name, number, dbus_ok, dbus_error ):
+        mediator.SimStoreEntry( self, dbus_ok, dbus_error, index=index, name=name, number=number )
+
+    @dbus.service.method( DBUS_INTERFACE_SIM, "i", "ss",
+                          async_callbacks=( "dbus_ok", "dbus_error" ) )
+    def RetrieveEntry( self, index, dbus_ok, dbus_error ):
+        mediator.SimRetrieveEntry( self, dbus_ok, dbus_error, index=index )
+
     #
     # dbus org.freesmartphone.GSM.Network
     #

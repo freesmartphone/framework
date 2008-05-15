@@ -12,6 +12,13 @@ This module needs to be overhauled completely. Since the implementation
 of all non-trivial dbus calls need to launch subsequent AT commands
 before the final result can be delivered, we need to come up with a
 generic programmable state machine here...
+
+TODO: add abstract base classes for interfaces to ease generic error
+      parsing. Example: CME 3 ("Not allowed") is sent upon trying to
+      register to a network, as well as trying to read a phonebook
+      entry from the SIM with an index out of bounds -- we must
+      not map these two to the same org.freesmartphone.GSM error.
+
 """
 
 from decor import logged
@@ -71,11 +78,14 @@ class AbstractMediator( object ):
         if category == "CME":
             if code == 3:
                 # seen as result of +COPS=0 w/ auth state = SIM PIN
+                # seen as result of +CPBR w/ index out of bounds
                 e = error.NetworkUnauthorized()
             elif code == 10:
                 e = error.SimNotPresent()
             elif code == 16:
                 e = error.SimAuthFailed( "SIM Authorization code not accepted" )
+            elif code in ( 21, 22 ): # invalid phonebook index, phonebook entry not found
+                e = error.SimNotFound()
             elif code == 30:
                 e = error.NetworkNotPresent()
             elif code in ( 32, 262 ):
@@ -181,6 +191,34 @@ class SimSendAuthCode( AbstractMediator ):
                 self._object.AuthStatus( self._rightHandSide( response[0] ) )
         else:
             AbstractMediator.responseFromChannel( self, request, response )
+
+#=========================================================================#
+class SimStoreEntry( AbstractMediator ):
+#=========================================================================#
+    def trigger( self ):
+        number, ntype = const.numberToPhonebookTuple( self.number )
+        self._object.channel.enqueue( '+CPBW=%d,"%s",%d,"%s"' % ( self.index, number, ntype, self.name ), self.responseFromChannel, self.errorFromChannel )
+
+#=========================================================================#
+class SimRetrieveEntry( AbstractMediator ):
+#=========================================================================#
+    def trigger( self ):
+        self._object.channel.enqueue( '+CPBR=%d' % self.index, self.responseFromChannel, self.errorFromChannel )
+
+    @logged
+    def responseFromChannel( self, request, response ):
+        if response[-1] != "OK":
+            AbstractMediator.responseFromChannel( self, request, response )
+
+        if len( response ) == 1:
+            self._ok( "", "" )
+        else:
+            if response[0].startswith( "+CPBR" ):
+                index, number, ntype, name = self._rightHandSide( response[0] ).split( ',' )
+                index = int( index )
+                number = number.strip( '"' )
+                name = name.strip( '"' )
+                self._ok( name, const.phonebookTupleToNumber( number, ntype ) )
 
 #=========================================================================#
 class NetworkRegister( AbstractMediator ):

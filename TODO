@@ -8,3 +8,4 @@ General Question:
 * +CFUN=1 always succeeds even if it answers with ERROR (SIM PIN Required)
 * I always receive CME ERROR 32 on +COPS=? until CREG=1
 * +CREG=%d influences both the unsolicited response as well as the solicited response code
+* Phonebook indices start with 1 (not 0)

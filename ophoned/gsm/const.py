@@ -231,11 +231,35 @@ def signalQualityToPercentage( signal ):
     """
     Returns a percentage depending on a signal quality strength.
     """
+    assert type( signal ) == types.IntType
 
     if signal == 0 or signal > 31:
         return 0
     else:
         return int( round( math.log( signal ) / math.log( 31 ) * 100 ) )
+
+#=========================================================================#
+def phonebookTupleToNumber( nstring, ntype ):
+#=========================================================================#
+    """
+    Returns a full number depending on a number string and a number type.
+    """
+
+    assert nstring[0] != '+'
+    assert ntype in ( 129, 145 )
+    return nstring if ntype == 129 else ( "+%s" % nstring )
+
+#=========================================================================#
+def numberToPhonebookTuple( nstring ):
+#=========================================================================#
+    """
+    Returns a phonebook tuple depending on a number.
+    """
+
+    if nstring[0] == '+':
+        return nstring[1:], 145
+    else:
+        return nstring, 129
 
 #=========================================================================#
 if __name__ == "__main__":
@@ -250,4 +274,9 @@ if __name__ == "__main__":
     assert signalQualityToPercentage( 99 ) == 0
     assert signalQualityToPercentage( 31 ) == 100
     assert signalQualityToPercentage( 15 ) == 79
+    print "OK"
+    assert phonebookTupleToNumber( "123456789", 129 ) == "123456789"
+    assert phonebookTupleToNumber( "123456789", 145 ) == "+123456789"
+    assert numberToPhonebookTuple( "123456789" ) == ( "123456789", 129 )
+    assert numberToPhonebookTuple( "+123456789" ) == (  "123456789", 145 )
     print "OK"
