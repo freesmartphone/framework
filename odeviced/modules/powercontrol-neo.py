@@ -28,13 +28,13 @@ class GenericPowerControl( dbus.service.Object ):
     org.freesmartphone.Device.PowerControl"""
     DBUS_INTERFACE = DBUS_INTERFACE_PREFIX + ".PowerControl"
 
-    def __init__( self, bus, index, node ):
+    def __init__( self, bus, name, node ):
         self.interface = self.DBUS_INTERFACE
-        self.path = DBUS_PATH_PREFIX + "/PowerControl/%s" % node.split("/")[-1]
+        self.path = DBUS_PATH_PREFIX + "/PowerControl/%s" % name
         dbus.service.Object.__init__( self, bus, self.path )
         LOG( LOG_INFO, "%s initialized. Serving %s at %s" % ( self.__class__.__name__, self.interface, self.path ) )
         self.node = node
-        self.name = None
+        self.name = name
         self.powernode = None
         self.resetnode = None
 
@@ -93,9 +93,8 @@ class NeoBluetoothPowerControl( GenericPowerControl ):
 #----------------------------------------------------------------------------#
     DBUS_INTERFACE = DBUS_INTERFACE_PREFIX + ".PowerControl"
 
-    def __init__( self, bus, index, node ):
-        GenericPowerControl.__init__( self, bus, index, node )
-        self.name = "Bluetooth"
+    def __init__( self, bus, node ):
+        GenericPowerControl.__init__( self, bus, "Bluetooth", node )
         self.powernode = "%s/%s" % ( self.node, "power_on" )
         self.resetnode = "%s/%s" % ( self.node, "reset" )
 
@@ -113,9 +112,8 @@ class NeoGpsPowerControl( GenericPowerControl ):
 #----------------------------------------------------------------------------#
     DBUS_INTERFACE = DBUS_INTERFACE_PREFIX + ".PowerControl"
 
-    def __init__( self, bus, index, node ):
-        GenericPowerControl.__init__( self, bus, index, node )
-        self.name = "GPS"
+    def __init__( self, bus, node ):
+        GenericPowerControl.__init__( self, bus, "GPS", node )
         self.powernode = "%s/%s" % ( self.node, "pwron" )
 
 #----------------------------------------------------------------------------#
@@ -123,9 +121,8 @@ class NeoGsmPowerControl( GenericPowerControl ):
 #----------------------------------------------------------------------------#
     DBUS_INTERFACE = DBUS_INTERFACE_PREFIX + ".PowerControl"
 
-    def __init__( self, bus, index, node ):
-        GenericPowerControl.__init__( self, bus, index, node )
-        self.name = "GSM"
+    def __init__( self, bus, node ):
+        GenericPowerControl.__init__( self, bus, "GSM", node )
         self.powernode = "%s/%s" % ( self.node, "power_on" )
         self.resetnode = "%s/%s" % ( self.node, "reset" )
 
@@ -141,9 +138,8 @@ class NeoWifiPowerControl( GenericPowerControl ):
 #----------------------------------------------------------------------------#
     DBUS_INTERFACE = DBUS_INTERFACE_PREFIX + ".PowerControl"
 
-    def __init__( self, bus, index, node ):
-        GenericPowerControl.__init__( self, bus, index, node )
-        self.name = "WIFI"
+    def __init__( self, bus, node ):
+        GenericPowerControl.__init__( self, bus, "WiFi", node )
 
     def setPower( self, power ):
         wireless.wifiSetOn( "eth0", 1 if power else 0 )
@@ -161,16 +157,13 @@ def factory( prefix, controller ):
     def walk( objects, dirname, fnames ):
         #LOG( LOG_DEBUG, "scanning in", dirname, "found", fnames )
         if walk.lookForBT and "neo1973-pm-bt.0" in fnames:
-            objects.append( NeoBluetoothPowerControl( bus, walk.index, "%s/%s" % ( dirname, "neo1973-pm-bt.0" ) ) )
-            walk.index += 1
+            objects.append( NeoBluetoothPowerControl( bus, "%s/%s" % ( dirname, "neo1973-pm-bt.0" ) ) )
             walk.lookForBT = False # only have one BT interface
         if walk.lookForGPS and "neo1973-pm-gps.0" in fnames:
-            objects.append( NeoGpsPowerControl( bus, walk.index, "%s/%s" % ( dirname, "neo1973-pm-gps.0" ) ) )
-            walk.index += 1
+            objects.append( NeoGpsPowerControl( bus, "%s/%s" % ( dirname, "neo1973-pm-gps.0" ) ) )
             walk.lookForGPS = False # only have one GPS interface
         if walk.lookForGSM and "neo1973-pm-gsm.0" in fnames:
-            objects.append( NeoGsmPowerControl( bus, walk.index, "%s/%s" % ( dirname, "neo1973-pm-gsm.0" ) ) )
-            walk.index += 1
+            objects.append( NeoGsmPowerControl( bus, "%s/%s" % ( dirname, "neo1973-pm-gsm.0" ) ) )
             walk.lookForGSM = False # only have one GSM modem
 
     objects = []
@@ -179,12 +172,11 @@ def factory( prefix, controller ):
     walk.lookForBT = True
     walk.lookForGPS = True
     walk.lookForGSM = True
-    walk.index = 0
     os.path.walk( devicespath, walk, objects )
 
     # check for network interfaces
     if ( wireless is not None ) and "eth0" in os.listdir( "/sys/class/net"):
-        objects.append( NeoWifiPowerControl( bus, walk.index, "/sys/class/net/eth0" ) )
+        objects.append( NeoWifiPowerControl( bus, "/sys/class/net/eth0" ) )
     return objects
 
 if __name__ == "__main__":
