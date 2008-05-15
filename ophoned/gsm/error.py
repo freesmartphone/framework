@@ -28,6 +28,9 @@ class AbstractCallException( DBusException ):
 class UnsupportedCommand( DBusException ):
     _dbus_error_name = "org.freesmartphone.GSM.UnsupportedCommand"
 
+class InternalException( DBusException ):
+    _dbus_error_name = "org.freesmartphone.GSM.InternalError"
+
 #=========================================================================#
 # Device exceptions
 #=========================================================================#

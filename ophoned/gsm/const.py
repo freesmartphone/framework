@@ -5,9 +5,14 @@ The Open Device Daemon - Python Implementation
 (C) 2008 Michael 'Mickey' Lauer <mlauer@vanille-media.de>
 (C) 2008 Openmoko, Inc.
 GPLv2 or later
+
+Module: const
+
+Translate between GSM constants and strings
 """
 
-cme = { \
+#=========================================================================#
+CME = { \
     0:    "Phone failure",
     1:    "No connection to phone",
     2:    "Phone adapter link reserved",
@@ -70,7 +75,8 @@ cme = { \
     772:  "SIM powered down",
     }
 
-cms = { \
+#=========================================================================#
+CMS = { \
     1   : "Unassigned number",
     8   : "Operator determined barring",
     10  : "Call bared",
@@ -159,7 +165,26 @@ cms = { \
     538 : "Invalid parameter",
 }
 
-import types
+#=========================================================================#
+PROVIDER_STATUS = { \
+    0: "unknown",
+    1: "available",
+    2: "current",
+    3: "forbidden",
+}
+
+#=========================================================================#
+REGISTER_STATUS = { \
+    0: "unregistered",
+    1: "home",
+    2: "busy",
+    3: "denied",
+    4: "unknown",
+    5: "roaming",
+}
+
+#=========================================================================#
+import types, math
 
 #=========================================================================#
 def cmeString( code ):
@@ -169,7 +194,7 @@ def cmeString( code ):
     "undefined CME error>", otherwise.
     """
     try:
-        return cme[code]
+        return CME[code]
     except KeyError:
         return "<undefined CME error>"
 
@@ -181,7 +206,7 @@ def cmsString( code ):
     "undefined CMS error>", otherwise.
     """
     try:
-        return cms[code]
+        return CMS[code]
     except KeyError:
         return "<undefined CMS error>"
 
@@ -201,11 +226,28 @@ def parseError( line ):
         return "<error class not CME nor CMS>"
 
 #=========================================================================#
+def signalQualityToPercentage( signal ):
+#=========================================================================#
+    """
+    Returns a percentage depending on a signal quality strength.
+    """
+
+    if signal == 0 or signal > 31:
+        return 0
+    else:
+        return int( round( math.log( signal ) / math.log( 31 ) * 100 ) )
+
+#=========================================================================#
 if __name__ == "__main__":
 #=========================================================================#
-    print "testing...",
-    assert cmeString(0) == cme[0]
-    assert cmsString(538) == cms[538]
+    print "testing..."
+    assert cmeString(0) == CME[0]
+    assert cmsString(538) == CMS[538]
     assert parseError( "+CME ERROR: 10" ) == ( "CME", cmeString( 10 ) )
     assert parseError( "+CMS ERROR: 520" ) == ( "CMS", cmsString( 520 ) )
+    print "OK"
+    assert signalQualityToPercentage( 0 ) == 0
+    assert signalQualityToPercentage( 99 ) == 0
+    assert signalQualityToPercentage( 31 ) == 100
+    assert signalQualityToPercentage( 15 ) == 79
     print "OK"

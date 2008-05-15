@@ -69,10 +69,15 @@ class AbstractMediator( object ):
         e = error.DeviceFailed( "Unhandled %s ERROR: %s" % ( category, text ) )
 
         if category == "CME":
-            if code == 10:
+            if code == 3:
+                # seen as result of +COPS=0 w/ auth state = SIM PIN
+                e = error.NetworkUnauthorized()
+            elif code == 10:
                 e = error.SimNotPresent()
             elif code == 16:
                 e = error.SimAuthFailed( "SIM Authorization code not accepted" )
+            elif code == 30:
+                e = error.NetworkNotPresent()
             elif code in ( 32, 262 ):
                 e = error.SimBlocked( text )
             elif code in ( 5, 6, 7, 11, 12, 15, 17, 18, 48 ):
@@ -176,6 +181,62 @@ class SimSendAuthCode( AbstractMediator ):
                 self._object.AuthStatus( self._rightHandSide( response[0] ) )
         else:
             AbstractMediator.responseFromChannel( self, request, response )
+
+#=========================================================================#
+class NetworkRegister( AbstractMediator ):
+#=========================================================================#
+    def trigger( self ):
+        self._object.channel.enqueue( "+COPS=0", self.responseFromChannel, self.errorFromChannel )
+
+#=========================================================================#
+class NetworkUnregister( AbstractMediator ):
+#=========================================================================#
+    def trigger( self ):
+        self._object.channel.enqueue( "+COPS=2", self.responseFromChannel, self.errorFromChannel )
+
+#=========================================================================#
+class NetworkListProviders( AbstractMediator ):
+#=========================================================================#
+    def trigger( self ):
+        pass
+        #self.responseFromChannel( "+COPS=?", ['+COPS: (2,"MEDION Mobile","","26203"),(3,"T-Mobile D","TMO D","26201"),(3,"Vodafone.de","Vodafone","26202"),(3,"o2 - de","o2 - de","26207")', 'OK'] )
+
+        #self._object.channel.enqueue( "+COPS=?", self.responseFromChannel, self.errorFromChannel, timeout=61*1000 )
+
+    @logged
+    def responseFromChannel( self, request, response ):
+        if response[0] == "OK":
+            self._ok( [] )
+        if response[-1] == "OK":
+            result = []
+            for provider in self._rightHandSide( response[0] ).split( ',' ):
+                result.append( self._providerTuple( provider ) )
+            self._ok( result )
+        else:
+            AbstractMediator.responseFromChannel( self, request, response )
+
+    def _providerTuple( self, provider ):
+        provider.replace( '"', "" )
+        values = provider[1:-1].split( ',' )
+        return int(values[3]), const.PROVIDER_STATUS[int(values[0])], values[1], values[2]
+
+#=========================================================================#
+class NetworkGetStatus( AbstractMediator ):
+#=========================================================================#
+    def trigger( self ):
+        self._object.channel.enqueue( '+CREG?;+COPS?;+CSQ', self.responseFromChannel, self.errorFromChannel )
+
+    @logged
+    def responseFromChannel( self, request, response ):
+        if response[-1] != "OK":
+            AbstractMediator.responseFromChannel( self, request, response )
+
+        assert len( response ) == 4
+        result = []
+        result.append( const.REGISTER_STATUS[int(self._rightHandSide( response[0] ).split( ',' )[1])] ) # +CREG: 0,1
+        result.append( self._rightHandSide( response[1] ).split( ',' )[2].strip( '"') ) # +COPS: 0,0,"Medion Mobile"
+        result.append( const.signalQualityToPercentage( int(self._rightHandSide( response[2] ).split( ',' )[0]) ) ) # +CSQ: 22,99
+        self._ok( *result )
 
 #=========================================================================#
 def enableModemExtensions( modem ):

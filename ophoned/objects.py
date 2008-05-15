@@ -125,6 +125,19 @@ class Device( dbus.service.Object ):
         mediator.SimSendAuthCode( self, dbus_ok, dbus_error, code=code )
 
     #
+    # dbus org.freesmartphone.GSM.Network
+    #
+    @dbus.service.method( DBUS_INTERFACE_NETWORK, "", "a{sv}",
+                          async_callbacks=( "dbus_ok", "dbus_error" ) )
+    def ListProviders( self, dbus_ok, dbus_error ):
+        mediator.NetworkListProviders( self, dbus_ok, dbus_error )
+
+    @dbus.service.method( DBUS_INTERFACE_NETWORK, "", "ssi",
+                          async_callbacks=( "dbus_ok", "dbus_error" ) )
+    def GetStatus( self, dbus_ok, dbus_error ):
+        mediator.NetworkGetStatus( self, dbus_ok, dbus_error )
+
+    #
     # internal API
     #
     def _initChannels( self ):
@@ -133,7 +146,7 @@ class Device( dbus.service.Object ):
             if not self.channels[channel].isOpen():
                 if not self.channels[channel].open():
                     LOG( LOG_ERR, "could not open channel %s - retrying in 2 seconds" % channel )
-                    gobject.timeout_add( 2000, self._initChannel )
+                    timeout_add( 2000, self._initChannel )
         return False
 
 #=========================================================================#

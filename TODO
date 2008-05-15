@@ -3,3 +3,8 @@ General Question:
   If so, we can simplify a lot on keeping internal state instead of
   poking the modem every time.
 
+07.07 / 07.05 Observations / Questions:
+* +CPIN="abcd" does not work while +CFUN=0
+* +CFUN=1 always succeeds even if it answers with ERROR (SIM PIN Required)
+* I always receive CME ERROR 32 on +COPS=? until CREG=1
+* +CREG=%d influences both the unsolicited response as well as the solicited response code
