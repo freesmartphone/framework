@@ -259,10 +259,12 @@ class RealTimeClock( dbus.service.Object ):
         return "unknown"
 
 #----------------------------------------------------------------------------#
-def factory( prefix, bus, config ):
+def factory( prefix, controller ):
 #----------------------------------------------------------------------------#
     """Scan for available sysfs nodes and instanciate corresponding
     dbus server objects"""
+    bus = controller.bus
+
     objects = []
 
     # scan for displays

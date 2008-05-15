@@ -152,10 +152,11 @@ class NeoWifiPowerControl( GenericPowerControl ):
         return wireless.wifiIsOn( "eth0" )
 
 #----------------------------------------------------------------------------#
-def factory( prefix, bus, config ):
+def factory( prefix, controller ):
 #----------------------------------------------------------------------------#
     """Scan for available sysfs nodes and instanciate corresponding
     dbus server objects"""
+    bus = controller.bus
 
     def walk( objects, dirname, fnames ):
         #LOG( LOG_DEBUG, "scanning in", dirname, "found", fnames )

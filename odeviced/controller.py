@@ -58,10 +58,10 @@ class Controller( object ):
         # config
         for p in [ os.path.expanduser( "~/.odeviced.conf" ), "/etc/odeviced.conf" ]:
             if os.path.exists( p ):
-                self.theconfig = TheConfigParser( p )
+                self.config = TheConfigParser( p )
                 break
         else:
-            self.theconfig = TheConfigParser()
+            self.config = TheConfigParser()
 
         # walk the modules path and find plugins
         sys.path.append( path )
@@ -70,7 +70,7 @@ class Controller( object ):
                 try:
                     modulename = filename[:-3]
                     try:
-                        disable = self.theconfig.getboolean( modulename, "disable" )
+                        disable = self.config.getboolean( modulename, "disable" )
                     except ConfigParser.Error:
                         disable = False
                     if disable:
@@ -91,7 +91,7 @@ class Controller( object ):
         except AttributeError:
             LOG( LOG_INFO, "no plugin: factory function not found in module" )
         else:
-            for obj in factory( DBUS_INTERFACE_PREFIX, self.bus, self.theconfig ):
+            for obj in factory( DBUS_INTERFACE_PREFIX, self ):
                 self.objects[obj.path] = obj
             LOG( LOG_INFO, "ok" )
 

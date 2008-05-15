@@ -163,9 +163,9 @@ class IdleNotifier( dbus.service.Object ):
             raise "DBUS_INTERFACE"+".Error.InvalidState"
 
 #----------------------------------------------------------------------------#
-def factory( prefix, bus, config ):
+def factory( prefix, controller ):
 #----------------------------------------------------------------------------#
-    return [ IdleNotifier( bus, config, 0, [] ) ]
+    return [ IdleNotifier( controller.bus, controller.config, 0, [] ) ]
 
 if __name__ == "__main__":
     import dbus
