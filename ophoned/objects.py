@@ -130,6 +130,11 @@ class Device( dbus.service.Object ):
     def GetPhonebookInfo( self, dbus_ok, dbus_error ):
         mediator.SimGetPhonebookInfo( self, dbus_ok, dbus_error )
 
+    @dbus.service.method( DBUS_INTERFACE_SIM, "", "a(iss)",
+                          async_callbacks=( "dbus_ok", "dbus_error" ) )
+    def RetrievePhonebook( self, dbus_ok, dbus_error ):
+        mediator.SimRetrievePhonebook( self, dbus_ok, dbus_error )
+
     @dbus.service.method( DBUS_INTERFACE_SIM, "i", "",
                           async_callbacks=( "dbus_ok", "dbus_error" ) )
     def DeleteEntry( self, index, dbus_ok, dbus_error ):
@@ -158,6 +163,11 @@ class Device( dbus.service.Object ):
     def Unregister( self, dbus_ok, dbus_error ):
         mediator.NetworkUnregister( self, dbus_ok, dbus_error )
 
+    @dbus.service.method( DBUS_INTERFACE_NETWORK, "", "ssi",
+                          async_callbacks=( "dbus_ok", "dbus_error" ) )
+    def GetStatus( self, dbus_ok, dbus_error ):
+        mediator.NetworkGetStatus( self, dbus_ok, dbus_error )
+
     @dbus.service.method( DBUS_INTERFACE_NETWORK, "", "a(isss)",
                           async_callbacks=( "dbus_ok", "dbus_error" ) )
     def ListProviders( self, dbus_ok, dbus_error ):
@@ -168,10 +178,10 @@ class Device( dbus.service.Object ):
     def RegisterWithProvider( self, operator_code, dbus_ok, dbus_error ):
         mediator.NetworkRegisterWithProvider( self, dbus_ok, dbus_error, operator_code=operator_code )
 
-    @dbus.service.method( DBUS_INTERFACE_NETWORK, "", "ssi",
+    @dbus.service.method( DBUS_INTERFACE_NETWORK, "", "s",
                           async_callbacks=( "dbus_ok", "dbus_error" ) )
-    def GetStatus( self, dbus_ok, dbus_error ):
-        mediator.NetworkGetStatus( self, dbus_ok, dbus_error )
+    def GetCountryCode( self, dbus_ok, dbus_error ):
+        mediator.NetworkGetCountryCode( self, dbus_ok, dbus_error )
 
     #
     # dbus org.freesmartphone.GSM.Test

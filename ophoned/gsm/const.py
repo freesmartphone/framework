@@ -14,9 +14,13 @@ GSM constants, strings, formats
 import re
 
 #=========================================================================#
-# format specs
+# format patterns
 #=========================================================================#
-MATCH_OPERATOR = re.compile( '\((?P<status>[123]),"(?P<name>[^"]+?)","(?P<shortname>[^"]*?)","(?P<code>\d*?)"\)' )
+# +COPS: (2,"MEDION Mobile","","26203"),(3,"T-Mobile D","TMO D","26201"),(3,"Vodafone.de","Vodafone","26202"),(3,"o2 - de","o2 - de","26207")
+PAT_OPERATOR_LIST = re.compile( '\((?P<status>[123]),"(?P<name>[^"]+?)","(?P<shortname>[^"]*?)","(?P<code>\d*?)"\)' )
+# +CPBR: (1-250),44,17
+# +CBPR: (1-50)
+PAT_PHONEBOOK_INFO = re.compile( '\((?P<lowest>\d+)-(?P<highest>\d+)\)(?:,(?P<numlen>\d+),(?P<textlen>\d+))?' )
 
 #=========================================================================#
 # timeouts

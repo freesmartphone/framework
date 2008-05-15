@@ -13,15 +13,17 @@ of all non-trivial dbus calls need to launch subsequent AT commands
 before the final result can be delivered, we need to come up with a
 generic programmable state machine here...
 
-TODO: add abstract base classes for interfaces to ease generic error
-      parsing. Examples
-      1.) CME 3 ("Not allowed") is sent upon trying to
-      register to a network, as well as trying to read a phonebook
-      entry from the SIM with an index out of bounds -- we must
-      not map these two to the same org.freesmartphone.GSM error.
-      2.) CME 32 ("Network not allowed") => SimBlocked is sent if we
-      are not already registered. This may be misleading.
+TODO:
 
+ * add abstract base classes for interfaces to ease generic error parsing. Examples:
+   1.) CME 3 ("Not allowed") is sent upon trying to
+   register to a network, as well as trying to read a phonebook
+   entry from the SIM with an index out of bounds -- we must
+   not map these two to the same org.freesmartphone.GSM error.
+   2.) CME 32 ("Network not allowed") => SimBlocked is sent if we
+   are not already registered. This may be misleading.
+ * decouple from calling dbus result, we may want to reuse these functions in
+   non-exported methods as well
 """
 
 import re
@@ -206,11 +208,38 @@ class SimGetPhonebookInfo( AbstractMediator ):
     def responseFromChannel( self, request, response ):
         if response[-1] != "OK":
             AbstractMediator.responseFromChannel( self, request, response )
-
         result = {}
-        #
-        # ...
-        #
+        match = PAT_PHONEBOOK_INFO.match( response[0] )
+        result["min_index"] = int(match.groupdict()["lowest"])
+        result["max_index"] = int(match.groupdict()["highest"])
+        try:
+            result["number_length"] = int(match.groupdict()["numlen"])
+            result["name_length"] = int(match.groupdict()["textlen"])
+        except KeyError:
+            pass
+        self._ok( result )
+
+#=========================================================================#
+class SimRetrievePhonebook( AbstractMediator ):
+#=========================================================================#
+    def trigger( self ):
+        # FIXME quick hack. Need to query the phonebook for valid indices prior to doing that :)
+        self._object.channel.enqueue( '+CPBS="SM";+CPBR=1,250', self.responseFromChannel, self.errorFromChannel )
+
+    @logged
+    def responseFromChannel( self, request, response ):
+        if response[-1] != "OK":
+            AbstractMediator.responseFromChannel( self, request, response )
+        result = []
+        for entry in response[:-1]:
+            index, number, ntype, name = self._rightHandSide( entry ).split( ',' )
+            index = int( index )
+            number = number.strip( '"' )
+            try:
+                name = unicode( name.strip( '"' ), "iso-8859-1" ) # as set via +CSCS
+            except UnicodeDecodeError:
+                name = "<??? undecodable ???>"
+            result.append( ( index, name, const.phonebookTupleToNumber( number, ntype ) ) )
         self._ok( result )
 
 #=========================================================================#
@@ -295,7 +324,7 @@ class NetworkListProviders( AbstractMediator ): # ai(sss)
             self._ok( [] )
         if response[-1] == "OK":
             result = []
-            for operator in const.MATCH_OPERATOR.finditer( response[0] ):
+            for operator in const.PATTERN_OPERATOR_LIST.finditer( response[0] ):
                 index = int(operator.groupdict()["code"])
                 status = const.PROVIDER_STATUS[int(operator.groupdict()["status"])]
                 name = operator.groupdict()["name"]
@@ -315,6 +344,18 @@ class NetworkRegisterWithProvider( AbstractMediator ):
 #=========================================================================#
     def trigger( self ):
         self._object.channel.enqueue( '+COPS=1,2,"%d"' % self.operator_code, self.responseFromChannel, self.errorFromChannel, timeout=const.TIMEOUT["COPS"] )
+
+#=========================================================================#
+class NetworkRegisterWithProvider( AbstractMediator ):
+#=========================================================================#
+    def trigger( self ):
+        self._object.channel.enqueue( '+COPS=1,2,"%d"' % self.operator_code, self.responseFromChannel, self.errorFromChannel, timeout=const.TIMEOUT["COPS"] )
+
+#=========================================================================#
+class NetworkGetCountryCode( AbstractMediator ):
+#=========================================================================#
+    def __init__( self, dbus_object, dbus_ok, dbus_error, **kwargs ):
+        dbus_error( error.UnsupportedCommand( self.__class__.__name__ ) )
 
 #=========================================================================#
 class TestCommand( AbstractMediator ):
