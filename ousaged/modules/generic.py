@@ -14,6 +14,7 @@ __version__ = "0.0.0"
 DBUS_INTERFACE_PREFIX = "org.freesmartphone.Usage"
 DBUS_PATH_PREFIX = "/org/freesmartphone/Usage"
 
+import dbus
 import dbus.service
 import os
 import sys
@@ -79,6 +80,24 @@ class DummyResource( AbstractResource ):
         print "Enabled %s" % self.name
 
     def _disable( self ):
+        print "Disabled %s" % self.name
+
+class ODeviceDResource( AbstractResource ):
+    def __init__( self, usageControl, name ):
+        AbstractResource.__init__( self , usageControl )
+        self.bus = dbus.SystemBus()
+        self.name = name
+
+    def _enable( self ):
+        proxy = bus.get_object( "org.freesmartphone.Device", "/org/freesmartphone/Device/PowerControl/" + self.name )
+        iface = dbus.Interface( proxy, "org.freesmartphone.Device.PowerControl" )
+        iface.SetPower( True )
+        print "Enabled %s" % self.name
+
+    def _disable( self ):
+        proxy = bus.get_object( "org.freesmartphone.Device", "/org/freesmartphone/Device/PowerControl/" + self.name )
+        iface = dbus.Interface( proxy, "org.freesmartphone.Device.PowerControl" )
+        iface.SetPower( False )
         print "Disabled %s" % self.name
 
 #----------------------------------------------------------------------------#
@@ -163,7 +182,6 @@ def factory( prefix, bus, config ):
     return objects
 
 if __name__ == "__main__":
-    import dbus
     bus = dbus.SystemBus()
 
     def requestInterfaceForObject( prefix, interface, object ):
