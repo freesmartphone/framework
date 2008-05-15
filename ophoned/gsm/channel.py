@@ -393,7 +393,7 @@ class GenericModemChannel( AtCommandChannel ):
         self.enqueue('+CMEE=1') # report mobile equipment errors in numerical format
         self.enqueue('+CRC=1') # cellular result codes, enable extended format
 
-        self.enqueue('+CPMS="SM","SM","SM"') # preferred message storage: sim memory for mo,mt,bm
+        # self.enqueue('+CPMS="SM","SM","SM"') # preferred message storage: sim memory for mo,mt,bm
         self.enqueue('+CMGF=1') # meesage format: pdu mode sms disable, text
         self.enqueue('+CSCS="8859-1"') # character set conversion
         self.enqueue('+CSDH=1') # show text mode parameters: show values

@@ -22,7 +22,8 @@ DBUS_INTERFACE_NETWORK = "org.freesmartphone.GSM.Network"
 DBUS_INTERFACE_CALL = "org.freesmartphone.GSM.Call"
 
 DBUS_INTERFACE_SERVER = "org.freesmartphone.GSM.Server"
-DBUS_INTERFACE_TEST = "org.freesmartphone.test"
+
+DBUS_INTERFACE_TEST = "org.freesmartphone.GSM.Test"
 
 #=========================================================================#
 class Server( dbus.service.Object ):
@@ -124,6 +125,16 @@ class Device( dbus.service.Object ):
     def SendAuthCode( self, code, dbus_ok, dbus_error ):
         mediator.SimSendAuthCode( self, dbus_ok, dbus_error, code=code )
 
+    @dbus.service.method( DBUS_INTERFACE_SIM, "", "a{sv}",
+                          async_callbacks=( "dbus_ok", "dbus_error" ) )
+    def GetPhonebookInfo( self, dbus_ok, dbus_error ):
+        mediator.SimGetPhonebookInfo( self, dbus_ok, dbus_error )
+
+    @dbus.service.method( DBUS_INTERFACE_SIM, "i", "",
+                          async_callbacks=( "dbus_ok", "dbus_error" ) )
+    def DeleteEntry( self, index, dbus_ok, dbus_error ):
+        mediator.SimDeleteEntry( self, dbus_ok, dbus_error, index=index )
+
     @dbus.service.method( DBUS_INTERFACE_SIM, "iss", "",
                           async_callbacks=( "dbus_ok", "dbus_error" ) )
     def StoreEntry( self, index, name, number, dbus_ok, dbus_error ):
@@ -148,6 +159,26 @@ class Device( dbus.service.Object ):
         mediator.NetworkGetStatus( self, dbus_ok, dbus_error )
 
     #
+    # dbus org.freesmartphone.GSM.Test
+    # WARNING: DO NOT USE THIS! :)
+    #
+    @dbus.service.method( DBUS_INTERFACE_TEST, "s", "as",
+                          async_callbacks=( "dbus_ok", "dbus_error" ) )
+    def Command( self, command, dbus_ok, dbus_error ):
+        mediator.TestCommand( self, dbus_ok, dbus_error, command=command )
+
+    @dbus.service.method( DBUS_INTERFACE_TEST, "s", "s",
+                          async_callbacks=( "dbus_ok", "dbus_error" ) )
+    def Echo( self, echo, dbus_ok, dbus_error ):
+        dbus_ok( echo )
+
+    @dbus.service.method( DBUS_INTERFACE_TEST, "", "",
+                          async_callbacks=( "dbus_ok", "dbus_error" ) )
+    def Ping( self, dbus_ok, dbus_error ):
+        dbus_ok()
+
+    #
+    #
     # internal API
     #
     def _initChannels( self ):
@@ -171,15 +202,17 @@ if __name__ == "__main__":
         except Exception, e:
             return e
 
-    # testing 'Server'
+    # server
     proxy = bus.get_object( config.DBUS_BUS_NAME, config.DBUS_PATH_PREFIX+"/Server" )
     print( proxy.Introspect( dbus_interface = "org.freedesktop.DBus.Introspectable" ) )
     server = dbus.Interface(proxy, DBUS_INTERFACE_SERVER )
 
-    # testing 'Device'
+    # device
     proxy = bus.get_object( config.DBUS_BUS_NAME, config.DBUS_PATH_PREFIX+"/Device" )
     print( proxy.Introspect( dbus_interface = "org.freedesktop.DBus.Introspectable" ) )
-    device = dbus.Interface(proxy, DBUS_INTERFACE_DEVICE )
-    sim = dbus.Interface(proxy, DBUS_INTERFACE_SIM )
-    network = dbus.Interface(proxy, DBUS_INTERFACE_NETWORK )
-    call = dbus.Interface(proxy, DBUS_INTERFACE_CALL )
+    device = dbus.Interface( proxy, DBUS_INTERFACE_DEVICE )
+    sim = dbus.Interface( proxy, DBUS_INTERFACE_SIM )
+    network = dbus.Interface( proxy, DBUS_INTERFACE_NETWORK )
+    call = dbus.Interface( proxy, DBUS_INTERFACE_CALL )
+    test = dbus.Interface( proxy, DBUS_INTERFACE_TEST )
+

@@ -51,8 +51,8 @@ class AbstractMediator( object ):
             assert False, "should never reach that"
 
     @logged
-    def errorFromChannel( self, request, error ):
-        category, details = error
+    def errorFromChannel( self, request, err ):
+        category, details = err
         if category == "timeout":
             self._error( error.DeviceTimeout( "device did not answer within %dms" % details ) )
         else:
@@ -193,17 +193,40 @@ class SimSendAuthCode( AbstractMediator ):
             AbstractMediator.responseFromChannel( self, request, response )
 
 #=========================================================================#
+class SimGetPhonebookInfo( AbstractMediator ):
+#=========================================================================#
+    def trigger( self ):
+        self._object.channel.enqueue( '+CPBS="SM";+CGBR=?', self.responseFromChannel, self.errorFromChannel )
+
+    @logged
+    def responseFromChannel( self, request, response ):
+        if response[-1] != "OK":
+            AbstractMediator.responseFromChannel( self, request, response )
+
+        result = {}
+        #
+        # ...
+        #
+        self._ok( result )
+
+#=========================================================================#
+class SimDeleteEntry( AbstractMediator ):
+#=========================================================================#
+    def trigger( self ):
+        self._object.channel.enqueue( '+CPBS="SM";CPBW=%d,,,' % ( self.index, number, ntype, self.name ), self.responseFromChannel, self.errorFromChannel )
+
+#=========================================================================#
 class SimStoreEntry( AbstractMediator ):
 #=========================================================================#
     def trigger( self ):
         number, ntype = const.numberToPhonebookTuple( self.number )
-        self._object.channel.enqueue( '+CPBW=%d,"%s",%d,"%s"' % ( self.index, number, ntype, self.name ), self.responseFromChannel, self.errorFromChannel )
+        self._object.channel.enqueue( '+CPBS="SM";+CPBW=%d,"%s",%d,"%s"' % ( self.index, number, ntype, self.name ), self.responseFromChannel, self.errorFromChannel )
 
 #=========================================================================#
 class SimRetrieveEntry( AbstractMediator ):
 #=========================================================================#
     def trigger( self ):
-        self._object.channel.enqueue( '+CPBR=%d' % self.index, self.responseFromChannel, self.errorFromChannel )
+        self._object.channel.enqueue( '+CPBS="SM";+CPBR=%d' % self.index, self.responseFromChannel, self.errorFromChannel )
 
     @logged
     def responseFromChannel( self, request, response ):
@@ -217,7 +240,10 @@ class SimRetrieveEntry( AbstractMediator ):
                 index, number, ntype, name = self._rightHandSide( response[0] ).split( ',' )
                 index = int( index )
                 number = number.strip( '"' )
-                name = name.strip( '"' )
+                try:
+                    name = unicode( name.strip( '"' ), "iso-8859-1" ) # as set via +CSCS
+                except UnicodeDecodeError:
+                    name = "<??? undecodable ???>"
                 self._ok( name, const.phonebookTupleToNumber( number, ntype ) )
 
 #=========================================================================#
@@ -275,6 +301,16 @@ class NetworkGetStatus( AbstractMediator ):
         result.append( self._rightHandSide( response[1] ).split( ',' )[2].strip( '"') ) # +COPS: 0,0,"Medion Mobile"
         result.append( const.signalQualityToPercentage( int(self._rightHandSide( response[2] ).split( ',' )[0]) ) ) # +CSQ: 22,99
         self._ok( *result )
+
+#=========================================================================#
+class TestCommand( AbstractMediator ):
+#=========================================================================#
+    def trigger( self ):
+        self._object.channel.enqueue( "%s" % self.command, self.responseFromChannel, self.errorFromChannel )
+
+    @logged
+    def responseFromChannel( self, request, response ):
+        self._ok( response )
 
 #=========================================================================#
 def enableModemExtensions( modem ):

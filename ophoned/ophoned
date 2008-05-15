@@ -34,9 +34,9 @@ if "OPHONED_DEBUG" in os.environ:
 from controller import Controller
 c = Controller()
 
-while True:
-    try:
-        c.run()
-    except KeyboardInterrupt:
-        c.rerun()
+try:
+    c.run()
+except KeyboardInterrupt:
+    del c
+    sys.exit( 0 )
 
