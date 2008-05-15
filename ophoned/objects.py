@@ -79,7 +79,7 @@ class Device( dbus.service.Object ):
 
         self.channel = self.channels["MISC"] # default channel
 
-        self.channels["UNSOL"].launchKeepAlive( 7000, "" )
+        self.channels["UNSOL"].launchKeepAlive( 7, "" )
         self.channels["UNSOL"].setDelegate( unsol.UnsolicitedResponseDelegate( self ) )
 
         idle_add( self._initChannels )
@@ -148,10 +148,25 @@ class Device( dbus.service.Object ):
     #
     # dbus org.freesmartphone.GSM.Network
     #
-    @dbus.service.method( DBUS_INTERFACE_NETWORK, "", "a{sv}",
+    @dbus.service.method( DBUS_INTERFACE_NETWORK, "", "",
+                          async_callbacks=( "dbus_ok", "dbus_error" ) )
+    def Register( self, dbus_ok, dbus_error ):
+        mediator.NetworkRegister( self, dbus_ok, dbus_error )
+
+    @dbus.service.method( DBUS_INTERFACE_NETWORK, "", "",
+                          async_callbacks=( "dbus_ok", "dbus_error" ) )
+    def Unregister( self, dbus_ok, dbus_error ):
+        mediator.NetworkUnregister( self, dbus_ok, dbus_error )
+
+    @dbus.service.method( DBUS_INTERFACE_NETWORK, "", "a(isss)",
                           async_callbacks=( "dbus_ok", "dbus_error" ) )
     def ListProviders( self, dbus_ok, dbus_error ):
         mediator.NetworkListProviders( self, dbus_ok, dbus_error )
+
+    @dbus.service.method( DBUS_INTERFACE_NETWORK, "i", "",
+                          async_callbacks=( "dbus_ok", "dbus_error" ) )
+    def RegisterWithProvider( self, operator_code, dbus_ok, dbus_error ):
+        mediator.NetworkRegisterWithProvider( self, dbus_ok, dbus_error, operator_code=operator_code )
 
     @dbus.service.method( DBUS_INTERFACE_NETWORK, "", "ssi",
                           async_callbacks=( "dbus_ok", "dbus_error" ) )
@@ -170,6 +185,8 @@ class Device( dbus.service.Object ):
     @dbus.service.method( DBUS_INTERFACE_TEST, "s", "s",
                           async_callbacks=( "dbus_ok", "dbus_error" ) )
     def Echo( self, echo, dbus_ok, dbus_error ):
+        import time
+        time.sleep( 61 )
         dbus_ok( echo )
 
     @dbus.service.method( DBUS_INTERFACE_TEST, "", "",
@@ -187,7 +204,7 @@ class Device( dbus.service.Object ):
             if not self.channels[channel].isOpen():
                 if not self.channels[channel].open():
                     LOG( LOG_ERR, "could not open channel %s - retrying in 2 seconds" % channel )
-                    timeout_add( 2000, self._initChannel )
+                    timeout_add( 2000, self._initChannels )
         return False
 
 #=========================================================================#

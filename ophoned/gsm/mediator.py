@@ -14,13 +14,17 @@ before the final result can be delivered, we need to come up with a
 generic programmable state machine here...
 
 TODO: add abstract base classes for interfaces to ease generic error
-      parsing. Example: CME 3 ("Not allowed") is sent upon trying to
+      parsing. Examples
+      1.) CME 3 ("Not allowed") is sent upon trying to
       register to a network, as well as trying to read a phonebook
       entry from the SIM with an index out of bounds -- we must
       not map these two to the same org.freesmartphone.GSM error.
+      2.) CME 32 ("Network not allowed") => SimBlocked is sent if we
+      are not already registered. This may be misleading.
 
 """
 
+import re
 from decor import logged
 import error
 import const
@@ -54,7 +58,7 @@ class AbstractMediator( object ):
     def errorFromChannel( self, request, err ):
         category, details = err
         if category == "timeout":
-            self._error( error.DeviceTimeout( "device did not answer within %dms" % details ) )
+            self._error( error.DeviceTimeout( "device did not answer within %d seconds" % details ) )
         else:
             self._error( error.DeviceFailed( "%s: %s" % ( category, repr(details ) ) ) )
 
@@ -250,7 +254,7 @@ class SimRetrieveEntry( AbstractMediator ):
 class NetworkRegister( AbstractMediator ):
 #=========================================================================#
     def trigger( self ):
-        self._object.channel.enqueue( "+COPS=0", self.responseFromChannel, self.errorFromChannel )
+        self._object.channel.enqueue( "+COPS=0", self.responseFromChannel, self.errorFromChannel, timeout=const.TIMEOUT("COPS") )
 
 #=========================================================================#
 class NetworkUnregister( AbstractMediator ):
@@ -259,13 +263,31 @@ class NetworkUnregister( AbstractMediator ):
         self._object.channel.enqueue( "+COPS=2", self.responseFromChannel, self.errorFromChannel )
 
 #=========================================================================#
-class NetworkListProviders( AbstractMediator ):
+class NetworkGetStatus( AbstractMediator ):
 #=========================================================================#
     def trigger( self ):
-        pass
-        #self.responseFromChannel( "+COPS=?", ['+COPS: (2,"MEDION Mobile","","26203"),(3,"T-Mobile D","TMO D","26201"),(3,"Vodafone.de","Vodafone","26202"),(3,"o2 - de","o2 - de","26207")', 'OK'] )
+        self._object.channel.enqueue( '+CREG?;+COPS?;+CSQ', self.responseFromChannel, self.errorFromChannel, timeout=const.TIMEOUT("COPS") )
 
-        #self._object.channel.enqueue( "+COPS=?", self.responseFromChannel, self.errorFromChannel, timeout=61*1000 )
+    @logged
+    def responseFromChannel( self, request, response ):
+        if response[-1] != "OK":
+            AbstractMediator.responseFromChannel( self, request, response )
+
+        assert len( response ) == 4
+        result = []
+        result.append( const.REGISTER_STATUS[int(self._rightHandSide( response[0] ).split( ',' )[1])] ) # +CREG: 0,1
+        try:
+            result.append( self._rightHandSide( response[1] ).split( ',' )[2].strip( '"') ) # +COPS: 0,0,"Medion Mobile" or +COPS: 0
+        except IndexError:
+            result.append( "" )
+        result.append( const.signalQualityToPercentage( int(self._rightHandSide( response[2] ).split( ',' )[0]) ) ) # +CSQ: 22,99
+        self._ok( *result )
+
+#=========================================================================#
+class NetworkListProviders( AbstractMediator ): # ai(sss)
+#=========================================================================#
+    def trigger( self ):
+        self._object.channel.enqueue( "+COPS=?", self.responseFromChannel, self.errorFromChannel, timeout=const.TIMEOUT["COPS=?"] )
 
     @logged
     def responseFromChannel( self, request, response ):
@@ -273,8 +295,12 @@ class NetworkListProviders( AbstractMediator ):
             self._ok( [] )
         if response[-1] == "OK":
             result = []
-            for provider in self._rightHandSide( response[0] ).split( ',' ):
-                result.append( self._providerTuple( provider ) )
+            for operator in const.MATCH_OPERATOR.finditer( response[0] ):
+                index = int(operator.groupdict()["code"])
+                status = const.PROVIDER_STATUS[int(operator.groupdict()["status"])]
+                name = operator.groupdict()["name"]
+                shortname = operator.groupdict()["shortname"]
+                result.append( ( index, status, name, shortname ) )
             self._ok( result )
         else:
             AbstractMediator.responseFromChannel( self, request, response )
@@ -285,22 +311,10 @@ class NetworkListProviders( AbstractMediator ):
         return int(values[3]), const.PROVIDER_STATUS[int(values[0])], values[1], values[2]
 
 #=========================================================================#
-class NetworkGetStatus( AbstractMediator ):
+class NetworkRegisterWithProvider( AbstractMediator ):
 #=========================================================================#
     def trigger( self ):
-        self._object.channel.enqueue( '+CREG?;+COPS?;+CSQ', self.responseFromChannel, self.errorFromChannel )
-
-    @logged
-    def responseFromChannel( self, request, response ):
-        if response[-1] != "OK":
-            AbstractMediator.responseFromChannel( self, request, response )
-
-        assert len( response ) == 4
-        result = []
-        result.append( const.REGISTER_STATUS[int(self._rightHandSide( response[0] ).split( ',' )[1])] ) # +CREG: 0,1
-        result.append( self._rightHandSide( response[1] ).split( ',' )[2].strip( '"') ) # +COPS: 0,0,"Medion Mobile"
-        result.append( const.signalQualityToPercentage( int(self._rightHandSide( response[2] ).split( ',' )[0]) ) ) # +CSQ: 22,99
-        self._ok( *result )
+        self._object.channel.enqueue( '+COPS=1,2,"%d"' % self.operator_code, self.responseFromChannel, self.errorFromChannel, timeout=const.TIMEOUT["COPS"] )
 
 #=========================================================================#
 class TestCommand( AbstractMediator ):

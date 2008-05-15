@@ -281,7 +281,7 @@ class QueuedVirtualChannel( VirtualChannel ):
         if "timeout" in kwargs:
             self.timeout = kwargs["timeout"]
         else:
-            self.timeout = 5000 # 5 seconds default
+            self.timeout = 5 # default timeout in seconds
 
         if "wakeup" in kwargs:
             self.wakeup = kwargs["wakeup"]
@@ -319,7 +319,7 @@ class QueuedVirtualChannel( VirtualChannel ):
             self.debugFile.write( self.q.peek()[0] ) # channel data
         self.serial.write( self.q.peek()[0] ) # channel data
         if self.q.peek()[3]: # channel timeout
-            self.watchTimeout = gobject.timeout_add( self.q.peek()[3], self._handleCommandTimeout )
+            self.watchTimeout = gobject.timeout_add_seconds( self.q.peek()[3], self._handleCommandTimeout )
         return False
 
     @logged
@@ -401,7 +401,7 @@ class GenericModemChannel( AtCommandChannel ):
     def launchKeepAlive( self, timeout, command ):
         """Setup a keep-alive timeout."""
         self.keepAliveCommand = command
-        self.timeoutKeepAlive = gobject.timeout_add( timeout, self._modemKeepAlive )
+        self.timeoutKeepAlive = gobject.timeout_add_seconds( timeout, self._modemKeepAlive )
         self._modemKeepAlive()
 
     def _modemKeepAlive( self, *args ):
@@ -506,10 +506,10 @@ if __name__ == "__main__":
             print ">>>>>>>>>>>>> GOT %d bytes '%s'" % ( len(data), repr(data) )
 
     bus = dbus.SystemBus()
-    misc = GenericModemChannel( bus, timeout=5000 )
-    call = GenericModemChannel( bus, timeout=10000 )
+    misc = GenericModemChannel( bus, timeout=5 )
+    call = GenericModemChannel( bus, timeout=10 )
     unsol = UnsolicitedResponseChannel( bus )
-    unsol.launchKeepAlive( 8000, "" )
+    unsol.launchKeepAlive( 8, "" )
     call.open()
     unsol.open()
     misc.open()

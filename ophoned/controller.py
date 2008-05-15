@@ -11,10 +11,14 @@ import config
 import dbus
 import dbus.service
 from dbus.mainloop.glib import DBusGMainLoop
-import gobject
 from config import LOG, LOG_ERR, LOG_WARNING, LOG_INFO, LOG_DEBUG
 import objects
 import signal
+import gobject
+if not hasattr( gobject, "timeout_add_seconds" ):
+    def timeout_add_seconds( seconds, callback ):
+        return gobject.timeout_add( seconds*1000, callback )
+    gobject.timeout_add_seconds = timeout_add_seconds
 
 class Controller( object ):
 
@@ -22,7 +26,7 @@ class Controller( object ):
         DBusGMainLoop( set_as_default=True )
         self.mainloop = gobject.MainLoop()
         gobject.idle_add( self.idle )
-        gobject.timeout_add( 10000, self.timeout )
+        gobject.timeout_add_seconds( 10, self.timeout )
         self.bus = dbus.SystemBus()
         self.busname = dbus.service.BusName( config.DBUS_BUS_NAME, self.bus )
         self.modemtype = modemtype
