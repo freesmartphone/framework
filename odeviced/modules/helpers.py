@@ -3,6 +3,7 @@ DBUS_PATH_PREFIX = "/org/freesmartphone/Device"
 
 import sys
 from syslog import syslog, LOG_ERR, LOG_WARNING, LOG_INFO, LOG_DEBUG
+from string import maketrans
 realpath = sys.path[:]
 sys.path.append( ".." )
 try:
@@ -27,3 +28,8 @@ def writeToFile( path, value ):
     f = open( path, 'w' )
     if f:
         f.write( "%s\n" % value )
+
+trans = maketrans("-:", "__")
+def cleanObjectName( name ):
+   return name.translate(trans)
+
