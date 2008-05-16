@@ -280,6 +280,33 @@ class SimRetrieveEntry( AbstractMediator ):
                 self._ok( name, const.phonebookTupleToNumber( number, ntype ) )
 
 #=========================================================================#
+class SimGetServiceCenterNumber( AbstractMediator ):
+#=========================================================================#
+    def trigger( self ):
+        self._object.channel.enqueue( "+CSCA?", self.responseFromChannel, self.errorFromChannel )
+
+    @logged
+    def responseFromChannel( self, request, response ):
+        if ( response[-1] == "OK" ):
+            result = self._rightHandSide( response[0] ).split( ',' )
+            if len( result ) == 2:
+                number, ntype = result
+            else:
+                number, ntype = result, 145
+            number = number.replace( '+', '' ) # normalize
+            self._ok( const.phonebookTupleToNumber( number.strip( '"' ), int(ntype) ) )
+        else:
+            AbstractMediator.responseFromChannel( self, request, response )
+
+#=========================================================================#
+class SimSetServiceCenterNumber( AbstractMediator ):
+#=========================================================================#
+    def trigger( self ):
+        if not self.number.startswith( '+' ):
+            self.number = "+%s" % self.number
+        self._object.channel.enqueue( '+CSCA="%s",145' % self.number, self.responseFromChannel, self.errorFromChannel )
+
+#=========================================================================#
 class NetworkRegister( AbstractMediator ):
 #=========================================================================#
     def trigger( self ):

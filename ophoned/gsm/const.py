@@ -21,6 +21,9 @@ PAT_OPERATOR_LIST = re.compile( '\((?P<status>[123]),"(?P<name>[^"]+?)","(?P<sho
 # +CPBR: (1-250),44,17
 # +CBPR: (1-50)
 PAT_PHONEBOOK_INFO = re.compile( '\((?P<lowest>\d+)-(?P<highest>\d+)\)(?:,(?P<numlen>\d+),(?P<textlen>\d+))?' )
+# +CMGL: 1,"REC READ","491770702810",,"08/04/04,01:21:20+08",145,121
+# TODO: Add optional address text within the two ','
+PAT_SMS_TEXT_HEADER = re.compile( '(?P<index>\d+),"(?P<status>[^"]+)","(?P<number>\d*)",,"(?P<timestamp>[^"]+)",(?P<ntype>\d+),(?P<textlen>\d+)' )
 
 #=========================================================================#
 # timeouts

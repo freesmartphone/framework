@@ -111,6 +111,7 @@ class Device( dbus.service.Object ):
     # dbus org.freesmartphone.GSM.SIM
     #
 
+    ### SIM auth
     @dbus.service.method( DBUS_INTERFACE_SIM, "", "s",
                           async_callbacks=( "dbus_ok", "dbus_error" ) )
     def GetAuthStatus( self, dbus_ok, dbus_error ):
@@ -125,6 +126,7 @@ class Device( dbus.service.Object ):
     def SendAuthCode( self, code, dbus_ok, dbus_error ):
         mediator.SimSendAuthCode( self, dbus_ok, dbus_error, code=code )
 
+    ### SIM phonebook
     @dbus.service.method( DBUS_INTERFACE_SIM, "", "a{sv}",
                           async_callbacks=( "dbus_ok", "dbus_error" ) )
     def GetPhonebookInfo( self, dbus_ok, dbus_error ):
@@ -149,6 +151,17 @@ class Device( dbus.service.Object ):
                           async_callbacks=( "dbus_ok", "dbus_error" ) )
     def RetrieveEntry( self, index, dbus_ok, dbus_error ):
         mediator.SimRetrieveEntry( self, dbus_ok, dbus_error, index=index )
+
+    ### SIM messagebook
+    @dbus.service.method( DBUS_INTERFACE_SIM, "", "s",
+                          async_callbacks=( "dbus_ok", "dbus_error" ) )
+    def GetServiceCenterNumber( self, dbus_ok, dbus_error ):
+        mediator.SimGetServiceCenterNumber( self, dbus_ok, dbus_error )
+
+    @dbus.service.method( DBUS_INTERFACE_SIM, "s", "",
+                          async_callbacks=( "dbus_ok", "dbus_error" ) )
+    def SetServiceCenterNumber( self, number, dbus_ok, dbus_error ):
+        mediator.SimSetServiceCenterNumber( self, dbus_ok, dbus_error, number=number )
 
     #
     # dbus org.freesmartphone.GSM.Network
