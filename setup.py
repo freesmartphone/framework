@@ -8,7 +8,7 @@ setup(
     author = "Jan 'Shoragan' Lübbe",
     author_email = "jluebbe@lasnet.de",
     url = "http://www.freesmartphone.org",
-    packages = [ "ousaged" ],
+    packages = [ "ousaged", "ousaged/modules" ],
     scripts = [ "ousaged/ousaged" ],
     data_files = [ ("etc/dbus-1/system.d", ["etc/dbus-1/system.d/ousaged.conf"] ) ]
 )
