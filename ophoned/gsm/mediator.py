@@ -193,6 +193,7 @@ class SimSendAuthCode( AbstractMediator ):
     def responseFromChannel( self, request, response ):
         if response[-1] == "OK":
             self._ok()
+            # FIXME send auth status changed
             if response[0].startswith( "+CPIN" ):
                 self._object.AuthStatus( self._rightHandSide( response[0] ) )
         else:
@@ -235,10 +236,7 @@ class SimRetrievePhonebook( AbstractMediator ):
             index, number, ntype, name = self._rightHandSide( entry ).split( ',' )
             index = int( index )
             number = number.strip( '"' )
-            try:
-                name = unicode( name.strip( '"' ), "iso-8859-1" ) # as set via +CSCS
-            except UnicodeDecodeError:
-                name = "<??? undecodable ???>"
+            name = const.textToUnicode( name )
             result.append( ( index, name, const.phonebookTupleToNumber( number, ntype ) ) )
         self._ok( result )
 
@@ -273,10 +271,7 @@ class SimRetrieveEntry( AbstractMediator ):
                 index, number, ntype, name = self._rightHandSide( response[0] ).split( ',' )
                 index = int( index )
                 number = number.strip( '"' )
-                try:
-                    name = unicode( name.strip( '"' ), "iso-8859-1" ) # as set via +CSCS
-                except UnicodeDecodeError:
-                    name = "<??? undecodable ???>"
+                name = const.textToUnicode( name )
                 self._ok( name, const.phonebookTupleToNumber( number, ntype ) )
 
 #=========================================================================#
@@ -297,6 +292,54 @@ class SimGetServiceCenterNumber( AbstractMediator ):
             self._ok( const.phonebookTupleToNumber( number.strip( '"' ), int(ntype) ) )
         else:
             AbstractMediator.responseFromChannel( self, request, response )
+
+#=========================================================================#
+class SimGetMessagebookInfo( AbstractMediator ):
+#=========================================================================#
+    def trigger( self ):
+        self._object.channel.enqueue( '+CPMS="SM","SM","SM"', self.responseFromChannel, self.errorFromChannel )
+
+    @logged
+    def responseFromChannel( self, request, response ):
+        if response[-1] != "OK":
+            AbstractMediator.responseFromChannel( self, request, response )
+        afirst, alast, bfirst, blast, cfirst, clast = self._rightHandSide( response[0] ).split( ',' )
+        result = {}
+        result["min_index"] = int(afirst)
+        result["max_index"] = int(alast)
+        self._ok( result )
+
+#=========================================================================#
+class SimRetrieveMessagebook( AbstractMediator ):
+#=========================================================================#
+    def trigger( self ):
+        self._object.channel.enqueue( '+CMGL="ALL"', self.responseFromChannel, self.errorFromChannel )
+
+    @logged
+    def responseFromChannel( self, request, response ):
+        if response[-1] != "OK":
+            AbstractMediator.responseFromChannel( self, request, response )
+        result = []
+        curmsg = None
+        text = ""
+        for line in response[:-1]:
+            print "parsing line", line
+            if line.startswith( "+CMGL" ):
+                print "line is header line"
+                if text:
+                    print "text=", text, "appending to result"
+                    result.append( ( index, status, number, const.textToUnicode(text) ) )
+                header = const.PAT_SMS_TEXT_HEADER.match( self._rightHandSide(line) )
+                index = int(header.groupdict()["index"])
+                status = const.SMS_STATUS_OUT[header.groupdict()["status"]]
+                number = const.phonebookTupleToNumber( header.groupdict()["number"], int(header.groupdict()["ntype"]) )
+                text = ""
+            else:
+                print "line is text line"
+                text += line
+        if text:
+            result.append( ( index, status, number, const.textToUnicode(text) ) )
+        self._ok( result )
 
 #=========================================================================#
 class SimSetServiceCenterNumber( AbstractMediator ):
@@ -351,7 +394,7 @@ class NetworkListProviders( AbstractMediator ): # ai(sss)
             self._ok( [] )
         if response[-1] == "OK":
             result = []
-            for operator in const.PATTERN_OPERATOR_LIST.finditer( response[0] ):
+            for operator in const.PAT_OPERATOR_LIST.finditer( response[0] ):
                 index = int(operator.groupdict()["code"])
                 status = const.PROVIDER_STATUS[int(operator.groupdict()["status"])]
                 name = operator.groupdict()["name"]

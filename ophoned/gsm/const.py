@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# -*- coding: iso-8859-15 -*-
 """
 The Open Device Daemon - Python Implementation
 
@@ -207,6 +208,23 @@ REGISTER_STATUS = { \
 }
 
 #=========================================================================#
+SMS_STATUS_OUT = { \
+    "REC READ": "read",
+    "REC UNREAD": "unread",
+    "REC SENT": "sent",
+    "REC UNSENT": "unsent",
+}
+
+#=========================================================================#
+SMS_STATUS_IN = { \
+    "read": "REC READ",
+    "unread": "REC UNREAD",
+    "sent": "REC SENT",
+    "unsent": "REC UNSENT",
+    "all": "ALL",
+}
+
+#=========================================================================#
 import types, math
 
 #=========================================================================#
@@ -285,6 +303,19 @@ def numberToPhonebookTuple( nstring ):
         return nstring, 129
 
 #=========================================================================#
+def textToUnicode( text ):
+#=========================================================================#
+    """
+    Returns a unicode text for a text given from the modem.
+    """
+    try:
+        result = unicode( text.strip( '"' ), "iso-8859-1" ) # as set via +CSCS
+    except UnicodeDecodeError:
+        result = "<??? undecodable ???>"
+        # log warning
+    return result
+
+#=========================================================================#
 if __name__ == "__main__":
 #=========================================================================#
     print "testing..."
@@ -302,4 +333,6 @@ if __name__ == "__main__":
     assert phonebookTupleToNumber( "123456789", 145 ) == "+123456789"
     assert numberToPhonebookTuple( "123456789" ) == ( "123456789", 129 )
     assert numberToPhonebookTuple( "+123456789" ) == (  "123456789", 145 )
+    print "OK"
+    assert textToUnicode( "B\xf6rse" ) != "<??? undecodable ???>"
     print "OK"

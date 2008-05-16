@@ -153,6 +153,16 @@ class Device( dbus.service.Object ):
         mediator.SimRetrieveEntry( self, dbus_ok, dbus_error, index=index )
 
     ### SIM messagebook
+    @dbus.service.method( DBUS_INTERFACE_SIM, "", "a{sv}",
+                          async_callbacks=( "dbus_ok", "dbus_error" ) )
+    def GetMessagebookInfo( self, dbus_ok, dbus_error ):
+        mediator.SimGetMessagebookInfo( self, dbus_ok, dbus_error )
+
+    @dbus.service.method( DBUS_INTERFACE_SIM, "", "a(isss)",
+                          async_callbacks=( "dbus_ok", "dbus_error" ) )
+    def RetrieveMessagebook( self, dbus_ok, dbus_error ):
+        mediator.SimRetrieveMessagebook( self, dbus_ok, dbus_error )
+
     @dbus.service.method( DBUS_INTERFACE_SIM, "", "s",
                           async_callbacks=( "dbus_ok", "dbus_error" ) )
     def GetServiceCenterNumber( self, dbus_ok, dbus_error ):
