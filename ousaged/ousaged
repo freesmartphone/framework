@@ -13,7 +13,7 @@ __version__ = "0.0.0"
 
 try: from controller import Controller
 except ImportError:
-    from odeviced.controller import Controller
+    from ousaged.controller import Controller
 import sys
 import os
 from syslog import openlog, LOG_PERROR, LOG_DAEMON
