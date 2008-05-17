@@ -433,6 +433,7 @@ class UnsolicitedResponseChannel( GenericModemChannel ):
         self.enqueue('+CSNS=0') # single numbering scheme: voice
         self.enqueue('+CTZU=1') # timezone update
         self.enqueue('+CTZR=1') # timezone reporting
+        self.enqueue('+CREG=2') # registration information (TODO not all modems support that)
 
         if "callback" in kwargs:
             self.callback = kwargs["callback"]

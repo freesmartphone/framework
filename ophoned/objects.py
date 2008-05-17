@@ -224,6 +224,10 @@ class Device( dbus.service.Object ):
     def GetStatus( self, dbus_ok, dbus_error ):
         mediator.NetworkGetStatus( self, dbus_ok, dbus_error )
 
+    @dbus.service.signal( DBUS_INTERFACE_NETWORK, "ssi" )
+    def Status( self, provider_name, status, strength ):
+        LOG( LOG_INFO, "org.freesmartphone.GSM.Network.Status: ", repr(provider_name), repr(status), repr(strength) )
+
     @dbus.service.method( DBUS_INTERFACE_NETWORK, "", "a(isss)",
                           async_callbacks=( "dbus_ok", "dbus_error" ) )
     def ListProviders( self, dbus_ok, dbus_error ):
@@ -276,14 +280,28 @@ class Device( dbus.service.Object ):
 #=========================================================================#
 if __name__ == "__main__":
 #=========================================================================#
-    import dbus
-    bus = dbus.SystemBus()
+    import dbus, sys, thread, atexit
+    from gobject import threads_init, MainLoop
 
-    def testing( device ):
-        try:
-            device.GetInfo()
-        except Exception, e:
-            return e
+    def handler( *args, **kwargs ):
+        print "="*78
+        print "got a signal from '%s' (via %s):" % ( kwargs["path"], kwargs["sender"] )
+        print "=> SIGNAL: %s.%s (" % ( kwargs["interface"], kwargs["member"] ),
+        for arg in args[:-1]:
+            print "%s, " % arg,
+        print "%s )" % args[-1]
+        print "="*78
+
+    def run( *args ):
+        print "entering mainloop"
+        mainloop.run()
+        print "exit from mainloop"
+
+    import dbus.mainloop.glib
+    dbus.mainloop.glib.DBusGMainLoop( set_as_default=True )
+    mainloop = MainLoop()
+
+    bus = dbus.SystemBus()
 
     # server
     proxy = bus.get_object( config.DBUS_BUS_NAME, config.DBUS_PATH_PREFIX+"/Server" )
@@ -298,4 +316,14 @@ if __name__ == "__main__":
     network = dbus.Interface( proxy, DBUS_INTERFACE_NETWORK )
     call = dbus.Interface( proxy, DBUS_INTERFACE_CALL )
     test = dbus.Interface( proxy, DBUS_INTERFACE_TEST )
+
+    bus.add_signal_receiver( handler, None, None, config.DBUS_BUS_NAME, None,
+        sender_keyword = "sender",
+        destination_keyword = "destination",
+        interface_keyword = "interface",
+        member_keyword = "member",
+        path_keyword = "path" )
+
+    threads_init()
+    thread.start_new_thread( run, () )
 

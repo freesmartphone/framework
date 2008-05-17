@@ -408,7 +408,7 @@ class SimDeleteMessage( AbstractMediator ):
 class NetworkRegister( AbstractMediator ):
 #=========================================================================#
     def trigger( self ):
-        self._object.channel.enqueue( "+COPS=0", self.responseFromChannel, self.errorFromChannel, timeout=const.TIMEOUT("COPS") )
+        self._object.channel.enqueue( "+COPS=0", self.responseFromChannel, self.errorFromChannel, timeout=const.TIMEOUT["COPS"] )
 
 #=========================================================================#
 class NetworkUnregister( AbstractMediator ):
@@ -420,7 +420,7 @@ class NetworkUnregister( AbstractMediator ):
 class NetworkGetStatus( AbstractMediator ):
 #=========================================================================#
     def trigger( self ):
-        self._object.channel.enqueue( '+CREG?;+COPS?;+CSQ', self.responseFromChannel, self.errorFromChannel, timeout=const.TIMEOUT("COPS") )
+        self._object.channel.enqueue( '+CREG?;+COPS?;+CSQ', self.responseFromChannel, self.errorFromChannel, timeout=const.TIMEOUT["COPS"] )
 
     @logged
     def responseFromChannel( self, request, response ):
