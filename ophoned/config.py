@@ -2,8 +2,6 @@ DBUS_INTERFACE_PREFIX = "org.freesmartphone.GSM"
 DBUS_PATH_PREFIX = "/org/freesmartphone/GSM"
 DBUS_BUS_NAME = "org.freesmartphone.ophoned"
 
-VERSION = "0.0.0"
-
 log_debug = True
 log_info = True
 

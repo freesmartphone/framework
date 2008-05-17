@@ -3,11 +3,14 @@ General Question:
   If so, we can simplify a lot on keeping internal state instead of
   poking the modem every time.
 
-07.07 / 07.05 Observations / Questions:
-* +CPIN="abcd" does not work while +CFUN=0
+GSM 07.07 / 07.05 Observations and/or Questions:
+* On channel init, you better send \x1a first -- just in case something crashed while we
+  were inside a multiline request command
+* +CFUN=1 resets previous +CPIN="abcd"
 * +CFUN=1 always succeeds even if it answers with ERROR (SIM PIN Required)
 * I always receive CME ERROR 32 on +COPS=? until CREG=1
 * +CREG=%d influences both the unsolicited response as well as the solicited response code
 * Phonebook indices start with 1 (not 0)
-* If SIM PIN not given, SIM messagebook requests return CMS 310 (SIM NOT INSERTED(!))
+* If SIM PIN not given, SIM messagebook requests the slightly misleading 
+  CMS error code 310 (=SIM NOT INSERTED)
 * If SMS phone number available in messagebook, address name will be automatically inserted

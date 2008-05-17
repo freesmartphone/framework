@@ -7,13 +7,13 @@ The Open Device Daemon - Python Implementation
 GPLv2 or later
 """
 
-__version__ = "0.1.0"
-
 from optparse import OptionParser
 from config import LOG, LOG_ERR, LOG_WARNING, LOG_INFO, LOG_DEBUG
 from syslog import openlog, LOG_PERROR, LOG_DAEMON
 import sys
 import os
+
+__version__ = "0.1.0"
 
 #parser = OptionParser()
 #parser.add_option( "-m", "--modem", dest = "modem",
@@ -27,6 +27,9 @@ import os
 #if options.modem not in pygsm.allModems():
     #parser.error( "Sorry, need to give a valid modem such as %s" % pygsm.allModems() )
 #else:
+
+print """Open Phone Server V%s [Python-Implementation]
+(C) 2008 Michael 'Mickey' Lauer (Openmoko, Inc.)""" % __version__
 
 if "OPHONED_DEBUG" in os.environ:
     openlog( "py-ophoned", LOG_PERROR, LOG_DAEMON )

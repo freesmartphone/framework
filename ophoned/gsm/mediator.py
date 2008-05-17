@@ -325,21 +325,25 @@ class SimRetrieveMessagebook( AbstractMediator ):
         curmsg = None
         text = ""
         for line in response[:-1]:
-            print "parsing line", line
+            #print "parsing line", line
             if line.startswith( "+CMGL" ):
-                print "line is header line"
+                #print "line is header line"
                 if text:
-                    print "text=", text, "appending to result"
+                    #print "text=", text, "appending to result"
                     result.append( ( index, status, number, const.textToUnicode(text) ) )
                 header = const.PAT_SMS_TEXT_HEADER.match( self._rightHandSide(line) )
                 index = int(header.groupdict()["index"])
                 status = const.SMS_STATUS_OUT[header.groupdict()["status"]]
                 number = const.phonebookTupleToNumber( header.groupdict()["number"], int(header.groupdict()["ntype"]) )
-                # TODO arrival... time.strptime( '%s,%s'% (d, t, ), '%y/%m/%d,%H:%M:%S') => const module
+                # TODO handle optional arrival... time.strptime( '%s,%s'% (d, t, ), '%y/%m/%d,%H:%M:%S') => const module
+                # TODO handle optional name from phonebook
                 text = ""
             else:
-                print "line is text line"
-                text += "\n%s" % line
+                #print "line is text line"
+                if text:
+                    text += "\n%s" % line
+                else:
+                    text += line
         if text:
             result.append( ( index, status, number, const.textToUnicode(text) ) )
         self._ok( result )
@@ -357,15 +361,21 @@ class SimStoreMessage( AbstractMediator ):
 #=========================================================================#
     def trigger( self ):
         number, ntype = const.numberToPhonebookTuple( self.number )
-        self._object.channel.enqueue( '+CMGW="%s",%d,"STO UNSENT"\r%s\x1a\r\n' % ( number, ntype, self.contents ), self.responseFromChannel, self.errorFromChannel )
+        contents = self.contents.replace( '\n', '\r\n' )
+        self._object.channel.enqueue( '+CMGW="%s",%d,"STO UNSENT"\r%s' % ( number, ntype, contents ), self.responseFromChannel, self.errorFromChannel )
 
     @logged
     def responseFromChannel( self, request, response ):
         if response[-1] != "OK":
             AbstractMediator.responseFromChannel( self, request, response )
         else:
-            # FIXME need to skip one continuation line until parser has native support for swalling that
-            self._ok( int(self._rightHandSide(response[1])) )
+            self._ok( int(self._rightHandSide(response[0])) )
+
+#=========================================================================#
+class SimDeleteMessage( AbstractMediator ):
+#=========================================================================#
+    def trigger( self ):
+        self._object.channel.enqueue( "+CMGD=%d" % self.index, self.responseFromChannel, self.errorFromChannel )
 
 #=========================================================================#
 class NetworkRegister( AbstractMediator ):

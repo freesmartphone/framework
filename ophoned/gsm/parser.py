@@ -21,12 +21,12 @@ class LowlevelAtParser( object ):
     * Support solicited and unsolicited responses (on the same channel)             [ok]
     * Support single (e.g. +CGMR) and multi requests (+CGMR;+CGMM;+CGMI;+CGSN)      [ok]
     * Handle one-line and multi-line responses                                      [ok]
+    * Handle multiline requests by supporting continuation '\r\n> '                 [ok, but see NOTE]
 
     Todo:
     * Detect echo mode and adjust itself (or warn)
     * Handle intermediate responses
     * Handle multiline answers with clean lines (e.g. SMS)
-    * Handle multiline requests by supporting continuation '\r\n> '
     * Seamless handover to binary mode parsers
     """
 
@@ -38,6 +38,15 @@ class LowlevelAtParser( object ):
         self.curline = ""
 
     def feed( self, bytes, haveCommand ):
+        # NOTE: the continuation query relies on '\r\n> ' not being
+        # fragmented... question: is that always correct? If not,
+        # we better keep the state. We could also enhance the signature
+        # to support handing a haveContinuation state over to this function.
+        if bytes == "\r\n> ":
+            self.response( [] )
+            self.lines = []
+            self.curline = ""
+            return
         for b in bytes:
             if b == '\r' or b == '\n':
                 if self.curline:

@@ -153,18 +153,16 @@ class VirtualChannel( object ):
         This is actually an ugly hack which is unfortunately
         necessary since some multiplexers in modems have problems
         wrt. to initialization (swallowing first bunch of commands etc.)
-        To work around this, we send \r\n until we actually get an
+        To work around this, we send '\x1a\r\n' until we actually get an
         'OK' from the modem. We try this for 5 times, then we reopen
-        the serial line. If after 10 times, we still have no response,
+        the serial line. If after 10 times we still have no response,
         we assume that the modem is broken and fail.
         """
         for i in itertools.count():
             print "(modem init... try #%d)" % ( i+1 )
             select.select( [], [self.serial.fd], [], 0.5 )
-            print "(select1 returned)"
-            self.serial.write( "\r\n" )
+            self.serial.write( "\x1a\r\n" )
             r, w, x = select.select( [self.serial.fd], [], [], 0.5 )
-            print "(select2 returned)"
             if r:
                 try:
                     buf = self.serial.inWaiting()
@@ -178,7 +176,7 @@ class VirtualChannel( object ):
                     buf = self.serial.inWaiting()
                 ok = self.serial.read(buf).strip()
                 print "read:", repr(ok)
-                if ok.startswith( "OK" ) or ok.startswith( "AT" ):
+                if "OK" in ok or "AT" in ok:
                     break
             print "(modem not responding)"
             if i == 5:
@@ -379,7 +377,17 @@ class AtCommandChannel( QueuedVirtualChannel ):
 #=========================================================================#
     @logged
     def enqueue( self, command, response_cb=None, error_cb=None, timeout=None ):
-        QueuedVirtualChannel.enqueue( self, "AT%s\r\n" % command, response_cb, error_cb, timeout )
+        """
+        Enqueue a single line or multiline command. Multiline commands have
+        a '\r' (NOT '\r\n') embedded after the first line.
+        """
+        commands = command.split( '\r',1 )
+        if len( commands ) == 1:
+            QueuedVirtualChannel.enqueue( self, "AT%s\r\n" % command, response_cb, error_cb, timeout )
+        elif len( commands ) == 2:
+            QueuedVirtualChannel.enqueue( self, "AT%s\r" % commands[0], None, None, None )
+            QueuedVirtualChannel.enqueue( self, "%s\x1A" % commands[1], response_cb, error_cb, timeout )
+
     enqueueRaw = QueuedVirtualChannel.enqueue
 
 #=========================================================================#
