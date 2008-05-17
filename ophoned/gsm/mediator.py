@@ -11,7 +11,7 @@ Module: Mediator
 This module needs to be overhauled completely. Since the implementation
 of all non-trivial dbus calls need to launch subsequent AT commands
 before the final result can be delivered, we need to come up with a
-generic programmable state machine here...
+generic programmable state machine here or with some more regex's.
 
 TODO:
 
@@ -24,6 +24,7 @@ TODO:
    are not already registered. This may be misleading.
  * decouple from calling dbus result, we may want to reuse these functions in
    non-exported methods as well
+ * recover from traceback in parsing / compiling result code
 """
 
 import re
@@ -169,8 +170,19 @@ class DeviceSetAntennaPower( AbstractMediator ):
 #=========================================================================#
 class DeviceGetFeatures( AbstractMediator ):
 #=========================================================================#
-    def __init__( self, dbus_object, dbus_ok, dbus_error, **kwargs ):
-        dbus_error( error.UnsupportedCommand( self.__class__.__name__ ) )
+    def trigger( self ):
+        self._object.channel.enqueue( "+GCAP;+CGCLASS?;+FCLASS?", self.responseFromChannel, self.errorFromChannel )
+
+    def responseFromChannel( self, request, response ):
+        if response[-1] != "OK":
+            AbstractMediator.responseFromChannel( self, request, response )
+
+        result = {}
+        if "GSM" in response[0]:
+            result["GSM"] = self._rightHandSide( response[1] ).strip( '"' )
+        if "FCLASS" in response[0]:
+            result["FAX"] = response[2]
+        self._ok( result )
 
 #=========================================================================#
 class SimGetAuthStatus( AbstractMediator ):
@@ -200,6 +212,21 @@ class SimSendAuthCode( AbstractMediator ):
                 self._object.AuthStatus( self._rightHandSide( response[0] ) )
         else:
             AbstractMediator.responseFromChannel( self, request, response )
+
+#=========================================================================#
+class SimGetImsi( AbstractMediator ):
+#=========================================================================#
+    def trigger( self ):
+        self._object.channel.enqueue( '+CIMI', self.responseFromChannel, self.errorFromChannel )
+
+    @logged
+    def responseFromChannel( self, request, response ):
+        if response[-1] != "OK":
+            AbstractMediator.responseFromChannel( self, request, response )
+        if response[0] == "OK":
+            return self._ok( "<??? unknown ???>" )
+        else:
+            self._ok( response[0].replace( "+CIMI: ", "" ).strip( '"' ) )
 
 #=========================================================================#
 class SimGetPhonebookInfo( AbstractMediator ):
@@ -459,7 +486,7 @@ class NetworkGetCountryCode( AbstractMediator ):
 class TestCommand( AbstractMediator ):
 #=========================================================================#
     def trigger( self ):
-        self._object.channel.enqueue( "%s" % self.command, self.responseFromChannel, self.errorFromChannel )
+        self._object.channel.enqueueRaw( "%s" % self.command, self.responseFromChannel, self.errorFromChannel )
 
     @logged
     def responseFromChannel( self, request, response ):

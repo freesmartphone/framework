@@ -28,6 +28,16 @@ DBUS_INTERFACE_TEST = "org.freesmartphone.GSM.Test"
 #=========================================================================#
 class Server( dbus.service.Object ):
 #=========================================================================#
+    """
+    High level access to the Open Phone Server.
+
+    Idea: Send high level readiness signals for function complexes such as:
+    - PhonebookReady
+    - MessagebookReady
+    - CallReady
+    - SmsReady
+    """
+
     DBUS_INTERFACE = "%s.%s" % ( config.DBUS_INTERFACE_PREFIX, "Server" )
 
     def __init__( self, bus, device ):
@@ -125,6 +135,19 @@ class Device( dbus.service.Object ):
                           async_callbacks=( "dbus_ok", "dbus_error" ) )
     def SendAuthCode( self, code, dbus_ok, dbus_error ):
         mediator.SimSendAuthCode( self, dbus_ok, dbus_error, code=code )
+
+    # MISSING: Unlock(ss)
+
+    # MISSING: ChangeAuthCode(ss)
+
+    @dbus.service.method( DBUS_INTERFACE_SIM, "", "s",
+                          async_callbacks=( "dbus_ok", "dbus_error" ) )
+    def GetImsi( self, dbus_ok, dbus_error ):
+        mediator.SimGetImsi( self, dbus_ok, dbus_error )
+
+    # MISSING: GetSubscriberNumbers()->a{sv}
+
+    # MISSING: GetCountryCode->s
 
     ### SIM phonebook
     @dbus.service.method( DBUS_INTERFACE_SIM, "", "a{sv}",

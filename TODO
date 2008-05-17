@@ -14,3 +14,4 @@ GSM 07.07 / 07.05 Observations and/or Questions:
 * If SIM PIN not given, SIM messagebook requests the slightly misleading 
   CMS error code 310 (=SIM NOT INSERTED)
 * If SMS phone number available in messagebook, address name will be automatically inserted
+* +CNUM usually returns 22, but real output could be +CNUM: ,"0775753xxxxx",129
