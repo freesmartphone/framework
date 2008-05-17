@@ -104,6 +104,8 @@ class AbstractMediator( object ):
                 e = error.SimNotPresent()
             elif code in ( 311, 312, 316, 317, 318 ):
                 e = error.SimAuthFailed()
+            elif code == 321: # invalid message index
+                e = error.SimNotFound()
             elif code == 322:
                 e = error.SimMemoryFull()
 
@@ -333,10 +335,11 @@ class SimRetrieveMessagebook( AbstractMediator ):
                 index = int(header.groupdict()["index"])
                 status = const.SMS_STATUS_OUT[header.groupdict()["status"]]
                 number = const.phonebookTupleToNumber( header.groupdict()["number"], int(header.groupdict()["ntype"]) )
+                # TODO arrival... time.strptime( '%s,%s'% (d, t, ), '%y/%m/%d,%H:%M:%S') => const module
                 text = ""
             else:
                 print "line is text line"
-                text += line
+                text += "\n%s" % line
         if text:
             result.append( ( index, status, number, const.textToUnicode(text) ) )
         self._ok( result )
@@ -348,6 +351,21 @@ class SimSetServiceCenterNumber( AbstractMediator ):
         if not self.number.startswith( '+' ):
             self.number = "+%s" % self.number
         self._object.channel.enqueue( '+CSCA="%s",145' % self.number, self.responseFromChannel, self.errorFromChannel )
+
+#=========================================================================#
+class SimStoreMessage( AbstractMediator ):
+#=========================================================================#
+    def trigger( self ):
+        number, ntype = const.numberToPhonebookTuple( self.number )
+        self._object.channel.enqueue( '+CMGW="%s",%d,"STO UNSENT"\r%s\x1a\r\n' % ( number, ntype, self.contents ), self.responseFromChannel, self.errorFromChannel )
+
+    @logged
+    def responseFromChannel( self, request, response ):
+        if response[-1] != "OK":
+            AbstractMediator.responseFromChannel( self, request, response )
+        else:
+            # FIXME need to skip one continuation line until parser has native support for swalling that
+            self._ok( int(self._rightHandSide(response[1])) )
 
 #=========================================================================#
 class NetworkRegister( AbstractMediator ):

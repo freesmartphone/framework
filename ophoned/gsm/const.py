@@ -23,13 +23,15 @@ PAT_OPERATOR_LIST = re.compile( '\((?P<status>[123]),"(?P<name>[^"]+?)","(?P<sho
 # +CBPR: (1-50)
 PAT_PHONEBOOK_INFO = re.compile( '\((?P<lowest>\d+)-(?P<highest>\d+)\)(?:,(?P<numlen>\d+),(?P<textlen>\d+))?' )
 # +CMGL: 1,"REC READ","491770702810",,"08/04/04,01:21:20+08",145,121
-# TODO: Add optional address text within the two ','
-PAT_SMS_TEXT_HEADER = re.compile( '(?P<index>\d+),"(?P<status>[^"]+)","(?P<number>\d*)",,"(?P<timestamp>[^"]+)",(?P<ntype>\d+),(?P<textlen>\d+)' )
+# +CMGL: 2,"REC READ","491770702810","Jim Panse","08/04/04,01:21:20+08",145,121
+# +CMGL: 3,"STO UNSENT","85291234567",,,145,136
+PAT_SMS_TEXT_HEADER = re.compile( '(?P<index>\d+),"(?P<status>[^"]+)","(?P<number>\d*)",(?:"(?P<name>[^"]+)")?,(?:"(?P<timestamp>[^"]+)")?,(?P<ntype>\d+),(?P<textlen>\d+)' )
 
 #=========================================================================#
 # timeouts
 #=========================================================================#
 TIMEOUT = { \
+  "CPIN": 6,
   "CFUN": 6,
   "COPS": 10,
   "COPS=?": 80,
@@ -211,16 +213,16 @@ REGISTER_STATUS = { \
 SMS_STATUS_OUT = { \
     "REC READ": "read",
     "REC UNREAD": "unread",
-    "REC SENT": "sent",
-    "REC UNSENT": "unsent",
+    "STO SENT": "sent",
+    "STO UNSENT": "unsent",
 }
 
 #=========================================================================#
 SMS_STATUS_IN = { \
     "read": "REC READ",
     "unread": "REC UNREAD",
-    "sent": "REC SENT",
-    "unsent": "REC UNSENT",
+    "sent": "STO SENT",
+    "unsent": "STO UNSENT",
     "all": "ALL",
 }
 

@@ -505,13 +505,18 @@ if __name__ == "__main__":
             data = serport.read()
             print ">>>>>>>>>>>>> GOT %d bytes '%s'" % ( len(data), repr(data) )
 
+    if not hasattr( gobject, "timeout_add_seconds" ):
+        def timeout_add_seconds( seconds, callback ):
+            return gobject.timeout_add( seconds*1000, callback )
+        gobject.timeout_add_seconds = timeout_add_seconds
+
     bus = dbus.SystemBus()
     misc = GenericModemChannel( bus, timeout=5 )
-    call = GenericModemChannel( bus, timeout=10 )
-    unsol = UnsolicitedResponseChannel( bus )
-    unsol.launchKeepAlive( 8, "" )
-    call.open()
-    unsol.open()
+#    call = GenericModemChannel( bus, timeout=10 )
+#    unsol = UnsolicitedResponseChannel( bus )
+#    unsol.launchKeepAlive( 8, "" )
+#    call.open()
+#    unsol.open()
     misc.open()
 
     gobject.threads_init()

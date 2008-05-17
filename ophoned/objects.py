@@ -173,6 +173,14 @@ class Device( dbus.service.Object ):
     def SetServiceCenterNumber( self, number, dbus_ok, dbus_error ):
         mediator.SimSetServiceCenterNumber( self, dbus_ok, dbus_error, number=number )
 
+    # add delete message
+
+    @dbus.service.method( DBUS_INTERFACE_SIM, "ss", "i",
+                          async_callbacks=( "dbus_ok", "dbus_error" ) )
+    def StoreMessage( self, number, contents, dbus_ok, dbus_error ):
+        mediator.SimStoreMessage( self, dbus_ok, dbus_error, number=number, contents=contents )
+
+
     #
     # dbus org.freesmartphone.GSM.Network
     #

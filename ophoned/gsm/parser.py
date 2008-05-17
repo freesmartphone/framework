@@ -25,7 +25,8 @@ class LowlevelAtParser( object ):
     Todo:
     * Detect echo mode and adjust itself (or warn)
     * Handle intermediate responses
-    * Handle multiline requests
+    * Handle multiline answers with clean lines (e.g. SMS)
+    * Handle multiline requests by supporting continuation '\r\n> '
     * Seamless handover to binary mode parsers
     """
 

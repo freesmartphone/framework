@@ -9,3 +9,5 @@ General Question:
 * I always receive CME ERROR 32 on +COPS=? until CREG=1
 * +CREG=%d influences both the unsolicited response as well as the solicited response code
 * Phonebook indices start with 1 (not 0)
+* If SIM PIN not given, SIM messagebook requests return CMS 310 (SIM NOT INSERTED(!))
+* If SMS phone number available in messagebook, address name will be automatically inserted
