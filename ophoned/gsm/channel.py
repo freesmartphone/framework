@@ -387,6 +387,7 @@ class AtCommandChannel( QueuedVirtualChannel ):
         elif len( commands ) == 2:
             QueuedVirtualChannel.enqueue( self, "AT%s\r" % commands[0], None, None, None )
             QueuedVirtualChannel.enqueue( self, "%s\x1A" % commands[1], response_cb, error_cb, timeout )
+        assert False, "your python interpreter is broken"
 
     enqueueRaw = QueuedVirtualChannel.enqueue
 
@@ -425,7 +426,6 @@ class UnsolicitedResponseChannel( GenericModemChannel ):
     def __init__( self, *args, **kwargs ):
         GenericModemChannel.__init__( self, *args, **kwargs )
 
-        self.enqueue('+CREG=2') # enable network registration and location information unsolicited result code
         self.enqueue('+CLIP=1') # calling line identification presentation enable
         self.enqueue('+COLP=1') # connected line identification presentation enable
         self.enqueue('+CCWA=1') # call waiting

@@ -10,6 +10,7 @@ GPLv2 or later
 from decor import logged
 import const
 import mediator
+import call
 
 #=========================================================================#
 class UnsolicitedResponseDelegate( object ):
@@ -35,11 +36,12 @@ class UnsolicitedResponseDelegate( object ):
 
         mediator.NetworkGetStatus( self._object, self.statusOK, self.statusERR )
 
-    def percentCSQ( self, righthandside ):
-        values = righthandside.split( ',' )
-        #self.strength = const.signalQualityToPercentage( int(values[0]) )
-        #self._sendStatus()
+    def plusCRING( self, calltype ):
+        if calltype == "VOICE":
+            incomingCall = call.IncomingVoiceCall()
 
+    def plusCLIP( self, righthandside ):
+        print "CLIP:", righthandside
 
     #
     # helpers
@@ -50,3 +52,5 @@ class UnsolicitedResponseDelegate( object ):
 
     def statusERR( self, values ):
         print "error... ignoring"
+
+# +CLIP: "+496968098690",145,,,,0

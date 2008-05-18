@@ -20,8 +20,9 @@ if not hasattr( gobject, "timeout_add_seconds" ):
         return gobject.timeout_add( seconds*1000, callback )
     gobject.timeout_add_seconds = timeout_add_seconds
 
+#=========================================================================#
 class Controller( object ):
-
+#=========================================================================#
     def __init__( self, modemtype=None ):
         DBusGMainLoop( set_as_default=True )
         self.mainloop = gobject.MainLoop()
@@ -54,15 +55,3 @@ class Controller( object ):
         self.objects["device"].__class__ = objects.Device
         self.objects["server"].__class__ = objects.Server
         self.run()
-
-class Provider( object ):
-    def __init__( self, status, index, longname, shortname = "" ):
-        self.status = status
-        self.index = index
-        self.longname = longname
-        self.shortname = shortname or longname
-
-class Storage( object ):
-
-    def __init__( self ):
-        self.providers = []

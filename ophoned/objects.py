@@ -13,7 +13,7 @@ from config import LOG, LOG_INFO, LOG_ERR, LOG_DEBUG
 import dbus
 import dbus.service
 from dbus import DBusException
-from gsm import channel, mediator, unsol
+from gsm import channel, mediator, unsol, call
 from gobject import timeout_add, idle_add
 
 DBUS_INTERFACE_DEVICE = "org.freesmartphone.GSM.Device"
@@ -36,6 +36,9 @@ class Server( dbus.service.Object ):
     - MessagebookReady
     - CallReady
     - SmsReady
+
+    - watch for clients on bus and send coldplug status
+    - monitor device aliveness and restart, if necessary
     """
 
     DBUS_INTERFACE = "%s.%s" % ( config.DBUS_INTERFACE_PREFIX, "Server" )
@@ -71,8 +74,12 @@ class Device( dbus.service.Object ):
     * Channel 3: Miscellaneous (everything non-call)
     * Channel 4: GPRS
 
-    Since our virtual channels can handle interleaved request/response,
-    we could also send additional stuff on channel 2.
+    Since all our virtual channels handle interleaved request/response
+    and unsolicited, we could also send additional stuff everywhere we like.
+
+    Important attributes:
+    * channels = dictionary of virtual channels
+    * calls = list of calls known to the system
     """
     DBUS_INTERFACE = "%s.%s" % ( config.DBUS_INTERFACE_PREFIX, "Device" )
 
@@ -83,14 +90,16 @@ class Device( dbus.service.Object ):
         LOG( LOG_INFO, "%s initialized. Serving %s at %s" % ( self.__class__.__name__, self.interface, self.path ) )
 
         self.channels = {}
-        self.channels["CALL"] = channel.GenericModemChannel( bus, "ophoned.call" )
-        self.channels["UNSOL"] = channel.UnsolicitedResponseChannel( bus, "ophoned.unsolicited" )
-        self.channels["MISC"] = channel.GenericModemChannel( bus, "ophoned.misc" )
 
-        self.channel = self.channels["MISC"] # default channel
+        if modemtype == "generic":
+            self.callchannel = self.channels["CALL"] = channel.GenericModemChannel( bus, "ophoned.call" )
+            self.unsolchannel = self.channels["UNSOL"] = channel.UnsolicitedResponseChannel( bus, "ophoned.unsolicited" )
+            self.channel = self.channels["MISC"] = channel.GenericModemChannel( bus, "ophoned.misc" )
 
-        self.channels["UNSOL"].launchKeepAlive( 7, "" )
-        self.channels["UNSOL"].setDelegate( unsol.UnsolicitedResponseDelegate( self ) )
+            self.channels["UNSOL"].launchKeepAlive( 7, "" )
+            self.channels["UNSOL"].setDelegate( unsol.UnsolicitedResponseDelegate( self ) )
+        elif modemtype == "testing":
+            pass
 
         idle_add( self._initChannels )
 
@@ -242,6 +251,38 @@ class Device( dbus.service.Object ):
                           async_callbacks=( "dbus_ok", "dbus_error" ) )
     def GetCountryCode( self, dbus_ok, dbus_error ):
         mediator.NetworkGetCountryCode( self, dbus_ok, dbus_error )
+
+    #
+    # dbus org.freesmartphone.GSM.Call
+    #
+    @dbus.service.signal( DBUS_INTERFACE_CALL, "isa{sv}" )
+    def CallStatus( self, index, status, properties ):
+        LOG( LOG_INFO, "org.freesmartphone.GSM.Call.CallStatus: ", repr(index), repr(status), repr(properties) )
+
+    @dbus.service.method( DBUS_INTERFACE_CALL, "i", "",
+                          async_callbacks=( "dbus_ok", "dbus_error" ) )
+    def Activate( self, index, dbus_ok, dbus_error ):
+        call.acceptIncomingCall()
+
+    @dbus.service.method( DBUS_INTERFACE_CALL, "i", "",
+                          async_callbacks=( "dbus_ok", "dbus_error" ) )
+    def Release( self, index, dbus_ok, dbus_error ):
+        call.rejectIncomingCall()
+
+    @dbus.service.method( DBUS_INTERFACE_CALL, "", "",
+                          async_callbacks=( "dbus_ok", "dbus_error" ) )
+    def ReleaseHeld( self, dbus_ok, dbus_error ):
+        pass
+
+    @dbus.service.method( DBUS_INTERFACE_CALL, "", "",
+                          async_callbacks=( "dbus_ok", "dbus_error" ) )
+    def ReleaseAll( self, dbus_ok, dbus_error ):
+        call.rejectIncomingCall()
+
+    @dbus.service.method( DBUS_INTERFACE_CALL, "ss", "i",
+                          async_callbacks=( "dbus_ok", "dbus_error" ) )
+    def Initiate( self, number, type_, dbus_ok, dbus_error ):
+        pass
 
     #
     # dbus org.freesmartphone.GSM.Test
