@@ -145,18 +145,31 @@ class Device( dbus.service.Object ):
     def SendAuthCode( self, code, dbus_ok, dbus_error ):
         mediator.SimSendAuthCode( self, dbus_ok, dbus_error, code=code )
 
-    # MISSING: Unlock(ss)
+    @dbus.service.method( DBUS_INTERFACE_SIM, "ss", "",
+                          async_callbacks=( "dbus_ok", "dbus_error" ) )
+    def Unlock( self, puk, new_pin, dbus_ok, dbus_error ):
+        mediator.Unlock( self, dbus_ok, dbus_error, puk=puk, new_pin=new_pin )
 
-    # MISSING: ChangeAuthCode(ss)
+    @dbus.service.method( DBUS_INTERFACE_SIM, "ss", "",
+                          async_callbacks=( "dbus_ok", "dbus_error" ) )
+    def ChangeAuthCode( self, old_pin, new_pin, dbus_ok, dbus_error ):
+        mediator.SimChangeAuthCode( self, dbus_ok, dbus_error, old_pin=old_pin, new_pin=new_pin )
 
+    ### SIM info
     @dbus.service.method( DBUS_INTERFACE_SIM, "", "s",
                           async_callbacks=( "dbus_ok", "dbus_error" ) )
     def GetImsi( self, dbus_ok, dbus_error ):
         mediator.SimGetImsi( self, dbus_ok, dbus_error )
 
-    # MISSING: GetSubscriberNumbers()->a{sv}
+    @dbus.service.method( DBUS_INTERFACE_SIM, "", "a{sv}",
+                          async_callbacks=( "dbus_ok", "dbus_error" ) )
+    def GetSubscriberNumbers( self, dbus_ok, dbus_error ):
+        mediator.SimGetSubscriberNumbers( self, dbus_ok, dbus_error )
 
-    # MISSING: GetCountryCode->s
+    @dbus.service.method( DBUS_INTERFACE_SIM, "", "ss",
+                          async_callbacks=( "dbus_ok", "dbus_error" ) )
+    def GetSimCountryCode( self, dbus_ok, dbus_error ):
+        mediator.SimGetCountryCode( self, dbus_ok, dbus_error )
 
     ### SIM phonebook
     @dbus.service.method( DBUS_INTERFACE_SIM, "", "a{sv}",
@@ -249,7 +262,7 @@ class Device( dbus.service.Object ):
 
     @dbus.service.method( DBUS_INTERFACE_NETWORK, "", "s",
                           async_callbacks=( "dbus_ok", "dbus_error" ) )
-    def GetCountryCode( self, dbus_ok, dbus_error ):
+    def GetNetworkCountryCode( self, dbus_ok, dbus_error ):
         mediator.NetworkGetCountryCode( self, dbus_ok, dbus_error )
 
     #

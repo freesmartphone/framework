@@ -214,6 +214,18 @@ class SimSendAuthCode( AbstractMediator ):
             AbstractMediator.responseFromChannel( self, request, response )
 
 #=========================================================================#
+class SimUnlock( AbstractMediator ):
+#=========================================================================#
+    def trigger( self ):
+        self._object.channel.enqueue( '+CPIN="%s","%s"' % ( self.puk, self.new_pin ), self.responseFromChannel, self.errorFromChannel )
+
+#=========================================================================#
+class SimChangeAuthCode( AbstractMediator ):
+#=========================================================================#
+    def trigger( self ):
+        self._object.channel.enqueue( '+CPWD="SC","%s","%s"' % ( self.old_pin, self.new_pin ), self.responseFromChannel, self.errorFromChannel )
+
+#=========================================================================#
 class SimGetImsi( AbstractMediator ):
 #=========================================================================#
     def trigger( self ):
@@ -227,6 +239,22 @@ class SimGetImsi( AbstractMediator ):
             return self._ok( "<??? unknown ???>" )
         else:
             self._ok( response[0].replace( "+CIMI: ", "" ).strip( '"' ) )
+
+#=========================================================================#
+class SimGetCountryCode( AbstractMediator ):
+#=========================================================================#
+    def trigger( self ):
+        self._object.channel.enqueue( '+CIMI', self.responseFromChannel, self.errorFromChannel )
+
+    @logged
+    def responseFromChannel( self, request, response ):
+        if response[-1] != "OK":
+            AbstractMediator.responseFromChannel( self, request, response )
+        if response[0] == "OK":
+            return self._ok( "+???", "<??? unknown ???>" )
+        else:
+            code, name = const.mccToCountryCode( int(response[0].replace( "+CIMI: ", "" ).strip( '"' )[:3]) )
+            self._ok( code, name )
 
 #=========================================================================#
 class SimGetPhonebookInfo( AbstractMediator ):
