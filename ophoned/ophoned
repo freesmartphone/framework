@@ -8,8 +8,6 @@ GPLv2 or later
 """
 
 from optparse import OptionParser
-from config import LOG, LOG_ERR, LOG_WARNING, LOG_INFO, LOG_DEBUG
-from syslog import openlog, LOG_PERROR, LOG_DAEMON
 import sys
 import os
 
@@ -31,11 +29,15 @@ if options.modem is None:
 print """Open Phone Server V%s [Python-Implementation]
 (C) 2008 Michael 'Mickey' Lauer (Openmoko, Inc.)""" % __version__
 
+sys.path.append( ".." )
+
+from syslog import openlog, LOG_PERROR, LOG_DAEMON
+from ophoned.config import LOG, LOG_ERR, LOG_WARNING, LOG_INFO, LOG_DEBUG
+from ophoned.controller import Controller
+c = Controller( options.modem )
+
 if "OPHONED_DEBUG" in os.environ:
     openlog( "py-ophoned", LOG_PERROR, LOG_DAEMON )
-
-from controller import Controller
-c = Controller( options.modem )
 
 if options.modem == "testing":
     import thread, gobject

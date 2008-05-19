@@ -99,6 +99,7 @@ class AbstractMediator( object ):
                 e = error.SimBlocked( text )
             elif code in ( 5, 6, 7, 11, 12, 15, 17, 18, 48 ):
                 e = error.SimAuthFailed( text )
+                # TODO launch idle task that sends an new auth status signal
 
         elif category == "CMS":
             if code == 310:
@@ -207,7 +208,7 @@ class SimSendAuthCode( AbstractMediator ):
     def responseFromChannel( self, request, response ):
         if response[-1] == "OK":
             self._ok()
-            # FIXME send auth status changed
+            # send auth status signal
             if response[0].startswith( "+CPIN" ):
                 self._object.AuthStatus( self._rightHandSide( response[0] ) )
         else:
