@@ -15,6 +15,7 @@ import select
 import itertools
 import fcntl, os
 import parser
+import time
 from decor import logged
 
 #=========================================================================#
@@ -37,6 +38,7 @@ class VirtualChannel( object ):
     * standalone (talking over a serial port of the modem)
     * multiplexed (talking over a multiplexed virtual channel to the modem)
     """
+    modem_communication_timestamp = 1
 
     DEBUGLOG = 1
 
@@ -87,6 +89,10 @@ class VirtualChannel( object ):
 
         if not self._lowlevelInit():
             return False
+
+        # reset global modem communication timestamp
+        if VirtualChannel.modem_communication_timestamp:
+            VirtualChannel.modem_communication_timestamp = time.time()
 
         # set up I/O watches for mainloop
         self.watchReadyToRead = gobject.io_add_watch( self.serial.fd, gobject.IO_IN, self._readyToRead )
@@ -315,6 +321,17 @@ class QueuedVirtualChannel( VirtualChannel ):
         print "(%s: sending to port: %s)" % ( repr(self), repr(self.q.peek()[0]) )
         if VirtualChannel.DEBUGLOG:
             self.debugFile.write( self.q.peek()[0] ) # channel data
+
+        # <this will move into modem plugins as it is specific to the Ti Calypso deep sleep>
+        if VirtualChannel.modem_communication_timestamp:
+            current_time = time.time()
+            if current_time - VirtualChannel.modem_communication_timestamp > 7:
+                print "(%s: last communication with modem was %d seconds ago. Sending EOF to wakeup)" % ( repr(self), int(current_time - VirtualChannel.modem_communication_timestamp) )
+                self.serial.write( "\x1a" )
+                time.sleep( 0.2 )
+            VirtualChannel.modem_communication_timestamp = current_time
+        # </this will move into modem plugins as it is specific to the Ti Calypso deep sleep>
+
         self.serial.write( self.q.peek()[0] ) # channel data
         if self.q.peek()[3]: # channel timeout
             self.watchTimeout = gobject.timeout_add_seconds( self.q.peek()[3], self._handleCommandTimeout )
@@ -323,6 +340,11 @@ class QueuedVirtualChannel( VirtualChannel ):
     @logged
     def readyToRead( self, data ):
         """Reimplemented for internal purposes."""
+
+        # <this will move into modem plugins as it is specific to the Ti Calypso deep sleep>
+        if VirtualChannel.modem_communication_timestamp:
+            VirtualChannel.modem_communication_timestamp = time.time()
+        # </this will move into modem plugins as it is specific to the Ti Calypso deep sleep>
         self.parser.feed( data, not self.q.empty() )
 
     @logged

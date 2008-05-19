@@ -96,7 +96,7 @@ class Device( dbus.service.Object ):
             self.unsolchannel = self.channels["UNSOL"] = channel.UnsolicitedResponseChannel( bus, "ophoned.unsolicited" )
             self.channel = self.channels["MISC"] = channel.GenericModemChannel( bus, "ophoned.misc" )
 
-            self.channels["UNSOL"].launchKeepAlive( 7, "" )
+            #self.channels["UNSOL"].launchKeepAlive( 7, "" )
             self.channels["UNSOL"].setDelegate( unsol.UnsolicitedResponseDelegate( self ) )
         elif modemtype == "testing":
             pass
