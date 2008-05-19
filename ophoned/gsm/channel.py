@@ -216,6 +216,12 @@ class VirtualChannel( object ):
         """Called, if data is available on the source."""
         assert source == self.serial.fd, "ready to read on bogus source"
         assert condition == gobject.IO_IN, "ready to read on bogus condition"
+
+        # <this will move into modem plugins as it is specific to the Ti Calypso deep sleep>
+        if VirtualChannel.modem_communication_timestamp:
+            VirtualChannel.modem_communication_timestamp = time.time()
+        # </this will move into modem plugins as it is specific to the Ti Calypso deep sleep>
+
         try:
             inWaiting = self.serial.inWaiting()
         except IOError:
@@ -232,8 +238,25 @@ class VirtualChannel( object ):
         """Called, if source is ready to receive data."""
         assert source == self.serial.fd, "ready to write on bogus source"
         assert condition == gobject.IO_OUT, "ready to write on bogus condition"
+
+        # <this will move into modem plugins as it is specific to the Ti Calypso deep sleep>
+        if VirtualChannel.modem_communication_timestamp:
+            current_time = time.time()
+            if current_time - VirtualChannel.modem_communication_timestamp > 7:
+                print "(%s: last communication with modem was %d seconds ago. Sending EOF to wakeup)" % ( repr(self), int(current_time - VirtualChannel.modem_communication_timestamp) )
+                self.serial.write( "\x1a" )
+                time.sleep( 0.2 )
+            VirtualChannel.modem_communication_timestamp = current_time
+        # </this will move into modem plugins as it is specific to the Ti Calypso deep sleep>
+
         self.readyToSend()
         self.watchReadyToSend = None
+
+        # <this will move into modem plugins as it is specific to the Ti Calypso deep sleep>
+        if VirtualChannel.modem_communication_timestamp:
+            VirtualChannel.modem_communication_timestamp = time.time()
+        # </this will move into modem plugins as it is specific to the Ti Calypso deep sleep>
+
         return False
 
     def _slowButCorrectWrite( self, data ):
@@ -322,16 +345,6 @@ class QueuedVirtualChannel( VirtualChannel ):
         if VirtualChannel.DEBUGLOG:
             self.debugFile.write( self.q.peek()[0] ) # channel data
 
-        # <this will move into modem plugins as it is specific to the Ti Calypso deep sleep>
-        if VirtualChannel.modem_communication_timestamp:
-            current_time = time.time()
-            if current_time - VirtualChannel.modem_communication_timestamp > 7:
-                print "(%s: last communication with modem was %d seconds ago. Sending EOF to wakeup)" % ( repr(self), int(current_time - VirtualChannel.modem_communication_timestamp) )
-                self.serial.write( "\x1a" )
-                time.sleep( 0.2 )
-            VirtualChannel.modem_communication_timestamp = current_time
-        # </this will move into modem plugins as it is specific to the Ti Calypso deep sleep>
-
         self.serial.write( self.q.peek()[0] ) # channel data
         if self.q.peek()[3]: # channel timeout
             self.watchTimeout = gobject.timeout_add_seconds( self.q.peek()[3], self._handleCommandTimeout )
@@ -340,11 +353,6 @@ class QueuedVirtualChannel( VirtualChannel ):
     @logged
     def readyToRead( self, data ):
         """Reimplemented for internal purposes."""
-
-        # <this will move into modem plugins as it is specific to the Ti Calypso deep sleep>
-        if VirtualChannel.modem_communication_timestamp:
-            VirtualChannel.modem_communication_timestamp = time.time()
-        # </this will move into modem plugins as it is specific to the Ti Calypso deep sleep>
         self.parser.feed( data, not self.q.empty() )
 
     @logged
