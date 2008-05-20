@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: UTF-8 -*-
 """
-Open Event Daemon - Trigger objects
+Open Event Daemon - Receiver objects
 
 (C) 2008 Michael 'Mickey' Lauer <mlauer@vanille-media.de>
 (C) 2008 Jan 'Shoragan' Lübbe <jluebbe@lasnet.de
@@ -11,8 +11,8 @@ GPLv2 or later
 
 __version__ = "0.0.0"
 
-DBUS_INTERFACE_PREFIX = "org.freesmartphone.Event.Trigger"
-DBUS_PATH_PREFIX = "/org/freesmartphone/Event/Trigger"
+DBUS_INTERFACE_PREFIX = "org.freesmartphone.Event.Receiver"
+DBUS_PATH_PREFIX = "/org/freesmartphone/Event/Receiver"
 
 import dbus.service
 import os
@@ -22,37 +22,37 @@ from helpers import LOG, readFromFile, writeToFile
 from gobject import idle_add
 
 #----------------------------------------------------------------------------#
-class Trigger( dbus.service.Object ):
+class Receiver( dbus.service.Object ):
 #----------------------------------------------------------------------------#
-    """An abstract Dbus Object implementing
-    org.freesmartphone.Trigger"""
+    """A Dbus Object implementing org.freesmartphone.Event.Receiver"""
     DBUS_INTERFACE = DBUS_INTERFACE_PREFIX
     INDEX = 0
 
-    def __init__( self, bus ):
+    def __init__( self, bus, action, filter = None ):
         self.interface = self.DBUS_INTERFACE
         self.path = DBUS_PATH_PREFIX
-        dbus.service.Object.__init__( self, bus, self.path + "/%s" % Trigger.INDEX )
-        Trigger.INDEX += 1
+        dbus.service.Object.__init__( self, bus, self.path + "/%s" % Receiver.INDEX )
+        Receiver.INDEX += 1
+        self.action = action
+        self.filter = filter
         LOG( LOG_INFO, "%s initialized. Serving %s at %s" %
             ( self.__class__.__name__, self.interface, list( self.locations ) )
         )
 
-#----------------------------------------------------------------------------#
-class DBusTrigger( Trigger ):
-#----------------------------------------------------------------------------#
-    pass
+    def matchEvent( self, event ):
+        return self.filter is None or self.filter( event )
+
+    def handleEvent( self, event ):
+        assert self.matchEvent( event)
+        self.action( event )
 
 #----------------------------------------------------------------------------#
 def factory( prefix, controller ):
 #----------------------------------------------------------------------------#
     objects = []
-    #genericUsageControl = GenericUsageControl( controller.bus )
-    #genericUsageControl.addResource( DummyResource( genericUsageControl, "GSM" ) )
-    #genericUsageControl.addResource( DummyResource( genericUsageControl, "GPS" ) )
-    #genericUsageControl.addResource( DummyResource( genericUsageControl, "Bluetooth" ) )
-    #genericUsageControl.addResource( DummyResource( genericUsageControl, "WiFi" ) )
-    objects.append( DBusTrigger( controller.bus ) )
+    def printAction( event ):
+        print event
+    objects.append( Receiver( controller.bus, printAction ) )
     return objects
 
 if __name__ == "__main__":

@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: UTF-8 -*-
 """
-Open Event Daemon - Trigger objects
+Open Event Daemon - Manager
 
 (C) 2008 Michael 'Mickey' Lauer <mlauer@vanille-media.de>
 (C) 2008 Jan 'Shoragan' Lübbe <jluebbe@lasnet.de
@@ -11,8 +11,8 @@ GPLv2 or later
 
 __version__ = "0.0.0"
 
-DBUS_INTERFACE_PREFIX = "org.freesmartphone.Event.Trigger"
-DBUS_PATH_PREFIX = "/org/freesmartphone/Event/Trigger"
+DBUS_INTERFACE_PREFIX = "org.freesmartphone.Event"
+DBUS_PATH_PREFIX = "/org/freesmartphone/Event"
 
 import dbus.service
 import os
@@ -21,39 +21,82 @@ from syslog import syslog, LOG_ERR, LOG_WARNING, LOG_INFO, LOG_DEBUG
 from helpers import LOG, readFromFile, writeToFile
 from gobject import idle_add
 
+from trigger import Trigger
+from receiver import Receiver
+
 #----------------------------------------------------------------------------#
-class Trigger( dbus.service.Object ):
+class Signal( dbus.service.Object ):
 #----------------------------------------------------------------------------#
-    """An abstract Dbus Object implementing
-    org.freesmartphone.Trigger"""
+    """A Dbus Object implementing org.freesmartphone.Event.Signal"""
     DBUS_INTERFACE = DBUS_INTERFACE_PREFIX
     INDEX = 0
 
-    def __init__( self, bus ):
+    def __init__( self, controller, attributes ):
         self.interface = self.DBUS_INTERFACE
         self.path = DBUS_PATH_PREFIX
-        dbus.service.Object.__init__( self, bus, self.path + "/%s" % Trigger.INDEX )
-        Trigger.INDEX += 1
+        dbus.service.Object.__init__( self, controller.bus, self.path + "/%s" % Signal.INDEX )
+        Signal.INDEX += 1
+        self.controller = controller
+        self.attributes = attributes
         LOG( LOG_INFO, "%s initialized. Serving %s at %s" %
             ( self.__class__.__name__, self.interface, list( self.locations ) )
         )
 
+    #
+    # dbus methods
+    #
+    @dbus.service.method( DBUS_INTERFACE, "", "a{sv}" )
+    def GetAttributes( self ):
+        return self.attributes
+
 #----------------------------------------------------------------------------#
-class DBusTrigger( Trigger ):
+class Manager( dbus.service.Object ):
 #----------------------------------------------------------------------------#
-    pass
+    """A Dbus Object implementing org.freesmartphone.Event"""
+    DBUS_INTERFACE = DBUS_INTERFACE_PREFIX
+
+    def __init__( self, controller ):
+        self.interface = self.DBUS_INTERFACE
+        self.path = DBUS_PATH_PREFIX
+        dbus.service.Object.__init__( self, controller.bus, self.path )
+        self.controller = controller
+        self.signals = []
+        LOG( LOG_INFO, "%s initialized. Serving %s at %s" %
+            ( self.__class__.__name__, self.interface, list( self.locations ) )
+        )
+
+    #
+    # dbus methods
+    #
+    @dbus.service.method( DBUS_INTERFACE, "", "ao" )
+    def ListTriggers( self ):
+        return [x for x in self.controller.objects.values() if isinstance( x, Trigger ) ]
+
+    @dbus.service.method( DBUS_INTERFACE, "", "ao" )
+    def ListReceivers( self ):
+        return [x for x in self.controller.objects.values() if isinstance( x, Receiver ) ]
+
+    @dbus.service.method( DBUS_INTERFACE, "", "ao" )
+    def ListSignals( self ):
+        return self.signals
+
+    @dbus.service.method( DBUS_INTERFACE, "a{sv}", "o" )
+    def CreateEvent( self, attributes ):
+        signal = Signal( self.controller, attributes )
+        self.signals.append( signal )
+        return signal
+
+    #
+    # dbus signals
+    #
+    @dbus.service.signal( DBUS_INTERFACE, "s" )
+    def ResourceChanged( self, resourcename ):
+        pass
 
 #----------------------------------------------------------------------------#
 def factory( prefix, controller ):
 #----------------------------------------------------------------------------#
-    objects = []
-    #genericUsageControl = GenericUsageControl( controller.bus )
-    #genericUsageControl.addResource( DummyResource( genericUsageControl, "GSM" ) )
-    #genericUsageControl.addResource( DummyResource( genericUsageControl, "GPS" ) )
-    #genericUsageControl.addResource( DummyResource( genericUsageControl, "Bluetooth" ) )
-    #genericUsageControl.addResource( DummyResource( genericUsageControl, "WiFi" ) )
-    objects.append( DBusTrigger( controller.bus ) )
-    return objects
+    return [ Manager( controller ) ]
 
 if __name__ == "__main__":
     import dbus
