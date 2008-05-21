@@ -9,7 +9,7 @@ GPLv2 or later
 
 Module: const
 
-GSM constants, strings, formats
+GSM constants, strings, formats, parse patterns, timeouts, you name it.
 """
 
 import re
@@ -503,7 +503,7 @@ def parseError( line ):
 #=========================================================================#
     """
     Returns a CME or CMS string, if found in error line.
-    "error class not CME nor CMS>", otherwise.
+    "<error class not CME nor CMS>", otherwise.
     """
 
     if line.startswith( "+CME ERROR:" ):

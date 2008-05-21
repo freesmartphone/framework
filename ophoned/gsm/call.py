@@ -54,12 +54,12 @@ class Call( object ):
     def accept( self ):
         assert self.timeout is not None, "huh?"
         gobject.source_remove( self.timeout )
-        self._object.callchannel( "A" )
+        self._object.callchannel.enqueue( "A" )
         self.setStatus( "active" )
 
     def reject( self ):
         gobject.source_remove( self.timeout )
-        self._object.callchannel( "H" )
+        self._object.callchannel.enqueue( "H" )
         self._die()
 
     def release( self ):

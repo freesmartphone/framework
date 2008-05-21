@@ -37,11 +37,12 @@ class AbstractMediator( object ):
 #=========================================================================#
     @logged
     def __init__( self, dbus_object, dbus_ok, dbus_error, **kwargs ):
+        assert self.__class__.__name__ != "AbstractMediator", "can not instanciate abstract base class"
         self._object = dbus_object
         self._ok = dbus_ok
         self._error = dbus_error
         self.__dict__.update( **kwargs )
-        self.trigger()
+        self._commchannel = None
 
     def trigger( self ):
         assert False, "pure virtual function called"
@@ -117,10 +118,56 @@ class AbstractMediator( object ):
         self._error( e )
 
 #=========================================================================#
-class DeviceGetInfo( AbstractMediator ):
+class DeviceMediator( AbstractMediator ):
+#=========================================================================#
+    def __init__( self, *args, **kwargs ):
+        AbstractMediator.__init__( self, *args, **kwargs )
+        self._commchannel = self._object.miscchannel
+        self.trigger()
+
+#=========================================================================#
+class SimMediator( AbstractMediator ):
+#=========================================================================#
+    def __init__( self, *args, **kwargs ):
+        AbstractMediator.__init__( self, *args, **kwargs )
+        self._commchannel = self._object.miscchannel
+        self.trigger()
+
+#=========================================================================#
+class NetworkMediator( AbstractMediator ):
+#=========================================================================#
+    def __init__( self, *args, **kwargs ):
+        AbstractMediator.__init__( self, *args, **kwargs )
+        self._commchannel = self._object.miscchannel
+        self.trigger()
+
+#=========================================================================#
+class CallMediator( AbstractMediator ):
+#=========================================================================#
+    def __init__( self, *args, **kwargs ):
+        AbstractMediator.__init__( self, *args, **kwargs )
+        self._commchannel = self._object.callchannel
+        self.trigger()
+
+#=========================================================================#
+class TestMediator( AbstractMediator ):
+#=========================================================================#
+    def __init__( self, *args, **kwargs ):
+        AbstractMediator.__init__( self, *args, **kwargs )
+        self._commchannel = self._object.callchannel
+        self.trigger()
+
+#=========================================================================#
+class CancelCommand( DeviceMediator ):
 #=========================================================================#
     def trigger( self ):
-        self._object.channel.enqueue( "+CGMR;+CGMM;+CGMI;+CGSN", self.responseFromChannel, self.errorFromChannel )
+        pass
+
+#=========================================================================#
+class DeviceGetInfo( DeviceMediator ):
+#=========================================================================#
+    def trigger( self ):
+        self._commchannel.enqueue( "+CGMR;+CGMM;+CGMI;+CGSN", self.responseFromChannel, self.errorFromChannel )
 
     @logged
     def responseFromChannel( self, request, response ):
@@ -134,23 +181,23 @@ class DeviceGetInfo( AbstractMediator ):
         self._ok( result )
 
 #=========================================================================#
-class DeviceGetAntennaPower( AbstractMediator ):
+class DeviceGetAntennaPower( DeviceMediator ):
 #=========================================================================#
     def trigger( self ):
-        self._object.channel.enqueue( "+CFUN?", self.responseFromChannel, self.errorFromChannel )
+        self._commchannel.enqueue( "+CFUN?", self.responseFromChannel, self.errorFromChannel )
 
     @logged
     def responseFromChannel( self, request, response ):
         if ( response[-1] == "OK" ):
             self._ok( not self._rightHandSide( response[0] ) == "0" )
         else:
-            AbstractMediator.responseFromChannel( self, request, response )
+            DeviceMediator.responseFromChannel( self, request, response )
 
 #=========================================================================#
-class DeviceSetAntennaPower( AbstractMediator ):
+class DeviceSetAntennaPower( DeviceMediator ):
 #=========================================================================#
     def trigger( self ):
-        self._object.channel.enqueue( "+CFUN?", self.intermediateResponse, self.errorFromChannel )
+        self._commchannel.enqueue( "+CFUN?", self.intermediateResponse, self.errorFromChannel )
 
     def intermediateResponse( self, request, response ):
         assert response[-1] == "OK"
@@ -159,24 +206,24 @@ class DeviceSetAntennaPower( AbstractMediator ):
             # nothing to do
             self._ok()
         else:
-            self._object.channel.enqueue( "+CFUN=%d" % self.power, self.responseFromChannel, self.errorFromChannel )
+            self._commchannel.enqueue( "+CFUN=%d" % self.power, self.responseFromChannel, self.errorFromChannel )
 
     @logged
     def responseFromChannel( self, request, response ):
         if response[-1] == "OK":
             self._ok()
         else:
-            AbstractMediator.responseFromChannel( self, request, response )
+            DeviceMediator.responseFromChannel( self, request, response )
 
 #=========================================================================#
-class DeviceGetFeatures( AbstractMediator ):
+class DeviceGetFeatures( DeviceMediator ):
 #=========================================================================#
     def trigger( self ):
-        self._object.channel.enqueue( "+GCAP;+CGCLASS?;+FCLASS?", self.responseFromChannel, self.errorFromChannel )
+        self._commchannel.enqueue( "+GCAP;+CGCLASS?;+FCLASS?", self.responseFromChannel, self.errorFromChannel )
 
     def responseFromChannel( self, request, response ):
         if response[-1] != "OK":
-            AbstractMediator.responseFromChannel( self, request, response )
+            DeviceMediator.responseFromChannel( self, request, response )
 
         result = {}
         if "GSM" in response[0]:
@@ -186,23 +233,23 @@ class DeviceGetFeatures( AbstractMediator ):
         self._ok( result )
 
 #=========================================================================#
-class SimGetAuthStatus( AbstractMediator ):
+class SimGetAuthStatus( SimMediator ):
 #=========================================================================#
     def trigger( self ):
-        self._object.channel.enqueue( "+CPIN?", self.responseFromChannel, self.errorFromChannel )
+        self._commchannel.enqueue( "+CPIN?", self.responseFromChannel, self.errorFromChannel )
 
     @logged
     def responseFromChannel( self, request, response ):
         if response[-1] == "OK":
             self._ok( self._rightHandSide( response[0] ) )
         else:
-            AbstractMediator.responseFromChannel( self, request, response )
+            SimMediator.responseFromChannel( self, request, response )
 
 #=========================================================================#
-class SimSendAuthCode( AbstractMediator ):
+class SimSendAuthCode( SimMediator ):
 #=========================================================================#
     def trigger( self ):
-        self._object.channel.enqueue( '+CPIN="%s"' % self.code, self.responseFromChannel, self.errorFromChannel )
+        self._commchannel.enqueue( '+CPIN="%s"' % self.code, self.responseFromChannel, self.errorFromChannel )
 
     @logged
     def responseFromChannel( self, request, response ):
@@ -212,45 +259,45 @@ class SimSendAuthCode( AbstractMediator ):
             if response[0].startswith( "+CPIN" ):
                 self._object.AuthStatus( self._rightHandSide( response[0] ) )
         else:
-            AbstractMediator.responseFromChannel( self, request, response )
+            SimMediator.responseFromChannel( self, request, response )
 
 #=========================================================================#
-class SimUnlock( AbstractMediator ):
+class SimUnlock( SimMediator ):
 #=========================================================================#
     def trigger( self ):
-        self._object.channel.enqueue( '+CPIN="%s","%s"' % ( self.puk, self.new_pin ), self.responseFromChannel, self.errorFromChannel )
+        self._commchannel.enqueue( '+CPIN="%s","%s"' % ( self.puk, self.new_pin ), self.responseFromChannel, self.errorFromChannel )
 
 #=========================================================================#
-class SimChangeAuthCode( AbstractMediator ):
+class SimChangeAuthCode( SimMediator ):
 #=========================================================================#
     def trigger( self ):
-        self._object.channel.enqueue( '+CPWD="SC","%s","%s"' % ( self.old_pin, self.new_pin ), self.responseFromChannel, self.errorFromChannel )
+        self._commchannel.enqueue( '+CPWD="SC","%s","%s"' % ( self.old_pin, self.new_pin ), self.responseFromChannel, self.errorFromChannel )
 
 #=========================================================================#
-class SimGetImsi( AbstractMediator ):
+class SimGetImsi( SimMediator ):
 #=========================================================================#
     def trigger( self ):
-        self._object.channel.enqueue( '+CIMI', self.responseFromChannel, self.errorFromChannel )
+        self._commchannel.enqueue( '+CIMI', self.responseFromChannel, self.errorFromChannel )
 
     @logged
     def responseFromChannel( self, request, response ):
         if response[-1] != "OK":
-            AbstractMediator.responseFromChannel( self, request, response )
+            SimMediator.responseFromChannel( self, request, response )
         if response[0] == "OK":
             return self._ok( "<??? unknown ???>" )
         else:
             self._ok( response[0].replace( "+CIMI: ", "" ).strip( '"' ) )
 
 #=========================================================================#
-class SimGetCountryCode( AbstractMediator ):
+class SimGetCountryCode( SimMediator ):
 #=========================================================================#
     def trigger( self ):
-        self._object.channel.enqueue( '+CIMI', self.responseFromChannel, self.errorFromChannel )
+        self._commchannel.enqueue( '+CIMI', self.responseFromChannel, self.errorFromChannel )
 
     @logged
     def responseFromChannel( self, request, response ):
         if response[-1] != "OK":
-            AbstractMediator.responseFromChannel( self, request, response )
+            SimMediator.responseFromChannel( self, request, response )
         if response[0] == "OK":
             return self._ok( "+???", "<??? unknown ???>" )
         else:
@@ -258,15 +305,15 @@ class SimGetCountryCode( AbstractMediator ):
             self._ok( code, name )
 
 #=========================================================================#
-class SimGetPhonebookInfo( AbstractMediator ):
+class SimGetPhonebookInfo( SimMediator ):
 #=========================================================================#
     def trigger( self ):
-        self._object.channel.enqueue( '+CPBS="SM";+CGBR=?', self.responseFromChannel, self.errorFromChannel )
+        self._commchannel.enqueue( '+CPBS="SM";+CGBR=?', self.responseFromChannel, self.errorFromChannel )
 
     @logged
     def responseFromChannel( self, request, response ):
         if response[-1] != "OK":
-            AbstractMediator.responseFromChannel( self, request, response )
+            SimMediator.responseFromChannel( self, request, response )
         result = {}
         match = PAT_PHONEBOOK_INFO.match( response[0] )
         result["min_index"] = int(match.groupdict()["lowest"])
@@ -279,16 +326,16 @@ class SimGetPhonebookInfo( AbstractMediator ):
         self._ok( result )
 
 #=========================================================================#
-class SimRetrievePhonebook( AbstractMediator ):
+class SimRetrievePhonebook( SimMediator ):
 #=========================================================================#
     def trigger( self ):
         # FIXME quick hack. Need to query the phonebook for valid indices prior to doing that :)
-        self._object.channel.enqueue( '+CPBS="SM";+CPBR=1,250', self.responseFromChannel, self.errorFromChannel )
+        self._commchannel.enqueue( '+CPBS="SM";+CPBR=1,250', self.responseFromChannel, self.errorFromChannel )
 
     @logged
     def responseFromChannel( self, request, response ):
         if response[-1] != "OK":
-            AbstractMediator.responseFromChannel( self, request, response )
+            SimMediator.responseFromChannel( self, request, response )
         result = []
         for entry in response[:-1]:
             index, number, ntype, name = self._rightHandSide( entry ).split( ',' )
@@ -299,28 +346,28 @@ class SimRetrievePhonebook( AbstractMediator ):
         self._ok( result )
 
 #=========================================================================#
-class SimDeleteEntry( AbstractMediator ):
+class SimDeleteEntry( SimMediator ):
 #=========================================================================#
     def trigger( self ):
-        self._object.channel.enqueue( '+CPBS="SM";CPBW=%d,,,' % ( self.index, number, ntype, self.name ), self.responseFromChannel, self.errorFromChannel )
+        self._commchannel.enqueue( '+CPBS="SM";CPBW=%d,,,' % ( self.index, number, ntype, self.name ), self.responseFromChannel, self.errorFromChannel )
 
 #=========================================================================#
-class SimStoreEntry( AbstractMediator ):
+class SimStoreEntry( SimMediator ):
 #=========================================================================#
     def trigger( self ):
         number, ntype = const.numberToPhonebookTuple( self.number )
-        self._object.channel.enqueue( '+CPBS="SM";+CPBW=%d,"%s",%d,"%s"' % ( self.index, number, ntype, self.name ), self.responseFromChannel, self.errorFromChannel )
+        self._commchannel.enqueue( '+CPBS="SM";+CPBW=%d,"%s",%d,"%s"' % ( self.index, number, ntype, self.name ), self.responseFromChannel, self.errorFromChannel )
 
 #=========================================================================#
-class SimRetrieveEntry( AbstractMediator ):
+class SimRetrieveEntry( SimMediator ):
 #=========================================================================#
     def trigger( self ):
-        self._object.channel.enqueue( '+CPBS="SM";+CPBR=%d' % self.index, self.responseFromChannel, self.errorFromChannel )
+        self._commchannel.enqueue( '+CPBS="SM";+CPBR=%d' % self.index, self.responseFromChannel, self.errorFromChannel )
 
     @logged
     def responseFromChannel( self, request, response ):
         if response[-1] != "OK":
-            AbstractMediator.responseFromChannel( self, request, response )
+            SimMediator.responseFromChannel( self, request, response )
 
         if len( response ) == 1:
             self._ok( "", "" )
@@ -333,10 +380,10 @@ class SimRetrieveEntry( AbstractMediator ):
                 self._ok( name, const.phonebookTupleToNumber( number, ntype ) )
 
 #=========================================================================#
-class SimGetServiceCenterNumber( AbstractMediator ):
+class SimGetServiceCenterNumber( SimMediator ):
 #=========================================================================#
     def trigger( self ):
-        self._object.channel.enqueue( "+CSCA?", self.responseFromChannel, self.errorFromChannel )
+        self._commchannel.enqueue( "+CSCA?", self.responseFromChannel, self.errorFromChannel )
 
     @logged
     def responseFromChannel( self, request, response ):
@@ -349,18 +396,18 @@ class SimGetServiceCenterNumber( AbstractMediator ):
             number = number.replace( '+', '' ) # normalize
             self._ok( const.phonebookTupleToNumber( number.strip( '"' ), int(ntype) ) )
         else:
-            AbstractMediator.responseFromChannel( self, request, response )
+            SimMediator.responseFromChannel( self, request, response )
 
 #=========================================================================#
-class SimGetMessagebookInfo( AbstractMediator ):
+class SimGetMessagebookInfo( SimMediator ):
 #=========================================================================#
     def trigger( self ):
-        self._object.channel.enqueue( '+CPMS="SM","SM","SM"', self.responseFromChannel, self.errorFromChannel )
+        self._commchannel.enqueue( '+CPMS="SM","SM","SM"', self.responseFromChannel, self.errorFromChannel )
 
     @logged
     def responseFromChannel( self, request, response ):
         if response[-1] != "OK":
-            AbstractMediator.responseFromChannel( self, request, response )
+            SimMediator.responseFromChannel( self, request, response )
         afirst, alast, bfirst, blast, cfirst, clast = self._rightHandSide( response[0] ).split( ',' )
         result = {}
         result["min_index"] = int(afirst)
@@ -368,15 +415,15 @@ class SimGetMessagebookInfo( AbstractMediator ):
         self._ok( result )
 
 #=========================================================================#
-class SimRetrieveMessagebook( AbstractMediator ):
+class SimRetrieveMessagebook( SimMediator ):
 #=========================================================================#
     def trigger( self ):
-        self._object.channel.enqueue( '+CMGL="ALL"', self.responseFromChannel, self.errorFromChannel )
+        self._commchannel.enqueue( '+CMGL="ALL"', self.responseFromChannel, self.errorFromChannel )
 
     @logged
     def responseFromChannel( self, request, response ):
         if response[-1] != "OK":
-            AbstractMediator.responseFromChannel( self, request, response )
+            SimMediator.responseFromChannel( self, request, response )
         result = []
         curmsg = None
         text = ""
@@ -405,56 +452,56 @@ class SimRetrieveMessagebook( AbstractMediator ):
         self._ok( result )
 
 #=========================================================================#
-class SimSetServiceCenterNumber( AbstractMediator ):
+class SimSetServiceCenterNumber( SimMediator ):
 #=========================================================================#
     def trigger( self ):
         if not self.number.startswith( '+' ):
             self.number = "+%s" % self.number
-        self._object.channel.enqueue( '+CSCA="%s",145' % self.number, self.responseFromChannel, self.errorFromChannel )
+        self._commchannel.enqueue( '+CSCA="%s",145' % self.number, self.responseFromChannel, self.errorFromChannel )
 
 #=========================================================================#
-class SimStoreMessage( AbstractMediator ):
+class SimStoreMessage( SimMediator ):
 #=========================================================================#
     def trigger( self ):
         number, ntype = const.numberToPhonebookTuple( self.number )
         contents = self.contents.replace( '\n', '\r\n' )
-        self._object.channel.enqueue( '+CMGW="%s",%d,"STO UNSENT"\r%s' % ( number, ntype, contents ), self.responseFromChannel, self.errorFromChannel )
+        self._commchannel.enqueue( '+CMGW="%s",%d,"STO UNSENT"\r%s' % ( number, ntype, contents ), self.responseFromChannel, self.errorFromChannel )
 
     @logged
     def responseFromChannel( self, request, response ):
         if response[-1] != "OK":
-            AbstractMediator.responseFromChannel( self, request, response )
+            SimMediator.responseFromChannel( self, request, response )
         else:
             self._ok( int(self._rightHandSide(response[0])) )
 
 #=========================================================================#
-class SimDeleteMessage( AbstractMediator ):
+class SimDeleteMessage( SimMediator ):
 #=========================================================================#
     def trigger( self ):
-        self._object.channel.enqueue( "+CMGD=%d" % self.index, self.responseFromChannel, self.errorFromChannel )
+        self._commchannel.enqueue( "+CMGD=%d" % self.index, self.responseFromChannel, self.errorFromChannel )
 
 #=========================================================================#
-class NetworkRegister( AbstractMediator ):
+class NetworkRegister( NetworkMediator ):
 #=========================================================================#
     def trigger( self ):
-        self._object.channel.enqueue( "+COPS=0", self.responseFromChannel, self.errorFromChannel, timeout=const.TIMEOUT["COPS"] )
+        self._commchannel.enqueue( "+COPS=0", self.responseFromChannel, self.errorFromChannel, timeout=const.TIMEOUT["COPS"] )
 
 #=========================================================================#
-class NetworkUnregister( AbstractMediator ):
+class NetworkUnregister( NetworkMediator ):
 #=========================================================================#
     def trigger( self ):
-        self._object.channel.enqueue( "+COPS=2", self.responseFromChannel, self.errorFromChannel )
+        self._commchannel.enqueue( "+COPS=2", self.responseFromChannel, self.errorFromChannel )
 
 #=========================================================================#
-class NetworkGetStatus( AbstractMediator ):
+class NetworkGetStatus( NetworkMediator ):
 #=========================================================================#
     def trigger( self ):
-        self._object.channel.enqueue( '+CREG?;+COPS?;+CSQ', self.responseFromChannel, self.errorFromChannel, timeout=const.TIMEOUT["COPS"] )
+        self._commchannel.enqueue( '+CREG?;+COPS?;+CSQ', self.responseFromChannel, self.errorFromChannel, timeout=const.TIMEOUT["COPS"] )
 
     @logged
     def responseFromChannel( self, request, response ):
         if response[-1] != "OK":
-            AbstractMediator.responseFromChannel( self, request, response )
+            NetworkMediator.responseFromChannel( self, request, response )
 
         assert len( response ) == 4
         result = []
@@ -467,10 +514,10 @@ class NetworkGetStatus( AbstractMediator ):
         self._ok( *result )
 
 #=========================================================================#
-class NetworkListProviders( AbstractMediator ): # ai(sss)
+class NetworkListProviders( NetworkMediator ): # ai(sss)
 #=========================================================================#
     def trigger( self ):
-        self._object.channel.enqueue( "+COPS=?", self.responseFromChannel, self.errorFromChannel, timeout=const.TIMEOUT["COPS=?"] )
+        self._commchannel.enqueue( "+COPS=?", self.responseFromChannel, self.errorFromChannel, timeout=const.TIMEOUT["COPS=?"] )
 
     @logged
     def responseFromChannel( self, request, response ):
@@ -486,7 +533,7 @@ class NetworkListProviders( AbstractMediator ): # ai(sss)
                 result.append( ( index, status, name, shortname ) )
             self._ok( result )
         else:
-            AbstractMediator.responseFromChannel( self, request, response )
+            NetworkMediator.responseFromChannel( self, request, response )
 
     def _providerTuple( self, provider ):
         provider.replace( '"', "" )
@@ -494,25 +541,35 @@ class NetworkListProviders( AbstractMediator ): # ai(sss)
         return int(values[3]), const.PROVIDER_STATUS[int(values[0])], values[1], values[2]
 
 #=========================================================================#
-class NetworkRegisterWithProvider( AbstractMediator ):
+class NetworkRegisterWithProvider( NetworkMediator ):
 #=========================================================================#
     def trigger( self ):
-        self._object.channel.enqueue( '+COPS=1,2,"%d"' % self.operator_code, self.responseFromChannel, self.errorFromChannel, timeout=const.TIMEOUT["COPS"] )
+        self._commchannel.enqueue( '+COPS=1,2,"%d"' % self.operator_code, self.responseFromChannel, self.errorFromChannel, timeout=const.TIMEOUT["COPS"] )
 
 #=========================================================================#
-class NetworkRegisterWithProvider( AbstractMediator ):
+class NetworkRegisterWithProvider( NetworkMediator ):
 #=========================================================================#
     def trigger( self ):
-        self._object.channel.enqueue( '+COPS=1,2,"%d"' % self.operator_code, self.responseFromChannel, self.errorFromChannel, timeout=const.TIMEOUT["COPS"] )
+        self._commchannel.enqueue( '+COPS=1,2,"%d"' % self.operator_code, self.responseFromChannel, self.errorFromChannel, timeout=const.TIMEOUT["COPS"] )
 
 #=========================================================================#
-class NetworkGetCountryCode( AbstractMediator ):
+class NetworkGetCountryCode( NetworkMediator ):
 #=========================================================================#
     def __init__( self, dbus_object, dbus_ok, dbus_error, **kwargs ):
         dbus_error( error.UnsupportedCommand( self.__class__.__name__ ) )
 
 #=========================================================================#
-class TestCommand( AbstractMediator ):
+class CallInitiate( CallMediator ):
+#=========================================================================#
+    def trigger( self ):
+        if self.typ == "voice":
+            dialstring = "%s;" % self.number
+        else:
+            dialstring = self.number
+        self._commchannel.enqueue( 'D%s' % dialstring, self.responseFromChannel, self.errorFromChannel )
+
+#=========================================================================#
+class TestCommand( TestMediator ):
 #=========================================================================#
     def trigger( self ):
         self._object.channel.enqueueRaw( "%s" % self.command, self.responseFromChannel, self.errorFromChannel )

@@ -20,4 +20,8 @@ GSM 07.07 / 07.05 Observations and/or Questions:
 REAL TODOS:
 * Revamp/Refactor mediator.py and call.py
 * make dbus_object a singleton
-
+* add PrepareToSuspend()
+* add RecoverFromSuspend()
+* add cancelling long-standing-commands
+* send cancel character on timeout (so that the modem will not send anything later
+  which will falsely be recognized as an unsolicited response)

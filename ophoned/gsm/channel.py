@@ -5,6 +5,11 @@ The Open Device Daemon - Python Implementation
 (C) 2008 Michael 'Mickey' Lauer <mlauer@vanille-media.de>
 (C) 2008 Openmoko, Inc.
 GPLv2 or later
+
+Module: channel
+
+This module contains communication channel abstractions that
+transport their data over a (virtual) serial line.
 """
 
 import dbus
@@ -35,7 +40,7 @@ class VirtualChannel( object ):
     over which GSM 07.07 / 07.05 (AT) commands are transported.
 
     This class supports two modes:
-    * standalone (talking over a serial port of the modem)
+    * standalone (talking over a serial port to the modem)
     * multiplexed (talking over a multiplexed virtual channel to the modem)
     """
     modem_communication_timestamp = 1
@@ -207,9 +212,10 @@ class VirtualChannel( object ):
         """Called, if there is a HUP condition on the source."""
         assert source == self.serial.fd, "HUP on bogus source"
         assert condition == gobject.IO_HUP, "HUP on bogus condition"
+        print( "%s: HUP on socket, trying to recover" % repr(self) )
         self.close()
-        self.mainloop.quit()
-        # TODO add restart functionality ?
+        time.sleep( 1 )
+        self.open()
 
     @logged
     def _readyToRead( self, source, condition ):
@@ -315,7 +321,6 @@ class QueuedVirtualChannel( VirtualChannel ):
         else:
             self.wakeup = None # no wakeup necessary (default)
 
-    @logged
     def enqueue( self, data, response_cb=None, error_cb=None, timeout=None ):
         """
         Enqueue data block for sending over the channel.
@@ -329,8 +334,26 @@ class QueuedVirtualChannel( VirtualChannel ):
             self.watchReadyToSend = gobject.io_add_watch( self.serial.fd, gobject.IO_OUT, self._readyToSend )
 
     def pendingCommands( self ):
-        """Return the number of pending commands."""
+        """
+        Return the number of pending commands.
+        """
         return len( self.q.queue )
+
+    def isWaitingForResponse( self ):
+        """
+        Return True, when a command is currently waiting for a response.
+        Return False, otherwise.
+        """
+        return self.watchTimeout is not None
+
+    #def cancelCurrentCommand( self ):
+        #"""
+        #Cancel the command currently in process.
+        #"""
+        #if self.watchTimeout is None:
+            #return
+
+        #self._handleCommandCancellation()
 
     @logged
     def readyToSend( self ):
@@ -355,6 +378,19 @@ class QueuedVirtualChannel( VirtualChannel ):
         """Reimplemented for internal purposes."""
         self.parser.feed( data, not self.q.empty() )
 
+    #@logged
+    #def _handleCommandCancellation( self ):
+        #assert self.watchTimeout is not None, "no command to cancel"
+        ## stop timer
+        #gobject_source_remove( self.watchTimeout )
+        #self.watchTimeout = None
+        ## send EOF to cancel current command
+        #self.serial.write( "\x1A" )
+        ## erase command and send cancellation ACK
+        #request = self.q.get()
+        #reqstring, ok_cb, error_cb, timeout = request
+        #error_cb( reqstring.strip(), ( "cancel", timeout ) )
+
     @logged
     def _handleUnsolicitedResponse( self, response ):
         self.handleUnsolicitedResponse( response )
@@ -374,6 +410,10 @@ class QueuedVirtualChannel( VirtualChannel ):
 
     @logged
     def _handleCommandTimeout( self ):
+        # send EOF to cancel the current command. If we would not, then a
+        # response out of the timeout interval would be misrecognized
+        # as an unsolicited response.
+        self.serial.write( "\x1A" )
         self.handleCommandTimeout( self.q.get() )
 
     def handleUnsolicitedResponse( self, response ):
@@ -405,7 +445,6 @@ class QueuedVirtualChannel( VirtualChannel ):
 #=========================================================================#
 class AtCommandChannel( QueuedVirtualChannel ):
 #=========================================================================#
-    @logged
     def enqueue( self, command, response_cb=None, error_cb=None, timeout=None ):
         """
         Enqueue a single line or multiline command. Multiline commands have
@@ -429,12 +468,10 @@ class GenericModemChannel( AtCommandChannel ):
 
         self.enqueue('Z') # soft reset
         self.enqueue('E0V1') # echo off, verbose result on
-        self.enqueue('+CMEE=1') # report mobile equipment errors in numerical format
-        self.enqueue('+CRC=1') # cellular result codes, enable extended format
-
-        # self.enqueue('+CPMS="SM","SM","SM"') # preferred message storage: sim memory for mo,mt,bm
-        self.enqueue('+CMGF=1') # meesage format: pdu mode sms disable, text
-        self.enqueue('+CSCS="8859-1"') # character set conversion
+        self.enqueue('+CMEE=1') # report mobile equipment errors: in numerical format
+        self.enqueue('+CRC=1') # cellular result codes: enable extended format
+        self.enqueue('+CMGF=1') # message format: disable pdu mode, enable text mode
+        self.enqueue('+CSCS="8859-1"') # character set conversion: use 8859-1 (latin 1)
         self.enqueue('+CSDH=1') # show text mode parameters: show values
 
     def launchKeepAlive( self, timeout, command ):
@@ -448,6 +485,16 @@ class GenericModemChannel( AtCommandChannel ):
         if self.connected and ( self.keepAliveCommand is not None ):
             self.enqueue( self.keepAliveCommand )
         return True
+
+#=========================================================================#
+class CallChannel( GenericModemChannel ):
+#=========================================================================#
+    pass
+
+#=========================================================================#
+class MiscChannel( GenericModemChannel ):
+#=========================================================================#
+    pass
 
 #=========================================================================#
 class UnsolicitedResponseChannel( GenericModemChannel ):
@@ -475,7 +522,9 @@ class UnsolicitedResponseChannel( GenericModemChannel ):
                            '@': 'at',
                            '/': 'slash',
                            '#': 'hash',
-                           '_': 'underscore' }
+                           '_': 'underscore',
+                           '*': 'star',
+                         }
 
         self.delegate = None
 
@@ -550,10 +599,9 @@ if __name__ == "__main__":
         gobject.timeout_add_seconds = timeout_add_seconds
 
     bus = dbus.SystemBus()
-    misc = GenericModemChannel( bus, timeout=5 )
-#    call = GenericModemChannel( bus, timeout=10 )
+    misc = MiscChannel( bus, timeout=5 )
+#    call = CallChannel( bus, timeout=10 )
 #    unsol = UnsolicitedResponseChannel( bus )
-#    unsol.launchKeepAlive( 8, "" )
 #    call.open()
 #    unsol.open()
     misc.open()

@@ -5,12 +5,35 @@ The Open Device Daemon - Python Implementation
 (C) 2008 Michael 'Mickey' Lauer <mlauer@vanille-media.de>
 (C) 2008 Openmoko, Inc.
 GPLv2 or later
+
+Module: error
+
+DBus Exception Classes for org.freesmartphone.GSM*
 """
 
 from dbus import DBusException
 
 #=========================================================================#
-# Base exceptions
+# GSM exceptions, unspecific to actual interface
+#=========================================================================#
+
+class UnsupportedCommand( DBusException ):
+    _dbus_error_name = "org.freesmartphone.GSM.UnsupportedCommand"
+
+class InvalidParameter( DBusException ):
+    _dbus_error_name = "org.freesmartphone.GSM.InvalidParameter"
+
+class InternalException( DBusException ):
+    _dbus_error_name = "org.freesmartphone.GSM.InternalError"
+
+class NoCommandToCancelException( DBusException ):
+    _dbus_error_name = "org.freesmartphone.GSM.NoCommandToCancel"
+
+class CommandCancelled( DBusException ):
+    _dbus_error_name = "org.freesmartphone.GSM.CommandCancelled"
+
+#=========================================================================#
+# Base classes for interface-specific exceptions
 #=========================================================================#
 
 class AbstractDeviceException( DBusException ):
@@ -24,12 +47,6 @@ class AbstractNetworkException( DBusException ):
 
 class AbstractCallException( DBusException ):
     _dbus_error_name = "org.freesmartphone.GSM.Call"
-
-class UnsupportedCommand( DBusException ):
-    _dbus_error_name = "org.freesmartphone.GSM.UnsupportedCommand"
-
-class InternalException( DBusException ):
-    _dbus_error_name = "org.freesmartphone.GSM.InternalError"
 
 #=========================================================================#
 # Device exceptions

@@ -6,7 +6,7 @@ The Open Device Daemon - Python Implementation
 (C) 2008 Openmoko, Inc.
 GPLv2 or later
 
-Parser Module
+Module: Parser
 
 """
 
@@ -41,7 +41,7 @@ class LowlevelAtParser( object ):
         # NOTE: the continuation query relies on '\r\n> ' not being
         # fragmented... question: is that always correct? If not,
         # we better keep the state. We could also enhance the signature
-        # to support handing a haveContinuation state over to this function.
+        # to support handing a haveContinuation parameter over to here.
         if bytes == "\r\n> ":
             self.response( [] )
             self.lines = []
