@@ -10,7 +10,6 @@ GPLv2 or later
 from decor import logged
 import const
 import mediator
-import call
 
 #=========================================================================#
 class UnsolicitedResponseDelegate( object ):
@@ -27,6 +26,7 @@ class UnsolicitedResponseDelegate( object ):
     # unsolicited callbacks
     #
 
+    @logged
     def plusCREG( self, righthandside ):
         values = righthandside.split( ',' )
         self.register = const.REGISTER_STATUS[int(values[0])]
@@ -36,10 +36,14 @@ class UnsolicitedResponseDelegate( object ):
 
         mediator.NetworkGetStatus( self._object, self.statusOK, self.statusERR )
 
+    @logged
     def plusCRING( self, calltype ):
         if calltype == "VOICE":
-            incomingCall = call.IncomingVoiceCall()
+            mediator.Call.ring( self._object, calltype )
+        else:
+            assert False, "unhandled call type"
 
+    @logged
     def plusCLIP( self, righthandside ):
         print "CLIP:", righthandside
 

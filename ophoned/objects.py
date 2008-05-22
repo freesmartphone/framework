@@ -21,7 +21,7 @@ from config import LOG, LOG_INFO, LOG_ERR, LOG_DEBUG
 import dbus
 import dbus.service
 from dbus import DBusException
-from gsm import channel, mediator, unsol, call
+from gsm import channel, mediator, unsol
 from gobject import timeout_add, idle_add
 import weakref
 
@@ -302,27 +302,40 @@ class Device( dbus.service.Object ):
     @dbus.service.method( DBUS_INTERFACE_CALL, "i", "",
                           async_callbacks=( "dbus_ok", "dbus_error" ) )
     def Activate( self, index, dbus_ok, dbus_error ):
-        call.acceptIncomingCall()
+        mediator.CallActivate( dbus_ok, dbus_error, index=index )
+
+    @dbus.service.method( DBUS_INTERFACE_CALL, "i", "",
+                          async_callbacks=( "dbus_ok", "dbus_error" ) )
+    def ActivateConference( self, index, dbus_ok, dbus_error ):
+        mediator.CallActivateConference( dbus_ok, dbus_error, index=index )
 
     @dbus.service.method( DBUS_INTERFACE_CALL, "i", "",
                           async_callbacks=( "dbus_ok", "dbus_error" ) )
     def Release( self, index, dbus_ok, dbus_error ):
-        call.rejectIncomingCall()
+        mediator.CallRelease( dbus_ok, dbus_error, index=index )
 
     @dbus.service.method( DBUS_INTERFACE_CALL, "", "",
                           async_callbacks=( "dbus_ok", "dbus_error" ) )
     def ReleaseHeld( self, dbus_ok, dbus_error ):
-        pass
+        mediator.CallReleaseHeld( dbus_ok, dbus_error )
 
     @dbus.service.method( DBUS_INTERFACE_CALL, "", "",
                           async_callbacks=( "dbus_ok", "dbus_error" ) )
     def ReleaseAll( self, dbus_ok, dbus_error ):
-        call.rejectIncomingCall()
+        mediator.CallReleaseAll( dbus_ok, dbus_error )
 
     @dbus.service.method( DBUS_INTERFACE_CALL, "ss", "i",
                           async_callbacks=( "dbus_ok", "dbus_error" ) )
-    def Initiate( self, number, typ, dbus_ok, dbus_error ):
-        mediator.CallInitiate( self, dbus_ok, dbus_error, number=number, typ=typ )
+    def Initiate( self, number, type_, dbus_ok, dbus_error ):
+        mediator.CallInitiate( self, dbus_ok, dbus_error, number=number, calltype=type_ )
+
+    # ListCalls
+    # GetCallStatus
+    # SendDtmf
+    # SetDtmfDuration
+    # GetDtmfDuration
+    # SetSendID
+    # GetSendID
 
     #
     # dbus org.freesmartphone.GSM.Test

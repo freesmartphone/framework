@@ -100,3 +100,5 @@ class NetworkNotFound( AbstractNetworkException ):
 class CallNotFound( AbstractCallException ):
     _dbus_error_name = "org.freesmartphone.Call.NotFound"
 
+class CallNoCarrier( AbstractCallException ):
+    _dbus_error_name = "org.freesmartphone.Call.NoCarrier"

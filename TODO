@@ -25,3 +25,7 @@ REAL TODOS:
 * add cancelling long-standing-commands
 * send cancel character on timeout (so that the modem will not send anything later
   which will falsely be recognized as an unsolicited response)
+* UnsolicitedResponseChannel does not need to inherit GenericModem!
+* move initialization sequence into mediator module
+  (i don't want to see _ANY_ AT commands in the virtual channel code)
+

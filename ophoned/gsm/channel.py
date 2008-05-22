@@ -321,6 +321,8 @@ class QueuedVirtualChannel( VirtualChannel ):
         else:
             self.wakeup = None # no wakeup necessary (default)
 
+        print "(%s: Creating channel with timeout = %d seconds)" % ( repr(self), self.timeout )
+
     def enqueue( self, data, response_cb=None, error_cb=None, timeout=None ):
         """
         Enqueue data block for sending over the channel.
@@ -489,7 +491,21 @@ class GenericModemChannel( AtCommandChannel ):
 #=========================================================================#
 class CallChannel( GenericModemChannel ):
 #=========================================================================#
-    pass
+    def __init__( self, *args, **kwargs ):
+        if not "timeout" in kwargs:
+            kwargs["timeout"] = 60*60
+        GenericModemChannel.__init__( self, *args, **kwargs )
+        self.callback = None
+
+    def setIntermediateResponseCallback( self, callback ):
+        assert self.callback is None, "callback already set"
+        self.callback = callback
+
+    def handleUnsolicitedResponse( self, response ):
+        if self.callback is not None:
+            self.callback( response )
+        else:
+            print "CALLCHANNEL: UNHANDLED INTERMEDIATE: ", response
 
 #=========================================================================#
 class MiscChannel( GenericModemChannel ):
@@ -546,7 +562,7 @@ class UnsolicitedResponseChannel( GenericModemChannel ):
         except AttributeError:
             return False
         else:
-            method( values )
+            method( values.strip() )
 
         return True
 

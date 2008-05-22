@@ -27,10 +27,9 @@ TODO:
  * recover from traceback in parsing / compiling result code
 """
 
-import re
+import re, time
+import error, const
 from decor import logged
-import error
-import const
 
 #=========================================================================#
 class AbstractMediator( object ):
@@ -562,31 +561,163 @@ class NetworkGetCountryCode( NetworkMediator ):
 class CallInitiate( CallMediator ):
 #=========================================================================#
     def trigger( self ):
-        if self.typ == "voice":
+        if self.calltype == "voice":
             dialstring = "%s;" % self.number
         else:
             dialstring = self.number
-        self._commchannel.enqueue( 'D%s' % dialstring, self.responseFromChannel, self.errorFromChannel )
+        # for now, restrict to only one active call
+        if not len( Call.calls ) < 2:
+            self._error( error.CallNoCarrier( "can't have more than two outgoing calls" ) )
+        else:
+            c = Call( self._object, direction="outgoing", calltype=self.calltype )
+            self._ok( c( dialstring ) )
+
+#=========================================================================#
+class CallActivate( CallMediator ):
+#=========================================================================#
+    def trigger( self ):
+        if not len( Call.calls ):
+            # no calls yet in system
+            self._error( error.CallNotFound( "no call to activate" ) )
+        elif len( Call.calls ) == 1:
+            c = Call.calls[0]
+            # one call in system
+            if c.status() == "incoming":
+                self._ok()
+                c.accept()
+            elif c.status() == "held":
+                assert False, "i don't support held calls yet"
+            else:
+                self._error( error.CallNotFound( "call already active" ) )
+        else:
+            assert False, "i don't support multiple calls yet"
 
 #=========================================================================#
 class TestCommand( TestMediator ):
 #=========================================================================#
     def trigger( self ):
-        self._object.channel.enqueueRaw( "%s" % self.command, self.responseFromChannel, self.errorFromChannel )
+        self._commchannel.enqueueRaw( "%s" % self.command, self.responseFromChannel, self.errorFromChannel )
 
     @logged
     def responseFromChannel( self, request, response ):
         self._ok( response )
 
 #=========================================================================#
-def enableModemExtensions( modem ):
+class Call( AbstractMediator ):
 #=========================================================================#
-    """
-    Walk through all available mediator classes
-    and -- if existing -- substitute with modem specific
-    classes.
-    """
-    pass
+    calls = []
+    index = 0
+    unsolicitedRegistered = False
 
+    @logged
+    def __init__( self, dbus_object, **kwargs ):
+        AbstractMediator.__init__( self, dbus_object, None, None, **kwargs )
+        self._callchannel = self._object.callchannel
+        self._miscchannel = self._object.miscchannel
+
+        self._status = "unknown"
+        self._timeout = None
+        self._index = Call.index
+        Call.index += 1
+
+        self._properties = { \
+            "type": kwargs["calltype"],
+            "ring": 0,
+            "created": time.time(),
+            "direction": kwargs["direction"],
+            "duration": 0,
+            "peer": "",
+            "reason": "" }
+
+        Call.calls.append( self )
+
+        if not Call.unsolicitedRegistered:
+            self._callchannel.setIntermediateResponseCallback( Call.intermediateResponse )
+
+    def __call__( self, dialstring ):
+        """Call (sic!)."""
+        self._callchannel.enqueue( 'D%s' % dialstring, self.responseFromChannel, self.errorFromChannel )
+        self.updateStatus( "outgoing" )
+        return self._index
+
+    def updateStatus( self, newstatus ):
+        self._status = newstatus
+        self._object.CallStatus( self._index, self._status, self._properties )
+
+    def status( self ):
+        return self._status
+
+    def klingeling( self ):
+        if self._timeout is not None:
+            gobject.remove_source( self._timeout )
+            self._timeout = gobject.timer_add_seconds( const.TIMEOUT["RING"], self.remoteHangup )
+        self._properties["ring"] += 1
+        self.updateStatus( "incoming" )
+
+    def accept( self ):
+        self._callchannel.enqueue( 'A' )
+        self.updateStatus( "active" )
+
+    def remoteBusy( self ):
+        self._properties["reason"] = "remote hangup"
+        self._die()
+
+    def remoteHangup( self ):
+        if self._timeout is not None:
+            gobject.remove_source( self._timeout )
+        self._properties["reason"] = "remote hangup"
+        self._die()
+
+    def hangup( self ):
+        self._callchannel.enqueue( 'H' )
+        self._properties["reason"] = "local hangup"
+        self._die()
+
+    def remoteAccept( self ):
+        self._reason = ["remote accept"]
+        self.updateStatus( "active" )
+
+    def responseFromChannel( self, request, response ):
+        if response[-1] == "NO CARRIER":
+            self._properties["reason"] = "no carrier"
+            self._die()
+        elif response[-1] == "OK":
+            self.remoteAccept()
+        else:
+            print "UNKNOWN RESPONSE = ", response
+
+    def _die( self ):
+        Call.calls.remove( self )
+
+    @logged
+    def __del__( self ):
+        self.updateStatus( "release" )
+
+    @classmethod
+    @logged
+    def ring( cls, dbus_object, calltype ):
+        assert not len( cls.calls ) > 1, "ubermodem or broken code"
+        for c in cls.calls:
+            if c.status() == "incoming":
+                c.klingeling()
+                break
+        else:
+            c = Call( dbus_object, direction="incoming", calltype=calltype )
+            c.klingeling()
+
+    @classmethod
+    @logged
+    def intermediateResponse( cls, response ):
+        assert len( cls.calls ) == 1, "not handling multiple calls yet"
+        c = cls.calls[0]
+        if response == "NO CARRIER":
+            c.remoteHangup()
+        elif response == "BUSY":
+            c.remoteBusy()
+        elif response.startswith( "CONNECT" ):
+            c.talking()
+
+#=========================================================================#
 if __name__ == "__main__":
+#=========================================================================#
     pass
