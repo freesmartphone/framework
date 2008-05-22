@@ -593,6 +593,29 @@ class CallActivate( CallMediator ):
             assert False, "i don't support multiple calls yet"
 
 #=========================================================================#
+class CallRelease( CallMediator ):
+#=========================================================================#
+    def trigger( self ):
+        if not len( Call.calls ):
+            # no calls yet in system
+            self._error( error.CallNotFound( "no call to release" ) )
+        elif len( Call.calls ) == 1:
+            c = Call.calls[0]
+            # one call in system
+            if c.status() == "active":
+                self._ok()
+                c.hangup()
+            elif c.status() == "incoming":
+                self._ok()
+                c.reject()
+            elif c.status() == "held":
+                assert False, "i don't support held calls yet"
+            else:
+                self._error( error.CallNotFound( "call already active" ) )
+        else:
+            assert False, "i don't support multiple calls yet"
+
+#=========================================================================#
 class TestCommand( TestMediator ):
 #=========================================================================#
     def trigger( self ):
@@ -667,6 +690,11 @@ class Call( AbstractMediator ):
             gobject.remove_source( self._timeout )
         self._properties["reason"] = "remote hangup"
         self._die()
+
+    def reject( self ):
+        # TODO can/must we differenciate between hangup and reject?
+        # How do some phones send a 'BUSY' signal?
+        self.hangup()
 
     def hangup( self ):
         self._callchannel.enqueue( 'H' )

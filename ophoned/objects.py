@@ -302,27 +302,27 @@ class Device( dbus.service.Object ):
     @dbus.service.method( DBUS_INTERFACE_CALL, "i", "",
                           async_callbacks=( "dbus_ok", "dbus_error" ) )
     def Activate( self, index, dbus_ok, dbus_error ):
-        mediator.CallActivate( dbus_ok, dbus_error, index=index )
+        mediator.CallActivate( self, dbus_ok, dbus_error, index=index )
 
     @dbus.service.method( DBUS_INTERFACE_CALL, "i", "",
                           async_callbacks=( "dbus_ok", "dbus_error" ) )
     def ActivateConference( self, index, dbus_ok, dbus_error ):
-        mediator.CallActivateConference( dbus_ok, dbus_error, index=index )
+        mediator.CallActivateConference( self, dbus_ok, dbus_error, index=index )
 
     @dbus.service.method( DBUS_INTERFACE_CALL, "i", "",
                           async_callbacks=( "dbus_ok", "dbus_error" ) )
     def Release( self, index, dbus_ok, dbus_error ):
-        mediator.CallRelease( dbus_ok, dbus_error, index=index )
+        mediator.CallRelease( self, dbus_ok, dbus_error, index=index )
 
     @dbus.service.method( DBUS_INTERFACE_CALL, "", "",
                           async_callbacks=( "dbus_ok", "dbus_error" ) )
     def ReleaseHeld( self, dbus_ok, dbus_error ):
-        mediator.CallReleaseHeld( dbus_ok, dbus_error )
+        mediator.CallReleaseHeld( self, dbus_ok, dbus_error )
 
     @dbus.service.method( DBUS_INTERFACE_CALL, "", "",
                           async_callbacks=( "dbus_ok", "dbus_error" ) )
     def ReleaseAll( self, dbus_ok, dbus_error ):
-        mediator.CallReleaseAll( dbus_ok, dbus_error )
+        mediator.CallReleaseAll( self, dbus_ok, dbus_error )
 
     @dbus.service.method( DBUS_INTERFACE_CALL, "ss", "i",
                           async_callbacks=( "dbus_ok", "dbus_error" ) )
