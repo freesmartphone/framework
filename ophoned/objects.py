@@ -26,7 +26,7 @@ from gobject import timeout_add, idle_add
 import weakref
 
 DBUS_INTERFACE_DEVICE = "org.freesmartphone.GSM.Device"
-DBUS_INTERFACE_SIM = "org.freesmartphone.GSM.Sim"
+DBUS_INTERFACE_SIM = "org.freesmartphone.GSM.SIM"
 DBUS_INTERFACE_NETWORK = "org.freesmartphone.GSM.Network"
 DBUS_INTERFACE_CALL = "org.freesmartphone.GSM.Call"
 
