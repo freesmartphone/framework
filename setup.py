@@ -8,7 +8,7 @@ setup(
     author = "Jan 'Shoragan' Lübbe",
     author_email = "jluebbe@lasnet.de",
     url = "http://www.freesmartphone.org",
-    packages = [ "oeventd" ],
+    packages = [ "oeventd", "oeventd/modules" ],
     scripts = [ "oeventd/oeventd" ],
     data_files = [ ("etc/dbus-1/system.d", ["etc/dbus-1/system.d/oeventd.conf"] ) ]
 )
