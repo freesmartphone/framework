@@ -38,10 +38,21 @@ class Signal( dbus.service.Object ):
         Signal.INDEX += 1
         self.controller = controller
         self.attributes = attributes
+        self.sticky = self.attributes.get("sticky", False)
         LOG( LOG_INFO, "%s initialized. Serving %s at %s" %
             ( self.__class__.__name__, self.interface, list( self.locations ) )
         )
 
+    def fire( self ):
+        for x in self.controller.objects.values():
+            if isinstance( x, Receiver ) and x.matchEvent( self ):
+                x.handleEvent( self )
+        
+    def release( self ):
+        for x in self.controller.objects.values():
+            if isinstance( x, Receiver ) and x.matchEvent( self ):
+                x.releaseEvent( self )
+        
     #
     # dbus methods
     #
@@ -84,6 +95,7 @@ class Manager( dbus.service.Object ):
     def CreateEvent( self, attributes ):
         signal = Signal( self.controller, attributes )
         self.signals.append( signal )
+        signal.Fire()
         return signal
 
     #

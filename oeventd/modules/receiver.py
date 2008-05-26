@@ -21,6 +21,11 @@ from syslog import syslog, LOG_ERR, LOG_WARNING, LOG_INFO, LOG_DEBUG
 from helpers import LOG, readFromFile, writeToFile
 from gobject import idle_add
 
+def requestInterfaceForObject( bus, prefix, interface, object ):
+    proxy = bus.get_object( prefix, object )
+    iface = dbus.Interface( proxy, interface )
+    return iface
+
 #----------------------------------------------------------------------------#
 class Receiver( dbus.service.Object ):
 #----------------------------------------------------------------------------#
@@ -35,6 +40,7 @@ class Receiver( dbus.service.Object ):
         Receiver.INDEX += 1
         self.action = action
         self.filter = filter
+        self.active = []
         LOG( LOG_INFO, "%s initialized. Serving %s at %s" %
             ( self.__class__.__name__, self.interface, list( self.locations ) )
         )
@@ -43,29 +49,53 @@ class Receiver( dbus.service.Object ):
         return self.filter is None or self.filter( event )
 
     def handleEvent( self, event ):
-        assert self.matchEvent( event)
-        self.action( event )
+        assert self.matchEvent( event )
+        if event.sticky:
+            self.active.append( event )
+        self.action( self.active )
+
+    def releaseEvent( self, event ):
+        assert self.matchEvent( event )
+        if event in self.active:
+            self.active.remove( event )
+            self.action( self.active ) 
 
 #----------------------------------------------------------------------------#
 def factory( prefix, controller ):
 #----------------------------------------------------------------------------#
     objects = []
-    def printAction( event ):
-        print event
+
+    def printAction( events ):
+        print events
+
+    def makeTypeFilter( type ):
+        def typeFilter( event, type=type ):
+            return event.get("type") == type
+
+    def makeLedAction( bus, name ):
+        def ledAction( event, bus=bus, name=name ):
+            led = requestInterfaceForObject(
+                bus,
+                "org.freesmartphone.Device",
+                "org.freesmartphone.Device.LED",
+                "/org/freesmartphone/Device/LED/" + name
+            )
+            if event:
+                led.SetBrightness(100)
+            else:
+                led.SetBrightness(0)
+
     objects.append( Receiver( controller.bus, printAction ) )
+
+    objects.append( Receiver( controller.bus, makeLedAction( controller.bus, "neo1973-vibrator" ) ) )
+
     return objects
 
 if __name__ == "__main__":
     import dbus
     bus = dbus.SystemBus()
 
-    def requestInterfaceForObject( prefix, interface, object ):
-        proxy = bus.get_object( prefix, object )
-        #print( proxy.Introspect( dbus_interface = "org.freedesktop.DBus.Introspectable" ) )
-        iface = dbus.Interface( proxy, interface )
-        return iface
-
-    usage = requestInterfaceForObject( DBUS_INTERFACE_PREFIX, GenericUsageControl.DBUS_INTERFACE, DBUS_PATH_PREFIX )
+    usage = requestInterfaceForObject( bus, DBUS_INTERFACE_PREFIX, GenericUsageControl.DBUS_INTERFACE, DBUS_PATH_PREFIX )
 
     print "Found resources:", usage.ListResources()
     print "GSM users list:", usage.GetResourceUsers("GSM")
