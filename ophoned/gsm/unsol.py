@@ -45,7 +45,8 @@ class UnsolicitedResponseDelegate( object ):
 
     @logged
     def plusCLIP( self, righthandside ):
-        print "CLIP:", righthandside
+            number, ntype, rest = righthandside.split( ',', 2 )
+            mediator.Call.clip( self._object, const.phonebookTupleToNumber( number, int(ntype ) ) )
 
     #
     # helpers

@@ -30,6 +30,7 @@ TODO:
 import re, time
 import error, const
 from decor import logged
+import gobject
 
 #=========================================================================#
 class AbstractMediator( object ):
@@ -502,7 +503,9 @@ class NetworkGetStatus( NetworkMediator ):
         if response[-1] != "OK":
             NetworkMediator.responseFromChannel( self, request, response )
 
-        assert len( response ) == 4
+        # FIXME this not OK
+        if len( response ) != 4:
+            self._ok( [ "", "", 0 ] )
         result = []
         result.append( const.REGISTER_STATUS[int(self._rightHandSide( response[0] ).split( ',' )[1])] ) # +CREG: 0,1
         try:
@@ -586,11 +589,11 @@ class CallActivate( CallMediator ):
                 self._ok()
                 c.accept()
             elif c.status() == "held":
-                assert False, "i don't support held calls yet"
+                self._error( error.InternalException( "server does not support held calls yet" ) )
             else:
                 self._error( error.CallNotFound( "call already active" ) )
         else:
-            assert False, "i don't support multiple calls yet"
+            self._error( error.InternalException( "server does not support multiple calls yet" ) )
 
 #=========================================================================#
 class CallRelease( CallMediator ):
@@ -602,6 +605,7 @@ class CallRelease( CallMediator ):
         elif len( Call.calls ) == 1:
             c = Call.calls[0]
             # one call in system
+            print "call status", c.status()
             if c.status() == "active":
                 self._ok()
                 c.hangup()
@@ -609,11 +613,11 @@ class CallRelease( CallMediator ):
                 self._ok()
                 c.reject()
             elif c.status() == "held":
-                assert False, "i don't support held calls yet"
+                self._error( error.InternalException( "server does not support held calls yet" ) )
             else:
-                self._error( error.CallNotFound( "call already active" ) )
+                self._error( error.InternalException( "call with unknown status: %s" % c.status() ) )
         else:
-            assert False, "i don't support multiple calls yet"
+            self._error( error.InternalException( "server does not support multiple calls yet" ) )
 
 #=========================================================================#
 class TestCommand( TestMediator ):
@@ -672,8 +676,8 @@ class Call( AbstractMediator ):
 
     def klingeling( self ):
         if self._timeout is not None:
-            gobject.remove_source( self._timeout )
-            self._timeout = gobject.timer_add_seconds( const.TIMEOUT["RING"], self.remoteHangup )
+            gobject.source_remove( self._timeout )
+        self._timeout = gobject.timeout_add_seconds( const.TIMEOUT["RING"], self.remoteHangup )
         self._properties["ring"] += 1
         self.updateStatus( "incoming" )
 
@@ -687,7 +691,7 @@ class Call( AbstractMediator ):
 
     def remoteHangup( self ):
         if self._timeout is not None:
-            gobject.remove_source( self._timeout )
+            gobject.source_remove( self._timeout )
         self._properties["reason"] = "remote hangup"
         self._die()
 
@@ -704,6 +708,10 @@ class Call( AbstractMediator ):
     def remoteAccept( self ):
         self._reason = ["remote accept"]
         self.updateStatus( "active" )
+
+    def remoteClip( self, number ):
+        self._properties["peer"] = number
+        self.updateStatus( "incoming" )
 
     def responseFromChannel( self, request, response ):
         if response[-1] == "NO CARRIER":
@@ -732,6 +740,23 @@ class Call( AbstractMediator ):
         else:
             c = Call( dbus_object, direction="incoming", calltype=calltype )
             c.klingeling()
+
+    @classmethod
+    @logged
+    def clip( cls, dbus_object, number ):
+        # first, check the incoming calls
+        for c in cls.calls:
+            if c.status() == "incoming":
+                c.remoteClip( number )
+                break
+        else:
+            # now, check the active calls
+            for c in cls.calls:
+                if c.status() == "active":
+                    c.remoteClip( number )
+                    break
+            else:
+                raise False, "CLIP without incoming nor active call => broken code"
 
     @classmethod
     @logged
