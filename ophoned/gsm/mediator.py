@@ -154,8 +154,30 @@ class TestMediator( AbstractMediator ):
 #=========================================================================#
     def __init__( self, *args, **kwargs ):
         AbstractMediator.__init__( self, *args, **kwargs )
-        self._commchannel = self._object.callchannel
-        self.trigger()
+        self._commchannel = self._object.miscchannel
+
+        self.generator = self.trigger()
+        if self.generator is not None:
+            toEnqueue = self.generator.next()
+            self._commchannel.enqueue( toEnqueue, self.genResponseFromChannel, self.genErrorFromChannel )
+
+    @logged
+    def genResponseFromChannel( self, request, response ):
+        try:
+            toEnqueue = self.generator.send( ( request, response, None ) )
+        except StopIteration:
+            pass
+        else:
+            self._commchannel.enqueue( toEnqueue, self.genResponseFromChannel, self.genErrorFromChannel )
+
+    @logged
+    def genErrorFromChannel( self, request, error ):
+        try:
+            toEnqueue = self.generator.send( ( request, None, error ) )
+        except StopIteration:
+            pass
+        else:
+            self._commchannel.enqueue( toEnqueue, self.genResponseFromChannel, self.genErrorFromChannel )
 
 #=========================================================================#
 class CancelCommand( DeviceMediator ):
@@ -505,7 +527,8 @@ class NetworkGetStatus( NetworkMediator ):
 
         # FIXME this not OK
         if len( response ) != 4:
-            self._ok( [ "", "", 0 ] )
+            print "OOPS, that was not expected: ", repr(response)
+            self._ok( "", "", 0 )
         result = []
         result.append( const.REGISTER_STATUS[int(self._rightHandSide( response[0] ).split( ',' )[1])] ) # +CREG: 0,1
         try:
@@ -605,8 +628,11 @@ class CallRelease( CallMediator ):
         elif len( Call.calls ) == 1:
             c = Call.calls[0]
             # one call in system
-            print "call status", c.status()
-            if c.status() == "active":
+            # FIXME use polymorphie here
+            if c.status() == "outgoing":
+                self._ok()
+                c.cancel()
+            elif c.status() == "active":
                 self._ok()
                 c.hangup()
             elif c.status() == "incoming":
@@ -622,12 +648,20 @@ class CallRelease( CallMediator ):
 #=========================================================================#
 class TestCommand( TestMediator ):
 #=========================================================================#
-    def trigger( self ):
-        self._commchannel.enqueueRaw( "%s" % self.command, self.responseFromChannel, self.errorFromChannel )
+    #def trigger( self ):
+        #self._commchannel.enqueueRaw( "%s" % self.command, self.responseFromChannel, self.errorFromChannel )
+    #@logged
+    #def responseFromChannel( self, request, response ):
+        #self._ok( response )
 
     @logged
-    def responseFromChannel( self, request, response ):
-        self._ok( response )
+    def trigger( self ):
+        for iteration in ( 1,2,3,4 ):
+            request, response, error = yield( "%s" % self.command )
+            if error is None:
+                self._ok( response )
+            else:
+                self.errorFromChannel( request, error )
 
 #=========================================================================#
 class Call( AbstractMediator ):
@@ -681,7 +715,12 @@ class Call( AbstractMediator ):
         self._properties["ring"] += 1
         self.updateStatus( "incoming" )
 
+    def cancel( self ):
+        self._callchannel.cancelCurrentCommand()
+
     def accept( self ):
+        if self._timeout is not None:
+            gobject.source_remove( self._timeout )
         self._callchannel.enqueue( 'A' )
         self.updateStatus( "active" )
 

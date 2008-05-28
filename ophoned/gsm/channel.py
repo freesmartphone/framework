@@ -348,14 +348,13 @@ class QueuedVirtualChannel( VirtualChannel ):
         """
         return self.watchTimeout is not None
 
-    #def cancelCurrentCommand( self ):
-        #"""
-        #Cancel the command currently in process.
-        #"""
-        #if self.watchTimeout is None:
-            #return
-
-        #self._handleCommandCancellation()
+    def cancelCurrentCommand( self ):
+        """
+        Cancel the command currently in process.
+        """
+        if self.watchTimeout is None:
+            return
+        self._handleCommandCancellation()
 
     @logged
     def readyToSend( self ):
@@ -380,18 +379,21 @@ class QueuedVirtualChannel( VirtualChannel ):
         """Reimplemented for internal purposes."""
         self.parser.feed( data, not self.q.empty() )
 
-    #@logged
-    #def _handleCommandCancellation( self ):
-        #assert self.watchTimeout is not None, "no command to cancel"
-        ## stop timer
-        #gobject_source_remove( self.watchTimeout )
-        #self.watchTimeout = None
-        ## send EOF to cancel current command
-        #self.serial.write( "\x1A" )
-        ## erase command and send cancellation ACK
-        #request = self.q.get()
-        #reqstring, ok_cb, error_cb, timeout = request
-        #error_cb( reqstring.strip(), ( "cancel", timeout ) )
+    @logged
+    def _handleCommandCancellation( self ):
+        assert self.watchTimeout is not None, "no command to cancel"
+        # stop timer
+        gobject.source_remove( self.watchTimeout )
+        self.watchTimeout = None
+        # send EOF to cancel current command
+        print "sending EOF"
+        self.serial.write( "\x1A" )
+        # erase command and send cancellation ACK
+        # FIXME should actually NOT erase the command from the queue, otherwise we
+        # get an unsolicited 'OK' as response.
+        request = self.q.get()
+        reqstring, ok_cb, error_cb, timeout = request
+        error_cb( reqstring.strip(), ( "cancel", timeout ) )
 
     @logged
     def _handleUnsolicitedResponse( self, response ):
