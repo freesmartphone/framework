@@ -1,5 +1,5 @@
 General Question:
-* How much can we rely on ophoned being the only one talking to the modem?
+* How much can or should we rely on ophoned being the only one talking to the modem?
   If so, we can simplify a lot on keeping internal state instead of
   poking the modem every time.
 
@@ -18,14 +18,13 @@ GSM 07.07 / 07.05 Observations and/or Questions:
   +CNUM: ,"0775753xxxxx",129 or +CNUM: "LINE 1",+xxyyzz",145
 
 REAL TODOS:
-* Revamp/Refactor mediator.py and call.py
+* Refactor mediator.py into something that is more suitable for different modem types
 * make dbus_object a singleton
-* add PrepareToSuspend()
-* add RecoverFromSuspend()
-* add cancelling long-standing-commands
-* send cancel character on timeout (so that the modem will not send anything later
-  which will falsely be recognized as an unsolicited response)
 * UnsolicitedResponseChannel does not need to inherit GenericModem!
 * move initialization sequence into mediator module
-  (i don't want to see _ANY_ AT commands in the virtual channel code)
-
+  (i really don't want to see _ANY_ AT commands in the virtual channel code)
+* incoming SMS signalling
+* multipart SMSes
+* USSD
+* Cell Broadcasts
+* 

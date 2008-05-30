@@ -34,7 +34,7 @@ PAT_SMS_TEXT_HEADER = re.compile( '(?P<index>\d+),"(?P<status>[^"]+)","(?P<numbe
 TIMEOUT = { \
   "CPIN": 6+1,
   "CFUN": 5+1,
-  "COPS": 10,
+  "COPS": 15,
   "COPS=?": 80,
   "RING": 3+1,
 }

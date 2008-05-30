@@ -118,48 +118,30 @@ class AbstractMediator( object ):
         self._error( e )
 
 #=========================================================================#
-class DeviceMediator( AbstractMediator ):
+class AbstractYieldSupport( object ):
 #=========================================================================#
-    def __init__( self, *args, **kwargs ):
-        AbstractMediator.__init__( self, *args, **kwargs )
-        self._commchannel = self._object.miscchannel
-        self.trigger()
+    """
+    This class adds support for simplifying control flow
+    by using Python generators to implement coroutines.
+    By inheriting from this class, you can use the following syntax:
 
-#=========================================================================#
-class SimMediator( AbstractMediator ):
-#=========================================================================#
-    def __init__( self, *args, **kwargs ):
-        AbstractMediator.__init__( self, *args, **kwargs )
-        self._commchannel = self._object.miscchannel
-        self.trigger()
+    def trigger( self ):
+        for iteration in ( 1,2,3,4 ):
+            request, response, error = yield( "+CFUN=1" )
+            if error is None:
+                self._ok( response )
+            else:
+                self.errorFromChannel( request, error )
+    """
 
-#=========================================================================#
-class NetworkMediator( AbstractMediator ):
-#=========================================================================#
     def __init__( self, *args, **kwargs ):
-        AbstractMediator.__init__( self, *args, **kwargs )
-        self._commchannel = self._object.miscchannel
-        self.trigger()
-
-#=========================================================================#
-class CallMediator( AbstractMediator ):
-#=========================================================================#
-    def __init__( self, *args, **kwargs ):
-        AbstractMediator.__init__( self, *args, **kwargs )
-        self._commchannel = self._object.callchannel
-        self.trigger()
-
-#=========================================================================#
-class TestMediator( AbstractMediator ):
-#=========================================================================#
-    def __init__( self, *args, **kwargs ):
-        AbstractMediator.__init__( self, *args, **kwargs )
-        self._commchannel = self._object.miscchannel
-
         self.generator = self.trigger()
         if self.generator is not None:
             toEnqueue = self.generator.next()
             self._commchannel.enqueue( toEnqueue, self.genResponseFromChannel, self.genErrorFromChannel )
+
+    def trigger( self ):
+        assert False, "pure virtual method called"
 
     @logged
     def genResponseFromChannel( self, request, response ):
@@ -178,6 +160,46 @@ class TestMediator( AbstractMediator ):
             pass
         else:
             self._commchannel.enqueue( toEnqueue, self.genResponseFromChannel, self.genErrorFromChannel )
+
+#=========================================================================#
+class DeviceMediator( AbstractMediator, AbstractYieldSupport ):
+#=========================================================================#
+    def __init__( self, *args, **kwargs ):
+        AbstractMediator.__init__( self, *args, **kwargs )
+        self._commchannel = self._object.miscchannel
+        AbstractYieldSupport.__init__( self, *args, **kwargs )
+
+#=========================================================================#
+class SimMediator( AbstractMediator, AbstractYieldSupport ):
+#=========================================================================#
+    def __init__( self, *args, **kwargs ):
+        AbstractMediator.__init__( self, *args, **kwargs )
+        self._commchannel = self._object.miscchannel
+        AbstractYieldSupport.__init__( self, *args, **kwargs )
+
+#=========================================================================#
+class NetworkMediator( AbstractMediator, AbstractYieldSupport ):
+#=========================================================================#
+    def __init__( self, *args, **kwargs ):
+        AbstractMediator.__init__( self, *args, **kwargs )
+        self._commchannel = self._object.miscchannel
+        AbstractYieldSupport.__init__( self, *args, **kwargs )
+
+#=========================================================================#
+class CallMediator( AbstractMediator, AbstractYieldSupport ):
+#=========================================================================#
+    def __init__( self, *args, **kwargs ):
+        AbstractMediator.__init__( self, *args, **kwargs )
+        self._commchannel = self._object.callchannel
+        AbstractYieldSupport.__init__( self, *args, **kwargs )
+
+#=========================================================================#
+class TestMediator( AbstractMediator, AbstractYieldSupport ):
+#=========================================================================#
+    def __init__( self, *args, **kwargs ):
+        AbstractMediator.__init__( self, *args, **kwargs )
+        self._commchannel = self._object.miscchannel
+        AbstractYieldSupport.__init__( self, *args, **kwargs )
 
 #=========================================================================#
 class CancelCommand( DeviceMediator ):
@@ -440,7 +462,7 @@ class SimGetMessagebookInfo( SimMediator ):
 class SimRetrieveMessagebook( SimMediator ):
 #=========================================================================#
     def trigger( self ):
-        self._commchannel.enqueue( '+CMGL="ALL"', self.responseFromChannel, self.errorFromChannel )
+        self._commchannel.enqueue( '+CMGL="%s"' % const.SMS_STATUS_IN[self.category], self.responseFromChannel, self.errorFromChannel )
 
     @logged
     def responseFromChannel( self, request, response ):
@@ -529,6 +551,7 @@ class NetworkGetStatus( NetworkMediator ):
         if len( response ) != 4:
             print "OOPS, that was not expected: ", repr(response)
             self._ok( "", "", 0 )
+            return
         result = []
         result.append( const.REGISTER_STATUS[int(self._rightHandSide( response[0] ).split( ',' )[1])] ) # +CREG: 0,1
         try:
@@ -648,20 +671,11 @@ class CallRelease( CallMediator ):
 #=========================================================================#
 class TestCommand( TestMediator ):
 #=========================================================================#
-    #def trigger( self ):
-        #self._commchannel.enqueueRaw( "%s" % self.command, self.responseFromChannel, self.errorFromChannel )
-    #@logged
-    #def responseFromChannel( self, request, response ):
-        #self._ok( response )
-
-    @logged
     def trigger( self ):
-        for iteration in ( 1,2,3,4 ):
-            request, response, error = yield( "%s" % self.command )
-            if error is None:
-                self._ok( response )
-            else:
-                self.errorFromChannel( request, error )
+        self._commchannel.enqueueRaw( "%s" % self.command, self.responseFromChannel, self.errorFromChannel )
+    @logged
+    def responseFromChannel( self, request, response ):
+        self._ok( response )
 
 #=========================================================================#
 class Call( AbstractMediator ):

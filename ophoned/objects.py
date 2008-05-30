@@ -76,6 +76,9 @@ class Server( dbus.service.Object ):
     def Bar( self ):
         return "bar"
 
+    # Send Diffs only
+    # Caching strategy
+
 #=========================================================================#
 class Device( dbus.service.Object ):
 #=========================================================================#
@@ -165,7 +168,7 @@ class Device( dbus.service.Object ):
 
     @dbus.service.signal( DBUS_INTERFACE_SIM, "s" )
     def AuthStatus( self, status ):
-        pass
+        LOG( LOG_INFO, "auth status changed to", status )
 
     @dbus.service.method( DBUS_INTERFACE_SIM, "s", "",
                           async_callbacks=( "dbus_ok", "dbus_error" ) )
@@ -230,10 +233,10 @@ class Device( dbus.service.Object ):
     def GetMessagebookInfo( self, dbus_ok, dbus_error ):
         mediator.SimGetMessagebookInfo( self, dbus_ok, dbus_error )
 
-    @dbus.service.method( DBUS_INTERFACE_SIM, "", "a(isss)",
+    @dbus.service.method( DBUS_INTERFACE_SIM, "s", "a(isss)",
                           async_callbacks=( "dbus_ok", "dbus_error" ) )
-    def RetrieveMessagebook( self, dbus_ok, dbus_error ):
-        mediator.SimRetrieveMessagebook( self, dbus_ok, dbus_error )
+    def RetrieveMessagebook( self, category, dbus_ok, dbus_error ):
+        mediator.SimRetrieveMessagebook( self, dbus_ok, dbus_error, category=category )
 
     @dbus.service.method( DBUS_INTERFACE_SIM, "", "s",
                           async_callbacks=( "dbus_ok", "dbus_error" ) )
