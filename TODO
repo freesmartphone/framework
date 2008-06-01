@@ -24,7 +24,7 @@ REAL TODOS:
 * move initialization sequence into mediator module
   (i really don't want to see _ANY_ AT commands in the virtual channel code)
 * incoming SMS signalling
-* multipart SMSes
+* multipart SMSes (SMS PDU mode)
 * USSD
 * Cell Broadcasts
 * 

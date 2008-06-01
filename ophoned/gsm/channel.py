@@ -521,6 +521,8 @@ class UnsolicitedResponseChannel( GenericModemChannel ):
     def __init__( self, *args, **kwargs ):
         GenericModemChannel.__init__( self, *args, **kwargs )
 
+        # FIXME All the initialization should actually be in modem specific classes
+        # FIXME We should also think about negotiating the parameters w/ the modem
         self.enqueue('+CLIP=1') # calling line identification presentation enable
         self.enqueue('+COLP=1') # connected line identification presentation enable
         self.enqueue('+CCWA=1') # call waiting
@@ -529,6 +531,7 @@ class UnsolicitedResponseChannel( GenericModemChannel ):
         self.enqueue('+CTZU=1') # timezone update
         self.enqueue('+CTZR=1') # timezone reporting
         self.enqueue('+CREG=2') # registration information (TODO not all modems support that)
+        self.enqueue('+CNMI=2,1,2,1,1') # buffer sms on SIM, report CB directly
 
         if "callback" in kwargs:
             self.callback = kwargs["callback"]
@@ -542,6 +545,7 @@ class UnsolicitedResponseChannel( GenericModemChannel ):
                            '#': 'hash',
                            '_': 'underscore',
                            '*': 'star',
+                           '&': 'ampersand',
                          }
 
         self.delegate = None

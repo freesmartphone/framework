@@ -20,6 +20,7 @@ def logged( fn ):
     if not FUNCTION_DEBUG:
         return fn
     import inspect
+
     def logIt( *args, **kwargs ):
         calldepth = len( inspect.stack() )
         try:
@@ -30,9 +31,27 @@ def logged( fn ):
         result = fn( *args, **kwargs )
         print "%s> %s.%s: LEAVE" % ( '|...' * calldepth, classname, fn.__name__ )
 
-        logIt.__dict__ = fn.__dict__
-        logIt.__name__ = fn.__name__
-        logIt.__doc__ = fn.__doc__
-
         return result
+
+    logIt.__dict__ = fn.__dict__
+    logIt.__name__ = fn.__name__
+    logIt.__doc__ = fn.__doc__
     return logIt
+
+#=========================================================================#
+def dbuscalls( fn ):
+#=========================================================================#
+    """
+    Call it like:
+    @dbuscalls
+    def getInfoFromObject():
+        yield object.method()
+    """
+    def dbusGen( *args, **kwargs ):
+        return fn( args, kwargs )
+
+    dbusGen.__dict__ = fn.__dict__
+    dbusGen.__name__ = fn.__name__
+    dbusGen.__doc__ = fn.__doc__
+    return dbusGen
+

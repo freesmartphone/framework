@@ -44,9 +44,18 @@ class UnsolicitedResponseDelegate( object ):
             assert False, "unhandled call type"
 
     @logged
+    # +CLIP: "+496912345678",145,,,,0
     def plusCLIP( self, righthandside ):
-            number, ntype, rest = righthandside.split( ',', 2 )
-            mediator.Call.clip( self._object, const.phonebookTupleToNumber( number, int(ntype ) ) )
+        number, ntype, rest = righthandside.split( ',', 2 )
+        mediator.Call.clip( self._object, const.phonebookTupleToNumber( number, int(ntype ) ) )
+
+    @logged
+    # +CMTI: "SM",7
+    def plusCMTI( self, righthandside ):
+        storage, index = righthandside.split( ',' )
+        if storage != '"SM"':
+            assert False, "unhandled message notification"
+        self._object.NewMessage( index )
 
     #
     # helpers
@@ -58,4 +67,3 @@ class UnsolicitedResponseDelegate( object ):
     def statusERR( self, values ):
         print "error... ignoring"
 
-# +CLIP: "+496968098690",145,,,,0

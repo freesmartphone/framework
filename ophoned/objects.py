@@ -258,6 +258,10 @@ class Device( dbus.service.Object ):
     def StoreMessage( self, number, contents, dbus_ok, dbus_error ):
         mediator.SimStoreMessage( self, dbus_ok, dbus_error, number=number, contents=contents )
 
+    @dbus.service.signal( DBUS_INTERFACE_SIM, "i" )
+    def NewMessage( self, index ):
+        LOG( LOG_INFO, "new message on sim storage index", index )
+
     #
     # dbus org.freesmartphone.GSM.Network
     #
