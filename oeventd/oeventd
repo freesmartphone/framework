@@ -13,7 +13,7 @@ __version__ = "0.0.0"
 
 try: from controller import Controller
 except ImportError:
-    from odeviced.controller import Controller
+    from oeventd.controller import Controller
 import sys
 import os
 from syslog import openlog, LOG_PERROR, LOG_DAEMON
@@ -28,7 +28,7 @@ if __name__ == "__main__":
         print >>sys.stderr, "did not find a modules path. Exiting."
         sys.exit( -1 )
 
-    if "ODEVICED_DEBUG" in os.environ:
+    if "OEVENTD_DEBUG" in os.environ:
         openlog( "py-oeventd", LOG_PERROR, LOG_DAEMON )
     c = Controller( "%s/modules" % path )
 
