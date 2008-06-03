@@ -26,6 +26,35 @@ def requestInterfaceForObject( bus, prefix, interface, object ):
     iface = dbus.Interface( proxy, interface )
     return iface
 
+def printAction( events ):
+    print events
+
+def attributeFilter( key, value ):
+    def _attributeFilter( event, key=key, value=value):
+        return event.attributes.get( key ) == value
+    return _attributeFilter
+
+def ledAction( bus, name ):
+    def _ledAction( event, bus=bus, name=name ):
+        led = requestInterfaceForObject(
+            bus,
+            "org.freesmartphone.Device",
+            "org.freesmartphone.Device.LED",
+            "/org/freesmartphone/Device/LED/" + name
+        )
+        if event:
+            led.SetBrightness(100)
+            print 'enabling led', name
+        else:
+            led.SetBrightness(0)
+            print 'disabling led', name
+    return _ledAction
+
+def joinAnd( a, b ):
+    def _joinAnd( event, a=a, b=b ):
+        return a( event ) and b( event )
+    return _joinAnd
+
 #----------------------------------------------------------------------------#
 class Receiver( dbus.service.Object ):
 #----------------------------------------------------------------------------#
@@ -35,59 +64,67 @@ class Receiver( dbus.service.Object ):
 
     def __init__( self, bus, action, filter = None ):
         self.interface = self.DBUS_INTERFACE
-        self.path = DBUS_PATH_PREFIX
-        dbus.service.Object.__init__( self, bus, self.path + "/%s" % Receiver.INDEX )
+        self.path = DBUS_PATH_PREFIX + "/%s" % Receiver.INDEX
         Receiver.INDEX += 1
         self.action = action
         self.filter = filter
         self.active = []
+        dbus.service.Object.__init__( self, bus, self.path )
         LOG( LOG_INFO, "%s initialized. Serving %s at %s" %
             ( self.__class__.__name__, self.interface, list( self.locations ) )
         )
 
-    def matchEvent( self, event ):
+    def _matchEvent( self, event ):
         return self.filter is None or self.filter( event )
 
     def handleEvent( self, event ):
-        assert self.matchEvent( event )
-        if event.sticky:
-            self.active.append( event )
+        if self._matchEvent( event ):
+            if event not in self.active:
+                self.active.append( event )
+        else:
+            if event in self.active:
+                self.active.remove( event )
         self.action( self.active )
 
     def releaseEvent( self, event ):
-        assert self.matchEvent( event )
         if event in self.active:
             self.active.remove( event )
             self.action( self.active ) 
+
+#----------------------------------------------------------------------------#
+class AudioSetupReceiver( Receiver ):
+#----------------------------------------------------------------------------#
+    def __init__( self, bus ):
+        Receiver.__init__( self, bus, self.action, attributeFilter( "type", "Call" ) )
+        self.scenario = None
+
+    def action( self, active ):
+        status = [event.attributes.get( "status" ) for event in active]
+        if "active" in status or "outgoing" in status:
+            scenario = "gsmhandset"
+        else:
+            scenario = "stereoout"
+        if not self.scenario == scenario:
+            print 'setting alsa to', scenario
+            os.system( "alsactl -f /usr/share/openmoko/scenarios/%s.state restore" % scenario )
+            self.scenario = scenario
 
 #----------------------------------------------------------------------------#
 def factory( prefix, controller ):
 #----------------------------------------------------------------------------#
     objects = []
 
-    def printAction( events ):
-        print events
-
-    def makeTypeFilter( type ):
-        def typeFilter( event, type=type ):
-            return event.get("type") == type
-
-    def makeLedAction( bus, name ):
-        def ledAction( event, bus=bus, name=name ):
-            led = requestInterfaceForObject(
-                bus,
-                "org.freesmartphone.Device",
-                "org.freesmartphone.Device.LED",
-                "/org/freesmartphone/Device/LED/" + name
-            )
-            if event:
-                led.SetBrightness(100)
-            else:
-                led.SetBrightness(0)
-
     objects.append( Receiver( controller.bus, printAction ) )
 
-    objects.append( Receiver( controller.bus, makeLedAction( controller.bus, "neo1973-vibrator" ) ) )
+    objects.append( Receiver( controller.bus,
+        ledAction( controller.bus, "neo1973_vibrator" ),
+        joinAnd(
+            attributeFilter( "type", "Call" ),
+            attributeFilter( "status", "incoming" )
+        )
+    ) )
+
+    objects.append( AudioSetupReceiver( controller.bus ) )
 
     return objects
 

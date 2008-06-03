@@ -29,11 +29,12 @@ class Trigger( dbus.service.Object ):
     DBUS_INTERFACE = DBUS_INTERFACE_PREFIX
     INDEX = 0
 
-    def __init__( self, bus ):
+    def __init__( self, controller ):
         self.interface = self.DBUS_INTERFACE
-        self.path = DBUS_PATH_PREFIX
-        dbus.service.Object.__init__( self, bus, self.path + "/%s" % Trigger.INDEX )
+        self.path = DBUS_PATH_PREFIX + "/%s" % Trigger.INDEX
         Trigger.INDEX += 1
+        self.controller = controller
+        dbus.service.Object.__init__( self, controller.bus, self.path )
         LOG( LOG_INFO, "%s initialized. Serving %s at %s" %
             ( self.__class__.__name__, self.interface, list( self.locations ) )
         )
@@ -41,18 +42,48 @@ class Trigger( dbus.service.Object ):
 #----------------------------------------------------------------------------#
 class DBusTrigger( Trigger ):
 #----------------------------------------------------------------------------#
-    pass
+    def __init__( self, controller, bus_name, object_path, signal_name, callback ):
+        Trigger.__init__( self, controller )
+        self.bus_name = bus_name
+        self.object_path = object_path
+        self.signal_name = signal_name
+        self.obj = controller.bus.get_object( bus_name, object_path )
+        self.obj.connect_to_signal( signal_name, callback )
 
+#----------------------------------------------------------------------------#
+class CallTrigger( DBusTrigger ):
+#----------------------------------------------------------------------------#
+    def __init__( self, controller ):
+        DBusTrigger.__init__(
+            self, controller,
+            'org.freesmartphone.ophoned',
+            '/org/freesmartphone/GSM/Device',
+            'CallStatus', self.handle)
+        self.calls = {}
+
+    def handle( self, id, status, properties ):
+        from manager import Manager
+        if not id in self.calls: # new call
+            signal = Manager.instance.CreateSignal({'type': 'Call', 'status': status})
+            self.calls[id] = signal
+            self.calls[id].fire()
+            print self.calls[id], 'fired', self.calls[id].attributes
+        else: # updated call
+            oldstatus = self.calls[id].attributes['status']
+            self.calls[id].attributes['status'] = status
+            self.calls[id].fire()
+            print self.calls[id], 'fired', self.calls[id].attributes
+        if status == "release":
+            signal = self.calls[id]
+            signal.release()
+            del self.calls[id]
+            print signal, 'deleted'
+        
 #----------------------------------------------------------------------------#
 def factory( prefix, controller ):
 #----------------------------------------------------------------------------#
     objects = []
-    #genericUsageControl = GenericUsageControl( controller.bus )
-    #genericUsageControl.addResource( DummyResource( genericUsageControl, "GSM" ) )
-    #genericUsageControl.addResource( DummyResource( genericUsageControl, "GPS" ) )
-    #genericUsageControl.addResource( DummyResource( genericUsageControl, "Bluetooth" ) )
-    #genericUsageControl.addResource( DummyResource( genericUsageControl, "WiFi" ) )
-    objects.append( DBusTrigger( controller.bus ) )
+    objects.append( CallTrigger( controller ) )
     return objects
 
 if __name__ == "__main__":

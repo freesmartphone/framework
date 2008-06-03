@@ -21,8 +21,6 @@ from syslog import syslog, LOG_ERR, LOG_WARNING, LOG_INFO, LOG_DEBUG
 from helpers import LOG, readFromFile, writeToFile
 from gobject import idle_add
 
-from trigger import Trigger
-from receiver import Receiver
 
 #----------------------------------------------------------------------------#
 class Signal( dbus.service.Object ):
@@ -33,25 +31,27 @@ class Signal( dbus.service.Object ):
 
     def __init__( self, controller, attributes ):
         self.interface = self.DBUS_INTERFACE
-        self.path = DBUS_PATH_PREFIX
-        dbus.service.Object.__init__( self, controller.bus, self.path + "/%s" % Signal.INDEX )
+        self.path = DBUS_PATH_PREFIX + "/%s" % Signal.INDEX
         Signal.INDEX += 1
         self.controller = controller
         self.attributes = attributes
-        self.sticky = self.attributes.get("sticky", False)
+        dbus.service.Object.__init__( self, controller.bus, self.path )
         LOG( LOG_INFO, "%s initialized. Serving %s at %s" %
             ( self.__class__.__name__, self.interface, list( self.locations ) )
         )
 
     def fire( self ):
+        from receiver import Receiver
         for x in self.controller.objects.values():
-            if isinstance( x, Receiver ) and x.matchEvent( self ):
+            if isinstance( x, Receiver ):
                 x.handleEvent( self )
         
     def release( self ):
+        from receiver import Receiver
         for x in self.controller.objects.values():
-            if isinstance( x, Receiver ) and x.matchEvent( self ):
+            if isinstance( x, Receiver ):
                 x.releaseEvent( self )
+        Manager.instance.signals.remove( self )
         
     #
     # dbus methods
@@ -65,8 +65,10 @@ class Manager( dbus.service.Object ):
 #----------------------------------------------------------------------------#
     """A Dbus Object implementing org.freesmartphone.Event"""
     DBUS_INTERFACE = DBUS_INTERFACE_PREFIX
+    instance = None
 
     def __init__( self, controller ):
+        assert Manager.instance == None
         self.interface = self.DBUS_INTERFACE
         self.path = DBUS_PATH_PREFIX
         dbus.service.Object.__init__( self, controller.bus, self.path )
@@ -75,16 +77,19 @@ class Manager( dbus.service.Object ):
         LOG( LOG_INFO, "%s initialized. Serving %s at %s" %
             ( self.__class__.__name__, self.interface, list( self.locations ) )
         )
+        Manager.instance = self
 
     #
     # dbus methods
     #
     @dbus.service.method( DBUS_INTERFACE, "", "ao" )
     def ListTriggers( self ):
+        from trigger import Trigger
         return [x for x in self.controller.objects.values() if isinstance( x, Trigger ) ]
 
     @dbus.service.method( DBUS_INTERFACE, "", "ao" )
     def ListReceivers( self ):
+        from receiver import Receiver
         return [x for x in self.controller.objects.values() if isinstance( x, Receiver ) ]
 
     @dbus.service.method( DBUS_INTERFACE, "", "ao" )
@@ -92,10 +97,9 @@ class Manager( dbus.service.Object ):
         return self.signals
 
     @dbus.service.method( DBUS_INTERFACE, "a{sv}", "o" )
-    def CreateEvent( self, attributes ):
+    def CreateSignal( self, attributes ):
         signal = Signal( self.controller, attributes )
         self.signals.append( signal )
-        signal.Fire()
         return signal
 
     #
