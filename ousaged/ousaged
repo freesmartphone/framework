@@ -28,7 +28,7 @@ if __name__ == "__main__":
         print >>sys.stderr, "did not find a modules path. Exiting."
         sys.exit( -1 )
 
-    if "ODEVICED_DEBUG" in os.environ:
+    if "OUSAGED_DEBUG" in os.environ:
         openlog( "py-ousaged", LOG_PERROR, LOG_DAEMON )
     c = Controller( "%s/modules" % path )
 
