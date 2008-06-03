@@ -17,6 +17,7 @@ DBUS_PATH_PREFIX = "/org/freesmartphone/Event/Receiver"
 import dbus.service
 import os
 import sys
+import gst
 from syslog import syslog, LOG_ERR, LOG_WARNING, LOG_INFO, LOG_DEBUG
 from helpers import LOG, readFromFile, writeToFile
 from gobject import idle_add
@@ -110,6 +111,43 @@ class AudioSetupReceiver( Receiver ):
             self.scenario = scenario
 
 #----------------------------------------------------------------------------#
+class RingReceiver( Receiver ):
+#----------------------------------------------------------------------------#
+    def __init__( self, bus ):
+        Receiver.__init__( self, bus, self.action, attributeFilter( "type", "Call" ) )
+        self.ringing = False
+        self.player = gst.element_factory_make("playbin", "player")
+        fakesink = gst.element_factory_make("fakesink", "my-fakesink")
+        self.player.set_property("video-sink", fakesink)
+        bus = self.player.get_bus()
+        bus.add_signal_watch()
+        bus.connect("message", self._onMessage)
+        self.player.set_property('uri', "file:///usr/share/openmoko/sounds/ringtone_ringnroll.mp3")
+
+    def _onMessage(self, bus, message):
+        t = message.type
+        if t == gst.MESSAGE_EOS:
+            self.player.set_state(gst.STATE_NULL)
+            self.ringing = False
+        elif t == gst.MESSAGE_ERROR:
+            self.player.set_state(gst.STATE_NULL)
+            err, debug = message.parse_error()
+            print "Error: %s" % err, debug
+            self.ringing = False
+
+    def action( self, active ):
+        status = [event.attributes.get( "status" ) for event in active]
+        ringing = "incoming" in status
+        if not self.ringing == ringing:
+            if ringing:
+                print 'playing ringtone'
+                self.player.set_state(gst.STATE_PLAYING)
+            else:
+                print 'stopping ringtone'
+                self.player.set_state(gst.STATE_NULL)
+            self.ringing = ringing
+
+#----------------------------------------------------------------------------#
 def factory( prefix, controller ):
 #----------------------------------------------------------------------------#
     objects = []
@@ -125,6 +163,8 @@ def factory( prefix, controller ):
     ) )
 
     objects.append( AudioSetupReceiver( controller.bus ) )
+    
+    objects.append( RingReceiver( controller.bus ) )
 
     return objects
 
