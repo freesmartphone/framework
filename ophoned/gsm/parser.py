@@ -70,6 +70,7 @@ class LowlevelAtParser( object ):
                             self.lines = []
                         self.curline = ""
             else:
+                # yes, this is slow. We're going to profile and optimize, once it's stable...
                 self.curline += b
 
 #=========================================================================#
