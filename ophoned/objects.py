@@ -95,10 +95,18 @@ class Device( dbus.service.Object ):
         dbus.service.Object.__init__( self, bus, self.path )
         LOG( LOG_INFO, "%s initialized. Serving %s at %s" % ( self.__class__.__name__, self.interface, self.path ) )
 
-        if modemtype == "muxed4line":
-            from modems.muxed4line.modem import Muxed4Lines as Modem
+        if modemtype == "singleline":
+            from modems.singleline.modem import SingleLine as Modem
+            global mediator
+            import modems.singleline.mediator as mediator
+        elif modemtype == "muxed4line":
+            from modems.muxed4line.modem import Muxed4Line as Modem
             global mediator
             import modems.muxed4line.mediator as mediator
+        elif modemtype == "ti_calypso":
+            from modems.ti_calypso.modem import TiCalypso as Modem
+            global mediator
+            import modems.ti_calypso.mediator as mediator
         else:
             assert False, "unsupported modem type"
 

@@ -23,7 +23,7 @@ from ophoned.gsm.decor import logged
 from ophoned.gsm.channel import AtCommandChannel
 
 #=========================================================================#
-class Muxed4Lines( AbstractModem ):
+class Muxed4Line( AbstractModem ):
 #=========================================================================#
 
     @logged
