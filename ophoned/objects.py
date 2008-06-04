@@ -100,7 +100,7 @@ class Device( dbus.service.Object ):
             global mediator
             import modems.muxed4line.mediator as mediator
         else:
-            assert False, "unknown modem type"
+            assert False, "unsupported modem type"
 
         self.modem = Modem( self, bus )
         self.modem.open( self._channelsOK )

@@ -8,6 +8,7 @@ GPLv2 or later
 """
 
 from optparse import OptionParser
+from modems import allModems
 import sys
 import os
 
@@ -15,16 +16,16 @@ __version__ = "0.1.0"
 
 parser = OptionParser()
 parser.add_option( "-m", "--modem", dest = "modem",
-    help = "select modem. Available options = generic[default], testing" )
+    help = "select modem. Available options = %s (default: muxed4line)" % allModems() )
 
 options, args = parser.parse_args()
 
 if options.modem is None:
     options.modem = "muxed4line"
 
-#if options.modem not in pygsm.allModems():
-    #parser.error( "Sorry, need to give a valid modem such as %s" % pygsm.allModems() )
-#else:
+if options.modem not in allModems():
+    parser.error( "Sorry, need to give a valid modem such as %s" % allModems() )
+    sys.exit( -1 )
 
 print """Open Phone Server V%s [Python-Implementation]
 (C) 2008 Michael 'Mickey' Lauer (Openmoko, Inc.)""" % __version__
