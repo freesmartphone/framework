@@ -15,22 +15,16 @@ generic programmable state machine here or with some more regex's.
 
 TODO:
 
- * add abstract base classes for interfaces to ease generic error parsing. Examples:
-   1.) CME 3 ("Not allowed") is sent upon trying to
-   register to a network, as well as trying to read a phonebook
-   entry from the SIM with an index out of bounds -- we must
-   not map these two to the same org.freesmartphone.GSM error.
-   2.) CME 32 ("Network not allowed") => SimBlocked is sent if we
-   are not already registered. This may be misleading.
- * decouple from calling dbus result, we may want to reuse these functions in
+ * decouple from calling dbus result, we might want to reuse these functions in
    non-exported methods as well
  * recover from traceback in parsing / compiling result code
 """
 
-import re, time
-import error, const
-from decor import logged
+from ophoned.gsm import error, const
+from ophoned.gsm.decor import logged
+
 import gobject
+import re, time
 
 #=========================================================================#
 class AbstractMediator( object ):
@@ -76,6 +70,15 @@ class AbstractMediator( object ):
         except IndexError:
             result = line
         return result.strip( '" ' )
+
+    # FIXME compute errors based on actual class name to ease generic error parsing. Examples:
+    #       1.) CME 3 ("Not allowed") is sent upon trying to
+    #       register to a network, as well as trying to read a phonebook
+    #       entry from the SIM with an index out of bounds -- we must
+    #       not map these two to the same org.freesmartphone.GSM error.
+    #       2.) CME 32 ("Network not allowed") => SimBlocked is sent if we
+    #       are not already registered. This may be misleading.
+
 
     @logged
     def _handleCmeCmsError( self, line ):
@@ -166,7 +169,8 @@ class DeviceMediator( AbstractMediator, AbstractYieldSupport ):
 #=========================================================================#
     def __init__( self, *args, **kwargs ):
         AbstractMediator.__init__( self, *args, **kwargs )
-        self._commchannel = self._object.miscchannel
+        # this is a bit ugly, but how should we get the channel elsewhere?
+        self._commchannel = self._object.modem.communicationChannel( "DeviceMediator" )
         AbstractYieldSupport.__init__( self, *args, **kwargs )
 
 #=========================================================================#
@@ -174,7 +178,8 @@ class SimMediator( AbstractMediator, AbstractYieldSupport ):
 #=========================================================================#
     def __init__( self, *args, **kwargs ):
         AbstractMediator.__init__( self, *args, **kwargs )
-        self._commchannel = self._object.miscchannel
+        # this is a bit ugly, but how should we get the channel elsewhere?
+        self._commchannel = self._object.modem.communicationChannel( "SimMediator" )
         AbstractYieldSupport.__init__( self, *args, **kwargs )
 
 #=========================================================================#
@@ -182,7 +187,8 @@ class NetworkMediator( AbstractMediator, AbstractYieldSupport ):
 #=========================================================================#
     def __init__( self, *args, **kwargs ):
         AbstractMediator.__init__( self, *args, **kwargs )
-        self._commchannel = self._object.miscchannel
+        # this is a bit ugly, but how should we get the channel elsewhere?
+        self._commchannel = self._object.modem.communicationChannel( "NetworkMediator" )
         AbstractYieldSupport.__init__( self, *args, **kwargs )
 
 #=========================================================================#
@@ -190,7 +196,8 @@ class CallMediator( AbstractMediator, AbstractYieldSupport ):
 #=========================================================================#
     def __init__( self, *args, **kwargs ):
         AbstractMediator.__init__( self, *args, **kwargs )
-        self._commchannel = self._object.callchannel
+        # this is a bit ugly, but how should we get the channel elsewhere?
+        self._commchannel = self._object.modem.communicationChannel( "CallMediator" )
         AbstractYieldSupport.__init__( self, *args, **kwargs )
 
 #=========================================================================#
@@ -198,7 +205,8 @@ class TestMediator( AbstractMediator, AbstractYieldSupport ):
 #=========================================================================#
     def __init__( self, *args, **kwargs ):
         AbstractMediator.__init__( self, *args, **kwargs )
-        self._commchannel = self._object.miscchannel
+        # this is a bit ugly, but how should we get the channel elsewhere?
+        self._commchannel = self._object.modem.communicationChannel( "TestMediator" )
         AbstractYieldSupport.__init__( self, *args, **kwargs )
 
 #=========================================================================#
@@ -645,6 +653,7 @@ class CallActivate( CallMediator ):
 class CallRelease( CallMediator ):
 #=========================================================================#
     def trigger( self ):
+        print Call.calls
         if not len( Call.calls ):
             # no calls yet in system
             self._error( error.CallNotFound( "no call to release" ) )
@@ -687,8 +696,8 @@ class Call( AbstractMediator ):
     @logged
     def __init__( self, dbus_object, **kwargs ):
         AbstractMediator.__init__( self, dbus_object, None, None, **kwargs )
-        self._callchannel = self._object.callchannel
-        self._miscchannel = self._object.miscchannel
+
+        self._callchannel = self._object.modem.communicationChannel( "CallMediator" )
 
         self._status = "unknown"
         self._timeout = None
@@ -730,7 +739,11 @@ class Call( AbstractMediator ):
         self.updateStatus( "incoming" )
 
     def cancel( self ):
+        print "BEFORE CANCEL......................."
         self._callchannel.cancelCurrentCommand()
+        print "AFTER CANCEL......................."
+        self._properties["reason"] = "cancelled"
+        self._die()
 
     def accept( self ):
         if self._timeout is not None:
@@ -743,8 +756,6 @@ class Call( AbstractMediator ):
         self._die()
 
     def remoteHangup( self ):
-        if self._timeout is not None:
-            gobject.source_remove( self._timeout )
         self._properties["reason"] = "remote hangup"
         self._die()
 
@@ -767,20 +778,21 @@ class Call( AbstractMediator ):
         self.updateStatus( "incoming" )
 
     def responseFromChannel( self, request, response ):
+        assert self in Call.calls, "call no longer present. must have been cancelled"
         if response[-1] == "NO CARRIER":
             self._properties["reason"] = "no carrier"
             self._die()
         elif response[-1] == "OK":
-            self.remoteAccept()
+            if self._properties["reason"] != "cancelled":
+                self.remoteAccept()
         else:
             print "UNKNOWN RESPONSE = ", response
 
     def _die( self ):
-        Call.calls.remove( self )
-
-    @logged
-    def __del__( self ):
+        if self._timeout is not None:
+            gobject.source_remove( self._timeout )
         self.updateStatus( "release" )
+        Call.calls.remove( self )
 
     @classmethod
     @logged

@@ -7,17 +7,17 @@ The Open Device Daemon - Python Implementation
 GPLv2 or later
 """
 
-from decor import logged
-import const
-import mediator
+from ophoned.gsm.decor import logged
+from ophoned.gsm import const
 
 #=========================================================================#
-class UnsolicitedResponseDelegate( object ):
+class AbstractUnsolicitedResponseDelegate( object ):
 #=========================================================================#
 
     @logged
-    def __init__( self, dbus_object ):
+    def __init__( self, dbus_object, mediator ):
         self._object = dbus_object
+        self._mediator = mediator
 
     def _sendStatus( self ):
         self._object.Status( self.operator, self.register, self.strength )
@@ -34,12 +34,12 @@ class UnsolicitedResponseDelegate( object ):
             self.la = values[1].strip( '"' )
             self.ci = values[2].strip( '"' )
 
-        mediator.NetworkGetStatus( self._object, self.statusOK, self.statusERR )
+        self._mediator.NetworkGetStatus( self._object, self.statusOK, self.statusERR )
 
     @logged
     def plusCRING( self, calltype ):
         if calltype == "VOICE":
-            mediator.Call.ring( self._object, calltype )
+            self._mediator.Call.ring( self._object, calltype )
         else:
             assert False, "unhandled call type"
 
@@ -48,7 +48,7 @@ class UnsolicitedResponseDelegate( object ):
     def plusCLIP( self, righthandside ):
         number, ntype, rest = righthandside.split( ',', 2 )
         number = number.replace( '"', '' )
-        mediator.Call.clip( self._object, const.phonebookTupleToNumber( number, int(ntype ) ) )
+        self._mediator.Call.clip( self._object, const.phonebookTupleToNumber( number, int(ntype ) ) )
 
     @logged
     # +CMTI: "SM",7
@@ -67,4 +67,3 @@ class UnsolicitedResponseDelegate( object ):
 
     def statusERR( self, values ):
         print "error... ignoring"
-

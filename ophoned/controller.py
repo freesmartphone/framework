@@ -43,7 +43,7 @@ class Controller( object ):
         return False
 
     def timeout( self ):
-        print( "ophoned: alive and kicking, %d channels left to open" % self.objects["device"].counter )
+        print( "ophoned: alive and kicking, %d channels left to open" % self.objects["device"].modem._counter )
         return True
 
     def run( self ):

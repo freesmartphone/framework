@@ -21,7 +21,6 @@ from config import LOG, LOG_INFO, LOG_ERR, LOG_DEBUG
 import dbus
 import dbus.service
 from dbus import DBusException
-from gsm import channel, mediator, unsol
 from gobject import timeout_add, idle_add
 import weakref
 
@@ -33,10 +32,6 @@ DBUS_INTERFACE_CALL = "org.freesmartphone.GSM.Call"
 DBUS_INTERFACE_SERVER = "org.freesmartphone.GSM.Server"
 
 DBUS_INTERFACE_TEST = "org.freesmartphone.GSM.Test"
-
-# singleton stuff
-server = None
-device = None
 
 #=========================================================================#
 class Server( dbus.service.Object ):
@@ -57,7 +52,6 @@ class Server( dbus.service.Object ):
     DBUS_INTERFACE = "%s.%s" % ( config.DBUS_INTERFACE_PREFIX, "Server" )
 
     def __init__( self, bus, device ):
-        assert server is None, "attempting to violate singleton contract"
         server = weakref.proxy( self )
         self.interface = self.DBUS_INTERFACE
         self.path = config.DBUS_PATH_PREFIX + "/Server"
@@ -96,35 +90,27 @@ class Device( dbus.service.Object ):
     DBUS_INTERFACE = "%s.%s" % ( config.DBUS_INTERFACE_PREFIX, "Device" )
 
     def __init__( self, bus, modemtype ):
-        assert device is None, "attempting to violate singleton contract"
-        device = weakref.proxy( self )
         self.interface = self.DBUS_INTERFACE
         self.path = config.DBUS_PATH_PREFIX + "/Device"
         dbus.service.Object.__init__( self, bus, self.path )
         LOG( LOG_INFO, "%s initialized. Serving %s at %s" % ( self.__class__.__name__, self.interface, self.path ) )
 
-        self.channels = {}
+        if modemtype == "muxed4line":
+            from modems.muxed4line.modem import Muxed4Lines as Modem
+            global mediator
+            import modems.muxed4line.mediator as mediator
+        else:
+            assert False, "unknown modem type"
 
-        if modemtype == "generic":
-            self.callchannel = self.channels["CALL"] = channel.CallChannel( bus, "ophoned.call" )
-            self.unsolchannel = self.channels["UNSOL"] = channel.UnsolicitedResponseChannel( bus, "ophoned.unsolicited" )
-            self.miscchannel = self.channels["MISC"] = channel.MiscChannel( bus, "ophoned.misc" )
-
-            #self.channels["UNSOL"].launchKeepAlive( 7, "" )
-            self.channels["UNSOL"].setDelegate( unsol.UnsolicitedResponseDelegate( self ) )
-        elif modemtype == "testing":
-            pass
-
-        # start opening channels from inside mainloop
-        self.counter = len( self.channels )
-        idle_add( self._initChannels, self._channelsOK )
+        self.modem = Modem( self, bus )
+        self.modem.open( self._channelsOK )
 
     def __del__( self ):
         """Destruct."""
         device = None
 
     def _channelsOK( self ):
-        """Called when IDLE and all channels have been successfully opened."""
+        """Called when idle and all channels have been successfully opened."""
         print "NOTIFY SERVER: ALL CHANNELS OK, START TRAFFICING :)"
         return False # don't call again
 
@@ -366,24 +352,6 @@ class Device( dbus.service.Object ):
                           async_callbacks=( "dbus_ok", "dbus_error" ) )
     def Ping( self, dbus_ok, dbus_error ):
         dbus_ok()
-
-    #
-    #
-    # internal API
-    #
-    def _initChannels( self, cb_channelsOK ):
-        for channel in self.channels:
-            print "trying to open", channel
-            if not self.channels[channel].isOpen():
-                if not self.channels[channel].open():
-                    LOG( LOG_ERR, "could not open channel %s - retrying in 2 seconds" % channel )
-                    timeout_add( 2000, self._initChannels )
-                else:
-                    self.counter -= 1
-                    print "opening counter", self.counter
-                    if not self.counter:
-                        idle_add( cb_channelsOK )
-        return False
 
 #=========================================================================#
 if __name__ == "__main__":

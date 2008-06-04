@@ -20,7 +20,7 @@ parser.add_option( "-m", "--modem", dest = "modem",
 options, args = parser.parse_args()
 
 if options.modem is None:
-    options.modem = "generic"
+    options.modem = "muxed4line"
 
 #if options.modem not in pygsm.allModems():
     #parser.error( "Sorry, need to give a valid modem such as %s" % pygsm.allModems() )
