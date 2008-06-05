@@ -21,7 +21,7 @@ import itertools
 import fcntl, os
 import parser
 import time
-from .decor import logged
+from ophoned.gsm.decor import logged
 
 #=========================================================================#
 class PeekholeQueue( Queue.Queue ):
@@ -216,6 +216,7 @@ class VirtualChannel( object ):
         self.close()
         time.sleep( 1 )
         self.open()
+        return True
 
     @logged
     def _readyToRead( self, source, condition ):

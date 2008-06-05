@@ -60,17 +60,17 @@ class UnsolicitedResponseChannel( GenericModemChannel ):
     def __init__( self, *args, **kwargs ):
         GenericModemChannel.__init__( self, *args, **kwargs )
 
-        # FIXME All the initialization should actually be in modem specific classes
-        # FIXME We should also think about negotiating the parameters w/ the modem
-        self.enqueue('+CLIP=1') # calling line identification presentation enable
-        self.enqueue('+COLP=1') # connected line identification presentation enable
-        self.enqueue('+CCWA=1') # call waiting
-        self.enqueue('+CRC=1') # cellular result codes: extended
-        self.enqueue('+CSNS=0') # single numbering scheme: voice
-        self.enqueue('+CTZU=1') # timezone update
-        self.enqueue('+CTZR=1') # timezone reporting
-        self.enqueue('+CREG=2') # registration information (TODO not all modems support that)
-        self.enqueue('+CNMI=2,1,2,1,1') # buffer sms on SIM, report CB directly
+        self.enqueue( "+CLIP=1" ) # calling line identification presentation enable
+        self.enqueue( "+COLP=1" ) # connected line identification presentation enable
+        self.enqueue( "+CCWA=1" ) # call waiting: send unsol. code
+        self.enqueue( "+CSSN=1,1") # supplementary service notifications: send unsol. code
+        self.enqueue( "+CRC=1" ) # cellular result codes: extended
+        self.enqueue( "+CSNS=0" ) # single numbering scheme: voice
+        self.enqueue( "+CTZU=1" ) # timezone update
+        self.enqueue( "+CTZR=1" ) # timezone reporting
+        self.enqueue( "+CREG=2" ) # registration information (TODO not all modems support that)
+        # NOTE: This fails until CFUN=4 or CFUN=1 and SIM Auth is given
+        self.enqueue( "+CNMI=2,1,2,1,1" ) # buffer sms on SIM, report CB directly
 
         if "callback" in kwargs:
             self.callback = kwargs["callback"]

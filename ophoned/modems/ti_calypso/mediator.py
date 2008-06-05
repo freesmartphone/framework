@@ -103,15 +103,26 @@ class CallHandler( object ):
             c = self._calls[callId]
         except KeyError:
             return False
-        if c["status"] == "outgoing": # outgoing (not yet connected)
-            commchannel.cancelCurrentCommand()
-        elif c["status"] == "incoming": # incoming (not yet connected)
-            commchannel.enqueue( 'H' )
-        elif c["status"] == "active": # active (connected)
-            commchannel.enqueue( 'H' )
-        elif c["status"] == "held": # held
-            raise error.InternalException( "FIXME" )
-        return True
+        if len( self._calls ) == 1: # one call in system
+            if c["status"] == "outgoing": # outgoing (not yet connected)
+                commchannel.cancelCurrentCommand()
+            elif c["status"] == "incoming": # incoming (not yet connected)
+                commchannel.enqueue( 'H' )
+            elif c["status"] == "active": # active (connected)
+                commchannel.enqueue( 'H' )
+            elif c["status"] == "held": # held (another one is the only active one)
+                commchannel.enqueue( "+CHLD=0", self.responseFromChannel, self.errorFromChannel )
+            else:
+                raise error.InternalException( "unhandled case! call directory is %s. Please FIXME" % self._calls )
+            return True
+        elif len( self._calls ) == 2: # two calls in system
+            if c["status"] == "active": # active (connected)
+                commchannel.enqueue( "+CHLD=1", self.responseFromChannel, self.errorFromChannel )
+            else:
+                raise error.InternalException( "unhandled case! call directory is %s. Please FIXME" % self._calls )
+            return True
+        else: # more than 2 calls
+            raise error.InternalException( "more than 2 calls! call directory is %s. Please FIXME" % self._calls )
 
     def activate( self, callId, commchannel ):
         try:
@@ -119,16 +130,27 @@ class CallHandler( object ):
         except KeyError:
             return False
 
-        if len( self._calls ) > 1:
-            # CHLD et. al.
-            raise error.InternalException( "FIXME" )
+        if len( self._calls ) == 1: # one call in system
+            if c["status"] == "incoming":
+                commchannel.enqueue( 'A', self.responseFromChannel, self.errorFromChannel )
+                return True
+            elif c["status"] == "active": # already active, ignore
+                return True
+            else:
+                return False
+        elif len( self._calls ) == 2: # two calls in system
+            if c["status"] == "active": # already active, obviously user wants to end conference
+                commchannel.enqueue( "+CHLD=2%d" % callId, self.responseFromChannel, self.errorFromChannel )
+                return True
+            elif c["status"] == "held": # held, switch to this call
+                commchannel.enqueue( "+CHLD=2", self.responseFromChannel, self.errorFromChannel )
+                return True
+            else:
+                raise error.InternalException( "unhandled case! call directory is %s. Please FIXME" % self._calls )
+        else: # more than 2 calls
+            raise error.InternalException( "more than 2 calls! call directory is %s. Please FIXME" % self._calls )
 
-        if c["status"] == "incoming":
-            commchannel.enqueue( 'A', self.responseFromChannel, self.errorFromChannel )
-        elif c["status"] == "active": # already active, ignore
-            return True
-        else:
-            return False
+        return False
 
     def putOnHold( self, callId, commchannel ):
         pass
