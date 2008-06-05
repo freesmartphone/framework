@@ -10,6 +10,8 @@ GPLv2 or later
 # FUNCTION_DEBUG = False
 FUNCTION_DEBUG = True
 
+colorclasses = { "MiscChannel": 38, "CallChannel": 35, "UnsolicitedResponseChannel": 31 }
+
 #=========================================================================#
 def logged( fn ):
 #=========================================================================#
@@ -19,7 +21,7 @@ def logged( fn ):
     """
     if not FUNCTION_DEBUG:
         return fn
-    import inspect
+    import inspect, random
 
     def logIt( *args, **kwargs ):
         calldepth = len( inspect.stack() )
@@ -27,9 +29,20 @@ def logged( fn ):
             classname = args[0].__class__.__name__
         except AttributeError:
             classname = ""
-        print "%s> %s.%s: ENTER %s,%s" % ( '|...' * calldepth, classname, fn.__name__, repr(args[1:]), repr(kwargs) )
+        colorpre = ""
+        colorpost = ""
+        if classname:
+            if classname not in colorclasses:
+                colorclasses[classname] = random.randrange( 30, 47 )
+            colorpre = "\033[1;%dm" % colorclasses[classname]
+            colorpost = "\033[m"
+        print colorpre,
+        print "%s> %s.%s: ENTER %s,%s" % ( '|...' * calldepth, classname, fn.__name__, repr(args[1:]), repr(kwargs) ),
+        print colorpost
         result = fn( *args, **kwargs )
-        print "%s> %s.%s: LEAVE" % ( '|...' * calldepth, classname, fn.__name__ )
+        print colorpre,
+        print "%s> %s.%s: LEAVE" % ( '|...' * calldepth, classname, fn.__name__ ),
+        print colorpost
 
         return result
 

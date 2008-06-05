@@ -29,18 +29,6 @@ class GenericModemChannel( AtCommandChannel ):
         self.enqueue('+CSCS="8859-1"') # character set conversion: use 8859-1 (latin 1)
         self.enqueue('+CSDH=1') # show text mode parameters: show values
 
-    def launchKeepAlive( self, timeout, command ):
-        """Setup a keep-alive timeout."""
-        self.keepAliveCommand = command
-        self.timeoutKeepAlive = gobject.timeout_add_seconds( timeout, self._modemKeepAlive )
-        self._modemKeepAlive()
-
-    def _modemKeepAlive( self, *args ):
-        """Send a keep-alive-command to the modem to keep it from falling asleep."""
-        if self.connected and ( self.keepAliveCommand is not None ):
-            self.enqueue( self.keepAliveCommand )
-        return True
-
 #=========================================================================#
 class CallChannel( GenericModemChannel ):
 #=========================================================================#

@@ -8,8 +8,6 @@ GPLv2 or later
 
 Package: ophoned.modems.muxed4line
 Module: modem
-
-DBus Exception Classes for org.freesmartphone.GSM*
 """
 
 import mediator

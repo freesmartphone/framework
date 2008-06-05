@@ -388,12 +388,12 @@ if __name__ == "__main__":
     bus = dbus.SystemBus()
 
     # server
-    proxy = bus.get_object( config.DBUS_BUS_NAME, config.DBUS_PATH_PREFIX+"/Server" )
+    proxy = bus.get_object( config.DBUS_BUS_NAME, config.DBUS_PATH_PREFIX+"/Server", follow_name_owner_changes=True )
     print( proxy.Introspect( dbus_interface = "org.freedesktop.DBus.Introspectable" ) )
     server = dbus.Interface(proxy, DBUS_INTERFACE_SERVER )
 
     # device
-    proxy = bus.get_object( config.DBUS_BUS_NAME, config.DBUS_PATH_PREFIX+"/Device" )
+    proxy = bus.get_object( config.DBUS_BUS_NAME, config.DBUS_PATH_PREFIX+"/Device", follow_name_owner_changes=True )
     print( proxy.Introspect( dbus_interface = "org.freedesktop.DBus.Introspectable" ) )
     device = dbus.Interface( proxy, DBUS_INTERFACE_DEVICE )
     sim = dbus.Interface( proxy, DBUS_INTERFACE_SIM )
@@ -402,7 +402,6 @@ if __name__ == "__main__":
     test = dbus.Interface( proxy, DBUS_INTERFACE_TEST )
 
     peer = dbus.Interface( proxy, "org.freedesktop.DBus.Peer" )
-
 
     bus.add_signal_receiver( handler, None, None, config.DBUS_BUS_NAME, None,
         sender_keyword = "sender",

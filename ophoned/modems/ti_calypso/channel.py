@@ -60,21 +60,21 @@ class UnsolicitedResponseChannel( GenericModemChannel ):
     def __init__( self, *args, **kwargs ):
         GenericModemChannel.__init__( self, *args, **kwargs )
 
-        # FIXME All the initialization should actually be in modem specific classes
-        # FIXME We should also think about negotiating the parameters w/ the modem
-        self.enqueue('+CLIP=1') # calling line identification presentation enable
-        self.enqueue('+COLP=1') # connected line identification presentation enable
-        self.enqueue('+CCWA=1') # call waiting
-        self.enqueue('+CRC=1') # cellular result codes: extended
-        self.enqueue('+CSNS=0') # single numbering scheme: voice
-        self.enqueue('+CTZU=1') # timezone update
-        self.enqueue('+CTZR=1') # timezone reporting
-        self.enqueue('+CREG=2') # registration information (TODO not all modems support that)
-        self.enqueue('+CNMI=2,1,2,1,1') # buffer sms on SIM, report CB directly
+        # standard
+        self.enqueue( '+CLIP=1' ) # calling line identification presentation enable
+        self.enqueue( '+COLP=1' ) # connected line identification presentation enable
+        self.enqueue( '+CCWA=1' ) # call waiting
+        self.enqueue( '+CRC=1' )  # cellular result codes: extended
+        self.enqueue( '+CSNS=0' ) # single numbering scheme: voice
+        self.enqueue( '+CTZU=1' ) # timezone update
+        self.enqueue( '+CTZR=1' ) # timezone reporting
+        self.enqueue( '+CREG=2' ) # registration information (TODO not all modems support that)
 
-        # CSQ
-        # CPI
-        # CPRI
+        self.enqueue( '+CNMI=2,1,2,1,1' ) # buffer sms on SIM, report CB directly
+
+        # calypso proprietary
+        self.enqueue( '%CPI=3' ) # call progress indication: enable with call number ID, GSM Cause, and ALS
+        # might enable %CSQ and %CPRI later
 
         if "callback" in kwargs:
             self.callback = kwargs["callback"]

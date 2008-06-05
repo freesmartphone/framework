@@ -56,7 +56,7 @@ class AbstractUnsolicitedResponseDelegate( object ):
         storage, index = righthandside.split( ',' )
         if storage != '"SM"':
             assert False, "unhandled message notification"
-        self._object.NewMessage( index )
+        self._object.NewMessage( int(index) )
 
     #
     # helpers
