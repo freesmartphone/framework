@@ -4,7 +4,7 @@ General Question:
   poking the modem every time.
 
 GSM 07.07 / 07.05 Observations and/or Questions:
-* On channel init, you better send \x1a first -- just in case something crashed while we
+* On channel init, we better send \x1a first -- just in case something crashed while we
   were inside a multiline request command
 * +CFUN=1 resets previous +CPIN="abcd" (even with 2nd parameter?)
 * +CFUN=1 always "succeeds" even if it answers with ERROR (SIM PIN Required)
@@ -16,15 +16,12 @@ GSM 07.07 / 07.05 Observations and/or Questions:
 * If SMS phone number available in messagebook, address name will be automatically inserted
 * +CNUM usually returns CME error 22, but real output looks like:
   +CNUM: ,"0775753xxxxx",129 or +CNUM: "LINE 1",+xxyyzz",145
+* If SIM Pin not given, +CNMI fails
 
 REAL TODOS:
-* Refactor mediator.py into something that is more suitable for different modem types
 * make dbus_object a singleton
-* UnsolicitedResponseChannel does not need to inherit GenericModem!
-* move initialization sequence into mediator module
-  (i really don't want to see _ANY_ AT commands in the virtual channel code)
-* incoming SMS signalling
 * multipart SMSes (SMS PDU mode)
 * USSD
 * Cell Broadcasts
-* 
+* Call multiparty handling
+* Call deflection et. al.
