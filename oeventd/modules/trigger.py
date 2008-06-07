@@ -42,13 +42,13 @@ class Trigger( dbus.service.Object ):
 #----------------------------------------------------------------------------#
 class DBusTrigger( Trigger ):
 #----------------------------------------------------------------------------#
-    def __init__( self, controller, bus_name, object_path, signal_name, callback ):
+    def __init__( self, controller, signal_name, interface_name, bus_name, object_path, callback ):
         Trigger.__init__( self, controller )
         self.bus_name = bus_name
+        self.interface_name = interface_name
         self.object_path = object_path
         self.signal_name = signal_name
-        self.obj = controller.bus.get_object( bus_name, object_path )
-        self.obj.connect_to_signal( signal_name, callback )
+        controller.bus.add_signal_receiver( callback, signal_name, interface_name, bus_name, object_path )
 
 #----------------------------------------------------------------------------#
 class CallTrigger( DBusTrigger ):
@@ -56,9 +56,11 @@ class CallTrigger( DBusTrigger ):
     def __init__( self, controller ):
         DBusTrigger.__init__(
             self, controller,
+            'CallStatus',
+            'org.freesmartphone.GSM.Call',
             'org.freesmartphone.ophoned',
             '/org/freesmartphone/GSM/Device',
-            'CallStatus', self.handle)
+            self.handle)
         self.calls = {}
 
     def handle( self, id, status, properties ):
