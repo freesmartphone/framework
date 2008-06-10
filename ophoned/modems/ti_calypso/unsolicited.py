@@ -7,7 +7,7 @@ The Open Device Daemon - Python Implementation
 GPLv2 or later
 """
 
-from ..abstract.unsolicited import AbstractUnsolicitedResponseDelegate
+from ophoned.modems.abstract.unsolicited import AbstractUnsolicitedResponseDelegate
 from ophoned.gsm import const
 
 class UnsolicitedResponseDelegate( AbstractUnsolicitedResponseDelegate ):
@@ -18,10 +18,15 @@ class UnsolicitedResponseDelegate( AbstractUnsolicitedResponseDelegate ):
 
     # +CRING is only used to trigger a status update
     def plusCRING( self, calltype ):
-        self._mediator.callHandler.ring()
+        pass
+        # self._mediator.callHandler.ring()
 
-    # +CLIP is no longer used
+    # +CLIP is not used on TI Calypso. See %CPI
     def plusCLIP( self, righthandside ):
+        pass
+
+    # +CCWA is not used on TI Calypso. See %CPI
+    def plusCCWA( self, righthandside ):
         pass
 
     # %CPI: 1,0,0,0,1,0,"+491772616464",145,,,0

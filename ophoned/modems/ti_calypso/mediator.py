@@ -10,7 +10,7 @@ Package: ophoned.modems.muxed4line
 Module: mediator
 """
 
-from ..modems.abstract import mediator
+from ophoned.modems.abstract import mediator
 from ophoned.gsm import error
 import types
 
@@ -36,8 +36,8 @@ class CallInitiate( CallMediator ):
         else:
             dialstring = self.number
 
-        line = callHandler.requestOutgoing( dialstring, self._commchannel )
-        if line == -1:
+        line = callHandler.initiate( dialstring, self._commchannel )
+        if line is None:
             self._error( error.CallNoCarrier( "unable to dial" ) )
         else:
             self._ok( line )
@@ -46,7 +46,7 @@ class CallInitiate( CallMediator ):
 class CallRelease( CallMediator ):
 #=========================================================================#
     def trigger( self ):
-        if callHandler.release( self.index, self._commchannel ):
+        if callHandler.release( self.index, self._commchannel ) is not None:
             self._ok()
         else:
             self._error( error.CallNotFound( "no such call to release" ) )
@@ -55,7 +55,7 @@ class CallRelease( CallMediator ):
 class CallActivate( CallMediator ):
 #=========================================================================#
     def trigger( self ):
-        if callHandler.activate( self.index, self._commchannel ):
+        if callHandler.activate( self.index, self._commchannel ) is not None:
             self._ok()
         else:
             self._error( error.CallNotFound( "no such call to activate" ) )
@@ -66,100 +66,174 @@ class CallHandler( object ):
     def __init__( self, dbus_object ):
         self._object = dbus_object
         self._calls = {}
+        self._calls[0] = { "status":"release" }
+        self._calls[1] = { "status":"release" }
 
     def _updateStatus( self, callId ):
         """send dbus signal indicating call status for a callId"""
         self._object.CallStatus( callId, self._calls[callId]["status"], self._calls[callId] )
 
+    def initiate( self, dialstring, commchannel ):
+        return self.feedUserInput( "initiate", dialstring, commchannel )
+
+    def activate( self, index, channel ):
+        return self.feedUserInput( "activate", index=index, channel=commchannel )
+
+    def release( self, index, channel ):
+        return self.feedUserInput( "release", index=index )
+
     def ring( self ):
         for callId, info in self._calls.items():
             if info["status"] == "incoming":
                 self._updateStatus( callId )
+                break # can't be more than one call incoming at once (GSM limitation)
 
     def statusChangeFromNetwork( self, callId, info ):
-        try:
-            self._calls[callId].update( info )
-        except KeyError:
-            self._calls[callId] = info
-        self._updateStatus( callId )
+        self._calls[callId].update( info )
         if info["status"] == "release":
-            del self._calls[callId]
+            self._calls[callId] = { "status":"release" }
+        self._updateStatus( callId )
 
-    def requestOutgoing( self, dialstring, commchannel ):
-        if len( self._calls ) > 1:
-            return -1 # we don't support more than one outgoing call
+    def feedUserInput( self, action, *args, **kwargs ):
+        # simple actions
+        if action == "dropall":
+            kwargs["channel"].enqueue( 'H' )
+            return True
+        try:
+            state = "state_%s_%s" % ( self._calls[0]["status"], self._calls[1]["status"] )
+            method = getattr( self, state )
+        except AttributeError:
+            raise error.InternalException( "unhandled state '%s' in state machine. calls are %s" % ( state, repr(self._calls) ) )
         else:
-            # try callId 1
-            if 1 not in self._calls:
-                commchannel.enqueue( "D%s" % dialstring, self.responseFromChannel, self.errorFromChannel )
-                return 1
-            if 2 not in self._calls:
-                commchannel.enqueue( "D%s" % dialstring, self.responseFromChannel, self.errorFromChannel )
-                return 2
-        return -1
+            return method( action, *args, **kwargs )
 
-    def release( self, callId, commchannel ):
-        try:
-            c = self._calls[callId]
-        except KeyError:
-            return False
-        if len( self._calls ) == 1: # one call in system
-            if c["status"] == "outgoing": # outgoing (not yet connected)
-                commchannel.cancelCurrentCommand()
-            elif c["status"] == "incoming": # incoming (not yet connected)
-                commchannel.enqueue( 'H' )
-            elif c["status"] == "active": # active (connected)
-                commchannel.enqueue( 'H' )
-            elif c["status"] == "held": # held (another one is the only active one)
-                commchannel.enqueue( "+CHLD=0", self.responseFromChannel, self.errorFromChannel )
-            else:
-                raise error.InternalException( "unhandled case! call directory is %s. Please FIXME" % self._calls )
-            return True
-        elif len( self._calls ) == 2: # two calls in system
-            if c["status"] == "active": # active (connected)
-                commchannel.enqueue( "+CHLD=1", self.responseFromChannel, self.errorFromChannel )
-            else:
-                raise error.InternalException( "unhandled case! call directory is %s. Please FIXME" % self._calls )
-            return True
-        else: # more than 2 calls
-            raise error.InternalException( "more than 2 calls! call directory is %s. Please FIXME" % self._calls )
-
-    def activate( self, callId, commchannel ):
-        try:
-            c = self._calls[callId]
-        except KeyError:
-            return False
-
-        if len( self._calls ) == 1: # one call in system
-            if c["status"] == "incoming":
-                commchannel.enqueue( 'A', self.responseFromChannel, self.errorFromChannel )
-                return True
-            elif c["status"] == "active": # already active, ignore
-                return True
-            else:
-                return False
-        elif len( self._calls ) == 2: # two calls in system
-            if c["status"] == "active": # already active, obviously user wants to end conference
-                commchannel.enqueue( "+CHLD=2%d" % callId, self.responseFromChannel, self.errorFromChannel )
-                return True
-            elif c["status"] == "held": # held, switch to this call
-                commchannel.enqueue( "+CHLD=2", self.responseFromChannel, self.errorFromChannel )
-                return True
-            else:
-                raise error.InternalException( "unhandled case! call directory is %s. Please FIXME" % self._calls )
-        else: # more than 2 calls
-            raise error.InternalException( "more than 2 calls! call directory is %s. Please FIXME" % self._calls )
-
-        return False
-
-    def putOnHold( self, callId, commchannel ):
-        pass
-
+    #
+    # deal with responses from call control commands
+    #
     def responseFromChannel( self, request, response ):
         print "AT RESPONSE FROM CHANNEL=", response
 
     def errorFromChannel( self, request, response ):
         print "AT ERROR FROM CHANNEL=", response
+
+    #
+    # state machine actions following. micro states:
+    #
+    # release: line idle, call has been released
+    # incoming: remote party is calling, network is alerting us
+    # outgoing: local party is calling, network is alerting remote party
+    # active: local and remote party talking
+    # held: remote party held
+
+    # An important command here is +CHLD=<n>
+    # <n>  Description
+    # -----------------
+    #  0   Release all held calls or set the busy state for the waiting call.
+    #  1   Release all active calls.
+    #  1x  Release only call x.
+    #  2   Put active calls on hold and activate the waiting or held call.
+    #  2x  Put active calls on hold and activate call x.
+    #  3   Add the held calls to the active conversation.
+    #  4   Add the held calls to the active conversation, and then detach the local subscriber from the conversation.
+
+    #
+    # action with 1st call, 2nd call released
+    #
+    def state_release_release( self, action, *args, **kwargs ):
+        if action == "initiate":
+            dialstring, commchannel = args
+            commchannel.enqueue( "D%s" % dialstring, self.responseFromChannel, self.errorFromChannel )
+            return 1
+
+    def state_incoming_release( self, action, *args, **kwargs ):
+        if action == "release" and kwargs["index"] == 1:
+            kwargs["channel"].enqueue( 'H' )
+            return True
+        elif action == "activate" and kwargs["index"] == 1:
+            kwargs["channel"].enqueue( 'A' )
+            return True
+
+    def state_outgoing_release( self, action, *args, **kwargs ):
+        if action == "release" and kwargs["index"] == 1:
+            kwargs["channel"].cancelCurrentCommand()
+            return True
+
+    def state_active_release( self, action, *args, **kwargs ):
+        if action == "release" and kwargs["index"] == 1:
+            kwargs["channel"].enqueue( 'H' )
+            return True
+
+    #
+    # 1st call active, 2nd call call incoming or on hold
+    #
+    def state_active_incoming( self, action, *args, **kwargs ):
+        if action == "release":
+            if kwargs["index"] == 1:
+                # release active call, waiting call becomes active
+                kwargs["channel"].enqueue( "+CHLD=1" )
+                return True
+            elif kwargs["index"] == 2:
+                # reject waiting call, sending busy signal
+                kwargs["channel"].enqueue( "+CHLD=0" )
+                return True
+        elif action == "activate":
+            if kwargs["index"] == 2:
+                # put active call on hold, take waiting call
+                kwargs["channel"].enqueue( "+CHLD=2" )
+                return True
+        elif action == "conference":
+            # put active call on hold, take waiting call, add held call to conversation
+            kwargs["channel"].enqueue( "+CHLD=2;+CHLD=3" )
+            return True
+
+    def state_active_held( self, action, *args, **kwargs ):
+        if action == "release":
+            if kwargs["index"] == 1:
+                # release active call, (auto)activate the held call
+                kwargs["channel"].enqueue( "+CHLD=11" )
+                return True
+            elif kwargs["index"] == 2:
+                # release held call
+                kwargs["channel"].enqueue( "+CHLD=12" )
+                return True
+        elif action == "activate":
+            if kwargs["index"] == 2:
+                # put active call on hold, activate held call
+                kwargs["channel"].enqueue( "+CHLD=2" )
+                return True
+        elif action == "conference":
+            kwargs["channel"].enqueue( "+CHLD=3" )
+            return True
+        elif action == "connect":
+            kwargs["channel"].enqueue( "+CHLD=4" )
+            return True
+
+    def state_held_active( self, action, *args, **kwargs ):
+        # should be the same as the reversed state
+        return state_active_held( self, action, *args, **kwargs )
+
+    # both calls active
+    def state_active_active( self, action, *args, **kwargs ):
+        if action == "release":
+            if kwargs["index"] == 1:
+                # release only call 1
+                kwargs["channel"].enqueue( "+CHLD=11" )
+                return True
+            elif kwargs["index"] == 2:
+                kwargs["channel"].enqueue( "+CHLD=12" )
+                return True
+        elif action == "activate":
+            if kwargs["index"] == 1:
+                # put 2nd call on hold
+                kwargs["channel"].enqueue( "+CHLD=21" )
+                return True
+            elif kwargs["index"] == 2:
+                # put 1st call on hold
+                kwargs["channel"].enqueue( "+CHLD=22" )
+                return True
+        elif action == "connect":
+            kwargs["channel"].enqueue( "+CHLD=4" )
+            return True
 
 #=========================================================================#
 def createCallHandler( dbus_object ):

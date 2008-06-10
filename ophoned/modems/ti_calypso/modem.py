@@ -14,7 +14,7 @@ DBus Exception Classes for org.freesmartphone.GSM*
 
 import mediator
 
-from ..abstract.modem import AbstractModem
+from ophoned.modems.abstract.modem import AbstractModem
 
 from .channel import CallChannel, UnsolicitedResponseChannel, MiscChannel
 from .unsolicited import UnsolicitedResponseDelegate

@@ -7,7 +7,7 @@ The Open Device Daemon - Python Implementation
 GPLv2 or later
 """
 
-from ..abstract.unsolicited import AbstractUnsolicitedResponseDelegate
+from ophoned.modems.abstract.unsolicited import AbstractUnsolicitedResponseDelegate
 
 class UnsolicitedResponseDelegate( AbstractUnsolicitedResponseDelegate ):
     pass

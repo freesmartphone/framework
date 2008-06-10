@@ -10,7 +10,7 @@ Package: ophoned.modems.singleline
 Module: mediator
 """
 
-from ..modems.abstract import mediator
+from ophoned.modems.abstract import mediator
 
 # Ok, now this is a bit of magic...:
 # We suck everything from the abstract mediator into this and overload on-demand.
