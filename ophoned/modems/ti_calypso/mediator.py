@@ -66,8 +66,8 @@ class CallHandler( object ):
     def __init__( self, dbus_object ):
         self._object = dbus_object
         self._calls = {}
-        self._calls[0] = { "status":"release" }
         self._calls[1] = { "status":"release" }
+        self._calls[2] = { "status":"release" }
 
     def _updateStatus( self, callId ):
         """send dbus signal indicating call status for a callId"""
@@ -100,7 +100,7 @@ class CallHandler( object ):
             kwargs["channel"].enqueue( 'H' )
             return True
         try:
-            state = "state_%s_%s" % ( self._calls[0]["status"], self._calls[1]["status"] )
+            state = "state_%s_%s" % ( self._calls[1]["status"], self._calls[2]["status"] )
             method = getattr( self, state )
         except AttributeError:
             raise error.InternalException( "unhandled state '%s' in state machine. calls are %s" % ( state, repr(self._calls) ) )

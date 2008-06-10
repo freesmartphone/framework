@@ -16,12 +16,12 @@ __version__ = "0.1.0"
 
 parser = OptionParser()
 parser.add_option( "-m", "--modem", dest = "modem",
-    help = "select modem. Available options = %s (default: muxed4line)" % allModems() )
+    help = "select modem. Available options = %s (default: ti_calypso)" % allModems() )
 
 options, args = parser.parse_args()
 
 if options.modem is None:
-    options.modem = "muxed4line"
+    options.modem = "ti_calypso"
 
 if options.modem not in allModems():
     parser.error( "Sorry, need to give a valid modem such as %s" % allModems() )
@@ -39,6 +39,16 @@ c = Controller( options.modem )
 
 if "OPHONED_DEBUG" in os.environ:
     openlog( "py-ophoned", LOG_PERROR, LOG_DAEMON )
+
+if "OPHONED_PROFILE" in os.environ:
+    import hotshot
+    prof = hotshot.Profile( "ophoned-stats" )
+    try:
+        prof.runcall(c.run)
+    except KeyboardInterrupt:
+        prof.close()
+        del c
+        sys.exit( 0 )
 
 if options.modem == "testing":
     import thread, gobject
