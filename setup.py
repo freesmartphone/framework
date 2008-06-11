@@ -7,7 +7,16 @@ setup(
     author = "Michael 'Mickey' Lauer",
     author_email = "mlauer@vanille-media.de",
     url = "http://www.freesmartphone.org",
-    packages = [ "ophoned", "ophoned/gsm", "ophoned/modems" ],
+    packages = [
+        "ophoned",
+        "ophoned/gsm",
+        "ophoned/modems",
+        "ophoned/modems/abstract",
+        "ophoned/modems/muxed4line",
+        "ophoned/modems/openezx",
+        "ophoned/modems/singleline",
+        "ophoned/modems/ti_calypso",
+    ],
     scripts = [ "ophoned/ophoned" ],
     data_files = [ ("etc/dbus-1/system.d", ["etc/dbus-1/system.d/ophoned.conf"] ) ]
 )
