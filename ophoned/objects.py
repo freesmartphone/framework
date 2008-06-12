@@ -275,8 +275,8 @@ class Device( dbus.service.Object ):
         mediator.NetworkGetStatus( self, dbus_ok, dbus_error )
 
     @dbus.service.signal( DBUS_INTERFACE_NETWORK, "ssi" )
-    def Status( self, provider_name, status, strength ):
-        LOG( LOG_INFO, "org.freesmartphone.GSM.Network.Status: ", repr(provider_name), repr(status), repr(strength) )
+    def Status( self, status, provider_name, strength ):
+        LOG( LOG_INFO, "org.freesmartphone.GSM.Network.Status: ", repr(status), repr(provider_name), repr(strength) )
 
     @dbus.service.method( DBUS_INTERFACE_NETWORK, "", "a(isss)",
                           async_callbacks=( "dbus_ok", "dbus_error" ) )
