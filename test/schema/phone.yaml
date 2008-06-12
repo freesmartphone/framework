@@ -1,0 +1,11 @@
+
+
+vibration:
+    type: bool
+    default: yes
+    profilable: yes
+
+ring-volume:
+    type: int
+    default: 10
+    profilable: yes

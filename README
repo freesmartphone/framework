@@ -1,0 +1,64 @@
+
+Preference Server Deamon
+(C) 2008 Guillaume 'Charlie' Chereau
+(C) 2008 Openmoko, Inc.
+GPLv2 or later
+
+== Description ==
+This is the configuration server
+
+The main points are :
+
+- All the configuration and schema are stored into YAML files.
+(http://www.yaml.org/)
+
+- Every service that uses the service should create a schema file,
+giving information about the parameters. A typical schema file looks
+like this:
+
+vibration:          # The name of the parameter
+  type: bool        # The type
+  default: yes      # default value
+  profilable: yes   # set to yes if the parameter depends of the profile
+
+ring-volume:
+  type: int
+  default: 10
+  profilable: yes
+
+the name of the file is the name of the service providing those
+parameters (for example, "schema/phone.yaml" )
+
+
+The configurations values for a given service AND for a given profile
+are stored in the file :
+
+conf/$(service)/$(profile).yaml
+
+So for example I could have the following file structure:
+
+conf/
+  phone/
+     default.yaml
+     silent.yaml
+     outdoor.yaml
+  music/
+     default.yaml
+
+A typical conf file looks like this :
+
+    vibration: Yes
+    ring-volume: 9
+
+- the server provides this simple dbus api :
+
+== interface "org.freesmartphone.conf" ==
+- method SetProfile(s)
+- method GetService(s) -> o // return a proxy to a service conf
+                             // implemeting org.freesmartphone.conf.service
+
+== interface "org.freesmartphone.conf.service" ==
+- method Set(s,v)  // set a key value (in the current profile)
+- method Get(s) -> o // get a key value (in the current profile)
+- signal Notify(s,v)  // emitted when a parameter value changes
+
