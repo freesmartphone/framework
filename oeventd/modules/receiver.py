@@ -44,7 +44,7 @@ def ledAction( bus, name ):
             "/org/freesmartphone/Device/LED/" + name
         )
         if event:
-            led.SetBrightness(100)
+            led.SetBlinking(300, 700)
             print 'enabling led', name
         else:
             led.SetBrightness(0)
@@ -116,15 +116,24 @@ class RingReceiver( Receiver ):
     def __init__( self, bus ):
         Receiver.__init__( self, bus, self.action, attributeFilter( "type", "Call" ) )
         self.ringing = False
-        self.player = gst.element_factory_make("playbin", "player")
-        fakesink = gst.element_factory_make("fakesink", "my-fakesink")
-        self.player.set_property("video-sink", fakesink)
+
+        self.player = pipeline = gst.Pipeline( "oeventd-pipeline" )
+        filesrc = gst.element_factory_make( "filesrc", "source" )
+        pipeline.add( filesrc )
+        decoder = gst.element_factory_make( "mad", "decoder" )
+        pipeline.add( decoder )
+        sink = gst.element_factory_make( "alsasink", "sink" )
+        pipeline.add( sink )
+
+        filesrc.link( decoder )
+        decoder.link( sink )
+
         bus = self.player.get_bus()
         bus.add_signal_watch()
-        bus.connect("message", self._onMessage)
-        self.player.set_property('uri', "file:///usr/share/openmoko/sounds/ringtone_ringnroll.mp3")
+        bus.connect( "message", self._onMessage )
+        filesrc.set_property( "location", "/usr/share/openmoko/sounds/ringtone_ringnroll.mp3" )
 
-    def _onMessage(self, bus, message):
+    def _onMessage( self, bus, message ):
         t = message.type
         if t == gst.MESSAGE_EOS:
             self.player.set_state(gst.STATE_NULL)
@@ -134,6 +143,8 @@ class RingReceiver( Receiver ):
             err, debug = message.parse_error()
             print "Error: %s" % err, debug
             self.ringing = False
+        else:
+            print "GST:MSG", t
 
     def action( self, active ):
         status = [event.attributes.get( "status" ) for event in active]
@@ -163,7 +174,6 @@ def factory( prefix, controller ):
     ) )
 
     objects.append( AudioSetupReceiver( controller.bus ) )
-    
     objects.append( RingReceiver( controller.bus ) )
 
     return objects
