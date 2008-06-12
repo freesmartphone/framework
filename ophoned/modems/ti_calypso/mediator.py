@@ -76,11 +76,11 @@ class CallHandler( object ):
     def initiate( self, dialstring, commchannel ):
         return self.feedUserInput( "initiate", dialstring, commchannel )
 
-    def activate( self, index, channel ):
+    def activate( self, index, commchannel ):
         return self.feedUserInput( "activate", index=index, channel=commchannel )
 
-    def release( self, index, channel ):
-        return self.feedUserInput( "release", index=index )
+    def release( self, index, commchannel ):
+        return self.feedUserInput( "release", index=index, channel=commchannel )
 
     def ring( self ):
         for callId, info in self._calls.items():
