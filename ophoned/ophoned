@@ -8,7 +8,7 @@ GPLv2 or later
 """
 
 from optparse import OptionParser
-from modems import allModems
+from ophoned.modems import allModems
 import sys
 import os
 
