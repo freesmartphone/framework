@@ -133,12 +133,17 @@ class PowerSupply( dbus.service.Object ):
     def GetInfo( self ):
         # AC/BATs differ in lots of nodes. Do we want additional methods for present / online ?
         dict = {}
-        for key in "current_now energy_full energy_full_design energy_now manufacturer model_name status technology type voltage_min_design voltage_now present online".split():
+        for key in "capacity current_now energy_full energy_full_design energy_now manufacturer model_name status technology type voltage_min_design voltage_now present online".split():
             dict[key] = readFromFile( "%s/%s" % ( self.node, key ) )
         return dict
 
     @dbus.service.method( DBUS_INTERFACE, "", "i" )
     def GetChargingPercentage( self ):
+        capacity = readFromFile( "%s/capacity" % self.node )
+        if capacity != "N/A":
+            return int(capacity)
+
+
         energy_full = readFromFile( "%s/energy_full" % self.node )
         energy_now = readFromFile( "%s/energy_now" % self.node )
         if energy_full == "N/A" or energy_now == "N/A":
@@ -282,7 +287,7 @@ def factory( prefix, controller ):
             objects.append( LED( bus, index, "%s/%s" % ( ledpath, node ) ) )
 
     # scan for power supplies (apm first, then power supply [kernel 2.6.24++])
-    powerpath = "/tmp/proc/apm"
+    powerpath = "/proc/apm"
     LOG( LOG_DEBUG, "scanning", powerpath )
     if os.path.exists( powerpath ):
         objects.append( PowerSupplyApm( bus, 0, powerpath ) )
