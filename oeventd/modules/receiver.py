@@ -120,7 +120,7 @@ class RingReceiver( Receiver ):
         self.player = pipeline = gst.Pipeline( "oeventd-pipeline" )
         filesrc = gst.element_factory_make( "filesrc", "source" )
         pipeline.add( filesrc )
-        decoder = gst.element_factory_make( "mad", "decoder" )
+        decoder = gst.element_factory_make( "siddec", "decoder" )
         pipeline.add( decoder )
         sink = gst.element_factory_make( "alsasink", "sink" )
         pipeline.add( sink )
@@ -131,7 +131,7 @@ class RingReceiver( Receiver ):
         bus = self.player.get_bus()
         bus.add_signal_watch()
         bus.connect( "message", self._onMessage )
-        filesrc.set_property( "location", "/usr/share/openmoko/sounds/ringtone_ringnroll.mp3" )
+        filesrc.set_property( "location", "/usr/share/sounds/Arkanoid_PSID.sid" )
 
     def _onMessage( self, bus, message ):
         t = message.type
