@@ -17,7 +17,7 @@ import os
 from syslog import openlog, LOG_PERROR, LOG_DAEMON
 
 if __name__ == "__main__":
-    possible_paths = [ "/usr/lib/python2.5/site-packages/odeviced" ]
+    possible_paths = "/local/pkg/fso/python-odeviced/odeviced /usr/lib/python2.5/site-packages/odeviced".split()
     possible_paths.append( os.path.curdir )
     for path in possible_paths:
         if os.path.exists( path ):

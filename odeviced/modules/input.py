@@ -25,8 +25,8 @@ import ConfigParser
 
 """
     struct timeval {
-            (unsigned int) time_t          tv_sec;         /* seconds */
-            (unsigned int) suseconds_t     tv_usec;        /* microseconds */
+        (unsigned long) time_t          tv_sec;         /* seconds */
+        (unsigned long) suseconds_t     tv_usec;        /* microseconds */
     };
     (unsigned short) __u16 type;
     (unsigned short) __u16 code;
@@ -34,16 +34,8 @@ import ConfigParser
 
 
 """
-input_event_struct = "@llHHi"
-input_event_size = struct.calcsize(input_event_struct)
-print "input event size", input_event_size
-
-
-
-EVENT_BUTTON_PRESS = 1
-EVENT_RELATIVE_MOTION = 2
-RELATIVE_AXES_DIAL = 7
-BUTTON_MISC = 0x100
+input_event_struct = "@LLHHi"
+input_event_size = struct.calcsize( input_event_struct )
 
 #----------------------------------------------------------------------------#
 class Input( dbus.service.Object ):
@@ -59,7 +51,7 @@ class Input( dbus.service.Object ):
         LOG( LOG_INFO, "%s initialized. Serving %s at %s" % ( self.__class__.__name__, self.interface, self.path ) )
 
         try:
-            ignoreinput = self.config.get( "idlenotifier", "ignoreinput" )
+            ignoreinput = self.config.get( "input", "ignoreinput" )
         except ConfigParser.Error:
             ignoreinput = tuple()
         else:
@@ -84,9 +76,11 @@ class Input( dbus.service.Object ):
         self.watches = {}
         self.events = {}
 
-        # FIXME parse these ones from config
-        self.watchForEvent( "Aux", "key", 0x1e )
-        self.watchForEvent( "Power", "key", 0x19 )
+        # FIXME parse these ones from config after milestone 1
+        #self.watchForEvent( "Aux", "key", 0x1e )
+        #self.watchForEvent( "Power", "key", 0x19 )
+        self.watchForEvent( "AUX", "key", 169 )
+        self.watchForEvent( "POWER", "key", 116 )
 
         if len( self.input ):
             self.launchStateMachine()
@@ -133,10 +127,9 @@ class Input( dbus.service.Object ):
                     timestamp, timeout = self.events[ ( typ, code ) ]
                 except KeyError:
                     LOG( LOG_ERROR, "potential logic problem, key released before pressed. watches are", self.watches, "events are", self.events )
-                source_remove( timeout )
-                del self.events[ ( typ, code ) ]
-
-
+                else:
+                    source_remove( timeout )
+                    del self.events[ ( typ, code ) ]
 
     def callbackKeyHeldTimeout( self, typ, code ):
         timestamp, timeout = self.events[ ( typ, code ) ]
