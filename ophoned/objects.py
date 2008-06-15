@@ -150,6 +150,18 @@ class Device( dbus.service.Object ):
     def SetAntennaPower( self, power, dbus_ok, dbus_error ):
         mediator.DeviceSetAntennaPower( self, dbus_ok, dbus_error, power=power )
 
+    @dbus.service.method( DBUS_INTERFACE_DEVICE, "", "",
+                          async_callbacks=( "dbus_ok", "dbus_error" ) )
+    def PrepareForSuspend( self, dbus_ok, dbus_error ):
+        # FIXME no error handling yet!
+        self.modem.prepareForSuspend( dbus_ok, dbus_error )
+
+    @dbus.service.method( DBUS_INTERFACE_DEVICE, "", "",
+                          async_callbacks=( "dbus_ok", "dbus_error" ) )
+    def RecoverFromSuspend( self, dbus_ok, dbus_error ):
+        # FIXME no error handling yet!
+        self.modem.recoverFromSuspend( dbus_ok, dbus_error )
+
     #
     # dbus org.freesmartphone.GSM.SIM
     #

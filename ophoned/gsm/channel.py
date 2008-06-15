@@ -126,6 +126,24 @@ class VirtualChannel( object ):
         pass
 
     @logged
+    def suspend( self, ok_callback, error_callback ):
+        """
+        Called when the channel needs to be prepared for a suspend.
+
+        The default implementation does nothing but call the ok_callback
+        """
+        ok_callback( self )
+
+    @logged
+    def resume( self, ok_callback, error_callback ):
+        """
+        Called when the channel needs to reinit after resume.
+
+        The default implementation does nothing but call the ok_callback
+        """
+        ok_callback( self )
+
+    @logged
     def write( self, data ):
         """Write data to the modem."""
         self._write( data )

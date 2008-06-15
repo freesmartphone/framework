@@ -14,6 +14,7 @@ transport their data over a (virtual) serial line.
 
 from ophoned.gsm.decor import logged
 from ophoned.gsm.channel import AtCommandChannel
+from ophoned.gsm.callback import SimpleCallback
 
 #=========================================================================#
 class GenericModemChannel( AtCommandChannel ):
@@ -88,6 +89,18 @@ class UnsolicitedResponseChannel( GenericModemChannel ):
                          }
 
         self.delegate = None
+
+    @logged
+    def suspend( self, ok_callback, error_callback ):
+        self.enqueue( "+CTZU=0;+CTZR=0;+CREG=0;+CNMI=2,1,0,0,0",
+                      SimpleCallback( ok_callback, self ),
+                      SimpleCallback( error_callback, self ) )
+
+    @logged
+    def resume( self, ok_callback, error_callback ):
+        self.enqueue( "+CTZU=1;+CTZR=1;+CREG=2;+CNMI=2,1,2,1,1",
+                      SimpleCallback( ok_callback, self ),
+                      SimpleCallback( error_callback, self ) )
 
     @logged
     def handleUnsolicitedResponse( self, data ):
