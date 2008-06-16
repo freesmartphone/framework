@@ -9,7 +9,7 @@ GPLv2 or later
 """
 
 import yaml
-
+import os
 
 import dbus
 import dbus.service
@@ -35,7 +35,8 @@ class Schema(dict):
     """
     
     # This map the type string to the actual python types
-    types = {'int' : int, 'bool' : bool, 'str' : str, 'var': object}
+    str_to_types = {'int' : int, 'bool' : bool, 'str' : str, 'var': object}
+    types_to_str = dict( (v,k) for k,v in str_to_types.iteritems() )
     
     def __init__(self, file):
         """Create a new schema from a file"""
@@ -45,7 +46,7 @@ class Schema(dict):
         schema = yaml.load(schema)
         
         for key,v in schema.iteritems():
-            type = Schema.types[v.get('type', 'var')]
+            type = Schema.str_to_types[v.get('type', 'var')]
             default = v.get('default', None)
             profilable = v.get('profilable', False)
             self[key] = Schema.Parameter(key, type, default, profilable)
@@ -104,7 +105,27 @@ class ConfigurationManager(dbus.service.Object):
     def SetProfile(self, profile):
         self.profile = str(profile)
         for s in self.services.itervalues():
-            s.set_profile(profile)
+            s.on_profile_changed(profile)
+    
+    @dbus.service.method("org.freesmartphone.Preferences", in_signature='', out_signature='as')    
+    def GetServicesName(self):
+        """Return a list off all the available services names"""
+        # We need to see in the conf directory what are the files
+        ret = []
+        list = os.listdir(self.conf_dir)
+        for file_name in list:
+            ret.append(file_name)
+        return ret
+        
+    @dbus.service.method("org.freesmartphone.Preferences", in_signature='', out_signature='as')    
+    def GetProfiles(self):
+        """Return a list off all the available services names"""
+        # We need to see in the conf directory what are the files
+        ret = []
+        list = os.listdir(self.conf_dir)
+        for file_name in list:
+            ret.append(file_name)
+        return ret
 
     
 class Service(dbus.service.Object):
@@ -141,37 +162,67 @@ class Service(dbus.service.Object):
         conf = Configuration('%s/%s/%s.yaml' % (self.manager.conf_dir, self.name, profile))
         self.confs[profile] = conf
         return conf
+        
+    @dbus.service.method('org.freesmartphone.Preferences.Service', in_signature='', out_signature='as')
+    def GetKeys(self):
+        return self.schema.keys()
     
     @dbus.service.method('org.freesmartphone.Preferences.Service', in_signature='s', out_signature='v')
-    def Get(self, key):
+    def GetValue(self, key):
         """get a parameter value"""
         key = str(key)
         parameter = self.schema[key]
         profile = self.manager.profile if parameter.profilable else 'default'
         try:
             conf = self.get_conf(profile)
-            return conf[key]
+            ret = conf[key]
         except:
-            return parameter.default
+            ret = parameter.default
+        # print 'get %s = %s' % (key, ret)
+        return ret
     
     @dbus.service.method('org.freesmartphone.Preferences.Service', in_signature='sv', out_signature='')
-    def Set(self, key, value):
+    def SetValue(self, key, value):
         """set a parameter value for a service, in the current profile"""
         key = str(key)
         
+        # print 'set %s to %s' % (key, value)
+        
         parameter = self.schema[key]
         profile = self.manager.profile if parameter.profilable else 'default'
-        if not isinstance(value, parameter.type):
-            raise TypeError
+        try:
+            value = parameter.type(value)
+        except:
+            raise TypeError, "expected %s, got %s" % (parameter.type, type(value))
         conf = self.get_conf(profile)
         conf[key] = value
     
-        self.notify(key, value) # We don't forget to notify the listeners
+        self.Notify(key, value) # We don't forget to notify the listeners
+        
+    @dbus.service.method('org.freesmartphone.Preferences.Service', in_signature='s', out_signature='b')
+    def IsProfilable(self, key):
+        """Return true if a parameter depends on the current profile"""
+        key = str(key)
+        parameter = self.schema[key]
+        return parameter.profilable
+        
+    @dbus.service.method('org.freesmartphone.Preferences.Service', in_signature='s', out_signature='s')
+    def GetType(self, key):
+        """Return a string representing the type of the parameter"""
+        key = str(key)
+        parameter = self.schema[key]
+        return Schema.types_to_str[parameter.type]
         
     @dbus.service.signal('org.freesmartphone.Preferences.Service', signature='sv')
     def Notify(self, key, value):
         """signal used to notify a parameter change"""
         pass
+        
+    def on_profile_changed(self, profile):
+        """called everytime we the global profile is changed"""
+        for key in self.GetKeys():
+            if self.IsProfilable(key):
+                self.Notify(key, self.GetValue(key))
         
         
 
@@ -200,5 +251,7 @@ if __name__ == '__main__':
     example usage call :
     
     dbus-send --print-reply --dest=org.freesmartphone.preferencesd /Preferences org.freedesktop.DBus.Introspectable.Introspect
+    dbus-send --print-reply --dest=org.freesmartphone.preferencesd /Preferences org.freesmartphone.Preferences.GetService string:phone
+    dbus-send --print-reply --dest=org.freesmartphone.preferencesd /Preferences/phone org.freesmartphone.Preferences.Service.GetKeys
 
     """

@@ -1,11 +1,6 @@
 
 
-vibration:
-    type: bool
-    default: yes
-    profilable: yes
-
-ring-volume:
+text-size:
     type: int
-    default: 10
-    profilable: yes
+    default: 8
+    profilable: no
