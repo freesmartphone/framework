@@ -156,11 +156,14 @@ class IdleNotifier( dbus.service.Object ):
     # FIXME: Do we want to allow that at all?
     @dbus.service.method( DBUS_INTERFACE, "s", "" )
     def SetState( self, state ):
-        if state in self.validStates:
-            self.State( state )
-        else:
+        if not state in self.validStates:
             # FIXME: This is wrong
             raise "DBUS_INTERFACE"+".Error.InvalidState"
+        elif state == "BUSY":
+            source_remove( self.timeout )
+            self.timeout = timeout_add_seconds( self.timeouts["IDLE"], self.onIdleTimeout )
+        # FIXME: handle other states correctly
+        self.State( state )
 
 #----------------------------------------------------------------------------#
 def factory( prefix, controller ):
