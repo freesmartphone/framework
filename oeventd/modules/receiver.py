@@ -90,7 +90,7 @@ class Receiver( dbus.service.Object ):
     def releaseEvent( self, event ):
         if event in self.active:
             self.active.remove( event )
-            self.action( self.active ) 
+            self.action( self.active )
 
 #----------------------------------------------------------------------------#
 class AudioSetupReceiver( Receiver ):
@@ -117,22 +117,6 @@ class RingReceiver( Receiver ):
         Receiver.__init__( self, bus, self.action, attributeFilter( "type", "Call" ) )
         self.ringing = False
 
-        self.player = pipeline = gst.Pipeline( "oeventd-pipeline" )
-        filesrc = gst.element_factory_make( "filesrc", "source" )
-        pipeline.add( filesrc )
-        decoder = gst.element_factory_make( "siddec", "decoder" )
-        pipeline.add( decoder )
-        sink = gst.element_factory_make( "alsasink", "sink" )
-        pipeline.add( sink )
-
-        filesrc.link( decoder )
-        decoder.link( sink )
-
-        bus = self.player.get_bus()
-        bus.add_signal_watch()
-        bus.connect( "message", self._onMessage )
-        filesrc.set_property( "location", "/usr/share/sounds/Arkanoid_PSID.sid" )
-
     def _onMessage( self, bus, message ):
         t = message.type
         if t == gst.MESSAGE_EOS:
@@ -146,17 +130,38 @@ class RingReceiver( Receiver ):
         else:
             print "GST:MSG", t
 
+    def _play( self ):
+        self.player = pipeline = gst.Pipeline( "oeventd-pipeline" )
+        filesrc = gst.element_factory_make( "filesrc", "source" )
+        pipeline.add( filesrc )
+        decoder = gst.element_factory_make( "siddec", "decoder" )
+        pipeline.add( decoder )
+        sink = gst.element_factory_make( "alsasink", "sink" )
+        pipeline.add( sink )
+        filesrc.link( decoder )
+        decoder.link( sink )
+        bus = self.player.get_bus()
+        bus.add_signal_watch()
+        bus.connect( "message", self._onMessage )
+        filesrc.set_property( "location", "/usr/share/sounds/Arkanoid_PSID.sid" )
+        pipeline.set_state(gst.STATE_PLAYING)
+        print 'playing ringtone'
+        self.ringing = True
+
+    def _stop( self ):
+        self.player.set_state(gst.STATE_NULL)
+        del self.player
+        self.ringing = False
+        print 'stopped ringtone'
+
     def action( self, active ):
         status = [event.attributes.get( "status" ) for event in active]
         ringing = "incoming" in status
         if not self.ringing == ringing:
             if ringing:
-                print 'playing ringtone'
-                self.player.set_state(gst.STATE_PLAYING)
+                self._play()
             else:
-                print 'stopping ringtone'
-                self.player.set_state(gst.STATE_NULL)
-            self.ringing = ringing
+                self._stop()
 
 #----------------------------------------------------------------------------#
 def factory( prefix, controller ):
