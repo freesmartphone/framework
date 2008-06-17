@@ -52,13 +52,21 @@ A typical conf file looks like this :
 
 - the server provides this simple dbus api :
 
-== interface "org.freesmartphone.conf" ==
+## interface "org.freesmartphone.conf"
 - method SetProfile(s)
 - method GetService(s) -> o // return a proxy to a service conf
                              // implemeting org.freesmartphone.conf.service
 
-== interface "org.freesmartphone.conf.service" ==
+## interface "org.freesmartphone.conf.service" ==
 - method Set(s,v)  // set a key value (in the current profile)
 - method Get(s) -> o // get a key value (in the current profile)
 - signal Notify(s,v)  // emitted when a parameter value changes
 
+
+== Parameters types ==
+
+- int
+- bool
+- str
+- object
+- dict  (you can access branches by using '/' in the key)

@@ -89,7 +89,6 @@ class MyApp(object):
         # Now we populate our parameters list
         self.parameters.clear()
         for key in keys:
-            print key
             value = self.service.GetValue(key)
             type_str = self.service.GetType(key)
             type = str_to_type[type_str]
