@@ -2,3 +2,6 @@
 * how to deal with granularity?
 * how to handle priorities, e.g. when a device specific module would
   offer the same object/interface as a generic module?
+
+* get more characteristics from the Display object
+

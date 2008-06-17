@@ -62,11 +62,11 @@ class IdleNotifier( dbus.service.Object ):
                             "AWAKE": -1 }
         else:
             self.timeouts = { "BUSY": -1,
-                            "IDLE": 5,
-                            "IDLE_DIM": 10,
-                            "IDLE_PRELOCK": 6,
-                            "LOCK": 4,
-                            "SUSPEND": 10,
+                            "IDLE": 10,
+                            "IDLE_DIM": 20,
+                            "IDLE_PRELOCK": 12,
+                            "LOCK": 8,
+                            "SUSPEND": 20,
                             "AWAKE": -1 }
         self.validStates = self.timeouts.keys()
 
