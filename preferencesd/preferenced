@@ -143,6 +143,7 @@ class ConfigurationManager(dbus.service.Object):
         
     @dbus.service.method("org.freesmartphone.Preferences", in_signature='s', out_signature='o')
     def GetService(self, name):
+        """Return a given service"""
         if name in self.services:
             return self.services[name]
         ret = Service(self, str(name))
@@ -167,7 +168,7 @@ class ConfigurationManager(dbus.service.Object):
         
     @dbus.service.method("org.freesmartphone.Preferences", in_signature='', out_signature='as')    
     def GetProfiles(self):
-        """Return a list off all the available services names"""
+        """Return a list of all the available profiles"""
         # We need to see in the conf directory what are the files
         ret = []
         list = os.listdir(self.conf_dir)
@@ -288,9 +289,8 @@ class Service(dbus.service.Object):
             if self.IsProfilable(key):
                 self.Notify(key, self.GetValue(key))
         
-        
-
-if __name__ == '__main__':
+def main():
+    """The main function of the program"""
     import sys
     
     if len(sys.argv) < 2:
@@ -311,11 +311,55 @@ if __name__ == '__main__':
     print "Running conf service."
     mainloop.run()
     
+def generate_doc():
+    """This function can be used to generate a wiki style documentation for the DBus API
     """
-    example usage call :
+    objects = [ConfigurationManager, Service]
     
-    dbus-send --print-reply --dest=org.freesmartphone.preferencesd /Preferences org.freedesktop.DBus.Introspectable.Introspect
-    dbus-send --print-reply --dest=org.freesmartphone.preferencesd /Preferences org.freesmartphone.Preferences.GetService string:phone
-    dbus-send --print-reply --dest=org.freesmartphone.preferencesd /Preferences/phone org.freesmartphone.Preferences.Service.GetKeys
+    services = {}
+    
+    for obj in objects:
+        for attr_name in dir(obj):
+            attr = getattr(obj, attr_name)
+            if hasattr(attr, '_dbus_interface'):
+                if hasattr(attr, '_dbus_is_method'):
+                    func = {}
+                    func['name'] = attr_name
+                    func['args'] = ','.join(attr._dbus_args)
+                    func['in_sig'] = attr._dbus_in_signature
+                    func['out_sig'] = attr._dbus_out_signature
+                    func['doc'] = attr.__doc__
+                    funcs, sigs = services.setdefault(attr._dbus_interface, [[],[]])
+                    funcs.append(func)
+                if hasattr(attr, '_dbus_is_signal'):
+                    sig = {}
+                    sig['name'] = attr_name
+                    sig['args'] = ','.join(attr._dbus_args)
+                    sig['sig'] = attr._dbus_signature
+                    sig['doc'] = attr.__doc__
+                    funcs, sigs = services.setdefault(attr._dbus_interface, [[],[]])
+                    sigs.append(sig)
+            
+    for name, funcs in services.items():
+        print '= %s =' % name
+        for func in funcs[0]:
+            print """
+== method %(name)s(%(args)s) ==
+* in: %(in_sig)s
+* out: %(out_sig)s
+* %(doc)s""" % func 
+        for sig in funcs[1]:
+            print """
+== signal %(name)s(%(args)s) ==
+* out: %(sig)s
+* %(doc)s""" % sig
+        print
+            
+     
 
-    """
+if __name__ == '__main__':
+    # generate_doc()
+    main()
+    
+    
+

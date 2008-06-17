@@ -54,13 +54,17 @@ A typical conf file looks like this :
 
 ## interface "org.freesmartphone.conf"
 - method SetProfile(s)
+- method GetServicesName() -> as // return a list of all the service names
 - method GetService(s) -> o // return a proxy to a service conf
                              // implemeting org.freesmartphone.conf.service
 
 ## interface "org.freesmartphone.conf.service" ==
-- method Set(s,v)  // set a key value (in the current profile)
-- method Get(s) -> o // get a key value (in the current profile)
+- method SetValue(s,v)  // set a key value (in the current profile)
+- method GetValue(s) -> o // get a key value (in the current profile)
+- method GetKeys() -> as  // return all the available keys of the service
 - signal Notify(s,v)  // emitted when a parameter value changes
+- method GetType(s) -> s    // return a string representing the type of the parameter
+- method Isprofilable(s) -> b   // return True if the parameter depends of the profile
 
 
 == Parameters types ==
@@ -70,3 +74,13 @@ A typical conf file looks like this :
 - str
 - object
 - dict  (you can access branches by using '/' in the key)
+
+
+
+== example dbus usage call ==
+
+dbus-send --print-reply --dest=org.freesmartphone.preferencesd /Preferences org.freedesktop.DBus.Introspectable.Introspect
+dbus-send --print-reply --dest=org.freesmartphone.preferencesd /Preferences org.freesmartphone.Preferences.GetService string:phone
+dbus-send --print-reply --dest=org.freesmartphone.preferencesd /Preferences/phone org.freesmartphone.Preferences.Service.GetKeys
+
+
