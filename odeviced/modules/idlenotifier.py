@@ -65,7 +65,7 @@ class IdleNotifier( dbus.service.Object ):
                             "IDLE": 10,
                             "IDLE_DIM": 20,
                             "IDLE_PRELOCK": 12,
-                            "LOCK": 8,
+                            "LOCK": 2,
                             "SUSPEND": 20,
                             "AWAKE": -1 }
         self.validStates = self.timeouts.keys()
