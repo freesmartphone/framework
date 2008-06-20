@@ -1,0 +1,86 @@
+
+Preference Server Deamon
+(C) 2008 Guillaume 'Charlie' Chereau
+(C) 2008 Openmoko, Inc.
+GPLv2 or later
+
+== Description ==
+This is the configuration server
+
+The main points are :
+
+- All the configuration and schema are stored into YAML files.
+(http://www.yaml.org/)
+
+- Every service that uses the service should create a schema file,
+giving information about the parameters. A typical schema file looks
+like this:
+
+vibration:          # The name of the parameter
+  type: bool        # The type
+  default: yes      # default value
+  profilable: yes   # set to yes if the parameter depends of the profile
+
+ring-volume:
+  type: int
+  default: 10
+  profilable: yes
+
+the name of the file is the name of the service providing those
+parameters (for example, "schema/phone.yaml" )
+
+
+The configurations values for a given service AND for a given profile
+are stored in the file :
+
+conf/$(service)/$(profile).yaml
+
+So for example I could have the following file structure:
+
+conf/
+  phone/
+     default.yaml
+     silent.yaml
+     outdoor.yaml
+  music/
+     default.yaml
+
+A typical conf file looks like this :
+
+    vibration: Yes
+    ring-volume: 9
+
+- the server provides this simple dbus api :
+
+## interface "org.freesmartphone.conf"
+- method SetProfile(s)
+- method GetServicesName() -> as // return a list of all the service names
+- method GetService(s) -> o // return a proxy to a service conf
+                             // implemeting org.freesmartphone.conf.service
+
+## interface "org.freesmartphone.conf.service" ==
+- method SetValue(s,v)  // set a key value (in the current profile)
+- method GetValue(s) -> o // get a key value (in the current profile)
+- method GetKeys() -> as  // return all the available keys of the service
+- signal Notify(s,v)  // emitted when a parameter value changes
+- method GetType(s) -> s    // return a string representing the type of the parameter
+- method Isprofilable(s) -> b   // return True if the parameter depends of the profile
+
+
+== Parameters types ==
+
+- int
+- bool
+- str
+- object
+- dict  (you can access branches by using '/' in the key)
+
+
+
+== example dbus usage call ==
+
+dbus-send --print-reply --dest=org.freesmartphone.preferencesd /Preferences org.freedesktop.DBus.Introspectable.Introspect
+dbus-send --print-reply --dest=org.freesmartphone.preferencesd /Preferences org.freesmartphone.Preferences.GetService string:phone
+dbus-send --print-reply --dest=org.freesmartphone.preferencesd /Preferences/phone org.freesmartphone.Preferences.Service.GetKeys
+
+

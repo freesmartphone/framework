@@ -1,0 +1,365 @@
+#!/usr/bin/env python
+
+"""
+The Preference Deamon - Python Implementation
+
+(C) 2008 Guillaume 'Charlie' Chereau
+(C) 2008 Openmoko, Inc.
+GPLv2 or later
+"""
+
+import yaml
+import os
+
+import dbus
+import dbus.service
+import dbus.mainloop.glib
+import gobject
+
+class Schema(dict):
+    """A Schema is used to define the properties of parameters
+    
+        A Schema is always associated with a file in the yaml format.
+        A example schema file looks like this :
+        
+        vibration:              # The name of the parameter
+            type: bool          # The type
+            default: yes        # default value
+            profilable: yes     # set to yes if the parameter depends of the profile
+
+        ring-volume:
+            type: int
+            default: 10
+            profilable: yes
+        
+    """
+    
+    # This map the type string to the actual python types
+    str_to_types = {'int' : int, 'bool' : bool, 'str' : str, 'var': object, 'dict': dict}
+    types_to_str = dict( (v,k) for k,v in str_to_types.iteritems() )
+    
+    def __init__(self, file):
+        """Create a new schema from a file"""
+        self.file = file
+        
+        schema = open(file).read()
+        schema = yaml.load(schema)
+        
+        for key,v in schema.iteritems():
+            self[key] = Parameter.from_dict(v)
+            
+    def __getitem__(self, key):
+        if '/' not in key:
+            return super(Schema, self).__getitem__(key)
+        base = key.split('/')[0]
+        rest = '/'.join(key.split('/')[1:])
+        schema = self[base]
+        return schema[rest]
+            
+class Parameter(object):
+    """Represents a parameter description in a schema file"""
+    def __init__(self, type, default = None, profilable = False):
+        self.type = type
+        self.default = default
+        self.profilable = profilable
+    def __repr__(self):
+        return repr((self.type, self.default, self.profilable))
+    @staticmethod
+    def from_dict(d):
+        type = Schema.str_to_types[d.get('type', 'var')]
+        if type == dict:
+            value = d.get('value')
+            value = Parameter.from_dict(value)
+            return DictParameter(value)
+        default = d.get('default', None)
+        profilable = d.get('profilable', False)
+        return Parameter(type, default, profilable)
+        
+    def dbus(self, v):
+        if self.type == int: return dbus.Int32(v)
+        if self.type == str: return dbus.String(v)
+        if self.type == bool: return dbus.Boolean(v)
+        if self.type == object: return v
+        assert False
+        
+class DictParameter(Parameter):
+    def __init__(self, value_parameter):
+        super(DictParameter, self).__init__(dict, default = {})
+        self.value_parameter = value_parameter
+    def __getitem__(self, key):
+        if '/' not in key: 
+            return self.value_parameter
+        assert False
+    def dbus(self, v):
+        return dbus.Dictionary(v, signature = 'sv')
+        
+
+        
+class Configuration(dict):
+    """Configuration dict associated to a conf file
+    
+        A Configuration is a map of key -> values. It can be synchronized with a conf file in the yaml format.
+        A typical conf file looks like this :
+        
+        vibration: Yes
+        ring-volume: 9
+    
+    """
+    def __init__(self, file):
+        self.file = file
+        conf = open(file).read()
+        conf = yaml.load(conf)
+        def flatten(d):
+            """We flatten the dictionnary, so we only have one level"""
+            ret = {}
+            for k,v in d.items():
+                if isinstance(v, dict):
+                    v = flatten(v)
+                    for fk,fv in v.items():
+                        ret['%s/%s' % (k, fk)] = fv
+                else:
+                    ret[k] = v
+            return ret
+
+        self.update(flatten(conf))
+        
+     
+    def flush(self):
+        pass
+        
+        
+class ConfigurationManager(dbus.service.Object):
+    """This is the class for the main object from wich we access the services configuration
+    
+        @param schema_dir   The directory containing the schema files
+        @param conf_dir     The directory containing the configuration files
+    """
+    def __init__(self, schema_dir = './schema', conf_dir = './conf'):
+        super(ConfigurationManager, self).__init__(dbus.SessionBus(), '/Preferences')
+        self.schema_dir = schema_dir
+        self.conf_dir = conf_dir
+        self.profile = 'default'
+        self.services = {}
+        
+    @dbus.service.method("org.freesmartphone.Preferences", in_signature='s', out_signature='o')
+    def GetService(self, name):
+        """Return a given service"""
+        if name in self.services:
+            return self.services[name]
+        ret = Service(self, str(name))
+        self.services[name] = ret
+        return ret
+    
+    @dbus.service.method("org.freesmartphone.Preferences", in_signature='s', out_signature='')
+    def SetProfile(self, profile):
+        self.profile = str(profile)
+        for s in self.services.itervalues():
+            s.on_profile_changed(profile)
+    
+    @dbus.service.method("org.freesmartphone.Preferences", in_signature='', out_signature='as')    
+    def GetServicesName(self):
+        """Return a list off all the available services names"""
+        # We need to see in the conf directory what are the files
+        ret = []
+        list = os.listdir(self.conf_dir)
+        for file_name in list:
+            ret.append(file_name)
+        return ret
+        
+    @dbus.service.method("org.freesmartphone.Preferences", in_signature='', out_signature='as')    
+    def GetProfiles(self):
+        """Return a list of all the available profiles"""
+        # We need to see in the conf directory what are the files
+        ret = []
+        list = os.listdir(self.conf_dir)
+        for file_name in list:
+            ret.append(file_name)
+        return ret
+
+    
+class Service(dbus.service.Object):
+    """ Class that deals with configuration value of a given service
+    
+        The service can set and get the value of parameters.
+        
+        The services are used to group related parameters together.
+        Basically, every application using the config server should use its own service name.
+         
+        For each service we need a schema file describing the parameters the service provides.
+        
+        The configurations values are stored in yaml file.
+        Each conf file contains all the parameters for a given service in a given context.
+        The conf files are organised with the following file hierachy : 
+        conf/$(service)/$(profile).yaml
+        
+        All the parameters that are independant of the profile are stored in the 'default' profile file.
+        
+        When we set or get parameters, the service server takes into account the current profile,
+        so the applications using the service don't need to know about the current profile.
+    """
+    def __init__(self, manager, name):
+        super(Service, self).__init__(dbus.SessionBus(), '/Preferences/%s' % name)
+        self.manager = manager
+        self.name = name
+        self.schema = Schema('%s/%s.yaml' % (self.manager.schema_dir, name))
+        self.confs = {}     # all the conf files
+        
+    def get_conf(self, profile):
+        """Return the conf instance for a given profile"""
+        if profile in self.confs:
+            return self.confs[profile]
+        try:
+            conf = Configuration('%s/%s/%s.yaml' % (self.manager.conf_dir, self.name, profile))
+        except:
+            return None
+        self.confs[profile] = conf
+        return conf
+        
+    @dbus.service.method('org.freesmartphone.Preferences.Service', in_signature='', out_signature='as')
+    def GetKeys(self):
+        """Return all the keys of the service
+        
+            This method should be used only for introspection purpose.
+        """
+        # Here we have to be careful, because if we just return the keys actually in the configuration file,
+        # we ommit to add the keys that are not set but have default value.
+        # On the other hand, if we only return the keys defined in the schema, we ommit the keys that are in a dictionary.
+        # So what we do is return the union of the actual keys and the keys defined in the schema
+        ret = set(self.schema.keys())
+        conf = self.get_conf(self.manager.profile)
+        if conf:
+            ret = ret.union(conf.keys())
+        return list(ret)
+    
+    @dbus.service.method('org.freesmartphone.Preferences.Service', in_signature='s', out_signature='v')
+    def GetValue(self, key):
+        """get a parameter value"""
+        key = str(key)
+        parameter = self.schema[key]
+        profile = self.manager.profile if parameter.profilable else 'default'
+        try:
+            conf = self.get_conf(profile)
+            ret = conf[key]
+        except:
+            ret = parameter.default
+        # print 'get %s = %s' % (key, ret)
+        ret = parameter.dbus(ret)
+        return ret
+    
+    @dbus.service.method('org.freesmartphone.Preferences.Service', in_signature='sv', out_signature='')
+    def SetValue(self, key, value):
+        """set a parameter value for a service, in the current profile"""
+        key = str(key)
+        
+        # print 'set %s to %s' % (key, value)
+        
+        parameter = self.schema[key]
+        profile = self.manager.profile if parameter.profilable else 'default'
+        try:
+            value = parameter.type(value)
+        except:
+            raise TypeError, "expected %s, got %s" % (parameter.type, type(value))
+        conf = self.get_conf(profile)
+        conf[key] = value
+    
+        self.Notify(key, value) # We don't forget to notify the listeners
+        
+    @dbus.service.method('org.freesmartphone.Preferences.Service', in_signature='s', out_signature='b')
+    def IsProfilable(self, key):
+        """Return true if a parameter depends on the current profile"""
+        key = str(key)
+        parameter = self.schema[key]
+        return parameter.profilable
+        
+    @dbus.service.method('org.freesmartphone.Preferences.Service', in_signature='s', out_signature='s')
+    def GetType(self, key):
+        """Return a string representing the type of the parameter"""
+        key = str(key)
+        parameter = self.schema[key]
+        return Schema.types_to_str[parameter.type]
+        
+    @dbus.service.signal('org.freesmartphone.Preferences.Service', signature='sv')
+    def Notify(self, key, value):
+        """signal used to notify a parameter change"""
+        pass
+        
+    def on_profile_changed(self, profile):
+        """called everytime we the global profile is changed"""
+        for key in self.GetKeys():
+            if self.IsProfilable(key):
+                self.Notify(key, self.GetValue(key))
+        
+def main():
+    """The main function of the program"""
+    import sys
+    
+    if len(sys.argv) < 2:
+        print 'you must give a path to the configuration root directory'
+        sys.exit(-1)
+        
+    root_dir = sys.argv[1]
+    schema_dir = '%s/schema' % root_dir
+    conf_dir = '%s/conf' % root_dir
+
+    dbus.mainloop.glib.DBusGMainLoop(set_as_default=True)
+
+    session_bus = dbus.SessionBus()
+    name = dbus.service.BusName('org.freesmartphone.preferencesd', session_bus)
+    conf_manager = ConfigurationManager(schema_dir, conf_dir)
+
+    mainloop = gobject.MainLoop()
+    print "Running conf service."
+    mainloop.run()
+    
+def generate_doc():
+    """This function can be used to generate a wiki style documentation for the DBus API
+    """
+    objects = [ConfigurationManager, Service]
+    
+    services = {}
+    
+    for obj in objects:
+        for attr_name in dir(obj):
+            attr = getattr(obj, attr_name)
+            if hasattr(attr, '_dbus_interface'):
+                if hasattr(attr, '_dbus_is_method'):
+                    func = {}
+                    func['name'] = attr_name
+                    func['args'] = ','.join(attr._dbus_args)
+                    func['in_sig'] = attr._dbus_in_signature
+                    func['out_sig'] = attr._dbus_out_signature
+                    func['doc'] = attr.__doc__
+                    funcs, sigs = services.setdefault(attr._dbus_interface, [[],[]])
+                    funcs.append(func)
+                if hasattr(attr, '_dbus_is_signal'):
+                    sig = {}
+                    sig['name'] = attr_name
+                    sig['args'] = ','.join(attr._dbus_args)
+                    sig['sig'] = attr._dbus_signature
+                    sig['doc'] = attr.__doc__
+                    funcs, sigs = services.setdefault(attr._dbus_interface, [[],[]])
+                    sigs.append(sig)
+            
+    for name, funcs in services.items():
+        print '= %s =' % name
+        for func in funcs[0]:
+            print """
+== method %(name)s(%(args)s) ==
+* in: %(in_sig)s
+* out: %(out_sig)s
+* %(doc)s""" % func 
+        for sig in funcs[1]:
+            print """
+== signal %(name)s(%(args)s) ==
+* out: %(sig)s
+* %(doc)s""" % sig
+        print
+            
+     
+
+if __name__ == '__main__':
+    # generate_doc()
+    main()
+    
+    
+

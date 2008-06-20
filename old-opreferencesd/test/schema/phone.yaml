@@ -1,0 +1,11 @@
+
+
+text-size:
+    type: int
+    default: 8
+    profilable: no
+    
+test:
+    type: dict
+    value:
+        type: int
