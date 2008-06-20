@@ -1,0 +1,7 @@
+This package is using the Python distutils build system.
+
+You need to have the Python development packages and also
+cython installed.
+
+Usually, typing 'python setup.py install' does everything necessary.
+See http://docs.python.org/inst/inst.html for further information.
