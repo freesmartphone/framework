@@ -1,0 +1,39 @@
+#!/usr/bin/env python
+# -*- coding: UTF-8 -*-
+"""
+The Open Usage Daemon - Python Implementation
+
+(C) 2008 Michael 'Mickey' Lauer <mlauer@vanille-media.de>
+(C) 2008 Jan 'Shoragan' Lübbe <jluebbe@lasnet.de>
+(C) 2008 Openmoko, Inc.
+GPLv2 or later
+"""
+
+__version__ = "0.0.0"
+
+try: from controller import Controller
+except ImportError:
+    from ousaged.controller import Controller
+import sys
+import os
+from syslog import openlog, LOG_PERROR, LOG_DAEMON
+
+if __name__ == "__main__":
+    possible_paths = [ "/usr/lib/python2.5/site-packages/ousaged" ]
+    possible_paths.append( os.path.curdir )
+    for path in possible_paths:
+        if os.path.exists( path ):
+            break
+    else:
+        print >>sys.stderr, "did not find a modules path. Exiting."
+        sys.exit( -1 )
+
+    if "OUSAGED_DEBUG" in os.environ:
+        openlog( "py-ousaged", LOG_PERROR, LOG_DAEMON )
+    c = Controller( "%s/modules" % path )
+
+try:
+    c.run()
+except KeyboardInterrupt:
+    print >> sys.stderr, "ctrl-c: exiting."
+    sys.exit( 0 )
