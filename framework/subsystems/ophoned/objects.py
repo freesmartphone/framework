@@ -16,7 +16,6 @@ Attributes:
 """
 
 import types
-import config
 from config import LOG, LOG_INFO, LOG_ERR, LOG_DEBUG
 import dbus
 import dbus.service
@@ -34,6 +33,12 @@ DBUS_INTERFACE_SERVER = "org.freesmartphone.GSM.Server"
 
 DBUS_INTERFACE_TEST = "org.freesmartphone.GSM.Test"
 
+DBUS_BUS_NAME_DEVICE = "org.freesmartphone.ophoned"
+DBUS_BUS_NAME_SERVER = "org.freesmartphone.ophoned"
+
+DBUS_OBJECT_PATH_DEVICE = "/org/freesmartphone/GSM/Device"
+DBUS_OBJECT_PATH_SERVER = "/org/freesmartphone/GSM/Server"
+
 #=========================================================================#
 class Server( dbus.service.Object ):
 #=========================================================================#
@@ -50,12 +55,10 @@ class Server( dbus.service.Object ):
     - monitor device aliveness and restart, if necessary
     """
 
-    DBUS_INTERFACE = "%s.%s" % ( config.DBUS_INTERFACE_PREFIX, "Server" )
-
     def __init__( self, bus, device ):
         server = weakref.proxy( self )
-        self.interface = self.DBUS_INTERFACE
-        self.path = config.DBUS_PATH_PREFIX + "/Server"
+        self.interface = DBUS_INTERFACE_SERVER
+        self.path = DBUS_OBJECT_PATH_SERVER
         dbus.service.Object.__init__( self, bus, self.path )
         LOG( LOG_INFO, "%s initialized. Serving %s at %s" % ( self.__class__.__name__, self.interface, self.path ) )
 
@@ -88,11 +91,10 @@ class Device( dbus.service.Object ):
     Since all our virtual channels handle interleaved request/response
     and unsolicited though, we can also send additional commands everywhere :)
     """
-    DBUS_INTERFACE = "%s.%s" % ( config.DBUS_INTERFACE_PREFIX, "Device" )
 
     def __init__( self, bus, modemtype ):
-        self.interface = self.DBUS_INTERFACE
-        self.path = config.DBUS_PATH_PREFIX + "/Device"
+        self.interface = DBUS_INTERFACE_DEVICE
+        self.path = DBUS_OBJECT_PATH_DEVICE
         dbus.service.Object.__init__( self, bus, self.path )
         LOG( LOG_INFO, "%s initialized. Serving %s at %s" % ( self.__class__.__name__, self.interface, self.path ) )
 
