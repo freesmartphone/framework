@@ -29,7 +29,6 @@ import ConfigParser
 import sys
 import os
 
-
 #----------------------------------------------------------------------------#
 class TheConfigParser( ConfigParser.SafeConfigParser ):
 #----------------------------------------------------------------------------#
@@ -56,13 +55,17 @@ class Controller( object ):
         timeout_add_seconds( 50, self.timeout )
 
         # config
-        for p in [ os.path.expanduser( "~/.odeviced.conf" ), "/etc/odeviced.conf" ]:
+        for p in [ os.path.expanduser( "~/.frameworkd.conf" ), "/etc/frameworkd.conf" ]:
             if os.path.exists( p ):
                 self.config = TheConfigParser( p )
                 break
         else:
             self.config = TheConfigParser()
 
+        # walk subsystem 
+
+    def registerSubsystem( self, subsystem ):
+        LOG( LOG_INFO, "found subsystem %s" % subsystem )
         # walk the modules path and find plugins
         sys.path.append( path )
         for filename in os.listdir( path ):
@@ -84,8 +87,8 @@ class Controller( object ):
                 else:
                     self.register( module )
 
-    def register( self, module ):
-        LOG( LOG_INFO, "found %s" % module )
+    def registerModule( self, subsystem, module ):
+        LOG( LOG_INFO, "...in subsystem %s: found module %s" % ( subsystem, module ) )
         try:
             factory = getattr( module, "factory" )
         except AttributeError:

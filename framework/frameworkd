@@ -7,7 +7,7 @@ The Open Device Daemon - Python Implementation
 GPLv2 or later
 """
 
-__version__ = "0.8.0"
+__version__ = "0.2.0"
 
 try: from controller import Controller
 except ImportError:
