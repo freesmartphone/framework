@@ -170,10 +170,10 @@ class GenericUsageControl( dbus.service.Object ):
         pass
 
 #----------------------------------------------------------------------------#
-def factory( prefix, bus, config ):
+def factory( prefix, controller ):
 #----------------------------------------------------------------------------#
     objects = []
-    genericUsageControl = GenericUsageControl( bus )
+    genericUsageControl = GenericUsageControl( controller.bus )
     genericUsageControl.addResource( DummyResource( genericUsageControl, "GSM" ) )
     genericUsageControl.addResource( DummyResource( genericUsageControl, "GPS" ) )
     genericUsageControl.addResource( DummyResource( genericUsageControl, "Bluetooth" ) )
