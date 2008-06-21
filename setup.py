@@ -11,7 +11,7 @@ setup(
     author_email = "mlauer@vanille-media.de",
     url = "http://www.freesmartphone.org",
     ext_modules = [
-      Extension("framework.subsystems.odeviced.modules.wireless", ["framework/subsystems/odeviced/modules/wireless.pyx"], libraries = [])
+      Extension("framework.subsystems.odeviced.wireless", ["framework/subsystems/odeviced/wireless.pyx"], libraries = [])
       ],
     cmdclass = {'build_ext': build_ext},
     packages = [ x[0] for x in os.walk( "framework" ) ],
