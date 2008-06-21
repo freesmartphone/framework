@@ -187,7 +187,7 @@ class Device( dbus.service.Object ):
     @dbus.service.method( DBUS_INTERFACE_SIM, "ss", "",
                           async_callbacks=( "dbus_ok", "dbus_error" ) )
     def Unlock( self, puk, new_pin, dbus_ok, dbus_error ):
-        mediator.Unlock( self, dbus_ok, dbus_error, puk=puk, new_pin=new_pin )
+        mediator.SimUnlock( self, dbus_ok, dbus_error, puk=puk, new_pin=new_pin )
 
     @dbus.service.method( DBUS_INTERFACE_SIM, "ss", "",
                           async_callbacks=( "dbus_ok", "dbus_error" ) )
