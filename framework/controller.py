@@ -67,10 +67,16 @@ class Controller( object ):
                        if os.path.isdir( "%s/%s/modules" % ( path, entry ) ) ]
         for subsystem in subsystems:
             # add blacklisting subsystems in configuration
-            self.registerSubsystem( subsystem, path )
+            self.registerModulesInSubsystem( subsystem, path )
 
-    def registerSubsystem( self, subsystem, path ):
-        LOG( LOG_INFO, "found subsystem %s" % subsystem )
+        LOG( LOG_INFO, "==================" )
+        LOG( LOG_INFO, "objects registered" )
+        LOG( LOG_INFO, "==================" )
+        for obj in self.objects:
+            LOG( LOG_INFO, obj )
+
+    def registerModulesInSubsystem( self, subsystem, path ):
+        LOG( LOG_DEBUG, "found subsystem %s" % subsystem )
         # walk the modules path and find plugins
         for filename in os.listdir( "%s/%s/modules" % ( path, subsystem ) ):
             if filename.endswith( ".py" ): # FIXME: we should look for *.pyc, *.pyo, *.so as well
@@ -93,18 +99,17 @@ class Controller( object ):
                 except Exception, e:
                     LOG( LOG_ERR, "could not import %s: %s" % ( filename, e ) )
                 else:
-                    self.registerModule( subsystem, module, path )
+                    self.registerObjectsFromModule( subsystem, module, path )
 
-    def registerModule( self, subsystem, module, path ):
-        LOG( LOG_INFO, "...in subsystem %s: found module %s" % ( subsystem, module ) )
+    def registerObjectsFromModule( self, subsystem, module, path ):
+        LOG( LOG_DEBUG, "...in subsystem %s: found module %s" % ( subsystem, module ) )
         try:
             factory = getattr( module, "factory" )
         except AttributeError:
-            LOG( LOG_INFO, "no plugin: factory function not found in module %s" % module )
+            LOG( LOG_DEBUG, "no plugin: factory function not found in module %s" % module )
         else:
             for obj in factory( DBUS_INTERFACE_PREFIX, self ):
                 self.objects[obj.path] = obj
-            LOG( LOG_INFO, "ok" )
 
     def idle( self ):
         LOG( LOG_DEBUG, "in-mainloop initializer" )
