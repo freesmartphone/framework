@@ -64,7 +64,7 @@ class Controller( object ):
 
         # walk subsystems and find 'em
         subsystems = [ entry for entry in os.listdir( path )
-                       if os.path.isdir( "%s/%s/modules" % ( path, entry ) ) ]
+                       if os.path.isdir( "%s/%s" % ( path, entry ) ) ]
         for subsystem in subsystems:
             # add blacklisting subsystems in configuration
             self.registerModulesInSubsystem( subsystem, path )
@@ -78,7 +78,7 @@ class Controller( object ):
     def registerModulesInSubsystem( self, subsystem, path ):
         LOG( LOG_DEBUG, "found subsystem %s" % subsystem )
         # walk the modules path and find plugins
-        for filename in os.listdir( "%s/%s/modules" % ( path, subsystem ) ):
+        for filename in os.listdir( "%s/%s" % ( path, subsystem ) ):
             if filename.endswith( ".py" ): # FIXME: we should look for *.pyc, *.pyo, *.so as well
                 try:
                     modulename = filename[:-3]
@@ -90,7 +90,7 @@ class Controller( object ):
                         LOG( LOG_INFO, "skipping module '%s' as requested in '%s'" % ( modulename, p ) )
                         continue
                     module = __import__(
-                        name = ".".join( ["subsystems", subsystem, "modules", modulename] ),
+                        name = ".".join( ["subsystems", subsystem, modulename] ),
                         fromlist = ["factory"],
                         level = 0
                     )
