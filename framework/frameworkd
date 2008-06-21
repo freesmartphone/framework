@@ -18,7 +18,7 @@ from syslog import openlog, LOG_PERROR, LOG_DAEMON
 
 if __name__ == "__main__":
     possible_paths = "/local/pkg/fso/framework/framework /usr/lib/python2.5/site-packages/framework".split()
-    possible_paths.append( os.path.curdir )
+    possible_paths.append( os.environ.get( "PWD", "." ) )
     for path in possible_paths:
         if os.path.exists( path ):
             break

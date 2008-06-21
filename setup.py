@@ -1,6 +1,9 @@
 from distutils.core import setup
 from distutils.extension import Extension
 from Cython.Distutils import build_ext
+
+import os
+
 setup(
     name = "The FreeSmartphone Framework Daemon",
     version = "0.2.0+git",
@@ -8,10 +11,10 @@ setup(
     author_email = "mlauer@vanille-media.de",
     url = "http://www.freesmartphone.org",
     ext_modules = [
-      Extension("odeviced.modules.wireless", ["odeviced/modules/wireless.pyx"], libraries = [])
+      Extension("framework.subsystems.odeviced.modules.wireless", ["framework/subsystems/odeviced/modules/wireless.pyx"], libraries = [])
       ],
     cmdclass = {'build_ext': build_ext},
-    packages = [ "frameworkd", "frameworkd/modules" ],
-    scripts = [ "frameworkd/frameworkd" ],
+    packages = [ x[0] for x in os.walk( "framework" ) ],
+    scripts = [ "framework/frameworkd" ],
     data_files = [ ("etc/dbus-1/system.d", ["etc/dbus-1/system.d/frameworkd.conf"] ) ]
 )
