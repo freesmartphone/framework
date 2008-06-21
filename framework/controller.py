@@ -62,13 +62,18 @@ class Controller( object ):
         else:
             self.config = TheConfigParser()
 
-        # walk subsystem 
+        # walk subsystems and find 'em
+        subsystems = [ entry for entry in os.listdir( path )
+                       if os.path.isdir( "%s/%s/modules" % ( path, entry ) ) ]
+        for subsystem in subsystems:
+            # add blacklisting subsystems in configuration
+            self.registerSubsystem( subsystem, path )
 
-    def registerSubsystem( self, subsystem ):
+    def registerSubsystem( self, subsystem, path ):
         LOG( LOG_INFO, "found subsystem %s" % subsystem )
         # walk the modules path and find plugins
-        sys.path.append( path )
-        for filename in os.listdir( path ):
+        sys.path.append( "%s/%s/modules" % ( path, subsystem ) )
+        for filename in os.listdir( "%s/%s/modules" % ( path, subsystem ) ):
             if filename.endswith( ".py" ): # FIXME: we should look for *.pyc, *.pyo, *.so as well
                 try:
                     modulename = filename[:-3]
@@ -85,14 +90,14 @@ class Controller( object ):
                 except Exception, e:
                     LOG( LOG_ERR, "could not import %s: %s" % ( filename, e ) )
                 else:
-                    self.register( module )
+                    self.registerModule( subsystem, module, path )
 
-    def registerModule( self, subsystem, module ):
+    def registerModule( self, subsystem, module, path ):
         LOG( LOG_INFO, "...in subsystem %s: found module %s" % ( subsystem, module ) )
         try:
             factory = getattr( module, "factory" )
         except AttributeError:
-            LOG( LOG_INFO, "no plugin: factory function not found in module" )
+            LOG( LOG_INFO, "no plugin: factory function not found in module %s" % module )
         else:
             for obj in factory( DBUS_INTERFACE_PREFIX, self ):
                 self.objects[obj.path] = obj

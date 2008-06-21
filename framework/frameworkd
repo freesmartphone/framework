@@ -17,18 +17,18 @@ import os
 from syslog import openlog, LOG_PERROR, LOG_DAEMON
 
 if __name__ == "__main__":
-    possible_paths = "/local/pkg/fso/python-odeviced/odeviced /usr/lib/python2.5/site-packages/odeviced".split()
+    possible_paths = "/local/pkg/fso/framework/framework /usr/lib/python2.5/site-packages/framework".split()
     possible_paths.append( os.path.curdir )
     for path in possible_paths:
         if os.path.exists( path ):
             break
     else:
-        print >>sys.stderr, "did not find a modules path. Exiting."
+        print >>sys.stderr, "did not find a subsystems path. Exiting."
         sys.exit( -1 )
 
-    if "ODEVICED_DEBUG" in os.environ:
-        openlog( "py-odeviced", LOG_PERROR, LOG_DAEMON )
-    c = Controller( "%s/modules" % path )
+    if "FRAMEWORK_DEBUG" in os.environ:
+        openlog( "framework", LOG_PERROR, LOG_DAEMON )
+    c = Controller( "%s/subsystems" % path )
 
 try:
     c.run()
