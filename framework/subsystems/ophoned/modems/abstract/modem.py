@@ -11,7 +11,7 @@ Module: modem
 """
 
 from ophoned.gsm.decor import logged
-from ophoned.config import LOG, LOG_ERR, LOG_INFO, LOG_DEBUG
+from config import LOG, LOG_ERR, LOG_INFO, LOG_DEBUG
 
 import gobject
 

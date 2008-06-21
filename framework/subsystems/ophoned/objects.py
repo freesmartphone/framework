@@ -23,6 +23,7 @@ import dbus.service
 from dbus import DBusException
 from gobject import timeout_add, idle_add
 import weakref
+import sys, os
 
 DBUS_INTERFACE_DEVICE = "org.freesmartphone.GSM.Device"
 DBUS_INTERFACE_SIM = "org.freesmartphone.GSM.SIM"
@@ -372,6 +373,14 @@ class Device( dbus.service.Object ):
                           async_callbacks=( "dbus_ok", "dbus_error" ) )
     def Ping( self, dbus_ok, dbus_error ):
         dbus_ok()
+
+#=========================================================================#
+def factory( prefix, controller ):
+#=========================================================================#
+    sys.path.append( os.path.dirname( os.path.dirname( __file__ ) ) )
+    device = Device( controller.bus, "ti_calypso" )
+    server = Server( controller.bus, device )
+    return device, server
 
 #=========================================================================#
 if __name__ == "__main__":
