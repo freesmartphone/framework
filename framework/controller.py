@@ -72,8 +72,6 @@ class Controller( object ):
     def registerSubsystem( self, subsystem, path ):
         LOG( LOG_INFO, "found subsystem %s" % subsystem )
         # walk the modules path and find plugins
-        syspath = sys.path[:] # store old path
-        sys.path.append( "%s/%s/modules" % ( path, subsystem ) )
         for filename in os.listdir( "%s/%s/modules" % ( path, subsystem ) ):
             if filename.endswith( ".py" ): # FIXME: we should look for *.pyc, *.pyo, *.so as well
                 try:
@@ -85,14 +83,17 @@ class Controller( object ):
                     if disable:
                         LOG( LOG_INFO, "skipping module '%s' as requested in '%s'" % ( modulename, p ) )
                         continue
-                    module = __import__( modulename )
+                    module = __import__(
+                        name = ".".join( ["subsystems", subsystem, "modules", modulename] ),
+                        fromlist = ["factory"],
+                        level = 0
+                    )
                 except ImportError, e:
                     LOG( LOG_ERR, "could not import %s: %s" % ( filename, e ) )
                 except Exception, e:
                     LOG( LOG_ERR, "could not import %s: %s" % ( filename, e ) )
                 else:
                     self.registerModule( subsystem, module, path )
-        sys.path = syspath[:] # restore old path
 
     def registerModule( self, subsystem, module, path ):
         LOG( LOG_INFO, "...in subsystem %s: found module %s" % ( subsystem, module ) )
