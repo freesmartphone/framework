@@ -1,16 +1,9 @@
 DBUS_INTERFACE_PREFIX = "org.freesmartphone.Device"
 DBUS_PATH_PREFIX = "/org/freesmartphone/Device"
 
-import sys
 from syslog import syslog, LOG_ERR, LOG_WARNING, LOG_INFO, LOG_DEBUG
 from string import maketrans
-realpath = sys.path[:]
-sys.path.append( ".." )
-try:
-    from config import LOG
-except ImportError:
-    from odeviced.config import LOG
-sys.path = realpath[:]
+from framework.config import LOG
 
 # helpers
 def readFromFile( path ):

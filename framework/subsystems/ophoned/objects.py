@@ -16,7 +16,7 @@ Attributes:
 """
 
 import types
-from config import LOG, LOG_INFO, LOG_ERR, LOG_DEBUG
+from framework.config import LOG, LOG_INFO, LOG_ERR, LOG_DEBUG
 import dbus
 import dbus.service
 from dbus import DBusException

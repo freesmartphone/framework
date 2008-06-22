@@ -1,6 +1,6 @@
 import sys
 from syslog import syslog, LOG_ERR, LOG_WARNING, LOG_INFO, LOG_DEBUG
-from config import LOG
+from framework.config import LOG
 
 # helpers
 def readFromFile( path ):

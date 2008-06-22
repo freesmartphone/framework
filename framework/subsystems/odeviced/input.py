@@ -76,7 +76,7 @@ class Input( dbus.service.Object ):
         self.watches = {}
         self.events = {}
 
-        # FIXME parse these ones from config after milestone 1
+        # FIXME parse these ones from framework.config after milestone 1
         #self.watchForEvent( "Aux", "key", 0x1e )
         #self.watchForEvent( "Power", "key", 0x19 )
         self.watchForEvent( "AUX", "key", 169 )

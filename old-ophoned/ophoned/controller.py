@@ -11,7 +11,7 @@ import config
 import dbus
 import dbus.service
 from dbus.mainloop.glib import DBusGMainLoop
-from config import LOG, LOG_ERR, LOG_WARNING, LOG_INFO, LOG_DEBUG
+from framework.config import LOG, LOG_ERR, LOG_WARNING, LOG_INFO, LOG_DEBUG
 import objects
 import signal
 import gobject

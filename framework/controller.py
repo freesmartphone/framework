@@ -9,8 +9,8 @@ GPLv2 or later
 
 __version__ = "0.9.0"
 
-from config import DBUS_INTERFACE_PREFIX, DBUS_PATH_PREFIX
-from config import LOG, LOG_ERR, LOG_WARNING, LOG_INFO, LOG_DEBUG
+from framework.config import DBUS_INTERFACE_PREFIX, DBUS_PATH_PREFIX
+from framework.config import LOG, LOG_ERR, LOG_WARNING, LOG_INFO, LOG_DEBUG
 
 import dbus
 import dbus.service
@@ -90,7 +90,7 @@ class Controller( object ):
                         LOG( LOG_INFO, "skipping module '%s' as requested in '%s'" % ( modulename, p ) )
                         continue
                     module = __import__(
-                        name = ".".join( ["subsystems", subsystem, modulename] ),
+                        name = ".".join( ["framework.subsystems", subsystem, modulename] ),
                         fromlist = ["factory"],
                         level = 0
                     )
