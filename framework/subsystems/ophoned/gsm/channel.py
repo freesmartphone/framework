@@ -523,11 +523,6 @@ if __name__ == "__main__":
             data = serport.read()
             print ">>>>>>>>>>>>> GOT %d bytes '%s'" % ( len(data), repr(data) )
 
-    if not hasattr( gobject, "timeout_add_seconds" ):
-        def timeout_add_seconds( seconds, callback ):
-            return gobject.timeout_add( seconds*1000, callback )
-        gobject.timeout_add_seconds = timeout_add_seconds
-
     bus = dbus.SystemBus()
     misc = MiscChannel( bus, timeout=5 )
 #    call = CallChannel( bus, timeout=10 )

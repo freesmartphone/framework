@@ -12,6 +12,9 @@ __version__ = "0.9.0"
 from framework.config import DBUS_INTERFACE_PREFIX, DBUS_PATH_PREFIX
 from framework.config import LOG, LOG_ERR, LOG_WARNING, LOG_INFO, LOG_DEBUG
 
+import sys
+import os
+
 import dbus
 import dbus.service
 from dbus.mainloop.glib import DBusGMainLoop
@@ -21,13 +24,9 @@ from gobject import MainLoop, idle_add
 try: # not present in older glib versions
     from gobject import timeout_add_seconds
 except ImportError:
-    from gobject import timeout_add
-    def timeout_add_seconds( timeout, callback ):
-        return timeout_add( 1000 * timeout, callback )
-
+    LOG( LOG_ERR, "python-gobject >= 2.14.0 required" )
+    
 import ConfigParser
-import sys
-import os
 
 #----------------------------------------------------------------------------#
 class TheConfigParser( ConfigParser.SafeConfigParser ):

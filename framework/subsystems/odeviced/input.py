@@ -13,12 +13,7 @@ import dbus.service
 import sys, os, time, struct
 from Queue import Queue
 from syslog import syslog, LOG_ERR, LOG_WARNING, LOG_INFO, LOG_DEBUG
-from gobject import io_add_watch, IO_IN, source_remove, timeout_add, idle_add
-try:
-    from gobject import timeout_add_seconds
-except ImportError:
-    def timeout_add_seconds( timeout, *args ):
-        return timeout_add( timeout*1000, *args )
+from gobject import io_add_watch, IO_IN, source_remove, timeout_add, timeout_add_seconds, idle_add
 from itertools import count
 from helpers import LOG, DBUS_INTERFACE_PREFIX, DBUS_PATH_PREFIX, readFromFile, writeToFile, cleanObjectName
 import ConfigParser

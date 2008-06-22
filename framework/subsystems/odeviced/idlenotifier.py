@@ -26,11 +26,7 @@ import os
 import sys
 from syslog import syslog, LOG_ERR, LOG_WARNING, LOG_INFO, LOG_DEBUG
 from gobject import io_add_watch, IO_IN, source_remove, timeout_add
-try:
-    from gobject import timeout_add_seconds
-except ImportError:
-    def timeout_add_seconds( timeout, *args ):
-        return timeout_add( timeout*1000, *args )
+from gobject import timeout_add_seconds
 from itertools import count
 from helpers import LOG, DBUS_INTERFACE_PREFIX, DBUS_PATH_PREFIX, readFromFile, writeToFile
 import ConfigParser
