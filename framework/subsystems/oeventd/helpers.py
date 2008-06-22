@@ -1,12 +1,6 @@
 import sys
 from syslog import syslog, LOG_ERR, LOG_WARNING, LOG_INFO, LOG_DEBUG
-realpath = sys.path[:]
-sys.path.append( ".." )
-try:
-    from config import LOG
-except ImportError:
-    from oeventd.config import LOG
-sys.path = realpath[:]
+from config import LOG
 
 # helpers
 def readFromFile( path ):
