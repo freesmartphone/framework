@@ -1,5 +1,6 @@
-DBUS_INTERFACE_PREFIX = "org.freesmartphone.Device"
-DBUS_PATH_PREFIX = "/org/freesmartphone/Device"
+DBUS_BUS_NAME_PREFIX = "org.freesmartphone"
+DBUS_INTERFACE_PREFIX = "org.freesmartphone"
+DBUS_PATH_PREFIX = "/org/freesmartphone"
 
 VERSION = "0.0.0"
 

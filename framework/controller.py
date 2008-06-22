@@ -9,7 +9,7 @@ GPLv2 or later
 
 __version__ = "0.9.0"
 
-from framework.config import DBUS_INTERFACE_PREFIX, DBUS_PATH_PREFIX
+from framework.config import DBUS_BUS_NAME_PREFIX
 from framework.config import LOG, LOG_ERR, LOG_WARNING, LOG_INFO, LOG_DEBUG
 
 import sys
@@ -47,7 +47,7 @@ class Controller( object ):
         DBusGMainLoop( set_as_default=True )
         self.mainloop = MainLoop()
         self.bus = dbus.SystemBus()
-        self.busname = dbus.service.BusName( DBUS_INTERFACE_PREFIX, self.bus )
+        self.busnames = []
 
         # call me
         idle_add( self.idle )
@@ -66,6 +66,7 @@ class Controller( object ):
                        if os.path.isdir( "%s/%s" % ( path, entry ) ) ]
         for subsystem in subsystems:
             # add blacklisting subsystems in configuration
+            self.busnames.append( dbus.service.BusName( "%s.%s" % ( DBUS_BUS_NAME_PREFIX, subsystem ), self.bus ) )
             self.registerModulesInSubsystem( subsystem, path )
 
         LOG( LOG_INFO, "==================" )
@@ -107,8 +108,13 @@ class Controller( object ):
         except AttributeError:
             LOG( LOG_DEBUG, "no plugin: factory function not found in module %s" % module )
         else:
-            for obj in factory( DBUS_INTERFACE_PREFIX, self ):
-                self.objects[obj.path] = obj
+            try:
+                for obj in factory( "%s.%s" % ( DBUS_BUS_NAME_PREFIX, subsystem ), self ):
+                    self.objects[obj.path] = obj
+            except Exception, e:
+                    from traceback import format_exc
+                    LOG( LOG_ERROR, "factory method not successfully completed for module %s" % module )
+                    LOG( LOG_ERROR, format_exc() )
 
     def idle( self ):
         LOG( LOG_DEBUG, "in-mainloop initializer" )
