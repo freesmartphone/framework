@@ -12,20 +12,17 @@ __version__ = "0.9.0"
 from framework.config import DBUS_BUS_NAME_PREFIX
 from framework.config import LOG, LOG_ERR, LOG_WARNING, LOG_INFO, LOG_DEBUG
 
-import sys
-import os
-
-import dbus
-import dbus.service
+import sys, os
+import dbus, dbus.service
 from dbus.mainloop.glib import DBusGMainLoop
-
 from gobject import MainLoop, idle_add
 
 try: # not present in older glib versions
     from gobject import timeout_add_seconds
 except ImportError:
     LOG( LOG_ERR, "python-gobject >= 2.14.0 required" )
-    
+    sys.exit( -1 )
+
 import ConfigParser
 from optparse import OptionParser
 
@@ -44,10 +41,10 @@ class TheOptionParser( OptionParser ):
         OptionParser.__init__( self )
         self.set_defaults( overrides=[] )
         self.add_option("-o", "--override",
-            dest="overrides",
-            help="override configuration",
-            metavar="SECTION.KEY=VALUE",
-            action="append"
+            dest = "overrides",
+            help = "override configuration",
+            metavar = "SECTION.KEY=VALUE",
+            action = "append"
         )
 
 #----------------------------------------------------------------------------#
@@ -70,10 +67,11 @@ class Controller( object ):
         # config
         for p in [
                 os.path.expanduser( "~/.frameworkd.conf" ),
-                "/etc/frameworkd.conf", 
+                "/etc/frameworkd.conf",
                 os.path.join( os.path.dirname( __file__ ), "../conf/frameworkd.conf" )
             ]:
             if os.path.exists( p ):
+                LOG( LOG_INFO, "using configuration file", p )
                 self.config = TheConfigParser( p )
                 break
         else:
@@ -102,8 +100,10 @@ class Controller( object ):
         LOG( LOG_INFO, "==================" )
         LOG( LOG_INFO, "objects registered" )
         LOG( LOG_INFO, "==================" )
-        for obj in self.objects:
-            LOG( LOG_INFO, obj )
+        objectnames = self.objects.keys()
+        objectnames.sort()
+        for obj in objectnames:
+            LOG( LOG_INFO, obj, "[%s]" % self.objects[obj].interface )
 
     def registerModulesInSubsystem( self, subsystem, path ):
         LOG( LOG_DEBUG, "found subsystem %s" % subsystem )
