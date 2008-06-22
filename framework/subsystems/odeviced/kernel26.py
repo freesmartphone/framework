@@ -25,7 +25,7 @@ class Display( dbus.service.Object ):
 
     def __init__( self, bus, index, node ):
         self.interface = self.DBUS_INTERFACE
-        self.path = DBUS_PATH_PREFIX + "/Display/%s" % cleanObjectName(node.split("/")[-1])
+        self.path = DBUS_PATH_PREFIX + "/Display/%s" % cleanObjectName( node.split('/')[-1] )
         dbus.service.Object.__init__( self, bus, self.path )
         LOG( LOG_INFO, "%s initialized. Serving %s at %s" % ( self.__class__.__name__, self.interface, self.path ) )
         self.node = node
@@ -72,7 +72,7 @@ class LED( dbus.service.Object ):
 
     def __init__( self, bus, index, node ):
         self.interface = self.DBUS_INTERFACE
-        self.path = DBUS_PATH_PREFIX + "/LED/%s" % cleanObjectName(node.split("/")[-1])
+        self.path = DBUS_PATH_PREFIX + "/LED/%s" % cleanObjectName( node.split('/')[-1] )
         dbus.service.Object.__init__( self, bus, self.path )
         LOG( LOG_INFO, "%s initialized. Serving %s at %s" % ( self.__class__.__name__, self.interface, self.path ) )
         self.node = node
@@ -117,7 +117,7 @@ class PowerSupply( dbus.service.Object ):
 
     def __init__( self, bus, index, node ):
         self.interface = self.DBUS_INTERFACE
-        self.path = DBUS_PATH_PREFIX + "/PowerSupply/%s" % cleanObjectName(node.split("/")[-1])
+        self.path = DBUS_PATH_PREFIX + "/PowerSupply/%s" % cleanObjectName( node.split('/')[-1] )
         dbus.service.Object.__init__( self, bus, self.path )
         LOG( LOG_INFO, "%s initialized. Serving %s at %s" % ( self.__class__.__name__, self.interface, self.path ) )
         self.node = node
@@ -160,7 +160,7 @@ class PowerSupplyApm( dbus.service.Object ):
 
     def __init__( self, bus, index, node ):
         self.interface = self.DBUS_INTERFACE
-        self.path = DBUS_PATH_PREFIX + "/PowerSupply/%s" % cleanObjectName(node.split("/")[-1])
+        self.path = DBUS_PATH_PREFIX + "/PowerSupply/%s" % cleanObjectName( node.split('/')[-1] )
         dbus.service.Object.__init__( self, bus, self.path )
         LOG( LOG_INFO, "%s initialized. Serving %s at %s" % ( self.__class__.__name__, self.interface, self.path ) )
         self.node = node
@@ -198,7 +198,7 @@ class RealTimeClock( dbus.service.Object ):
 
     def __init__( self, bus, index, node ):
         self.interface = self.DBUS_INTERFACE
-        self.path = DBUS_PATH_PREFIX + "/RealTimeClock/%s" % cleanObjectName(node.split("/")[-1])
+        self.path = DBUS_PATH_PREFIX + "/RealTimeClock/%s" % cleanObjectName( node.split('/')[-1] )
         dbus.service.Object.__init__( self, bus, self.path )
         LOG( LOG_INFO, "%s initialized. Serving %s at %s" % ( self.__class__.__name__, self.interface, self.path ) )
         self.node = node
