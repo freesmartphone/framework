@@ -112,6 +112,10 @@ class Device( dbus.service.Object ):
             from modems.freescale_neptune.modem import FreescaleNeptune as Modem
             global mediator
             import modems.freescale_neptune.mediator as mediator
+        elif modemtype == "sierra":
+            from modems.sierra.modem import Sierra as Modem
+            global mediator
+            import modems.sierra.mediator as mediator
         else:
             LOG( LOG_ERR, "Unsupported modem type %s" % modemtype )
             return
