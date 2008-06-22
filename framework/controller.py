@@ -27,6 +27,7 @@ except ImportError:
     LOG( LOG_ERR, "python-gobject >= 2.14.0 required" )
     
 import ConfigParser
+from optparse import OptionParser
 
 #----------------------------------------------------------------------------#
 class TheConfigParser( ConfigParser.SafeConfigParser ):
@@ -35,6 +36,19 @@ class TheConfigParser( ConfigParser.SafeConfigParser ):
         ConfigParser.SafeConfigParser.__init__( self )
         if filename is not None:
             self.read( filename )
+
+#----------------------------------------------------------------------------#
+class TheOptionParser( OptionParser ):
+#----------------------------------------------------------------------------#
+    def __init__( self ):
+        OptionParser.__init__( self )
+        self.set_defaults( overrides=[] )
+        self.add_option("-o", "--override",
+            dest="overrides",
+            help="override configuration",
+            metavar="SECTION.KEY=VALUE",
+            action="append"
+        )
 
 #----------------------------------------------------------------------------#
 class Controller( object ):
@@ -60,6 +74,18 @@ class Controller( object ):
                 break
         else:
             self.config = TheConfigParser()
+
+        # options
+        self.options = TheOptionParser()
+        self.options.parse_args()
+
+        # overrides
+        for override in self.options.values.overrides:
+            left, value = override.split( '=', 1 )
+            section, key = left.split( '.', 1 )
+            if not self.config.has_section( section ):
+                self.config.add_section( section )
+            self.config.set( section, key, value )
 
         # walk subsystems and find 'em
         subsystems = [ entry for entry in os.listdir( path )
