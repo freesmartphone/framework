@@ -380,7 +380,8 @@ class Device( dbus.service.Object ):
 def factory( prefix, controller ):
 #=========================================================================#
     sys.path.append( os.path.dirname( os.path.dirname( __file__ ) ) )
-    device = Device( controller.bus, "ti_calypso" )
+    modemtype = controller.config.get( "ophoned", "modemtype" )
+    device = Device( controller.bus, modemtype )
     server = Server( controller.bus, device )
     return device, server
 

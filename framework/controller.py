@@ -68,7 +68,11 @@ class Controller( object ):
         timeout_add_seconds( 50, self.timeout )
 
         # config
-        for p in [ os.path.expanduser( "~/.frameworkd.conf" ), "/etc/frameworkd.conf" ]:
+        for p in [
+                os.path.expanduser( "~/.frameworkd.conf" ),
+                "/etc/frameworkd.conf", 
+                os.path.join( os.path.dirname( __file__ ), "../conf/frameworkd.conf" )
+            ]:
             if os.path.exists( p ):
                 self.config = TheConfigParser( p )
                 break
@@ -139,8 +143,8 @@ class Controller( object ):
                     self.objects[obj.path] = obj
             except Exception, e:
                     from traceback import format_exc
-                    LOG( LOG_ERROR, "factory method not successfully completed for module %s" % module )
-                    LOG( LOG_ERROR, format_exc() )
+                    LOG( LOG_ERR, "factory method not successfully completed for module %s" % module )
+                    LOG( LOG_ERR, format_exc() )
 
     def idle( self ):
         LOG( LOG_DEBUG, "in-mainloop initializer" )
