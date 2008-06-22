@@ -15,8 +15,9 @@ import os
 from syslog import openlog, LOG_PERROR, LOG_DAEMON
 
 try:
-    import controller
+    from framework import controller
 except ImportError:
+    sys.path.append( os.path.dirname( os.path.abspath( os.path.curdir ) ) )
     from framework import controller
 
 if __name__ == "__main__":
