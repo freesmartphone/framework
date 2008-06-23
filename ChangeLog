@@ -1,0 +1,8 @@
+2008-06-21	Jan Luebbe	<jluebbe@debian.org>
+
+	* Move individual daemons into a common framework daemon
+
+2008-06-17	Michael Lauer   <mickey@vanille-media.de>
+
+	* Release 0.1.0 (Framework Milestone 1)
+
