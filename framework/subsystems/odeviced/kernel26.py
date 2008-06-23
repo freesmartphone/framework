@@ -138,7 +138,7 @@ class PowerSupply( dbus.service.Object ):
         return dict
 
     @dbus.service.method( DBUS_INTERFACE, "", "i" )
-    def GetChargingPercentage( self ):
+    def GetEnergyPercentage( self ):
         capacity = readFromFile( "%s/capacity" % self.node )
         if capacity != "N/A":
             return int(capacity)
