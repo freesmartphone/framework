@@ -40,11 +40,18 @@ class TheOptionParser( OptionParser ):
     def __init__( self ):
         OptionParser.__init__( self )
         self.set_defaults( overrides=[] )
-        self.add_option("-o", "--override",
+        self.add_option( "-o", "--override",
             dest = "overrides",
             help = "override configuration",
             metavar = "SECTION.KEY=VALUE",
             action = "append"
+        )
+        self.add_option( "-s", "--subsystems",
+            metavar = "system1,system2,system3,...",
+            dest = "subsystems",
+            default = "",
+            help = "launch following subsystems (default=all)",
+            action = "store",
         )
 
 #----------------------------------------------------------------------------#
@@ -89,11 +96,16 @@ class Controller( object ):
                 self.config.add_section( section )
             self.config.set( section, key, value )
 
+        systemstolaunch = self.options.values.subsystems.split( ',' )
+
         # walk subsystems and find 'em
         subsystems = [ entry for entry in os.listdir( path )
                        if os.path.isdir( "%s/%s" % ( path, entry ) ) ]
         for subsystem in subsystems:
-            # add blacklisting subsystems in configuration
+            if systemstolaunch != [""]:
+                if subsystem not in systemstolaunch:
+                    LOG( LOG_INFO, "skipping subsystem", subsystem, "due to command line configuration" )
+                    continue
             self.busnames.append( dbus.service.BusName( "%s.%s" % ( DBUS_BUS_NAME_PREFIX, subsystem ), self.bus ) )
             self.registerModulesInSubsystem( subsystem, path )
 
