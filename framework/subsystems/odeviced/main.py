@@ -32,7 +32,7 @@ class Main( dbus.service.Object ):
     # dbus methods
     #
     @dbus.service.method( DBUS_INTERFACE, "s", "ao" )
-    def List( self, interface ):
+    def ListObjectsByInterface( self, interface ):
         if interface == "*":
             return [x for x in self.controller.objects.values()]
         elif interface.endswith( '*' ):
