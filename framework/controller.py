@@ -96,9 +96,15 @@ class Controller( object ):
                 self.config.add_section( section )
             self.config.set( section, key, value )
 
-        systemstolaunch = self.options.values.subsystems.split( ',' )
+        # framework subsystem / management object will always be there
+        subsystem = "frameworkd"
+        from .objectquery import factory
+        self.busnames.append( dbus.service.BusName( "%s.%s" % ( DBUS_BUS_NAME_PREFIX, subsystem ), self.bus ) )
+        self.framework = factory( "%s.%s" % ( DBUS_BUS_NAME_PREFIX, subsystem ), self )
 
         # walk subsystems and find 'em
+        systemstolaunch = self.options.values.subsystems.split( ',' )
+
         subsystems = [ entry for entry in os.listdir( path )
                        if os.path.isdir( "%s/%s" % ( path, entry ) ) ]
         for subsystem in subsystems:
@@ -168,3 +174,9 @@ class Controller( object ):
 
     def run( self ):
         self.mainloop.run()
+
+#----------------------------------------------------------------------------#
+if __name__ == "__main__":
+    import dbus
+    bus = dbus.SystemBus()
+
