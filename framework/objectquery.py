@@ -53,3 +53,5 @@ if __name__ == "__main__":
 
     query = bus.get_object( "org.freesmartphone.frameworkd", "/org/freesmartphone/Framework" )
     objects = query.ListObjectsByInterface( '*' )
+
+    phone = bus.get_object( "org.freesmartphone.ophoned", "/org/freesmartphone/GSM/Device" )

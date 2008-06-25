@@ -15,7 +15,7 @@ from helpers import LOG, DBUS_INTERFACE_PREFIX, DBUS_PATH_PREFIX, readFromFile, 
 import ConfigParser
 
 #----------------------------------------------------------------------------#
-class Input( dbus.service.Object ):
+class Info( dbus.service.Object ):
 #----------------------------------------------------------------------------#
     """A Dbus Object implementing org.freesmartphone.Device.Info"""
     DBUS_INTERFACE = DBUS_INTERFACE_PREFIX + ".Info"

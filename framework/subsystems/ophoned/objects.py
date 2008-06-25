@@ -28,6 +28,7 @@ DBUS_INTERFACE_DEVICE = "org.freesmartphone.GSM.Device"
 DBUS_INTERFACE_SIM = "org.freesmartphone.GSM.SIM"
 DBUS_INTERFACE_NETWORK = "org.freesmartphone.GSM.Network"
 DBUS_INTERFACE_CALL = "org.freesmartphone.GSM.Call"
+DBUS_INTERFACE_PDP = "org.freesmartphone.GSM.PDP"
 
 DBUS_INTERFACE_SERVER = "org.freesmartphone.GSM.Server"
 
@@ -93,6 +94,7 @@ class Device( dbus.service.Object ):
     """
 
     def __init__( self, bus, modemtype ):
+        self.bus = bus
         self.interface = DBUS_INTERFACE_DEVICE
         self.path = DBUS_OBJECT_PATH_DEVICE
         dbus.service.Object.__init__( self, bus, self.path )
@@ -352,6 +354,15 @@ class Device( dbus.service.Object ):
     # GetDtmfDuration
     # SetSendID
     # GetSendID
+
+    #
+    # dbus org.freesmartphone.GSM.PDP
+    #
+    @dbus.service.method( DBUS_INTERFACE_PDP, "", "" )
+    def ActivateContext( self ):
+        from .pdp.ppp import GprsHandler
+        self.ppp = GprsHandler( self.bus )
+        self.ppp.Activate( True )
 
     #
     # dbus org.freesmartphone.GSM.Test
