@@ -4,6 +4,11 @@ from Cython.Distutils import build_ext
 
 import os
 
+# Get the list of all the packages
+packages = [ x[0] for x in os.walk( "framework" ) ]
+# This one is not a packages, just for testing
+packages.remove('framework/subsystems/opreferencesd/test')
+
 setup(
     name = "The FreeSmartphone Framework Daemon",
     version = "0.2.0+git",
@@ -14,7 +19,11 @@ setup(
       Extension("framework.subsystems.odeviced.wireless", ["framework/subsystems/odeviced/wireless.pyx"], libraries = [])
       ],
     cmdclass = {'build_ext': build_ext},
-    packages = [ x[0] for x in os.walk( "framework" ) ],
+    packages = packages,
     scripts = [ "framework/frameworkd" ],
-    data_files = [ ("etc/dbus-1/system.d", ["etc/dbus-1/system.d/frameworkd.conf"] ) ]
+    data_files = [
+        ("etc/dbus-1/system.d", ["etc/dbus-1/system.d/frameworkd.conf"] ),
+        ("etc/freesmartphone/opreferences/schema/", ["etc/freesmartphone/opreferences/schema/profiles.yaml"]),
+        ("etc/freesmartphone/opreferences/conf/", ["etc/freesmartphone/opreferences/conf/profiles.yaml"])
+    ]
 )
