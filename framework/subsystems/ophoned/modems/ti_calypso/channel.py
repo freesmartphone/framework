@@ -12,13 +12,19 @@ This module contains communication channel abstractions that
 transport their data over a (virtual) serial line.
 """
 
+import time
+import itertools
+import select
+
 from ophoned.gsm.decor import logged
 from ophoned.gsm.channel import AtCommandChannel
 from ophoned.gsm.callback import SimpleCallback
 
 #=========================================================================#
-class GenericModemChannel( AtCommandChannel ):
+class CalypsoModemChannel( AtCommandChannel ):
 #=========================================================================#
+    modem_communication_timestamp = 1
+
     def __init__( self, *args, **kwargs ):
         AtCommandChannel.__init__( self, *args, **kwargs )
 
@@ -30,13 +36,89 @@ class GenericModemChannel( AtCommandChannel ):
         self.enqueue( '+CSCS="8859-1" ') # character set conversion: use 8859-1 (latin 1)
         self.enqueue( "+CSDH=1" ) # show text mode parameters: show values
 
+    @logged
+    def _hookLowLevelInit( self ):
+        """
+        Low level initialization of channel.
+
+        This is actually an ugly hack which is unfortunately
+        necessary since the TI multiplexer obviously has problems
+        wrt. to initialization (swallowing first bunch of commands etc.)
+        To work around this, we send '\x1a\r\n' until we actually get an
+        'OK' from the modem. We try this for 5 times, then we reopen
+        the serial line. If after 10 times we still have no response,
+        we assume that the modem is broken and fail.
+        """
+        for i in itertools.count():
+            print "(modem init... try #%d)" % ( i+1 )
+            select.select( [], [self.serial.fd], [], 0.5 )
+            self.serial.write( "\x1a\r\n" )
+            r, w, x = select.select( [self.serial.fd], [], [], 0.5 )
+            if r:
+                try:
+                    buf = self.serial.inWaiting()
+                except:
+                    self.serial.close()
+                    path = self._requestChannelPath()
+                    if not path:
+                        return False
+                    self.serial.port = str( path )
+                    self.serial.open()
+                    buf = self.serial.inWaiting()
+                ok = self.serial.read(buf).strip()
+                print "read:", repr(ok)
+                if "OK" in ok or "AT" in ok:
+                    break
+            print "(modem not responding)"
+            if i == 5:
+                print "(reopening modem)"
+                self.serial.close()
+                path = self._requestChannelPath()
+                if not path:
+                    return False
+                self.serial.port = str( path )
+                self.serial.open()
+
+            if i == 10:
+                print "(giving up)"
+                self.serial.close()
+                return False
+        print "(modem responding)"
+        self.serial.flushInput()
+
+        # reset global modem communication timestamp
+        if CalypsoModemChannel.modem_communication_timestamp:
+            CalypsoModemChannel.modem_communication_timestamp = time.time()
+
+        return True
+
+    def _hookPreReading( self ):
+        if CalypsoModemChannel.modem_communication_timestamp:
+            CalypsoModemChannel.modem_communication_timestamp = time.time()
+
+    def _hookPostReading( self ):
+        pass
+
+    def _hookPreSending( self ):
+        if CalypsoModemChannel.modem_communication_timestamp:
+            current_time = time.time()
+            if current_time - CalypsoModemChannel.modem_communication_timestamp > 7:
+                print "(%s: last communication with modem was %d seconds ago. Sending EOF to wakeup)" % ( repr(self), int(current_time - CalypsoModemChannel.modem_communication_timestamp) )
+                self.serial.write( "\x1a" )
+                time.sleep( 0.2 )
+            CalypsoModemChannel.modem_communication_timestamp = current_time
+
+    def _hookPostSending( self ):
+        if CalypsoModemChannel.modem_communication_timestamp:
+            CalypsoModemChannel.modem_communication_timestamp = time.time()
+
 #=========================================================================#
-class CallChannel( GenericModemChannel ):
+class CallChannel( CalypsoModemChannel ):
 #=========================================================================#
     def __init__( self, *args, **kwargs ):
         if not "timeout" in kwargs:
             kwargs["timeout"] = 60*60
-        GenericModemChannel.__init__( self, *args, **kwargs )
+        CalypsoModemChannel.__init__( self, *args, **kwargs )
         self.callback = None
 
     def setIntermediateResponseCallback( self, callback ):
@@ -50,15 +132,15 @@ class CallChannel( GenericModemChannel ):
             print "CALLCHANNEL: UNHANDLED INTERMEDIATE: ", response
 
 #=========================================================================#
-class MiscChannel( GenericModemChannel ):
+class MiscChannel( CalypsoModemChannel ):
 #=========================================================================#
     pass
 
 #=========================================================================#
-class UnsolicitedResponseChannel( GenericModemChannel ):
+class UnsolicitedResponseChannel( CalypsoModemChannel ):
 #=========================================================================#
     def __init__( self, *args, **kwargs ):
-        GenericModemChannel.__init__( self, *args, **kwargs )
+        CalypsoModemChannel.__init__( self, *args, **kwargs )
 
         self.enqueue( "+CLIP=1" ) # calling line identification presentation enable
         self.enqueue( "+COLP=1" ) # connected line identification presentation enable

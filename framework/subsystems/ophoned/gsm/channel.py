@@ -16,11 +16,8 @@ import dbus
 import gobject
 import serial
 import Queue
-import select
-import itertools
 import fcntl, os
 import parser
-import time
 from ophoned.gsm.decor import logged
 
 #=========================================================================#
@@ -43,7 +40,6 @@ class VirtualChannel( object ):
     * standalone (talking over a serial port to the modem)
     * multiplexed (talking over a multiplexed virtual channel to the modem)
     """
-    modem_communication_timestamp = 1
 
     DEBUGLOG = 0
 
@@ -92,12 +88,8 @@ class VirtualChannel( object ):
         # nonblocking
         # fcntl.fcntl( self.serial.fd, fcntl.F_SETFL, os.O_NONBLOCK )
 
-        if not self._lowlevelInit():
+        if not self._hookLowLevelInit():
             return False
-
-        # reset global modem communication timestamp
-        if VirtualChannel.modem_communication_timestamp:
-            VirtualChannel.modem_communication_timestamp = time.time()
 
         # set up I/O watches for mainloop
         self.watchReadyToRead = gobject.io_add_watch( self.serial.fd, gobject.IO_IN, self._readyToRead )
@@ -166,6 +158,29 @@ class VirtualChannel( object ):
         return not self.connected
 
     #
+    # hooks
+    #
+    def _hookLowLevelInit( self ):
+        """Override, if your channel needs a special low level init."""
+        pass
+
+    def _hookPreReading( self ):
+        """Override, if the channel needs to be prepared for reading."""
+        pass
+
+    def _hookPostReading( self ):
+        """Override, if special handling is necessary after reading."""
+        pass
+
+    def _hookPreSending( self ):
+        """Override, if special handling is necessary before reading."""
+        pass
+
+    def _hookPostSending( self ):
+        """Override, if special handling is necessary after reading."""
+        pass
+
+    #
     # private API
     #
     def _requestChannelPath( self ):
@@ -173,57 +188,6 @@ class VirtualChannel( object ):
         oMuxer = self.bus.get_object( "org.pyneo.muxer", "/org/pyneo/Muxer" )
         self.iMuxer = dbus.Interface( oMuxer, "org.freesmartphone.GSM.MUX" )
         return self.iMuxer.AllocChannel( self.name )
-
-    @logged
-    def _lowlevelInit( self ):
-        """
-        Low level initialization of channel.
-
-        This is actually an ugly hack which is unfortunately
-        necessary since some multiplexers in modems have problems
-        wrt. to initialization (swallowing first bunch of commands etc.)
-        To work around this, we send '\x1a\r\n' until we actually get an
-        'OK' from the modem. We try this for 5 times, then we reopen
-        the serial line. If after 10 times we still have no response,
-        we assume that the modem is broken and fail.
-        """
-        for i in itertools.count():
-            print "(modem init... try #%d)" % ( i+1 )
-            select.select( [], [self.serial.fd], [], 0.5 )
-            self.serial.write( "\x1a\r\n" )
-            r, w, x = select.select( [self.serial.fd], [], [], 0.5 )
-            if r:
-                try:
-                    buf = self.serial.inWaiting()
-                except:
-                    self.serial.close()
-                    path = self._requestChannelPath()
-                    if not path:
-                        return False
-                    self.serial.port = str( path )
-                    self.serial.open()
-                    buf = self.serial.inWaiting()
-                ok = self.serial.read(buf).strip()
-                print "read:", repr(ok)
-                if "OK" in ok or "AT" in ok:
-                    break
-            print "(modem not responding)"
-            if i == 5:
-                print "(reopening modem)"
-                self.serial.close()
-                path = self._requestChannelPath()
-                if not path:
-                    return False
-                self.serial.port = str( path )
-                self.serial.open()
-
-            if i == 10:
-                print "(giving up)"
-                self.serial.close()
-                return False
-        print "(modem responding)"
-        self.serial.flushInput()
-        return True
 
     @logged
     def _hup( self, source, condition ):
@@ -242,10 +206,7 @@ class VirtualChannel( object ):
         assert source == self.serial.fd, "ready to read on bogus source"
         assert condition == gobject.IO_IN, "ready to read on bogus condition"
 
-        # <this will move into modem plugins as it is specific to the Ti Calypso deep sleep>
-        if VirtualChannel.modem_communication_timestamp:
-            VirtualChannel.modem_communication_timestamp = time.time()
-        # </this will move into modem plugins as it is specific to the Ti Calypso deep sleep>
+        self._hookPreReading()
 
         try:
             inWaiting = self.serial.inWaiting()
@@ -256,6 +217,8 @@ class VirtualChannel( object ):
         if VirtualChannel.DEBUGLOG:
             self.debugFile.write( data )
         self.readyToRead( data )
+
+        self._hookPostReading()
         return True
 
     @logged
@@ -264,23 +227,11 @@ class VirtualChannel( object ):
         assert source == self.serial.fd, "ready to write on bogus source"
         assert condition == gobject.IO_OUT, "ready to write on bogus condition"
 
-        # <this will move into modem plugins as it is specific to the Ti Calypso deep sleep>
-        if VirtualChannel.modem_communication_timestamp:
-            current_time = time.time()
-            if current_time - VirtualChannel.modem_communication_timestamp > 7:
-                print "(%s: last communication with modem was %d seconds ago. Sending EOF to wakeup)" % ( repr(self), int(current_time - VirtualChannel.modem_communication_timestamp) )
-                self.serial.write( "\x1a" )
-                time.sleep( 0.2 )
-            VirtualChannel.modem_communication_timestamp = current_time
-        # </this will move into modem plugins as it is specific to the Ti Calypso deep sleep>
 
+        self._hookPreSending()
         self.readyToSend()
         self.watchReadyToSend = None
-
-        # <this will move into modem plugins as it is specific to the Ti Calypso deep sleep>
-        if VirtualChannel.modem_communication_timestamp:
-            VirtualChannel.modem_communication_timestamp = time.time()
-        # </this will move into modem plugins as it is specific to the Ti Calypso deep sleep>
+        self._hookPostSending()
 
         return False
 
