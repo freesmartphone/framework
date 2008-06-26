@@ -612,12 +612,6 @@ class NetworkRegisterWithProvider( NetworkMediator ):
         self._commchannel.enqueue( '+COPS=1,2,"%d"' % self.operator_code, self.responseFromChannel, self.errorFromChannel, timeout=const.TIMEOUT["COPS"] )
 
 #=========================================================================#
-class NetworkRegisterWithProvider( NetworkMediator ):
-#=========================================================================#
-    def trigger( self ):
-        self._commchannel.enqueue( '+COPS=1,2,"%d"' % self.operator_code, self.responseFromChannel, self.errorFromChannel, timeout=const.TIMEOUT["COPS"] )
-
-#=========================================================================#
 class NetworkGetCountryCode( NetworkMediator ):
 #=========================================================================#
     def __init__( self, dbus_object, dbus_ok, dbus_error, **kwargs ):
