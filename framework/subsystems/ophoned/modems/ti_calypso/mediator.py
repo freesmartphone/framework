@@ -90,7 +90,7 @@ class CallHandler( object ):
 
     def statusChangeFromNetwork( self, callId, info ):
         self._calls[callId].update( info )
-        if info["status"] == "release":
+        if self._calls[callId]["status"] == "release":
             self._calls[callId] = { "status":"release" }
         self._updateStatus( callId )
 

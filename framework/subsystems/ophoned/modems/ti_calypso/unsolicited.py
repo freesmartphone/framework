@@ -29,6 +29,24 @@ class UnsolicitedResponseDelegate( AbstractUnsolicitedResponseDelegate ):
     def plusCCWA( self, righthandside ):
         pass
 
+    # +CSSU: 2,,"",128
+    def plusCSSU( self, righthandside ):
+        code, index, number, type = righthandside.split( "," )
+
+    # %CCCN: 0,0,A10E02010402011030068101428F0101
+    def percentCCCN( self, righthandside ):
+        direction, callId, ie = righthandside.split( "," )
+        # this is ASN.1 BER, but we don't want a full decoder here
+        info = {}
+        if ie[0:8]+ie[10:30] == "A10E020102011030068101428F01":
+            info["held"] = bool( int( ie[30:32], 16 ) )
+        if info:
+            self._mediator.callHandler.statusChangeFromNetwork( int(callId)+1, info )
+
+    # %CSSN: 1,0,A11502010802013B300D04010F0408AA510C0683C16423
+    def percentCSSN( self, righthandside ):
+        direction, transPart, ie = righthandside.split( "," )
+
     # %CPI: 1,0,0,0,1,0,"+491772616464",145,,,0
     def percentCPI( self, righthandside ):
         """
