@@ -4,9 +4,10 @@ The Open Device Daemon - Python Implementation
 
 (C) 2008 Michael 'Mickey' Lauer <mlauer@vanille-media.de>
 (C) 2008 Openmoko, Inc.
+
 GPLv2 or later
 
-Package: abstract
+Package: ophoned.modems.abstract
 Module: modem
 """
 
@@ -18,6 +19,7 @@ import gobject
 #=========================================================================#
 class AbstractModem( object ):
 #=========================================================================#
+    """This class abstracts a GSM Modem."""
     instance = None
 
     @logged
@@ -44,6 +46,9 @@ class AbstractModem( object ):
             gobject.idle_add( self._initChannels, callback )
 
     def channel( self, category ):
+        """
+        Returns the communication channel for certain command category
+        """
         assert False, "pure virtual method called"
 
     def prepareForSuspend( self, ok_callback, error_callback ):

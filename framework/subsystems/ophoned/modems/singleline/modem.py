@@ -34,4 +34,6 @@ class SingleLine( AbstractModem ):
         self._channels["UNSOL"].setDelegate( UnsolicitedResponseDelegate( self._object, mediator ) )
 
     def channel( self, category ):
+            # we do not care about a category here, we only have one channel
             return self._channels["SINGLE"]
+

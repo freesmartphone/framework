@@ -4,7 +4,11 @@ The Open Device Daemon - Python Implementation
 
 (C) 2008 Michael 'Mickey' Lauer <mlauer@vanille-media.de>
 (C) 2008 Openmoko, Inc.
+
 GPLv2 or later
+
+Package: ophoned.modems.abstract
+Module: unsolicited
 """
 
 from ophoned.gsm.decor import logged
@@ -27,6 +31,7 @@ class AbstractUnsolicitedResponseDelegate( object ):
     #
 
     @logged
+    # +CREG: 1,"000F","032F"
     def plusCREG( self, righthandside ):
         values = righthandside.split( ',' )
         self.register = const.REGISTER_STATUS[int(values[0])]
@@ -37,6 +42,7 @@ class AbstractUnsolicitedResponseDelegate( object ):
         self._mediator.NetworkGetStatus( self._object, self.statusOK, self.statusERR )
 
     @logged
+    # +CRING: VOICE
     def plusCRING( self, calltype ):
         if calltype == "VOICE":
             self._mediator.Call.ring( self._object, calltype )

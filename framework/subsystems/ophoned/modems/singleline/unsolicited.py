@@ -4,7 +4,11 @@ The Open Device Daemon - Python Implementation
 
 (C) 2008 Michael 'Mickey' Lauer <mlauer@vanille-media.de>
 (C) 2008 Openmoko, Inc.
+
 GPLv2 or later
+
+Package: ophoned.modems.singleline
+Module: unsolicited
 """
 
 from ..abstract.unsolicited import AbstractUnsolicitedResponseDelegate

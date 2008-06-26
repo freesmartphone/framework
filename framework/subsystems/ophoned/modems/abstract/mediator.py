@@ -201,6 +201,15 @@ class CallMediator( AbstractMediator, AbstractYieldSupport ):
         AbstractYieldSupport.__init__( self, *args, **kwargs )
 
 #=========================================================================#
+class PdpMediator( AbstractMediator, AbstractYieldSupport ):
+#=========================================================================#
+    def __init__( self, *args, **kwargs ):
+        AbstractMediator.__init__( self, *args, **kwargs )
+        # this is a bit ugly, but how should we get the channel elsewhere?
+        self._commchannel = self._object.modem.communicationChannel( "PdpMediator" )
+        AbstractYieldSupport.__init__( self, *args, **kwargs )
+
+#=========================================================================#
 class TestMediator( AbstractMediator, AbstractYieldSupport ):
 #=========================================================================#
     def __init__( self, *args, **kwargs ):
@@ -613,6 +622,16 @@ class NetworkGetCountryCode( NetworkMediator ):
 #=========================================================================#
     def __init__( self, dbus_object, dbus_ok, dbus_error, **kwargs ):
         dbus_error( error.UnsupportedCommand( self.__class__.__name__ ) )
+
+#
+# FIXME Here comes the call handling for the abstract modem, i.e. no additional
+# commands available to check for network status. This was the first incarnation
+# and it's broken. It should be rewritten in line with the state machine of the
+# TI Calypso call handling. Account for the missing %CPI commands by calling +CCLD
+# frequently to sync the state machine with the actual state of affairs.
+#
+# Until then I consider this code not being working at all.
+#
 
 #=========================================================================#
 class CallInitiate( CallMediator ):

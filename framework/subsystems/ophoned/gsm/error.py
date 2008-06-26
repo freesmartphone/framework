@@ -48,6 +48,9 @@ class AbstractNetworkException( DBusException ):
 class AbstractCallException( DBusException ):
     _dbus_error_name = "org.freesmartphone.GSM.Call"
 
+class AbstractPdpException( DBusException ):
+    _dbus_error_name = "org.freesmartphone.GSM.PDP"
+
 #=========================================================================#
 # Device exceptions
 #=========================================================================#
@@ -97,8 +100,22 @@ class NetworkNotFound( AbstractNetworkException ):
 # Call exceptions
 #=========================================================================#
 
+class CallNoCarrier( AbstractCallException ):
+    _dbus_error_name = "org.freesmartphone.Call.NoCarrier"
+
 class CallNotFound( AbstractCallException ):
     _dbus_error_name = "org.freesmartphone.Call.NotFound"
 
-class CallNoCarrier( AbstractCallException ):
-    _dbus_error_name = "org.freesmartphone.Call.NoCarrier"
+
+#=========================================================================#
+# PDP exceptions
+#=========================================================================#
+
+class PdpNoCarrier( AbstractPdpException ):
+    _dbus_error_name = "org.freesmartphone.PDP.NoCarrier"
+
+class PdpNotFound( AbstractPdpException ):
+    _dbus_error_name = "org.freesmartphone.PDP.NotFound"
+
+class PdpUnauthrized( AbstractPdpException ):
+    _dbus_error_name = "org.freesmartphone.PDP.Unauthorized"
