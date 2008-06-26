@@ -162,7 +162,7 @@ class VirtualChannel( object ):
     #
     def _hookLowLevelInit( self ):
         """Override, if your channel needs a special low level init."""
-        pass
+        return True
 
     def _hookPreReading( self ):
         """Override, if the channel needs to be prepared for reading."""
