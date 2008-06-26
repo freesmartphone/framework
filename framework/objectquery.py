@@ -52,6 +52,6 @@ if __name__ == "__main__":
     bus = dbus.SystemBus()
 
     query = bus.get_object( "org.freesmartphone.frameworkd", "/org/freesmartphone/Framework" )
-    objects = query.ListObjectsByInterface( '*' )
+    objects = query.ListObjectsByInterface( '*',  dbus_interface="org.freesmartphone.Objects" )
 
     phone = bus.get_object( "org.freesmartphone.ophoned", "/org/freesmartphone/GSM/Device" )
