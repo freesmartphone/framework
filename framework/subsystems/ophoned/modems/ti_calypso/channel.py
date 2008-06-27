@@ -157,11 +157,16 @@ class UnsolicitedResponseChannel( CalypsoModemChannel ):
         # FIXME This fails until CFUN=4 or CFUN=1 and SIM Auth is given
         self.enqueue( "+CNMI=2,1,2,1,1" ) # buffer sms on SIM, report CB directly
 
+        # GPRS
         self.enqueue( "+CGEREP=2,1" )
+        self.enqueue( "+CGREG=2" )
 
         # calypso proprietary
         self.enqueue( "%CPI=3" ) # call progress indication: enable with call number ID, GSM Cause, and ALS
         self.enqueue( "%CSCN=1,2,1,2" ) # show service change: call control service and supplementary service
+        self.enqueue( "%CNIV=1" )
+        self.enqueue( "%CGEREP=1" )
+        self.enqueue( "%CSTAT=1" )
 
         # FIXME might enable %CSQ and %CPRI later
 

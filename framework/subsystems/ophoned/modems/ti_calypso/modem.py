@@ -47,3 +47,36 @@ class TiCalypso( AbstractModem ):
             return self._channels["CALL"]
         else:
             return self._channels["MISC"]
+
+    def dataPort( self ):
+        # FIXME this is already in VirtualChannel
+        muxer = self._bus.get_object( "org.pyneo.muxer", "/org/pyneo/Muxer" )
+        return muxer.AllocChannel( "ophoned.gprs" )
+
+    def dataOptions( self, category ):
+        if category == "ppp":
+            return [
+                    '115200',
+                    'nodetach',
+                    'crtscts',
+                    'defaultroute',
+                    'debug',
+                    'hide-password',
+                    'holdoff', '3',
+                    'ipcp-accept-local',
+                    'ktune',
+                    'lcp-echo-failure', '8',
+                    'lcp-echo-interval', '3',
+                    'ipcp-max-configure', '32',
+                    'lock',
+                    'noauth',
+                    #'demand',
+                    'noipdefault',
+                    'novj',
+                    'novjccomp',
+                    #'persist',
+                    'proxyarp',
+                    'replacedefaultroute',
+                    'usepeerdns' ]
+        else:
+            return []
