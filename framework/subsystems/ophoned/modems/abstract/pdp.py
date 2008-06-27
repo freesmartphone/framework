@@ -45,7 +45,7 @@ class Pdp( AbstractMediator ):
         self.handler.activate( True )
 
     def deactivate( self ):
-        self.handler.deactivate()
+        self.handler.activate( False )
 
 GPRS_APN = "internet.eplus.de"
 

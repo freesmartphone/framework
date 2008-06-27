@@ -706,10 +706,20 @@ class PdpActivateContext( PdpMediator ):
         if pdpConnection.isActive():
             self._ok()
         else:
+            self._ok()
             pdpConnection.setParameters( self.apn, self.user, self.password )
             pdpConnection.activate()
-            self._ok()
 
+#=========================================================================#
+class PdpDeactivateContext( PdpMediator ):
+#=========================================================================#
+    def trigger( self ):
+        global pdpConnection
+        if pdpConnection is not None and pdpConnection.isActive():
+            self._ok()
+            pdpConnection.deactivate()
+        else:
+            self._error( error.PdpNotFound( "there is no active pdp context" ) )
 
 ###########################################################################
 # Test Mediators

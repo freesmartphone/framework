@@ -43,7 +43,7 @@ class CalypsoModemChannel( AtCommandChannel ):
 
         This is actually an ugly hack which is unfortunately
         necessary since the TI multiplexer obviously has problems
-        wrt. to initialization (swallowing first bunch of commands etc.)
+        wrt. to initialization (swallowing first bunch of commands now and then...)
         To work around this, we send '\x1a\r\n' until we actually get an
         'OK' from the modem. We try this for 5 times, then we reopen
         the serial line. If after 10 times we still have no response,
@@ -156,6 +156,8 @@ class UnsolicitedResponseChannel( CalypsoModemChannel ):
 
         # FIXME This fails until CFUN=4 or CFUN=1 and SIM Auth is given
         self.enqueue( "+CNMI=2,1,2,1,1" ) # buffer sms on SIM, report CB directly
+
+        self.enqueue( "+CGEREP=2,1" )
 
         # calypso proprietary
         self.enqueue( "%CPI=3" ) # call progress indication: enable with call number ID, GSM Cause, and ALS

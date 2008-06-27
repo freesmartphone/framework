@@ -6,6 +6,7 @@ The Open Device Daemon - Python Implementation
 (C) 2008 Openmoko, Inc.
 GPLv2 or later
 
+Package: ophoned
 Module: objects
 
 Implementation of the dbus objects.
@@ -358,11 +359,19 @@ class Device( dbus.service.Object ):
     #
     # dbus org.freesmartphone.GSM.PDP
     #
-    @dbus.service.method( DBUS_INTERFACE_PDP, "", "" )
-    def ActivateContext( self ):
-        from .pdp.ppp import GprsHandler
-        self.ppp = GprsHandler( self.bus )
-        self.ppp.Activate( True )
+    @dbus.service.method( DBUS_INTERFACE_PDP, "sss", "",
+                          async_callbacks=( "dbus_ok", "dbus_error" ) )
+    def ActivateContext( self, apn, user, password, dbus_ok, dbus_error ):
+        mediator.PdpActivateContext( self, dbus_ok, dbus_error, apn=apn, user=user, password=password )
+
+    @dbus.service.method( DBUS_INTERFACE_PDP, "", "",
+                          async_callbacks=( "dbus_ok", "dbus_error" ) )
+    def DeactivateContext( self, dbus_ok, dbus_error ):
+        mediator.PdpDeactivateContext( self, dbus_ok, dbus_error )
+
+    @dbus.service.signal( DBUS_INTERFACE_PDP, "isa{sv}" )
+    def ContextStatus( self, index, status, properties ):
+        LOG( LOG_INFO, "org.freesmartphone.GSM.PDP.ContextStatus: ", repr(index), repr(status), repr(properties) )
 
     #
     # dbus org.freesmartphone.GSM.Test
