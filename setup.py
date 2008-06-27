@@ -20,7 +20,7 @@ setup(
       ],
     cmdclass = {'build_ext': build_ext},
     packages = packages,
-    scripts = [ "framework/frameworkd", "framework/framework-cli" ],
+    scripts = [ "framework/frameworkd", "framework/cli-framework" ],
     data_files = [
         ("etc/dbus-1/system.d", ["etc/dbus-1/system.d/frameworkd.conf"] ),
         ("etc/freesmartphone/opreferences/schema/", ["etc/freesmartphone/opreferences/schema/profiles.yaml"]),
