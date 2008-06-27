@@ -1,3 +1,15 @@
+2008-06-25	Michael Lauer	<mickey@vanille-media.de>
+
+	* Restructure bus names to match subsystem names:
+		org.freesmartphone.odeviced
+		org.freesmartphone.oeventd
+		org.freesmartphone.ophoned
+		org.freesmartphone.opreferences
+		org.freesmartphone.ousaged
+
+	* Move ListObjectsByInterface into own plugin/interface:
+		org.freesmartphone.frameworkd
+
 2008-06-21	Jan Luebbe	<jluebbe@debian.org>
 
 	* Move individual daemons into a common framework daemon

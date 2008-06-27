@@ -39,7 +39,7 @@ def ledAction( bus, name ):
     def _ledAction( event, bus=bus, name=name ):
         led = requestInterfaceForObject(
             bus,
-            "org.freesmartphone.Device",
+            "org.freesmartphone.odeviced",
             "org.freesmartphone.Device.LED",
             "/org/freesmartphone/Device/LED/" + name
         )
