@@ -19,6 +19,8 @@ from .overlay import OverlayFile
 from framework.config import LOG, LOG_INFO, LOG_ERR, LOG_DEBUG
 import gobject
 import os
+import signal
+import copy
 
 #=========================================================================#
 class Pdp( AbstractMediator ):
@@ -31,32 +33,28 @@ class Pdp( AbstractMediator ):
         AbstractMediator.__init__( self, dbus_object, None, None, **kwargs )
         self._callchannel = self._object.modem.communicationChannel( "PdpMediator" )
 
-        self.active = False
-        self.apn = ""
-        self.user = ""
-        self.password = ""
-
+        self.state = "release" # initial state
         self.cpid = -1
-        self.last_status = {}
         self.overlays = []
-
-        self.shutdown = False
 
     #
     # public
     #
     def setParameters( self, apn, user, password ):
-        self.apn = apn
-        self.user = user
-        self.password = password
+        self.pds = copy.copy( self.__class__.PPP_DAEMON_SETUP )
+        self.pds[self.__class__.PPP_CONNECT_CHAT_FILENAME] = self.__class__.PPP_DAEMON_SETUP[self.__class__.PPP_CONNECT_CHAT_FILENAME] % apn
 
-        self.ppp_options = ppp_options + self._object.modem.dataOptions( "ppp" )
+        # FIXME honor user and password
+
+        self.ppp_options = self.__class__.PPP_OPTIONS_GENERAL + self._object.modem.dataOptions( "ppp" )
 
         self.timeout_source = None
         self.childwatch_source = None
 
+        self.default_route = self.route = self._defaultRoute()
+
     def isActive( self ):
-        return self.active
+        return self.state == "active"
 
     @logged
     def activate( self ):
@@ -68,39 +66,9 @@ class Pdp( AbstractMediator ):
     #
     # private
     #
-    def _spawnedProcessDone( self, pid, condition ):
-        """Gets called from mainloop when ppp exits."""
-
-        # FIXME find a way to distinguish between a planned shutdown
-        # (our kill) and an unexpected shutdown
-
-        self.active = False
-
-        if self.childwatch_source is not None:
-            gobject.source_remove( self.childwatch_source )
-        if self.timeout_source is not None:
-            gobject.source_remove( self.timeout_source )
-
-        exitcode = (condition >> 8) & 0xFF
-        exitsignal = condition & 0xFF
-        LOG( LOG_DEBUG, __name__, "ppp exited with code", exitcode, "and signal", exitsignal )
-
-        if os.path.exists( self.port ):
-            try:
-                open( self.port, "rw" ).close()
-            except IOError:
-                pass
-
-        self.cpid = -1
-        self._recoverFiles()
-
-        # FIXME find a better way to restore the default route
-        os.system( "ifdown usb0" )
-        os.system( "ifup usb0" )
-
     @logged
     def _prepareFiles( self ):
-        for filename, overlay in ppp_daemon_setup.iteritems():
+        for filename, overlay in self.pds.iteritems():
             LOG( LOG_DEBUG, __name__, "preparing file", filename )
             f = OverlayFile( filename, overlay=overlay )
             f.store()
@@ -123,25 +91,37 @@ class Pdp( AbstractMediator ):
             raise Exception( "no device" )
 
         LOG( LOG_INFO, __name__, 'activate got port', self.port )
-        ppp_arguments = [ ppp_binary, self.port ] + self.ppp_options
+        ppp_arguments = [ self.__class__.PPP_BINARY, self.port ] + self.ppp_options
         LOG( LOG_INFO, __name__, "launching ppp commandline", ppp_arguments )
 
         self._prepareFiles()
 
-        self.cpid, _, _, _ = gobject.spawn_async(
-                ppp_arguments,
-                standard_input = False,
-                standard_output = False,
-                standard_error = False,
-                flags = gobject.SPAWN_DO_NOT_REAP_CHILD,
-            )
-        LOG( LOG_INFO, __name__, "ppp launched w/pid", self.cpid )
+        self.cpid, fdin, fdout, fderr = gobject.spawn_async(
+            ppp_arguments,
+            standard_input = False,
+            standard_output = True,
+            standard_error = True,
+            flags = gobject.SPAWN_DO_NOT_REAP_CHILD )
+
+        self.fds = fdin, fdout, fderr
+
+        self.output_sources = [ gobject.io_add_watch( fdout, gobject.IO_IN, self._spawnedProcessOutput ),
+                                gobject.io_add_watch( fderr, gobject.IO_IN, self._spawnedProcessOutput ) ]
         self.childwatch_source = gobject.child_watch_add( self.cpid, self._spawnedProcessDone )
-        self.timeout_source = gobject.timeout_add_seconds( 12, self._cbPollInterface )
+        # FIXME bad polling here
+        self.timeout_source = gobject.timeout_add_seconds( 2, self._pollInterface )
+
+        LOG( LOG_INFO, __name__, "ppp launched w/pid", self.cpid )
 
         # FIXME that's premature. we might adopt the following states:
         # "setup", "active", "shutdown", "release"
-        self.active = True
+
+        self._updateState( "outgoing" )
+
+    def _updateState( self, newstate ):
+        if newstate != self.state:
+            self.state = newstate
+            self._object.ContextStatus( 1, newstate, {} )
 
     def _deactivate( self ):
         if self.cpid < 0:
@@ -149,7 +129,7 @@ class Pdp( AbstractMediator ):
 
         LOG( LOG_INFO, __name__, 'shutting down pppd w/pid', self.cpid )
 
-        os.kill( self.cpid, SIGINT )
+        os.kill( self.cpid, signal.SIGINT )
 
         # control flow will continue in self._spawnedProcessDone
 
@@ -157,38 +137,77 @@ class Pdp( AbstractMediator ):
         #p, r = waitpid(self.cpid, 0)
         #LOG(LOG_INFO, __name__, 'Activate pppd returned', r)
 
-    def get_default_route( self ):
-        f = open('/proc/net/route', 'r')
+    def _spawnedProcessOutput( self, source, condition ):
+        """Gets called when ppp outputs anything."""
+        data = os.read( source, 512 )
+        LOG( LOG_DEBUG, __name__, "got from ppp:", repr(data) )
+        return True
+
+    def _spawnedProcessDone( self, pid, condition ):
+        """Gets called from mainloop when ppp exits."""
+
+        # FIXME find a way to distinguish between a planned shutdown
+        # (our kill) and an unexpected shutdown
+        #
+        # Exit codes:
+        # 8 - connect script failed
+        # 5 - normal abort due to SIGINT
+        #
+
+        for source in [ self.childwatch_source, self.timeout_source ] + self.output_sources:
+            if source is not None:
+                gobject.source_remove( source )
+        for fd in self.fds:
+            if fd is not None:
+                os.close( fd )
+
+        exitcode = (condition >> 8) & 0xFF
+        exitsignal = condition & 0xFF
+        LOG( LOG_DEBUG, __name__, "ppp exited with code", exitcode, "and signal", exitsignal )
+
+        self._updateState( "release" )
+
+        self.cpid = -1
+        self._recoverFiles()
+
+        # FIXME find a better way to restore the default route
+        os.system( "ifdown %s" % self.default_route )
+        os.system( "ifup %s" % self.default_route )
+
+    def _defaultRoute( self ):
+        f = open( "/proc/net/route", 'r' )
         l = f.readlines()
         f.close()
         for n in l:
             n = n.split('\t')
-            if n[1] == '00000000':
+            if n[1] == "00000000":
                 return n[0]
-        return ''
+        return ""
 
-    def _cbPollInterface( self ):
-        status = dict(device=self.get_default_route())
-        LOG(LOG_DEBUG, __name__, '__poll', status, self.last_status)
-        #if self.last_status != status:
-        #    self.Status(status)
+    def _pollInterface( self ):
+        """Gets frequently called from mainloop to check the default route."""
+        route = self._defaultRoute()
+        LOG( LOG_DEBUG, __name__, "route status. old=", self.default_route, "last=", self.route, "current=", route )
+        if route != self.route:
+            self.route = route
+            if route == "ppp0":
+                self._updateState( "active" )
+            else:
+                self._updateState( "release" )
         return True
 
-#=========================================================================#
-# some globals for now
-#=========================================================================#
-GPRS_APN = "internet.eplus.de"
-GPRS_USER = ""
-GPRS_PASSWORD = ""
+    # class wide constants constants
 
-ppp_options = [ "connect", "/var/tmp/ophoned/gprs-connect-chat",
-                "disconnect", "/var/tmp/ophoned/gprs-disconnect-chat" ]
+    PPP_CONNECT_CHAT_FILENAME = "/var/tmp/ophoned/gprs-connect-chat"
+    PPP_DISCONNECT_CHAT_FILENAME = "/var/tmp/ophoned/gprs-disconnect-chat"
 
-ppp_binary = "/usr/sbin/pppd"
+    PPP_OPTIONS_GENERAL = [ "connect", PPP_CONNECT_CHAT_FILENAME, "disconnect", PPP_DISCONNECT_CHAT_FILENAME ]
 
-ppp_daemon_setup = {}
+    PPP_BINARY = "/usr/sbin/pppd"
 
-ppp_daemon_setup["/var/tmp/ophoned/gprs-connect-chat"] = r"""#!/bin/sh -e
+    PPP_DAEMON_SETUP = {}
+
+    PPP_DAEMON_SETUP[ PPP_CONNECT_CHAT_FILENAME ] = r"""#!/bin/sh -e
 exec /usr/sbin/chat -v\
     'ABORT' 'BUSY'\
     'ABORT' 'DELAYED'\
@@ -208,9 +227,9 @@ exec /usr/sbin/chat -v\
     'TIMEOUT' '180'\
     'OK' 'ATD*99#'\
     'CONNECT' '\d\c'
-"""% GPRS_APN
+"""
 
-ppp_daemon_setup["/var/tmp/ophoned/gprs-disconnect-chat"] = r"""#!/bin/sh -e
+    PPP_DAEMON_SETUP[ PPP_DISCONNECT_CHAT_FILENAME ] = r"""#!/bin/sh -e
 exec /usr/sbin/chat -v\
     'ABORT' 'OK'\
     'ABORT' 'BUSY'\
@@ -226,25 +245,17 @@ exec /usr/sbin/chat -v\
     'NO CARRIER-AT-OK' ''
 """
 
-ppp_daemon_setup["/etc/ppp/chap-secrets"] = '* * "%s" *\n' % ''
+    PPP_DAEMON_SETUP["/etc/ppp/chap-secrets"] = '* * "%s" *\n' % ''
 
-ppp_daemon_setup["/etc/ppp/pap-secrets"] =  '* * "%s" *\n'% ''
+    PPP_DAEMON_SETUP["/etc/ppp/pap-secrets"] =  '* * "%s" *\n'% ''
 
-ppp_daemon_setup["/etc/ppp/ip-up.d/08setupdns"] = """#!/bin/sh -e
+    PPP_DAEMON_SETUP["/etc/ppp/ip-up.d/08setupdns"] = """#!/bin/sh -e
 cp /var/run/ppp/resolv.conf /etc/resolv.conf
 """
 
-ppp_daemon_setup["/etc/ppp/ip-down.d/92removedns"] = """#!/bin/sh -e
+    PPP_DAEMON_SETUP["/etc/ppp/ip-down.d/92removedns"] = """#!/bin/sh -e
 echo nameserver 127.0.0.1 > /etc/resolv.conf
 """
-
-#----------------------------------------------------------------------------#
-if __name__ == "__main__":
-#----------------------------------------------------------------------------#
-    import dbus
-    bus = dbus.SystemBus()
-    handler = GprsHandler( bus )
-    openlog( "gprshandler", LOG_PERROR, LOG_DAEMON )
 
 #=========================================================================#
 if __name__ == "__main__":
