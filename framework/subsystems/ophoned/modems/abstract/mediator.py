@@ -613,7 +613,21 @@ class NetworkGetStatus( NetworkMediator ):
         self._ok( result )
 
 #=========================================================================#
-class NetworkListProviders( NetworkMediator ): # ai(sss)
+class NetworkGetSignalStrength( NetworkMediator ): # i
+#=========================================================================#
+    def trigger( self ):
+        self._commchannel.enqueue( '+CSQ', self.responseFromChannel, self.errorFromChannel )
+
+    @logged
+    def responseFromChannel( self, request, response ):
+        if response[-1] != "OK":
+            NetworkMediator.responseFromChannel( self, request, response )
+
+        result = const.signalQualityToPercentage( int(self._rightHandSide( response[0] ).split( ',' )[0]) ) # +CSQ: 22,99
+        self._ok( result )
+
+#=========================================================================#
+class NetworkListProviders( NetworkMediator ): # a{sv}
 #=========================================================================#
     def trigger( self ):
         self._commchannel.enqueue( "+COPS=?", self.responseFromChannel, self.errorFromChannel, timeout=const.TIMEOUT["COPS=?"] )

@@ -301,7 +301,10 @@ class Device( dbus.service.Object ):
     def Status( self, status ):
         LOG( LOG_INFO, "org.freesmartphone.GSM.Network.Status: ", repr(status) )
 
-    # GetSignalStrength
+    @dbus.service.method( DBUS_INTERFACE_NETWORK, "", "i",
+                          async_callbacks=( "dbus_ok", "dbus_error" ) )
+    def GetSignalStrength( self, dbus_ok, dbus_error ):
+        mediator.NetworkGetSignalStrength( self, dbus_ok, dbus_error )
 
     @dbus.service.signal( DBUS_INTERFACE_NETWORK, "i" )
     def SignalStrength( self, strength ):
