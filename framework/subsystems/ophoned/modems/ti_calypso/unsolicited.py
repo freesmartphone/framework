@@ -33,6 +33,10 @@ class UnsolicitedResponseDelegate( AbstractUnsolicitedResponseDelegate ):
     def plusCSSU( self, righthandside ):
         code, index, number, type = righthandside.split( "," )
 
+    #
+    # TI Calypso proprietary
+    #
+
     # %CCCN: 0,0,A10E02010402011030068101428F0101
     def percentCCCN( self, righthandside ):
         direction, callId, ie = righthandside.split( "," )
@@ -46,6 +50,11 @@ class UnsolicitedResponseDelegate( AbstractUnsolicitedResponseDelegate ):
     # %CSSN: 1,0,A11502010802013B300D04010F0408AA510C0683C16423
     def percentCSSN( self, righthandside ):
         direction, transPart, ie = righthandside.split( "," )
+
+    # %CSQ:  17, 0, 1
+    def percentCSQ( self, righthandside ):
+        strength, snr, quality = righthandside.split( "," )
+        self._object.SignalStrength( int(strength) ) # send dbus signal
 
     # %CPI: 1,0,0,0,1,0,"+491772616464",145,,,0
     def percentCPI( self, righthandside ):

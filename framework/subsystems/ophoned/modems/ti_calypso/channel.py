@@ -164,6 +164,7 @@ class UnsolicitedResponseChannel( CalypsoModemChannel ):
         # calypso proprietary
         self.enqueue( "%CPI=3" ) # call progress indication: enable with call number ID, GSM Cause, and ALS
         self.enqueue( "%CSCN=1,2,1,2" ) # show service change: call control service and supplementary service
+        self.enqueue( "%CSQ=1" ) # signal strength: send unsol. code
         self.enqueue( "%CNIV=1" )
         self.enqueue( "%CGEREP=1" )
         self.enqueue( "%CSTAT=1" )
@@ -189,13 +190,13 @@ class UnsolicitedResponseChannel( CalypsoModemChannel ):
 
     @logged
     def suspend( self, ok_callback, error_callback ):
-        self.enqueue( "+CTZU=0;+CTZR=0;+CREG=0;+CNMI=2,1,0,0,0",
+        self.enqueue( "+CTZU=0;+CTZR=0;+CREG=0;+CNMI=2,1,0,0,0;%CSQ=0",
                       SimpleCallback( ok_callback, self ),
                       SimpleCallback( error_callback, self ) )
 
     @logged
     def resume( self, ok_callback, error_callback ):
-        self.enqueue( "+CTZU=1;+CTZR=1;+CREG=2;+CNMI=2,1,2,1,1",
+        self.enqueue( "+CTZU=1;+CTZR=1;+CREG=2;+CNMI=2,1,2,1,1;%CSQ=1",
                       SimpleCallback( ok_callback, self ),
                       SimpleCallback( error_callback, self ) )
 

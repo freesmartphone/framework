@@ -301,6 +301,12 @@ class Device( dbus.service.Object ):
     def Status( self, status ):
         LOG( LOG_INFO, "org.freesmartphone.GSM.Network.Status: ", repr(status) )
 
+    # GetSignalStrength
+
+    @dbus.service.signal( DBUS_INTERFACE_NETWORK, "i" )
+    def SignalStrength( self, strength ):
+        LOG( LOG_INFO, "org.freesmartphone.GSM.Network.SignalStrength: ", repr(strength) )
+
     @dbus.service.method( DBUS_INTERFACE_NETWORK, "", "a(isss)",
                           async_callbacks=( "dbus_ok", "dbus_error" ) )
     def ListProviders( self, dbus_ok, dbus_error ):
