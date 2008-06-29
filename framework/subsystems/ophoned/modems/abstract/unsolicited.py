@@ -22,6 +22,8 @@ class AbstractUnsolicitedResponseDelegate( object ):
     def __init__( self, dbus_object, mediator ):
         self._object = dbus_object
         self._mediator = mediator
+        self.lac = None
+        self.cid = None
 
     def _sendStatus( self ):
         self._object.Status( self.operator, self.register, self.strength )
@@ -36,8 +38,8 @@ class AbstractUnsolicitedResponseDelegate( object ):
         values = righthandside.split( ',' )
         self.register = const.REGISTER_STATUS[int(values[0])]
         if len( values ) == 3:
-            self.la = values[1].strip( '"' )
-            self.ci = values[2].strip( '"' )
+            self.lac = values[1].strip( '"' )
+            self.cid = values[2].strip( '"' )
 
         self._mediator.NetworkGetStatus( self._object, self.statusOK, self.statusERR )
 
@@ -68,8 +70,12 @@ class AbstractUnsolicitedResponseDelegate( object ):
     # helpers
     #
 
-    def statusOK( self, provider_name, status, strength ):
-        self._object.Status( provider_name, status, strength )
+    def statusOK( self, status ):
+        if self.lac is not None:
+            status["lac"] = self.lac
+        if self.cid is not None:
+            status["cid"] = self.cid
+        self._object.Status( status ) # send dbus signal
 
     def statusERR( self, values ):
         print "error... ignoring"

@@ -250,6 +250,11 @@ class Device( dbus.service.Object ):
     def RetrieveMessagebook( self, category, dbus_ok, dbus_error ):
         mediator.SimRetrieveMessagebook( self, dbus_ok, dbus_error, category=category )
 
+    @dbus.service.method( DBUS_INTERFACE_SIM, "i", "sss",
+                          async_callbacks=( "dbus_ok", "dbus_error" ) )
+    def RetrieveMessage( self, index, dbus_ok, dbus_error ):
+        mediator.SimRetrieveMessage( self, dbus_ok, dbus_error, index=index )
+
     @dbus.service.method( DBUS_INTERFACE_SIM, "", "s",
                           async_callbacks=( "dbus_ok", "dbus_error" ) )
     def GetServiceCenterNumber( self, dbus_ok, dbus_error ):
@@ -287,14 +292,14 @@ class Device( dbus.service.Object ):
     def Unregister( self, dbus_ok, dbus_error ):
         mediator.NetworkUnregister( self, dbus_ok, dbus_error )
 
-    @dbus.service.method( DBUS_INTERFACE_NETWORK, "", "ssi",
+    @dbus.service.method( DBUS_INTERFACE_NETWORK, "", "a{sv}",
                           async_callbacks=( "dbus_ok", "dbus_error" ) )
     def GetStatus( self, dbus_ok, dbus_error ):
         mediator.NetworkGetStatus( self, dbus_ok, dbus_error )
 
-    @dbus.service.signal( DBUS_INTERFACE_NETWORK, "ssi" )
-    def Status( self, status, provider_name, strength ):
-        LOG( LOG_INFO, "org.freesmartphone.GSM.Network.Status: ", repr(status), repr(provider_name), repr(strength) )
+    @dbus.service.signal( DBUS_INTERFACE_NETWORK, "a{sv}" )
+    def Status( self, status ):
+        LOG( LOG_INFO, "org.freesmartphone.GSM.Network.Status: ", repr(status) )
 
     @dbus.service.method( DBUS_INTERFACE_NETWORK, "", "a(isss)",
                           async_callbacks=( "dbus_ok", "dbus_error" ) )
@@ -347,6 +352,11 @@ class Device( dbus.service.Object ):
                           async_callbacks=( "dbus_ok", "dbus_error" ) )
     def Initiate( self, number, type_, dbus_ok, dbus_error ):
         mediator.CallInitiate( self, dbus_ok, dbus_error, number=number, calltype=type_ )
+
+    @dbus.service.method( DBUS_INTERFACE_CALL, "", "",
+                          async_callbacks=( "dbus_ok", "dbus_error" ) )
+    def HoldActive( self, index, dbus_ok, dbus_error ):
+        mediator.CallHoldActive( self, dbus_ok, dbus_error, index=index )
 
     # ListCalls
     # GetCallStatus

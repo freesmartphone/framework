@@ -512,6 +512,37 @@ class SimRetrieveMessagebook( SimMediator ):
         self._ok( result )
 
 #=========================================================================#
+class SimRetrieveMessage( SimMediator ):
+#=========================================================================#
+    def trigger( self ):
+        self._commchannel.enqueue( '+CMGR=%d' % self.index, self.responseFromChannel, self.errorFromChannel )
+
+    @logged
+    def responseFromChannel( self, request, response ):
+        if response[-1] != "OK":
+            SimMediator.responseFromChannel( self, request, response )
+        text = ""
+        for line in response[:-1]:
+            #print "parsing line", line
+            if line.startswith( "+CMGR" ):
+                #print "line is header line"
+                header = const.PAT_SMS_TEXT_HEADER_SINGLE.match( self._rightHandSide(line) )
+                status = const.SMS_STATUS_OUT[header.groupdict()["status"]]
+                number = const.phonebookTupleToNumber( header.groupdict()["number"], int(header.groupdict()["ntype"]) )
+                # TODO handle optional arrival... time.strptime( '%s,%s'% (d, t, ), '%y/%m/%d,%H:%M:%S') => const module
+                # TODO handle optional name from phonebook
+                text = ""
+            else:
+                #print "line is text line"
+                if text:
+                    text += "\n%s" % line
+                else:
+                    text += line
+        if text:
+            result = ( status, number, const.textToUnicode(text) )
+        self._ok( result )
+
+#=========================================================================#
 class SimSetServiceCenterNumber( SimMediator ):
 #=========================================================================#
     def trigger( self ):
@@ -572,14 +603,14 @@ class NetworkGetStatus( NetworkMediator ):
             print "OOPS, that was not expected: ", repr(response)
             self._ok( "", "", 0 )
             return
-        result = []
-        result.append( const.REGISTER_STATUS[int(self._rightHandSide( response[0] ).split( ',' )[1])] ) # +CREG: 0,1
+        result = {}
+        result[ "registration"] = const.REGISTER_STATUS[int(self._rightHandSide( response[0] ).split( ',' )[1])] # +CREG: 0,1
         try:
-            result.append( self._rightHandSide( response[1] ).split( ',' )[2].strip( '"') ) # +COPS: 0,0,"Medion Mobile" or +COPS: 0
+            result[ "provider"] = self._rightHandSide( response[1] ).split( ',' )[2].strip( '"') # +COPS: 0,0,"Medion Mobile" or +COPS: 0
         except IndexError:
-            result.append( "" )
-        result.append( const.signalQualityToPercentage( int(self._rightHandSide( response[2] ).split( ',' )[0]) ) ) # +CSQ: 22,99
-        self._ok( *result )
+            pass
+        result["strength"] = const.signalQualityToPercentage( int(self._rightHandSide( response[2] ).split( ',' )[0]) ) # +CSQ: 22,99
+        self._ok( result )
 
 #=========================================================================#
 class NetworkListProviders( NetworkMediator ): # ai(sss)

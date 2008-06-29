@@ -131,7 +131,7 @@ class CallHandler( object ):
     #  0   Release all held calls or set the busy state for the waiting call.
     #  1   Release all active calls.
     #  1x  Release only call x.
-    #  2   Put active calls on hold and activate the waiting or held call.
+    #  2   Put active calls on hold (and activate the waiting or held call).
     #  2x  Put active calls on hold and activate call x.
     #  3   Add the held calls to the active conversation.
     #  4   Add the held calls to the active conversation, and then detach the local subscriber from the conversation.
