@@ -25,6 +25,6 @@ setup(
         ("etc/dbus-1/system.d", ["etc/dbus-1/system.d/frameworkd.conf"] ),
         ("etc/freesmartphone/opreferences/schema/", ["etc/freesmartphone/opreferences/schema/profiles.yaml"]),
         ("etc/freesmartphone/opreferences/conf/", ["etc/freesmartphone/opreferences/conf/profiles/default.yaml"]),
-        ("share/freesmartphone/examples/", ["examples/gsm-log-data.py"]),
+        ("freesmartphone/examples/", ["examples/gsm-log-data.py"]),
     ]
 )
