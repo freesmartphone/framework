@@ -6,7 +6,7 @@ The Open Device Daemon - Python Implementation
 (C) 2008 Openmoko, Inc.
 GPLv2 or later
 
-Package: ophoned.modems.muxed4line
+Package: ophoned.modems.ti_calypso
 Module: mediator
 """
 
