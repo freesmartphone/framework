@@ -35,22 +35,6 @@ def attributeFilter( key, value ):
         return event.attributes.get( key ) == value
     return _attributeFilter
 
-def ledAction( bus, name ):
-    def _ledAction( event, bus=bus, name=name ):
-        led = requestInterfaceForObject(
-            bus,
-            "org.freesmartphone.odeviced",
-            "org.freesmartphone.Device.LED",
-            "/org/freesmartphone/Device/LED/" + name
-        )
-        if event:
-            led.SetBlinking(300, 700)
-            print 'enabling led', name
-        else:
-            led.SetBrightness(0)
-            print 'disabling led', name
-    return _ledAction
-
 def joinAnd( a, b ):
     def _joinAnd( event, a=a, b=b ):
         return a( event ) and b( event )
@@ -67,6 +51,7 @@ class Receiver( dbus.service.Object ):
         self.interface = self.DBUS_INTERFACE
         self.path = DBUS_PATH_PREFIX + "/%s" % Receiver.INDEX
         Receiver.INDEX += 1
+        self.bus = bus
         self.action = action
         self.filter = filter
         self.active = []
@@ -109,6 +94,38 @@ class AudioSetupReceiver( Receiver ):
             print 'setting alsa to', scenario
             os.system( "alsactl -f /usr/share/openmoko/scenarios/%s.state restore" % scenario )
             self.scenario = scenario
+
+#----------------------------------------------------------------------------#
+class VibratorReceiver( Receiver ):
+#----------------------------------------------------------------------------#
+    def __init__( self, bus, target ):
+        Receiver.__init__( self, bus, self.action,
+            joinAnd(
+                attributeFilter( "type", "Call" ),
+                attributeFilter( "status", "incoming" )
+            )
+        )
+        self.target = target
+
+    def _replyCallback( self ):
+        pass
+
+    def _errorCallback( self, e ):
+        pass
+
+    def action( self, active ):
+        led = requestInterfaceForObject(
+            self.bus,
+            "org.freesmartphone.odeviced",
+            "org.freesmartphone.Device.LED",
+            "/org/freesmartphone/Device/LED/" + self.target
+        )
+        if active:
+            led.SetBlinking( 300, 700, reply_handler=self._replyCallback, error_handler=self._errorCallback )
+            print 'enabling led', self.target
+        else:
+            led.SetBrightness( 0, reply_handler=self._replyCallback, error_handler=self._errorCallback )
+            print 'disabling led', self.target
 
 #----------------------------------------------------------------------------#
 class RingReceiver( Receiver ):
@@ -170,15 +187,8 @@ def factory( prefix, controller ):
 
     objects.append( Receiver( controller.bus, printAction ) )
 
-    objects.append( Receiver( controller.bus,
-        ledAction( controller.bus, "neo1973_vibrator" ),
-        joinAnd(
-            attributeFilter( "type", "Call" ),
-            attributeFilter( "status", "incoming" )
-        )
-    ) )
-
     objects.append( AudioSetupReceiver( controller.bus ) )
+    objects.append( VibratorReceiver( controller.bus, "neo1973_vibrator" ) )
     objects.append( RingReceiver( controller.bus ) )
 
     return objects
