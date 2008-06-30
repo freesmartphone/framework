@@ -99,9 +99,9 @@ def init_ophoned( bus ):
         print "-> card PIN protected, sending PIN..."
         gsm.SendAuthCode( PIN ) # send PIN
 
-        gsm.SetAntennaPower( True ) # this should work now
-        print "-> registering to network"
-        gsm.Register() # autoregister
+    gsm.SetAntennaPower( True ) # this should work now
+    print "-> registering to network"
+    gsm.Register() # autoregister
     print "gsm init ok, entering mainloop"
     return False # don't call me again
 
