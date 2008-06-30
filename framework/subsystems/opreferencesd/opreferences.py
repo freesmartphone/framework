@@ -21,7 +21,6 @@ from schema import Schema, Parameter
 from service import Service
 from configuration import Configuration
 
-from helpers import DBUS_PATH_PREFIX
         
 class PreferencesManager(dbus.service.Object):
     """This is the class for the main object from wich we access the services configuration
@@ -31,7 +30,9 @@ class PreferencesManager(dbus.service.Object):
     """
     
     def __init__(self, bus, schema_dir = './schema', conf_dir = './conf'):
-        super(PreferencesManager, self).__init__(bus, DBUS_PATH_PREFIX)
+        self.path = "/org/freesmartphone/Preferences"
+        super(PreferencesManager, self).__init__(bus, self.path)
+        self.interface = "org.freesmartphone.Preferences"
         self.bus = bus
         self.schema_dir = schema_dir
         self.conf_dir = conf_dir
@@ -133,8 +134,8 @@ def factory(prefix, controller):
         schema_dir = '%s/schema' % root_dir
         conf_dir = '%s/conf' % root_dir
         
-        # print 'creating pref manager'
         pref_manager = PreferencesManager(controller.bus, schema_dir, conf_dir)
+        return [pref_manager]
     except Exception, e:
         print e # Just so that if an exception is raised, we can at least see the error message
         raise

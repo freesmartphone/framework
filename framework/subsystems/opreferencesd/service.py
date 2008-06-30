@@ -3,9 +3,8 @@
 import dbus
 import dbus.service
 
-from helpers import DBUS_PATH_PREFIX
-
 from schema import Schema
+from configuration import Configuration
 
 class Service(dbus.service.Object):
     """ Class that deals with configuration values of a given service
@@ -28,7 +27,7 @@ class Service(dbus.service.Object):
         so the applications using the service don't need to know about the current profile.
     """
     def __init__(self, manager, name):
-        super(Service, self).__init__(manager.bus, '%s/%s' % (DBUS_PATH_PREFIX, name))
+        super(Service, self).__init__(manager.bus, '%s/%s' % ('/org/freesmartphone/Preferences', name))
         self.manager = manager
         self.name = name
         self.schema = Schema.from_file('%s/%s.yaml' % (self.manager.schema_dir, name))
@@ -43,7 +42,8 @@ class Service(dbus.service.Object):
             return self.confs[profile]
         try:
             conf = Configuration('%s/%s/%s.yaml' % (self.manager.conf_dir, self.name, profile))
-        except:
+        except Exception, e:
+            print "can't parse the conf file : '%s/%s/%s.yaml : %s'" % (self.manager.conf_dir, self.name, profile, e)
             return None
         self.confs[profile] = conf
         return conf
@@ -72,9 +72,9 @@ class Service(dbus.service.Object):
             conf = self.get_conf(profile)
             ret = conf[key]
         except:
-            # logger.debug("Service %s : can't find key %s, using default", self, key) 
+            # print "Service %s : can't find key %s, using default" % (self, key) 
             ret = parameter.default
-        # logger.debug("Service %s : value = %s", self, ret) 
+        # print "Service %s : value = %s" % (self, ret) 
         ret = parameter.dbus(ret)
         return ret
     
