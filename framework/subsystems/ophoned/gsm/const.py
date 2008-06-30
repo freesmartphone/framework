@@ -196,6 +196,11 @@ CMS = { \
 }
 
 #=========================================================================#
+EXT = { \
+    0 : "Invalid Parameter",
+}
+
+#=========================================================================#
 # ISDN User Part Releases Causes are given as information on +CEER as well
 # as part of unsolicited responses (vendor extensions only).
 ISUP_RELEASE_CAUSE = { \
@@ -633,19 +638,33 @@ def cmsString( code ):
         return "<undefined CMS error>"
 
 #=========================================================================#
+def extString( code ):
+#=========================================================================#
+    """
+    Returns the GSM EXT string, if found in map.
+    "undefined EXT error>", otherwise.
+    """
+    try:
+        return EXT[code]
+    except KeyError:
+        return "<undefined EXT error>"
+
+#=========================================================================#
 def parseError( line ):
 #=========================================================================#
     """
-    Returns a CME or CMS string, if found in error line.
-    "<error class not CME nor CMS>", otherwise.
+    Returns a CME, CMS or EXT string, if found in error line.
+    "<error class not CME nor CMS nor EXT>", otherwise.
     """
 
     if line.startswith( "+CME ERROR:" ):
         return "CME", cmeString( int( line.split( ':', 1 )[1] ) )
     elif line.startswith( "+CMS ERROR:" ):
         return "CMS", cmsString( int( line.split( ':', 1 )[1] ) )
+    elif line.startswith( "+EXT ERROR:" ):
+        return "EXT", extString( int( line.split( ':', 1 )[1] ) )
     else:
-        return "<error class not CME nor CMS>"
+        return "<error class not CME nor CMS nor EXT>"
 
 #=========================================================================#
 def signalQualityToPercentage( signal ):

@@ -6,7 +6,8 @@ The Open Device Daemon - Python Implementation
 (C) 2008 Openmoko, Inc.
 GPLv2 or later
 
-Module: Parser
+Package: ophoned.gsm
+Module: parser
 
 """
 
@@ -61,6 +62,7 @@ class LowlevelAtParser( object ):
                             or self.curline == "ERROR" \
                             or self.curline.startswith( "+CME ERROR" ) \
                             or self.curline.startswith( "+CMS ERROR" ) \
+                            or self.curline.startswith( "+EXT ERROR" ) \
                             or self.curline.startswith( "BUSY" ) \
                             or self.curline.startswith( "CONNECT" ) \
                             or self.curline.startswith( "NO ANSWER" ) \

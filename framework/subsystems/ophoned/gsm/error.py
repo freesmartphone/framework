@@ -83,6 +83,9 @@ class SimNotFound( AbstractSimException ):
 class SimMemoryFull( AbstractSimException ):
     _dbus_error_name = "org.freesmartphone.GSM.SIM.MemoryFull"
 
+class SimInvalidIndex( AbstractSimException ):
+    _dbus_error_name = "org.freesmartphone.GSM.SIM.InvalidIndex"
+
 #=========================================================================#
 # Network exceptions
 #=========================================================================#

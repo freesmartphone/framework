@@ -42,8 +42,8 @@ class AbstractMediator( object ):
     def responseFromChannel( self, request, response ):
         if response[-1].startswith( "ERROR" ):
             self._error( error.DeviceFailed( "command %s failed" % request ) )
-        elif response[-1].startswith( "+CM" ):
-            self._handleCmeCmsError( response[-1] )
+        elif response[-1].startswith( "+CM" ) or response[-1].startswith( "+EXT" ):
+            self._handleCmeCmsExtError( response[-1] )
         elif response[-1].startswith( "OK" ):
             self._ok()
         else:
@@ -78,7 +78,7 @@ class AbstractMediator( object ):
 
 
     @logged
-    def _handleCmeCmsError( self, line ):
+    def _handleCmeCmsExtError( self, line ):
         category, text = const.parseError( line )
         code = int( line.split( ':', 1 )[1] )
         e = error.DeviceFailed( "Unhandled %s ERROR: %s" % ( category, text ) )
@@ -111,6 +111,10 @@ class AbstractMediator( object ):
                 e = error.SimNotFound()
             elif code == 322:
                 e = error.SimMemoryFull()
+
+        elif category == "EXT":
+            if code == 0:
+                e = error.SimInvalidIndex() # invalid parameter on phonebook index e.g.
 
         else:
             assert False, "should never reach that"
@@ -368,14 +372,14 @@ class SimGetCountryCode( SimMediator ):
 class SimGetPhonebookInfo( SimMediator ):
 #=========================================================================#
     def trigger( self ):
-        self._commchannel.enqueue( '+CPBS="SM";+CGBR=?', self.responseFromChannel, self.errorFromChannel )
+        self._commchannel.enqueue( '+CPBS="SM";+CPBR=?', self.responseFromChannel, self.errorFromChannel )
 
     @logged
     def responseFromChannel( self, request, response ):
         if response[-1] != "OK":
             SimMediator.responseFromChannel( self, request, response )
         result = {}
-        match = PAT_PHONEBOOK_INFO.match( response[0] )
+        match = const.PAT_PHONEBOOK_INFO.match( self._rightHandSide( response[0] ) )
         result["min_index"] = int(match.groupdict()["lowest"])
         result["max_index"] = int(match.groupdict()["highest"])
         try:
