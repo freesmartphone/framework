@@ -32,8 +32,16 @@ class Configuration(dict):
             base = name.split('/')[0]
             rest = '/'.join(name.split('/')[1:])
             super(Configuration, self).__getitem__(base)[rest] = value
-            return
-        super(Configuration, self).__setitem__(name, value)
+        else:
+            super(Configuration, self).__setitem__(name, value)
+        # For the moment we update the file each time we modify a value
+        # It is not optimal if you set a lot of values
+        self.flush()
      
     def flush(self):
-        pass
+        """Save the content of the configuration into its file"""
+        print 'flushing %s' % self.file
+        file = open(self.file, 'w')
+        file.write(yaml.dump(dict(self), default_flow_style=False))
+        file.close()
+        
