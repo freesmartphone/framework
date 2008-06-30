@@ -54,7 +54,7 @@ class UnsolicitedResponseDelegate( AbstractUnsolicitedResponseDelegate ):
     # %CSQ:  17, 0, 1
     def percentCSQ( self, righthandside ):
         strength, snr, quality = righthandside.split( "," )
-        self._object.SignalStrength( int(strength) ) # send dbus signal
+        self._object.SignalStrength( const.signalQualityToPercentage( int(strength) ) ) # send dbus signal
 
     # %CPI: 1,0,0,0,1,0,"+491772616464",145,,,0
     def percentCPI( self, righthandside ):
