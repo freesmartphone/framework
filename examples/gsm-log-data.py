@@ -15,6 +15,7 @@ PIN = "9797"
 LOG = "/tmp/gsm-data.log"
 FREQUENCE = 2000 # ms
 EM_COMMAND = "%EM=2,1"
+AUTOANSWER = True
 
 # you may not want to change a lot below here
 
@@ -52,7 +53,7 @@ def timeout_handler():
         return True # call me again
 
 #----------------------------------------------------------------------------#
-def dbus_signal_handler( data, **kwargs ):
+def dbus_signal_handler( data, *args, **kwargs ):
 #----------------------------------------------------------------------------#
     signal = "%s.%s" % ( kwargs["interface"], kwargs["member"] )
 
@@ -61,6 +62,16 @@ def dbus_signal_handler( data, **kwargs ):
             log( "LAC/CID NOW %s, %s" % ( data["lac"], data["cid"] ) )
     elif signal == "org.freesmartphone.GSM.Network.SignalStrength":
         log( "SIGNAL NOW %d" % data )
+
+    elif signal == "org.freesmartphone.GSM.Call.CallStatus":
+        status, properties = args
+        if "peer" in properties:
+            log( "CALL %s [%s]" % ( status, properties["peer"] ) )
+        else:
+            log( "CALL %s [unknown]" % status )
+        if status == "incoming" and AUTOANSWER:
+            log( "AUTOANSWERING CALL" )
+            gsm.Activate( data )
 
 #----------------------------------------------------------------------------#
 def init_dbus():
@@ -95,9 +106,11 @@ def init_ophoned( bus ):
     try:
         print "-> setting antenna power..."
         gsm.SetAntennaPower( True ) # this will fail, if your SIM is PIN-protected
-    except dbus.DBusException:
-        print "-> card PIN protected, sending PIN..."
-        gsm.SendAuthCode( PIN ) # send PIN
+    except dbus.DBusException, m:
+        authstatus = gsm.GetAuthStatus()
+        if authstatus != "READY":
+            print "-> card PIN protected, sending PIN..."
+            gsm.SendAuthCode( PIN ) # send PIN
 
     gsm.SetAntennaPower( True ) # this should work now
     print "-> registering to network"
