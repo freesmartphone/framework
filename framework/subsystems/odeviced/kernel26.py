@@ -185,7 +185,7 @@ class PowerSupplyApm( dbus.service.Object ):
         return AC != "0x01"
 
     @dbus.service.method( DBUS_INTERFACE, "", "i" )
-    def GetChargingPercentage( self ):
+    def GetEnergyPercentage( self ):
         d, b, f, AC, BAT, flags, percentage, time, units = self.readApm()
         return int( percentage[:-1] )
 
