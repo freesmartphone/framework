@@ -11,7 +11,7 @@ packages.remove('framework/subsystems/opreferencesd/test')
 
 setup(
     name = "The FreeSmartphone Framework Daemon",
-    version = "0.2.0+git",
+    version = "milestone1+git",
     author = "Michael 'Mickey' Lauer et. al.",
     author_email = "mlauer@vanille-media.de",
     url = "http://www.freesmartphone.org",
@@ -20,7 +20,7 @@ setup(
       ],
     cmdclass = {'build_ext': build_ext},
     packages = packages,
-    scripts = [ "framework/frameworkd", "framework/cli-framework" ],
+    scripts = [ "framework/frameworkd", "tools/cli-framework" ],
     data_files = [
         ("etc/dbus-1/system.d", ["etc/dbus-1/system.d/frameworkd.conf"] ),
         ("etc/freesmartphone/opreferences/schema/", ["etc/freesmartphone/opreferences/schema/profiles.yaml"]),
