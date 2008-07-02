@@ -7,11 +7,11 @@ The Open Device Daemon - Python Implementation
 
 GPLv2 or later
 
-Package: ophoned.modems.abstract
+Package: ogsmd.modems.abstract
 Module: modem
 """
 
-from ophoned.gsm.decor import logged
+from ogsmd.gsm.decor import logged
 from framework.config import LOG, LOG_ERR, LOG_INFO, LOG_DEBUG
 
 import gobject

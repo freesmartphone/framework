@@ -6,7 +6,7 @@ The Open Device Daemon - Python Implementation
 (C) 2008 Openmoko, Inc.
 GPLv2 or later
 
-Package: ophoned
+Package: ogsmd
 Module: objects
 
 Implementation of the dbus objects.
@@ -35,8 +35,8 @@ DBUS_INTERFACE_SERVER = "org.freesmartphone.GSM.Server"
 
 DBUS_INTERFACE_TEST = "org.freesmartphone.GSM.Test"
 
-DBUS_BUS_NAME_DEVICE = "org.freesmartphone.ophoned"
-DBUS_BUS_NAME_SERVER = "org.freesmartphone.ophoned"
+DBUS_BUS_NAME_DEVICE = "org.freesmartphone.ogsmd"
+DBUS_BUS_NAME_SERVER = "org.freesmartphone.ogsmd"
 
 DBUS_OBJECT_PATH_DEVICE = "/org/freesmartphone/GSM/Device"
 DBUS_OBJECT_PATH_SERVER = "/org/freesmartphone/GSM/Server"
@@ -419,7 +419,7 @@ class Device( dbus.service.Object ):
 def factory( prefix, controller ):
 #=========================================================================#
     sys.path.append( os.path.dirname( os.path.dirname( __file__ ) ) )
-    modemtype = controller.config.get( "ophoned", "modemtype" )
+    modemtype = controller.config.get( "ogsmd", "modemtype" )
     device = Device( controller.bus, modemtype )
     server = Server( controller.bus, device )
     return device, server

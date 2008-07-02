@@ -6,11 +6,11 @@ The Open Device Daemon - Python Implementation
 (C) 2008 Openmoko, Inc.
 GPLv2 or later
 
-Package: ophoned.modems.singleline
+Package: ogsmd.modems.muxed4line
 Module: mediator
 """
 
-from ophoned.modems.abstract import mediator
+from ogsmd.modems.abstract import mediator
 
 # Ok, now this is a bit of magic...:
 # We suck everything from the abstract mediator into this and overload on-demand.

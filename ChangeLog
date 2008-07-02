@@ -1,3 +1,9 @@
+2008-07-02	Michael Lauer	<mickey@vanille-media.de>
+
+	* Rename subsystem ophoned into ogsmd: Reason:
+		ophoned specifically deals with GSM. There will
+		be a new subsystem that is more abstract.
+
 2008-06-25	Michael Lauer	<mickey@vanille-media.de>
 
 	* Restructure bus names to match subsystem names:

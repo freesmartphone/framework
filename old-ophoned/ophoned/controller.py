@@ -39,18 +39,18 @@ class Controller( object ):
         self.objects["server"] = objects.Server( self.bus, self.objects["device"] )
 
     def idle( self ):
-        print( "ophoned: in mainloop" )
+        print( "ogsmd: in mainloop" )
         return False
 
     def timeout( self ):
-        print( "ophoned: alive and kicking, %d channels left to open" % self.objects["device"].modem._counter )
+        print( "ogsmd: alive and kicking, %d channels left to open" % self.objects["device"].modem._counter )
         return True
 
     def run( self ):
         self.mainloop.run()
 
     def rerun( self ):
-        print( "ophoned: relaunching" )
+        print( "ogsmd: relaunching" )
         reload( objects )
         self.objects["device"].__class__ = objects.Device
         self.objects["server"].__class__ = objects.Server

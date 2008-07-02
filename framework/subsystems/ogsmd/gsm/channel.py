@@ -18,7 +18,7 @@ import serial
 import Queue
 import fcntl, os
 import parser
-from ophoned.gsm.decor import logged
+from ogsmd.gsm.decor import logged
 
 #=========================================================================#
 class PeekholeQueue( Queue.Queue ):

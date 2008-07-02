@@ -1,4 +1,4 @@
-from ophoned.gsm.decor import logged
+from ogsmd.gsm.decor import logged
 
 class SimpleCallback( object ):
     @logged

@@ -6,7 +6,7 @@ The Open Device Daemon - Python Implementation
 (C) 2008 Openmoko, Inc.
 GPLv2 or later
 
-Package: ophoned.modems.abstract
+Package: ogsmd.modems.abstract
 Module: call
 
 # Here comes the call handling for the abstract modem, i.e. no additional
@@ -19,7 +19,7 @@ Module: call
 
 """
 
-from ophoned.gsm.decor import logged
+from ogsmd.gsm.decor import logged
 from .mediator import AbstractMediator
 
 import gobject

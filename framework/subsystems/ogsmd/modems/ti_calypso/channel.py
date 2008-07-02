@@ -16,9 +16,9 @@ import time
 import itertools
 import select
 
-from ophoned.gsm.decor import logged
-from ophoned.gsm.channel import AtCommandChannel
-from ophoned.gsm.callback import SimpleCallback
+from ogsmd.gsm.decor import logged
+from ogsmd.gsm.channel import AtCommandChannel
+from ogsmd.gsm.callback import SimpleCallback
 
 #=========================================================================#
 class CalypsoModemChannel( AtCommandChannel ):

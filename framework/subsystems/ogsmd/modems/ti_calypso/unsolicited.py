@@ -7,8 +7,8 @@ The Open Device Daemon - Python Implementation
 GPLv2 or later
 """
 
-from ophoned.modems.abstract.unsolicited import AbstractUnsolicitedResponseDelegate
-from ophoned.gsm import const
+from ogsmd.modems.abstract.unsolicited import AbstractUnsolicitedResponseDelegate
+from ogsmd.gsm import const
 
 class UnsolicitedResponseDelegate( AbstractUnsolicitedResponseDelegate ):
 

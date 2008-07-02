@@ -6,7 +6,7 @@ The Open Device Daemon - Python Implementation
 (C) 2008 Openmoko, Inc.
 GPLv2 or later
 
-Package: ophoned.gsm
+Package: ogsmd.gsm
 Module: parser
 
 """

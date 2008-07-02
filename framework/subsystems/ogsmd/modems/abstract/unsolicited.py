@@ -7,12 +7,12 @@ The Open Device Daemon - Python Implementation
 
 GPLv2 or later
 
-Package: ophoned.modems.abstract
+Package: ogsmd.modems.abstract
 Module: unsolicited
 """
 
-from ophoned.gsm.decor import logged
-from ophoned.gsm import const
+from ogsmd.gsm.decor import logged
+from ogsmd.gsm import const
 
 #=========================================================================#
 class AbstractUnsolicitedResponseDelegate( object ):

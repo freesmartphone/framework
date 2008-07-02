@@ -8,12 +8,12 @@ GPLv2 or later
 
 This module is based on pyneod/pypppd.py (C) 2008 M. Dietrich.
 
-Package: ophoned.modems.abstract
+Package: ogsmd.modems.abstract
 Module: pdp
 
 """
 
-from ophoned.gsm.decor import logged
+from ogsmd.gsm.decor import logged
 from .mediator import AbstractMediator
 from .overlay import OverlayFile
 from framework.config import LOG, LOG_INFO, LOG_ERR, LOG_DEBUG
@@ -198,8 +198,8 @@ class Pdp( AbstractMediator ):
 
     # class wide constants constants
 
-    PPP_CONNECT_CHAT_FILENAME = "/var/tmp/ophoned/gprs-connect-chat"
-    PPP_DISCONNECT_CHAT_FILENAME = "/var/tmp/ophoned/gprs-disconnect-chat"
+    PPP_CONNECT_CHAT_FILENAME = "/var/tmp/ogsmd/gprs-connect-chat"
+    PPP_DISCONNECT_CHAT_FILENAME = "/var/tmp/ogsmd/gprs-disconnect-chat"
 
     PPP_OPTIONS_GENERAL = [ "connect", PPP_CONNECT_CHAT_FILENAME, "disconnect", PPP_DISCONNECT_CHAT_FILENAME ]
 

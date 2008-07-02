@@ -6,19 +6,19 @@ The Open Device Daemon - Python Implementation
 (C) 2008 Openmoko, Inc.
 GPLv2 or later
 
-Package: ophoned.modems.muxed4line
+Package: ogsmd.modems.muxed4line
 Module: modem
 """
 
 import mediator
 
-from ophoned.modems.abstract.modem import AbstractModem
+from ogsmd.modems.abstract.modem import AbstractModem
 
 from .channel import CallChannel, UnsolicitedResponseChannel, MiscChannel
 from .unsolicited import UnsolicitedResponseDelegate
 
-from ophoned.gsm.decor import logged
-from ophoned.gsm.channel import AtCommandChannel
+from ogsmd.gsm.decor import logged
+from ogsmd.gsm.channel import AtCommandChannel
 
 #=========================================================================#
 class Muxed4Line( AbstractModem ):
@@ -29,11 +29,11 @@ class Muxed4Line( AbstractModem ):
         AbstractModem.__init__( self, *args, **kwargs )
 
         # VC 1
-        self._channels["CALL"] = CallChannel( self._bus, "ophoned.call" )
+        self._channels["CALL"] = CallChannel( self._bus, "ogsmd.call" )
         # VC 2
-        self._channels["UNSOL"] = UnsolicitedResponseChannel( self._bus, "ophoned.unsolicited" )
+        self._channels["UNSOL"] = UnsolicitedResponseChannel( self._bus, "ogsmd.unsolicited" )
         # VC 3
-        self._channels["MISC"] = MiscChannel( self._bus, "ophoned.misc" )
+        self._channels["MISC"] = MiscChannel( self._bus, "ogsmd.misc" )
         # VC 4
         # FIXME GPRS
 

@@ -16,7 +16,7 @@ import shutil
 class OverlayFile( object ):
 #=========================================================================#
 
-    backupPath = "/var/tmp/ophoned/"
+    backupPath = "/var/tmp/ogsmd/"
     classInitDone = False
 
     def __init__( self, name, overlay ):

@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: UTF-8 -*-
 """
-Log GSM Data from ophoned
+Log GSM Data from ogsmd
 
 (C) 2008 Michael 'Mickey' Lauer <mlauer@vanille-media.de>
 (C) 2008 Openmoko, Inc.
@@ -86,17 +86,17 @@ def init_dbus():
     return bus
 
 #----------------------------------------------------------------------------#
-def init_ophoned( bus ):
+def init_ogsmd( bus ):
 #----------------------------------------------------------------------------#
-    """initialize ophoned"""
+    """initialize ogsmd"""
     print "trying to get object...",
     try:
         global gsm
-        gsm = bus.get_object( "org.freesmartphone.ophoned", "/org/freesmartphone/GSM/Device" )
+        gsm = bus.get_object( "org.freesmartphone.ogsmd", "/org/freesmartphone/GSM/Device" )
     except Exception, e:
-        error( "can't connect to org.freesmartphone.ophoned: %s" % e )
+        error( "can't connect to org.freesmartphone.ogsmd: %s" % e )
 
-    bus.add_signal_receiver( dbus_signal_handler, None, None, "org.freesmartphone.ophoned", None,
+    bus.add_signal_receiver( dbus_signal_handler, None, None, "org.freesmartphone.ogsmd", None,
         sender_keyword = "sender", destination_keyword = "destination",
         interface_keyword = "interface", member_keyword = "member", path_keyword = "path" )
     print "ok"
@@ -125,7 +125,7 @@ def init_ophoned( bus ):
 dbus.mainloop.glib.DBusGMainLoop( set_as_default=True )
 mainloop = gobject.MainLoop()
 bus = init_dbus()
-gobject.idle_add( init_ophoned, bus )
+gobject.idle_add( init_ogsmd, bus )
 gobject.timeout_add( FREQUENCE, timeout_handler )
 
 try:

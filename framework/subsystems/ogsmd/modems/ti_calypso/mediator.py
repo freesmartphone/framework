@@ -6,12 +6,12 @@ The Open Device Daemon - Python Implementation
 (C) 2008 Openmoko, Inc.
 GPLv2 or later
 
-Package: ophoned.modems.ti_calypso
+Package: ogsmd.modems.ti_calypso
 Module: mediator
 """
 
-from ophoned.modems.abstract import mediator
-from ophoned.gsm import error
+from ogsmd.modems.abstract import mediator
+from ogsmd.gsm import error
 import types
 
 #=========================================================================#

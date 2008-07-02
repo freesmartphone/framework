@@ -58,7 +58,7 @@ class CallTrigger( DBusTrigger ):
             self, controller,
             'CallStatus',
             'org.freesmartphone.GSM.Call',
-            'org.freesmartphone.ophoned',
+            'org.freesmartphone.ogsmd',
             '/org/freesmartphone/GSM/Device',
             self.handle)
         self.calls = {}

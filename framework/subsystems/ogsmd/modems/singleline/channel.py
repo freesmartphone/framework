@@ -6,15 +6,15 @@ The Open Device Daemon - Python Implementation
 (C) 2008 Openmoko, Inc.
 GPLv2 or later
 
-Package: ophoned.modems.singeline
+Package: ogsmd.modems.singeline
 Module: channel
 
 This module contains a communication channel abstractions that
 transport their data over a serial line.
 """
 
-from ophoned.gsm.decor import logged
-from ophoned.gsm.channel import AtCommandChannel
+from ogsmd.gsm.decor import logged
+from ogsmd.gsm.channel import AtCommandChannel
 
 #=========================================================================#
 class SingleLineChannel( AtCommandChannel ):

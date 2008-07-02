@@ -6,7 +6,7 @@ The Open Device Daemon - Python Implementation
 (C) 2008 Openmoko, Inc.
 GPLv2 or later
 
-Package: ophoned.modems.singleline
+Package: ogsmd.modems.singleline
 Module: modem
 """
 
@@ -17,8 +17,8 @@ from ..abstract.modem import AbstractModem
 from .channel import SingleLineChannel
 from .unsolicited import UnsolicitedResponseDelegate
 
-from ophoned.gsm.decor import logged
-from ophoned.gsm.channel import AtCommandChannel
+from ogsmd.gsm.decor import logged
+from ogsmd.gsm.channel import AtCommandChannel
 
 #=========================================================================#
 class SingleLine( AbstractModem ):
@@ -29,7 +29,7 @@ class SingleLine( AbstractModem ):
         AbstractModem.__init__( self, *args, **kwargs )
 
         # The one and only serial line
-        self._channels["SINGLE"] = SingleLineChannel( self._bus, "ophoned" )
+        self._channels["SINGLE"] = SingleLineChannel( self._bus, "ogsmd" )
         # configure channels
         self._channels["UNSOL"].setDelegate( UnsolicitedResponseDelegate( self._object, mediator ) )
 

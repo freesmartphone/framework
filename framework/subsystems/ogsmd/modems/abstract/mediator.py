@@ -6,7 +6,7 @@ The Open Device Daemon - Python Implementation
 (C) 2008 Openmoko, Inc.
 GPLv2 or later
 
-Package: ophoned.modems.abstract
+Package: ogsmd.modems.abstract
 Module: mediator
 
 TODO:
@@ -17,8 +17,8 @@ TODO:
  * recover from traceback in parsing / compiling result code
 """
 
-from ophoned.gsm import error, const
-from ophoned.gsm.decor import logged
+from ogsmd.gsm import error, const
+from ogsmd.gsm.decor import logged
 
 import gobject
 import re, time
