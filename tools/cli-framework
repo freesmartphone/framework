@@ -27,8 +27,11 @@ def handler( *args, **kwargs ):
     print "%s )" % args[-1]
     print "="*78
 
+def getObject( bus, busname, objectpath ):
+    return bus.get_object( busname, objectpath, follow_name_owner_changes=True )
+
 def getInterface( bus, busname, objectpath, interface ):
-    proxy = bus.get_object( busname, objectpath, follow_name_owner_changes=True )
+    proxy = getObject( bus, busname, objectpath )
     return dbus.Interface( proxy, interface)
 
 dbus.mainloop.glib.DBusGMainLoop( set_as_default=True )
@@ -36,23 +39,27 @@ mainloop = MainLoop()
 
 bus = dbus.SystemBus()
 
+# FIXME use introspection
+
+gsm = getObject( bus, "org.freesmartphone.ogsmd", "/org/freesmartphone/GSM/Device" )
+
 # ophoned
 gsmserver = getInterface( bus,
-    "org.freesmartphone.ophoned",
+    "org.freesmartphone.ogsmd",
     "/org/freesmartphone/GSM/Server",
     "org.freesmartphone.GSM.Server" )
 
 # device
 gsmdevice = getInterface( bus,
-    "org.freesmartphone.ophoned",
+    "org.freesmartphone.ogsmd",
     "/org/freesmartphone/GSM/Device",
     "org.freesmartphone.GSM.Device" )
 gsmsim = getInterface( bus,
-    "org.freesmartphone.ophoned",
+    "org.freesmartphone.ogsmd",
     "/org/freesmartphone/GSM/Device",
     "org.freesmartphone.GSM.SIM" )
 gsmnetwork = getInterface( bus,
-    "org.freesmartphone.ophoned",
+    "org.freesmartphone.ogsmd",
     "/org/freesmartphone/GSM/Device",
     "org.freesmartphone.GSM.Network" )
 gsmcall = getInterface( bus,
@@ -60,11 +67,11 @@ gsmcall = getInterface( bus,
     "/org/freesmartphone/GSM/Device",
     "org.freesmartphone.GSM.Call" )
 gsmpdp = getInterface( bus,
-    "org.freesmartphone.ophoned",
+    "org.freesmartphone.ogsmd",
     "/org/freesmartphone/GSM/Device",
     "org.freesmartphone.GSM.PDP" )
 gsmtest = getInterface( bus,
-    "org.freesmartphone.ophoned",
+    "org.freesmartphone.ogsmd",
     "/org/freesmartphone/GSM/Device",
     "org.freesmartphone.GSM.Test" )
 
