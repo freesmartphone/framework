@@ -59,8 +59,61 @@ def factory(prefix, controller):
     except Exception, e:
         print e # Just so that if an exception is raised, we can at least see the error message
         raise
+        
+def generate_doc():
+    """This function can be used to generate a wiki style documentation for the DBus API
+    
+        It should be replaced by doxygen
+    """
+    from protocol import Call
+    
+    objects = [Phone, Call]
+    
+    services = {}
+    
+    for obj in objects:
+        for attr_name in dir(obj):
+            attr = getattr(obj, attr_name)
+            if hasattr(attr, '_dbus_interface'):
+                if hasattr(attr, '_dbus_is_method'):
+                    func = {}
+                    func['name'] = attr_name
+                    func['args'] = ','.join(attr._dbus_args)
+                    func['in_sig'] = attr._dbus_in_signature
+                    func['out_sig'] = attr._dbus_out_signature
+                    func['doc'] = attr.__doc__
+                    funcs, sigs = services.setdefault(attr._dbus_interface, [[],[]])
+                    funcs.append(func)
+                if hasattr(attr, '_dbus_is_signal'):
+                    sig = {}
+                    sig['name'] = attr_name
+                    sig['args'] = ','.join(attr._dbus_args)
+                    sig['sig'] = attr._dbus_signature
+                    sig['doc'] = attr.__doc__
+                    funcs, sigs = services.setdefault(attr._dbus_interface, [[],[]])
+                    sigs.append(sig)
+            
+    for name, funcs in services.items():
+        print '= %s =' % name
+        for func in funcs[0]:
+            print """
+== method %(name)s(%(args)s) ==
+* in: %(in_sig)s
+* out: %(out_sig)s
+* %(doc)s""" % func 
+        for sig in funcs[1]:
+            print """
+== signal %(name)s(%(args)s) ==
+* out: %(sig)s
+* %(doc)s""" % sig
+        print
 
 if __name__ == '__main__':
+    import sys
+    generate_doc()
+    sys.exit(0)
+    
+
     import gobject
     import dbus.mainloop.glib
     dbus.mainloop.glib.DBusGMainLoop( set_as_default=True )

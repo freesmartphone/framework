@@ -62,17 +62,20 @@ class Call(dbus.service.Object):
     def GetStatus(self):
         """Return the current status of the call"""
         return self.status
-        
+    
+    @dbus.service.signal('org.freesmartphone.Phone.Call', signature='')
     def Outgoing(self):
-        """Emited when the call is outgoing"""
+        """Emitted when the call is outgoing"""
         self.status = 'Outgoing'
         
+    @dbus.service.signal('org.freesmartphone.Phone.Call', signature='')
     def Released(self):
-        """Emited when the call is released"""
+        """Emitted when the call is released"""
         self.status = 'Idle'
-        
+    
+    @dbus.service.signal('org.freesmartphone.Phone.Call', signature='')
     def Activated(self):
-        """Emited when the call is activated"""
+        """Emitted when the call is activated"""
         self.status = 'Active'
         
 
