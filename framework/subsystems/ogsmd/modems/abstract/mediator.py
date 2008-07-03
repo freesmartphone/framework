@@ -15,6 +15,7 @@ TODO:
  * decouple from calling dbus result, we might want to reuse these functions in
    non-exported methods as well
  * recover from traceback in parsing / compiling result code
+ * refactor parameter validation
 """
 
 from ogsmd.gsm import error, const
@@ -704,6 +705,40 @@ class NetworkGetCallForwarding( NetworkMediator ): # a{sv}
             self._ok( result )
         else:
             NetworkMediator.responseFromChannel( self, request, response )
+
+#=========================================================================#
+class NetworkEnableCallForwarding( NetworkMediator ):
+#=========================================================================#
+    def trigger( self ):
+        try:
+            reason = const.CALL_FORWARDING_REASON[self.reason]
+        except KeyError:
+            self._error( error.InvalidParameter( "valid reasons are %s" % const.CALL_FORWARDING_REASON.keys() ) )
+
+        try:
+            class_ = const.CALL_FORWARDING_CLASS[self.class_]
+        except KeyError:
+            self._error( error.InvalidParameter( "valid classes are %s" % const.CALL_FORWARDING_CLASS.keys() ) )
+
+        self._error( error.UnsupportedCommand( "not yet implemented" ) )
+        return
+        self._commchannel.enqueue( "+CCFC=%d,4,,,%d" % ( reason, class_ ), self.responseFromChannel, self.errorFromChannel, timeout=const.TIMEOUT["CCFC"] )
+
+#=========================================================================#
+class NetworkDisableCallForwarding( NetworkMediator ):
+#=========================================================================#
+    def trigger( self ):
+        try:
+            reason = const.CALL_FORWARDING_REASON[self.reason]
+        except KeyError:
+            self._error( error.InvalidParameter( "valid reasons are %s" % const.CALL_FORWARDING_REASON.keys() ) )
+
+        try:
+            class_ = const.CALL_FORWARDING_CLASS[self.class_]
+        except KeyError:
+            self._error( error.InvalidParameter( "valid classes are %s" % const.CALL_FORWARDING_CLASS.keys() ) )
+
+        self._commchannel.enqueue( "+CCFC=%d,4,,,%d" % ( reason, class_ ), self.responseFromChannel, self.errorFromChannel, timeout=const.TIMEOUT["CCFC"] )
 
 ###########################################################################
 # Call Mediators

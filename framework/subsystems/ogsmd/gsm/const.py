@@ -7,12 +7,14 @@ The Open Device Daemon - Python Implementation
 (C) 2008 Openmoko, Inc.
 GPLv2 or later
 
+Package: ogsmd.gsm
 Module: const
 
 GSM constants, strings, formats, parse patterns, timeouts, you name it.
 """
 
 import re
+from ogsmd.helpers import BiDict
 
 #=========================================================================#
 # format patterns
@@ -42,7 +44,7 @@ TIMEOUT = { \
   "COPS": 15,
   "COPS=?": 80,
   "RING": 3+1,
-  "CCFC": 3+1,
+  "CCFC": 5+1,
 }
 
 #=========================================================================#
@@ -615,28 +617,28 @@ SMS_STATUS_IN = { \
 }
 
 #=========================================================================#
-CALL_FORWARDING_REASON = { \
+CALL_FORWARDING_REASON = BiDict( { \
     "unconditional": 0,
     "mobile busy": 1,
     "no reply": 2,
     "not reachable": 3,
     "all": 4,
     "all conditional": 5,
-}
+} )
 
 #=========================================================================#
-CALL_FORWARDING_CLASS = { \
-    1: "voice",
-    2: "data",
-    3: "voice+data", # convenience, should use bitfield-test eventually
-    4: "fax",
-    7: "voice+data+fax", # convenience, should use bitfield-test eventually
-    8: "sms",
-    16: "dcs",
-    32: "dca",
-    64: "dpa",
-    128: "pad",
-}
+CALL_FORWARDING_CLASS = BiDict( { \
+    "voice" :1,
+    "data": 2,
+    "voice+data":3, # convenience, should use bitfield-test eventually
+    "fax": 4,
+    "voice+data+fax": 7, # convenience, should use bitfield-test eventually
+    "sms": 8,
+    "dcs": 16,
+    "dca": 32,
+    "dpa": 64,
+    "pad": 128,
+} )
 
 #=========================================================================#
 import types, math

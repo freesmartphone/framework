@@ -330,6 +330,15 @@ class Device( dbus.service.Object ):
     def GetCallForwarding( self, reason, dbus_ok, dbus_error ):
         mediator.NetworkGetCallForwarding( self, dbus_ok, dbus_error, reason=reason )
 
+    @dbus.service.method( DBUS_INTERFACE_NETWORK, "sssi", "",
+                          async_callbacks=( "dbus_ok", "dbus_error" ) )
+    def EnableCallForwarding( self, reason, class_, number, timeout, dbus_ok, dbus_error ):
+        mediator.NetworkEnableCallForwarding( self, dbus_ok, dbus_error, reason=reason, class_=class_, number=number, timeout=timeout )
+
+    @dbus.service.method( DBUS_INTERFACE_NETWORK, "ss", "",
+                          async_callbacks=( "dbus_ok", "dbus_error" ) )
+    def DisableCallForwarding( self, reason, class_, dbus_ok, dbus_error ):
+        mediator.NetworkDisableCallForwarding( self, dbus_ok, dbus_error, reason=reason, class_=class_ )
     #
     # dbus org.freesmartphone.GSM.Call
     #
