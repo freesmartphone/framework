@@ -325,6 +325,11 @@ class Device( dbus.service.Object ):
     def GetNetworkCountryCode( self, dbus_ok, dbus_error ):
         mediator.NetworkGetCountryCode( self, dbus_ok, dbus_error )
 
+    @dbus.service.method( DBUS_INTERFACE_NETWORK, "s", "a{sv}",
+                          async_callbacks=( "dbus_ok", "dbus_error" ) )
+    def GetCallForwarding( self, reason, dbus_ok, dbus_error ):
+        mediator.NetworkGetCallForwarding( self, dbus_ok, dbus_error, reason=reason )
+
     #
     # dbus org.freesmartphone.GSM.Call
     #
@@ -362,10 +367,11 @@ class Device( dbus.service.Object ):
     def Initiate( self, number, type_, dbus_ok, dbus_error ):
         mediator.CallInitiate( self, dbus_ok, dbus_error, number=number, calltype=type_ )
 
+    # FIXME not implemented yet
     @dbus.service.method( DBUS_INTERFACE_CALL, "", "",
                           async_callbacks=( "dbus_ok", "dbus_error" ) )
-    def HoldActive( self, index, dbus_ok, dbus_error ):
-        mediator.CallHoldActive( self, dbus_ok, dbus_error, index=index )
+    def HoldActive( self, dbus_ok, dbus_error ):
+        mediator.CallHoldActive( self, dbus_ok, dbus_error )
 
     # ListCalls
     # GetCallStatus

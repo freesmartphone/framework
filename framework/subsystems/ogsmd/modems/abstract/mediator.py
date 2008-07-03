@@ -88,6 +88,9 @@ class AbstractMediator( object ):
                 # seen as result of +COPS=0 w/ auth state = SIM PIN
                 # seen as result of +CPBR w/ index out of bounds
                 e = error.NetworkUnauthorized()
+            elif code == 4:
+                # seen as result of +CCFC=4,2
+                e = error.NetworkNotSupported()
             elif code == 10:
                 e = error.SimNotPresent()
             elif code == 16:
@@ -668,6 +671,39 @@ class NetworkGetCountryCode( NetworkMediator ):
 #=========================================================================#
     def __init__( self, dbus_object, dbus_ok, dbus_error, **kwargs ):
         dbus_error( error.UnsupportedCommand( self.__class__.__name__ ) )
+
+#=========================================================================#
+class NetworkGetCallForwarding( NetworkMediator ): # a{sv}
+#=========================================================================#
+    def trigger( self ):
+        try:
+            reason = const.CALL_FORWARDING_REASON[self.reason]
+        except KeyError:
+            self._error( error.InvalidParameter( "valid reasons are %s" % const.CALL_FORWARDING_REASON.keys() ) )
+        else:
+            self._commchannel.enqueue( "+CCFC=%d,2" % reason, self.responseFromChannel, self.errorFromChannel, timeout=const.TIMEOUT["CCFC"] )
+
+    @logged
+    def responseFromChannel( self, request, response ):
+        if response[-1] == "OK":
+            result = {}
+            for line in response[:-1]:
+                match = const.PAT_CCFC.match( self._rightHandSide( line ) )
+                print match.groupdict
+                enabled = bool( int( match.groupdict()["enabled"] ) )
+                class_ = int( match.groupdict()["class"] )
+                number = match.groupdict()["number"]
+                ntype = int( match.groupdict()["ntype"] or 129 )
+                seconds = int( match.groupdict()["seconds"] or 0 )
+
+                if not enabled:
+                    result = {}
+                    break
+                else:
+                    result[ const.CALL_FORWARDING_CLASS[class_] ] = ( enabled, const.phonebookTupleToNumber( number, ntype ), seconds )
+            self._ok( result )
+        else:
+            NetworkMediator.responseFromChannel( self, request, response )
 
 ###########################################################################
 # Call Mediators

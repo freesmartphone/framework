@@ -30,6 +30,9 @@ PAT_SMS_TEXT_HEADER = re.compile( '(?P<index>\d+),"(?P<status>[^"]+)","(?P<numbe
 # +CMGR: "REC READ","Alice-Team",,"08/05/13,09:12:15+08",208,133
 PAT_SMS_TEXT_HEADER_SINGLE = re.compile( '"(?P<status>[^"]+)","(?P<number>[^"]+)",(?:"(?P<name>[^"]+)")?,(?:"(?P<timestamp>[^"]+)")?,(?P<ntype>\d+),(?P<textlen>\d+)' )
 
+PAT_CCFC = re.compile( r'''(?P<enabled>\d+),(?P<class>\d)(?:,"(?P<number>[^"]+)",(?P<ntype>\d+)(?:,,(?:,(?P<seconds>\d+))?)?)?''' )
+
+
 #=========================================================================#
 # timeouts
 #=========================================================================#
@@ -39,6 +42,7 @@ TIMEOUT = { \
   "COPS": 15,
   "COPS=?": 80,
   "RING": 3+1,
+  "CCFC": 3+1,
 }
 
 #=========================================================================#
@@ -608,6 +612,30 @@ SMS_STATUS_IN = { \
     "sent": "STO SENT",
     "unsent": "STO UNSENT",
     "all": "ALL",
+}
+
+#=========================================================================#
+CALL_FORWARDING_REASON = { \
+    "unconditional": 0,
+    "mobile busy": 1,
+    "no reply": 2,
+    "not reachable": 3,
+    "all": 4,
+    "all conditional": 5,
+}
+
+#=========================================================================#
+CALL_FORWARDING_CLASS = { \
+    1: "voice",
+    2: "data",
+    3: "voice+data", # convenience, should use bitfield-test eventually
+    4: "fax",
+    7: "voice+data+fax", # convenience, should use bitfield-test eventually
+    8: "sms",
+    16: "dcs",
+    32: "dca",
+    64: "dpa",
+    128: "pad",
 }
 
 #=========================================================================#

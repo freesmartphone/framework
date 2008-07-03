@@ -96,6 +96,9 @@ class NetworkNotPresent( AbstractNetworkException ):
 class NetworkUnauthorized( AbstractNetworkException ):
     _dbus_error_name = "org.freesmartphone.Network.Unauthorized"
 
+class NetworkNotSupported( AbstractNetworkException ):
+    _dbus_error_name = "org.freesmartphone.Network.NotSupported"
+
 class NetworkNotFound( AbstractNetworkException ):
     _dbus_error_name = "org.freesmartphone.Network.NotFound"
 

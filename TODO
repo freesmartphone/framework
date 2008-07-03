@@ -38,6 +38,7 @@ GSM 07.07 / 07.05 Observations and/or Questions:
   +CNUM: ,"0775753xxxxx",129 or +CNUM: "LINE 1",+xxyyzz",145
 * If SIM Pin not given, +CNMI fails
 
+
 REAL TODOS:
 * add CCLD inspection for generic modem call handling
 * make dbus_object a singleton
