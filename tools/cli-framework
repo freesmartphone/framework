@@ -56,7 +56,7 @@ gsmnetwork = getInterface( bus,
     "/org/freesmartphone/GSM/Device",
     "org.freesmartphone.GSM.Network" )
 gsmcall = getInterface( bus,
-    "org.freesmartphone.ophoned",
+    "org.freesmartphone.ogsmd",
     "/org/freesmartphone/GSM/Device",
     "org.freesmartphone.GSM.Call" )
 gsmpdp = getInterface( bus,
