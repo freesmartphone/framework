@@ -118,7 +118,10 @@ class AbstractMediator( object ):
 
         elif category == "EXT":
             if code == 0:
-                e = error.SimInvalidIndex() # invalid parameter on phonebook index e.g.
+                if isinstance( self, SimMediator ):
+                    e = error.SimInvalidIndex() # invalid parameter on phonebook index e.g.
+                else:
+                    e = error.InvalidParameter()
 
         else:
             assert False, "should never reach that"
@@ -720,9 +723,12 @@ class NetworkEnableCallForwarding( NetworkMediator ):
         except KeyError:
             self._error( error.InvalidParameter( "valid classes are %s" % const.CALL_FORWARDING_CLASS.keys() ) )
 
-        self._error( error.UnsupportedCommand( "not yet implemented" ) )
-        return
-        self._commchannel.enqueue( "+CCFC=%d,4,,,%d" % ( reason, class_ ), self.responseFromChannel, self.errorFromChannel, timeout=const.TIMEOUT["CCFC"] )
+        number, ntype = const.numberToPhonebookTuple( self.number )
+
+        if self.reason == "no reply" and self.timeout > 0:
+            self._commchannel.enqueue( """+CCFC=%d,3,"%s",%d,%d,,,%d""" % ( reason, number, ntype, class_, self.timeout ), self.responseFromChannel, self.errorFromChannel, timeout=const.TIMEOUT["CCFC"] )
+        else:
+            self._commchannel.enqueue( """+CCFC=%d,3,"%s",%d,%d""" % ( reason, number, ntype, class_ ), self.responseFromChannel, self.errorFromChannel, timeout=const.TIMEOUT["CCFC"] )
 
 #=========================================================================#
 class NetworkDisableCallForwarding( NetworkMediator ):
