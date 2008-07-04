@@ -260,7 +260,10 @@ class NMEADevice( GPSDevice ):
             except AttributeError:
                 return "Unknown sentence"
             else:
-                method( words[1:] )
+                try:
+                    method( words[1:] )
+                except Exception, e:
+                    print "Error in %s method: %s" % ( methodname, e )
         else:
             return "Not NMEA"
 
