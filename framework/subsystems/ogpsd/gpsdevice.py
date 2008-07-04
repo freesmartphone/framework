@@ -48,7 +48,7 @@ class GPSDevice( dbus.service.Object ):
     #
     @dbus.service.signal( DBUS_INTERFACE_PREFIX + ".Accuracy", "iddd" )
     def AccuracyChanged( self, fields, pdop, hdop, vdop ):
-        print fields, pdop, hdop, vdop
+        pass
 
     #
     # dbus signals

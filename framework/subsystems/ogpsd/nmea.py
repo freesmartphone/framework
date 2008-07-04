@@ -31,15 +31,36 @@ class NMEADevice( GPSDevice ):
         self.gpschannel = gpschannel
         self.gpschannel.setCallback( self.parse )
 
+        self.prn = range(12)
+        self.elevation = range(12)
+        self.azimuth = range(12)
+        self.ss = range(12)
+        self.zs = range(12)
+        self.zv = range(12)
+        self.time = '?'
+        self.mode = 0
+        self.lat = 0.0
+        self.lon = 0.0
+        self.altitude = 0.0
+        self.track = 0.0
+        self.speed = 0.0
+        self.in_view = 0
+        self.SAT = 0
+        self.ZCH = 0
+        self.ZCHseen = 0
+        self.LATLON = 0
+
     def parse( self, data ):
         self.buffer += data
 
         while True:
             try:
                 line, self.buffer = self.buffer.split( "\r\n", 1 )
-                print self.handle_line( line.strip() )
             except:
                 break
+            else:
+                print self.handle_line( line.strip() )
+
 
     def add_checksum(self,sentence):
         csum = 0
@@ -64,6 +85,8 @@ class NMEADevice( GPSDevice ):
 #$GPGGA,000033.997,0000.0000,N,00000.0000,E,0,00,50.0,0.0,M,,,,0000*3C
 
     def  do_lat_lon(self, words):
+        if not words[0]:
+            return
         if words[0][-1] == 'N':
             words[0] = words[0][:-1]
             words[1] = 'N'
@@ -153,6 +176,12 @@ class NMEADevice( GPSDevice ):
         self.status = string.atoi(words[5])
         self.satellites = string.atoi(words[6])
         self.altitude = string.atof(words[8])
+        timestamp = int(string.atof(words[0]))
+
+        # FIXME: Mode
+        self.PositionChanged( 15, timestamp, self.lat, self.lon, self.altitude )
+
+
 
 #        GSA - GPS DOP and active satellites
 #        GSA,A,3,04,05,,09,12,,,24,,,,,2.5,1.3,2.1*39
@@ -169,8 +198,9 @@ class NMEADevice( GPSDevice ):
         pdop = string.atof(words[14])
         hdop = string.atof(words[15])
         vdop = string.atof(words[16])
-        print pdop, hdop, vdop
+        # FIXME: Mode...
         self.AccuracyChanged( 7, pdop, hdop, vdop )
+
 
 
 #        GSV - Satellites in view
@@ -224,10 +254,13 @@ class NMEADevice( GPSDevice ):
 #            if not self.checksum(line[0], line[1]):
 #                return "Bad checksum"
             words = string.split(line[0], ',')
-            if NMEA.__dict__.has_key('process'+words[0]):
-                NMEA.__dict__['process'+words[0]](self, words[1:])
-            else:
+            methodname = "process"+words[0]
+            try:
+                method = getattr( self, methodname )
+            except AttributeError:
                 return "Unknown sentence"
+            else:
+                method( words[1:] )
         else:
             return "Not NMEA"
 
