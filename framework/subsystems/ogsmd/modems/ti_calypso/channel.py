@@ -167,9 +167,10 @@ class UnsolicitedResponseChannel( CalypsoModemChannel ):
         self.enqueue( "%CSQ=1" ) # signal strength: send unsol. code
         self.enqueue( "%CNIV=1" )
         self.enqueue( "%CGEREP=1" )
+        self.enqueue( "%CGREG=3" )
         self.enqueue( "%CSTAT=1" )
 
-        # FIXME might enable %CSQ and %CPRI later
+        # FIXME might enable %CPRI later
 
         if "callback" in kwargs:
             self.callback = kwargs["callback"]
