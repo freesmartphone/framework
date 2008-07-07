@@ -823,6 +823,38 @@ from .pdp import Pdp
 pdpConnection = None
 
 #=========================================================================#
+class PdpListAvailableGprsClasses( PdpMediator ): # as
+#=========================================================================#
+    def trigger( self ):
+        self._commchannel.enqueue( "+CGCLASS=?", self.responseFromChannel, self.errorFromChannel )
+
+    @logged
+    def responseFromChannel( self, request, response ):
+        if response[-1] == "OK" and len( response ) > 1:
+            self._ok( re.findall( const.PAT_STRING, response[0] ) )
+        else:
+            PdpMediator.responseFromChannel( self, request, response )
+
+#=========================================================================#
+class PdpGetCurrentGprsClass( PdpMediator ): # s
+#=========================================================================#
+    def trigger( self ):
+        self._commchannel.enqueue( "+CGCLASS?", self.responseFromChannel, self.errorFromChannel )
+
+    @logged
+    def responseFromChannel( self, request, response ):
+        if response[-1] == "OK" and len( response ) > 1:
+            self._ok( re.findall( const.PAT_STRING, response[0] )[0] )
+        else:
+            PdpMediator.responseFromChannel( self, request, response )
+
+#=========================================================================#
+class PdpSetCurrentGprsClass( PdpMediator ):
+#=========================================================================#
+    def trigger( self ):
+        self._commchannel.enqueue( '+CGCLASS="%s"' % self.class_, self.responseFromChannel, self.errorFromChannel )
+
+#=========================================================================#
 class PdpActivateContext( PdpMediator ):
 #=========================================================================#
     def trigger( self ):

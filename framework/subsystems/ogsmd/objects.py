@@ -393,6 +393,21 @@ class Device( dbus.service.Object ):
     #
     # dbus org.freesmartphone.GSM.PDP
     #
+    @dbus.service.method( DBUS_INTERFACE_PDP, "", "as",
+                          async_callbacks=( "dbus_ok", "dbus_error" ) )
+    def ListAvailableGprsClasses( self, dbus_ok, dbus_error ):
+        mediator.PdpListAvailableGprsClasses( self, dbus_ok, dbus_error )
+
+    @dbus.service.method( DBUS_INTERFACE_PDP, "", "s",
+                          async_callbacks=( "dbus_ok", "dbus_error" ) )
+    def GetCurrentGprsClass( self, dbus_ok, dbus_error ):
+        mediator.PdpGetCurrentGprsClass( self, dbus_ok, dbus_error )
+
+    @dbus.service.method( DBUS_INTERFACE_PDP, "s", "",
+                          async_callbacks=( "dbus_ok", "dbus_error" ) )
+    def SetCurrentGprsClass( self, class_, dbus_ok, dbus_error ):
+        mediator.PdpSetCurrentGprsClass( self, dbus_ok, dbus_error, class_=class_ )
+
     @dbus.service.method( DBUS_INTERFACE_PDP, "sss", "",
                           async_callbacks=( "dbus_ok", "dbus_error" ) )
     def ActivateContext( self, apn, user, password, dbus_ok, dbus_error ):

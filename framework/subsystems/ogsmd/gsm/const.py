@@ -34,6 +34,8 @@ PAT_SMS_TEXT_HEADER_SINGLE = re.compile( '"(?P<status>[^"]+)","(?P<number>[^"]+)
 
 PAT_CCFC = re.compile( r'''(?P<enabled>\d+),(?P<class>\d)(?:,"(?P<number>[^"]+)",(?P<ntype>\d+)(?:,,(?:,(?P<seconds>\d+))?)?)?''' )
 
+PAT_STRING = re.compile( r'''"([^"]+?)"''' )
+
 
 #=========================================================================#
 # timeouts

@@ -1,26 +1,33 @@
+2008-07-08	Michael Lauer 	mickey@vanille-media.de>
+
+	* Implemented org.freesmartphone.GSM.PDP
+
+2008-07-03	Guillaume Chereau	<charlie@openmoko.org>
+
+	* Add new highlevel ophoned subsystem.
+
 2008-07-02	Michael Lauer	<mickey@vanille-media.de>
 
-	* Rename subsystem ophoned into ogsmd: Reason:
+	* Renamed subsystem ophoned into ogsmd: Reason:
 		ophoned specifically deals with GSM. There will
 		be a new subsystem that is more abstract.
 
 2008-06-25	Michael Lauer	<mickey@vanille-media.de>
 
-	* Restructure bus names to match subsystem names:
+	* Restructured bus names to match subsystem names:
 		org.freesmartphone.odeviced
 		org.freesmartphone.oeventd
 		org.freesmartphone.ophoned
 		org.freesmartphone.opreferences
 		org.freesmartphone.ousaged
 
-	* Move ListObjectsByInterface into own plugin/interface:
+	* Moved ListObjectsByInterface into own plugin/interface:
 		org.freesmartphone.frameworkd
 
 2008-06-21	Jan Luebbe	<jluebbe@debian.org>
 
-	* Move individual daemons into a common framework daemon
+	* Moved individual daemons into a common framework daemon
 
 2008-06-17	Michael Lauer   <mickey@vanille-media.de>
 
-	* Release 0.1.0 (Framework Milestone 1)
-
+	* Released 0.1.0 (Framework Milestone 1)
