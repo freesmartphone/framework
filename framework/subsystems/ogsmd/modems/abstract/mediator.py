@@ -479,11 +479,12 @@ class SimGetMessagebookInfo( SimMediator ):
     def responseFromChannel( self, request, response ):
         if response[-1] != "OK":
             SimMediator.responseFromChannel( self, request, response )
-        afirst, alast, bfirst, blast, cfirst, clast = self._rightHandSide( response[0] ).split( ',' )
-        result = {}
-        result["min_index"] = int(afirst)
-        result["max_index"] = int(alast)
-        self._ok( result )
+        else:
+            afirst, alast, bfirst, blast, cfirst, clast = self._rightHandSide( response[0] ).split( ',' )
+            result = {}
+            result["min_index"] = int(afirst)
+            result["max_index"] = int(alast)
+            self._ok( result )
 
 #=========================================================================#
 class SimRetrieveMessagebook( SimMediator ):

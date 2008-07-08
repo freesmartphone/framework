@@ -33,58 +33,7 @@ class EzxMuxChannel( AtCommandChannel ):
         self.enqueue( '+CSCS="8859-1" ') # character set conversion: use 8859-1 (latin 1)
         self.enqueue( "+CSDH=1" ) # show text mode parameters: show values
 
-    @logged
-    def _hookLowLevelInit( self ):
-        """
-        Low level initialization of channel.
-
-        This is actually an ugly hack which is unfortunately
-        necessary since the TI multiplexer obviously has problems
-        wrt. to initialization (swallowing first bunch of commands now and then...)
-        To work around this, we send '\x1a\r\n' until we actually get an
-        'OK' from the modem. We try this for 5 times, then we reopen
-        the serial line. If after 10 times we still have no response,
-        we assume that the modem is broken and fail.
-        """
-
-        return True
-
-        for i in itertools.count():
-            print "(modem init... try #%d)" % ( i+1 )
-            select.select( [], [self.serial.fd], [], 0.5 )
-            self.serial.write( "\x1a\r\n" )
-            r, w, x = select.select( [self.serial.fd], [], [], 0.5 )
-            if r:
-                try:
-                    buf = self.serial.inWaiting()
-                except:
-                    self.serial.close()
-                    path = self.pathfactory( self.name )
-                    if not path:
-                        return False
-                    self.serial.port = str( path )
-                    self.serial.open()
-                    buf = self.serial.inWaiting()
-                ok = self.serial.read(buf).strip()
-                print "read:", repr(ok)
-                if "OK" in ok or "AT" in ok:
-                    break
-            print "(modem not responding)"
-            if i == 5:
-                print "(reopening modem)"
-                self.serial.close()
-                path = self.pathfactory( self.name )
-                if not path:
-                    return False
-                self.serial.port = str( path )
-                self.serial.open()
-
-            if i == 10:
-                print "(giving up)"
-                self.serial.close()
-                return False
-        print "(modem responding)"
-        self.serial.flushInput()
+        self.enqueue( '+CPBS="SM"' ) # choose SIM phonebook
 
         return True
 

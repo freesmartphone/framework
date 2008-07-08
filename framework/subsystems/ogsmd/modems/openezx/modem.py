@@ -33,6 +33,8 @@ class MotorolaEzx( AbstractModem ):
             self._channels[ "MUX%d" % i ] = MiscChannel( self.pathfactory, "/dev/mux%d" % i )
 
     def channel( self, category ):
+        return self._channels["MUX0"]
+
         if category == "CallMediator":
             return self._channels["CALL"]
         else:

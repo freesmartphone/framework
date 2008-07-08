@@ -209,7 +209,7 @@ class VirtualChannel( object ):
         except IOError:
             inWaiting = 0
         data = self.serial.read( inWaiting )
-        print "(%s: got %d bytes: %s)" % ( repr(self), len(data), repr(data) )
+        print "(%s: got %d bytes from %s: %s)" % ( repr(self), len(data), self.serial.port, repr(data) )
         if VirtualChannel.DEBUGLOG:
             self.debugFile.write( data )
         self.readyToRead( data )
@@ -322,13 +322,13 @@ class QueuedVirtualChannel( VirtualChannel ):
         """
         Reimplemented for internal purposes.
         """
-        print "(%s queue is: %s)" % ( repr(self), repr(self.q.queue) )
+        if __debug__: print "(%s queue is: %s)" % ( repr(self), repr(self.q.queue) )
         if self.q.empty():
-            print "(%s: nothing in request queue)" % repr(self)
+            if __debug__: print "(%s: nothing in request queue)" % repr(self)
             self.watchReadyToSend = None
             return False
 
-        print "(%s: sending to port: %s)" % ( repr(self), repr(self.q.peek()[0]) )
+        print "(%s: sending %d bytes to %s: %s)" % ( repr(self), len(self.q.peek()[0]), self.serial.port, repr(self.q.peek()[0]) )
         if VirtualChannel.DEBUGLOG:
             self.debugFile.write( self.q.peek()[0] ) # channel data
 
