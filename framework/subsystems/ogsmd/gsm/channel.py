@@ -6,9 +6,10 @@ The Open Device Daemon - Python Implementation
 (C) 2008 Openmoko, Inc.
 GPLv2 or later
 
+Package: ogsmd.gsm
 Module: channel
 
-This module contains communication channel abstractions that
+This module provides communication channel abstractions that
 transport their data over a (virtual) serial line.
 """
 
@@ -23,6 +24,10 @@ import Queue, fcntl, os # stdlib
 #=========================================================================#
 class PeekholeQueue( Queue.Queue ):
 #=========================================================================#
+    """
+    This class extends the Queue with a method to peek at the
+    first element without having to remove this from the queue.
+    """
     def peek( self ):
         if self.empty():
             return None
@@ -33,8 +38,7 @@ class PeekholeQueue( Queue.Queue ):
 class VirtualChannel( object ):
 #=========================================================================#
     """
-    This class represents a serial channel
-    over which GSM 07.07 / 07.05 (AT) commands are transported.
+    This class represents a sequential serial transport channel.
     """
 
     DEBUGLOG = 0
@@ -50,6 +54,7 @@ class VirtualChannel( object ):
         self.connected = False
         self.watchReadyToSend = None
         self.watchReadyToRead = None
+        self.serial = None
 
         if VirtualChannel.DEBUGLOG:
             self.debugFile = open( "/tmp/%s.log" % self.name, "w" )
@@ -265,7 +270,9 @@ class QueuedVirtualChannel( VirtualChannel ):
     """
 
     def __init__( self, *args, **kwargs ):
-        """Construct."""
+        """
+        Initialize.
+        """
         VirtualChannel.__init__( self, *args, **kwargs )
         self.q = PeekholeQueue()
 
@@ -277,11 +284,6 @@ class QueuedVirtualChannel( VirtualChannel ):
         else:
             self.timeout = 5 # default timeout in seconds
 
-        if "wakeup" in kwargs:
-            self.wakeup = kwargs["wakeup"]
-        else:
-            self.wakeup = None # no wakeup necessary (default)
-
         print "(%s: Creating channel with timeout = %d seconds)" % ( repr(self), self.timeout )
 
     def enqueue( self, data, response_cb=None, error_cb=None, timeout=None ):
@@ -292,8 +294,6 @@ class QueuedVirtualChannel( VirtualChannel ):
         if not self.connected:
             return
         if self.q.qsize() == 1 and not self.watchReadyToSend:
-            if self.wakeup:
-                self._lowlevelInit()
             self.watchReadyToSend = gobject.io_add_watch( self.serial.fd, gobject.IO_OUT, self._readyToSend )
 
     def pendingCommands( self ):
@@ -319,7 +319,9 @@ class QueuedVirtualChannel( VirtualChannel ):
 
     @logged
     def readyToSend( self ):
-        """Reimplemented for internal purposes."""
+        """
+        Reimplemented for internal purposes.
+        """
         print "(%s queue is: %s)" % ( repr(self), repr(self.q.queue) )
         if self.q.empty():
             print "(%s: nothing in request queue)" % repr(self)
@@ -337,56 +339,25 @@ class QueuedVirtualChannel( VirtualChannel ):
 
     @logged
     def readyToRead( self, data ):
-        """Reimplemented for internal purposes."""
+        """
+        Reimplemented for internal purposes.
+        """
         self.parser.feed( data, not self.q.empty() )
 
-    @logged
-    def _handleCommandCancellation( self ):
-        assert self.watchTimeout is not None, "no command to cancel"
-        # stop timer
-        gobject.source_remove( self.watchTimeout )
-        self.watchTimeout = None
-        # send EOF to cancel current command
-        print "sending EOF"
-        self.serial.write( "\x1A" )
-        # erase command and send cancellation ACK
-        # FIXME should actually NOT erase the command from the queue, otherwise we
-        # get an unsolicited 'OK' as response.
-        print "EOF sent"
-
-        #request = self.q.get()
-        #reqstring, ok_cb, error_cb, timeout = request
-        #error_cb( reqstring.strip(), ( "cancel", timeout ) )
-
-    @logged
-    def _handleUnsolicitedResponse( self, response ):
-        self.handleUnsolicitedResponse( response )
-
-    @logged
-    def _handleResponseToRequest( self, response ):
-        # stop timer
-        if self.watchTimeout is not None:
-            gobject.source_remove( self.watchTimeout )
-            self.watchTimeout = None
-        # handle response
-        request = self.q.get()
-        self.handleResponseToRequest( request, response )
-        # relaunch
-        if not self.watchReadyToSend:
-            self.watchReadyToSend = gobject.io_add_watch( self.serial.fd, gobject.IO_OUT, self._readyToSend )
-
-    @logged
-    def _handleCommandTimeout( self ):
-        # send EOF to cancel the current command. If we would not, then a
-        # response out of the timeout interval would be misrecognized
-        # as an unsolicited response.
-        self.serial.write( "\x1A" )
-        self.handleCommandTimeout( self.q.get() )
-
     def handleUnsolicitedResponse( self, response ):
+        """
+        Override this to handle an unsolicited response.
+
+        The default implementation does nothing.
+        """
         print "(%s: unsolicited data incoming: %s)" % ( repr(self), response )
 
     def handleResponseToRequest( self, request, response ):
+        """
+        Override this to handle a response to a request.
+
+        The default implementation calls the success callback pinned to the request.
+        """
         reqstring, ok_cb, error_cb, timeout = request
         if not ok_cb and not error_cb:
             print "(%s: COMPLETED '%s' => %s)" % ( repr(self), reqstring.strip(), response )
@@ -402,6 +373,11 @@ class QueuedVirtualChannel( VirtualChannel ):
                 ok_cb( reqstring.strip(), response )
 
     def handleCommandTimeout( self, request ):
+        """
+        Override this to handle a command timeout.
+
+        The default implementation calls the error callback pinned to the request.
+        """
         reqstring, ok_cb, error_cb, timeout = request
         if not ok_cb and not error_cb:
             print "(%s: TIMEOUT '%s' => ???)" % ( repr(self), reqstring.strip() )
@@ -409,9 +385,77 @@ class QueuedVirtualChannel( VirtualChannel ):
             print "(%s: TIMEOUT '%s' => ???)" % ( repr(self), reqstring.strip() )
             error_cb( reqstring.strip(), ( "timeout", timeout ) )
 
+    #
+    # private API
+    #
+
+    @logged
+    def _handleCommandCancellation( self ):
+        """
+        Called, when the current command should be cancelled.
+
+        According to v25ter, this can be done by sending _any_
+        character to the serial line.
+        """
+        assert self.watchTimeout is not None, "no command to cancel"
+        # we have a timer, so lets stop it
+        gobject.source_remove( self.watchTimeout )
+        self.watchTimeout = None
+        # send EOF to cancel current command
+        print "(%s: sending EOF)" % repr(self)
+        self.serial.write( "\x1A" )
+        print "(%s: EOF sent)" % repr(self)
+        # We do _not_ erase the current command and send cancellation ACK,
+        # otherwise we would get an "unsolicited" OK as response. If for
+        # whatever reason we want to change the semantics, we could do
+        # with something like:
+        #   request = self.q.get()
+        #   reqstring, ok_cb, error_cb, timeout = request
+        #   error_cb( reqstring.strip(), ( "cancel", timeout ) )
+
+    @logged
+    def _handleUnsolicitedResponse( self, response ):
+        """
+        Called, when an unsolicited response has been parsed.
+        """
+        self.handleUnsolicitedResponse( response )
+
+    @logged
+    def _handleResponseToRequest( self, response ):
+        """
+        Called, when a response to a request has been parsed.
+        """
+        # stop timer
+        if self.watchTimeout is not None:
+            gobject.source_remove( self.watchTimeout )
+            self.watchTimeout = None
+        # handle response
+        request = self.q.get()
+        self.handleResponseToRequest( request, response )
+        # relaunch
+        if not self.watchReadyToSend:
+            self.watchReadyToSend = gobject.io_add_watch( self.serial.fd, gobject.IO_OUT, self._readyToSend )
+
+    @logged
+    def _handleCommandTimeout( self ):
+        """
+        Called, when a command does not get a response within a certain timeout.
+
+        Here, we need to send an EOF to cancel the current command. If we would not,
+        then an eventual response (outside the timeout interval) would be misrecognized
+        as an unsolicited response.
+        """
+        self.serial.write( "\x1A" )
+        self.handleCommandTimeout( self.q.get() )
+
 #=========================================================================#
 class AtCommandChannel( QueuedVirtualChannel ):
 #=========================================================================#
+    """
+    This class represents an AT command channel.
+
+    Commands are prefixed according to v25ter. Multiline commands are handled.
+    """
     @logged
     def enqueue( self, command, response_cb=None, error_cb=None, timeout=None ):
         """
@@ -427,6 +471,7 @@ class AtCommandChannel( QueuedVirtualChannel ):
         else:
             assert False, "your python interpreter is broken"
 
+    # you should not need to call this
     enqueueRaw = QueuedVirtualChannel.enqueue
 
 #=========================================================================#
