@@ -339,6 +339,16 @@ class Device( dbus.service.Object ):
                           async_callbacks=( "dbus_ok", "dbus_error" ) )
     def DisableCallForwarding( self, reason, class_, dbus_ok, dbus_error ):
         mediator.NetworkDisableCallForwarding( self, dbus_ok, dbus_error, reason=reason, class_=class_ )
+
+    @dbus.service.method( DBUS_INTERFACE_NETWORK, "", "s",
+                          async_callbacks=( "dbus_ok", "dbus_error" ) )
+    def GetCallingIdentification( self, dbus_ok, dbus_error ):
+        mediator.NetworkGetCallingIdentification( self, dbus_ok, dbus_error )
+
+    @dbus.service.method( DBUS_INTERFACE_NETWORK, "s", "",
+                          async_callbacks=( "dbus_ok", "dbus_error" ) )
+    def SetCallingIdentification( self, status, dbus_ok, dbus_error ):
+        mediator.NetworkSetCallingIdentification( self, dbus_ok, dbus_error, status=status )
     #
     # dbus org.freesmartphone.GSM.Call
     #
@@ -387,8 +397,6 @@ class Device( dbus.service.Object ):
     # SendDtmf
     # SetDtmfDuration
     # GetDtmfDuration
-    # SetSendID
-    # GetSendID
 
     #
     # dbus org.freesmartphone.GSM.PDP
@@ -439,11 +447,6 @@ class Device( dbus.service.Object ):
         dbus_ok( echo )
         dbus_error( "foo" )
         dbus_ok( echo )
-
-    @dbus.service.method( DBUS_INTERFACE_TEST, "", "",
-                          async_callbacks=( "dbus_ok", "dbus_error" ) )
-    def Ping( self, dbus_ok, dbus_error ):
-        dbus_ok()
 
 #=========================================================================#
 def factory( prefix, controller ):

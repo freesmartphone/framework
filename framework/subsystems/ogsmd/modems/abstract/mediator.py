@@ -746,6 +746,31 @@ class NetworkDisableCallForwarding( NetworkMediator ):
 
         self._commchannel.enqueue( "+CCFC=%d,4,,,%d" % ( reason, class_ ), self.responseFromChannel, self.errorFromChannel, timeout=const.TIMEOUT["CCFC"] )
 
+#=========================================================================#
+class NetworkGetCallingIdentification( NetworkMediator ): # s
+#=========================================================================#
+    def trigger( self ):
+        self._commchannel.enqueue( "+CLIR?", self.responseFromChannel, self.errorFromChannel )
+
+    @logged
+    def responseFromChannel( self, request, response ):
+        if response[-1] == "OK" and len( response ) > 1:
+            status, adjustment = self._rightHandSide( response[0] ).split( ',' )
+            self._ok( const.CALL_IDENTIFICATION_RESTRICTION.revlookup( int(status) ) )
+        else:
+            NetworkMediator.responseFromChannel( self, request, response )
+
+#=========================================================================#
+class NetworkSetCallingIdentification( NetworkMediator ): # s
+#=========================================================================#
+    def trigger( self ):
+        try:
+            restriction = const.CALL_IDENTIFICATION_RESTRICTION[self.status]
+        except KeyError:
+            self._error( error.InvalidParameter( "valid restrictions are %s" % const.CALL_IDENTIFICATION_RESTRICTION.keys() ) )
+
+        self._commchannel.enqueue( "+CLIR=%d" % restriction, self.responseFromChannel, self.errorFromChannel )
+
 ###########################################################################
 # Call Mediators
 ###########################################################################
