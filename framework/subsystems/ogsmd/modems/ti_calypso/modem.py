@@ -9,7 +9,6 @@ GPLv2 or later
 Package: ogsmd.modems.muxed4line
 Module: modem
 
-DBus Exception Classes for org.freesmartphone.GSM*
 """
 
 import mediator
@@ -31,11 +30,11 @@ class TiCalypso( AbstractModem ):
         AbstractModem.__init__( self, *args, **kwargs )
 
         # VC 1
-        self._channels["CALL"] = CallChannel( self._bus, "ogsmd.call" )
+        self._channels["CALL"] = CallChannel( self.pathfactory, "ogsmd.call" )
         # VC 2
-        self._channels["UNSOL"] = UnsolicitedResponseChannel( self._bus, "ogsmd.unsolicited" )
+        self._channels["UNSOL"] = UnsolicitedResponseChannel( self.pathfactory, "ogsmd.unsolicited" )
         # VC 3
-        self._channels["MISC"] = MiscChannel( self._bus, "ogsmd.misc" )
+        self._channels["MISC"] = MiscChannel( self.pathfactory, "ogsmd.misc" )
         # VC 4
         # FIXME GPRS
 
@@ -48,8 +47,13 @@ class TiCalypso( AbstractModem ):
         else:
             return self._channels["MISC"]
 
+    def pathfactory( self, name ):
+        """Allocate a new channel from the MUXer."""
+        muxer = self._bus.get_object( "org.pyneo.muxer", "/org/pyneo/Muxer" )
+        return str( muxer.AllocChannel( name ) )
+
     def dataPort( self ):
-        # FIXME this is already in VirtualChannel
+        # FIXME remove duplication
         muxer = self._bus.get_object( "org.pyneo.muxer", "/org/pyneo/Muxer" )
         return muxer.AllocChannel( "ogsmd.gprs" )
 

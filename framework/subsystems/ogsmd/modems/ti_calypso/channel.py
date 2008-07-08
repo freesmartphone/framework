@@ -6,10 +6,10 @@ The Open Device Daemon - Python Implementation
 (C) 2008 Openmoko, Inc.
 GPLv2 or later
 
+Package: ogsmd.modems.ti_calypso
 Module: channel
 
-This module contains communication channel abstractions that
-transport their data over a (virtual) serial line.
+TI Calypso specific modem channels
 """
 
 import time

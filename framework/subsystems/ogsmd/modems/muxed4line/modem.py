@@ -29,13 +29,13 @@ class Muxed4Line( AbstractModem ):
         AbstractModem.__init__( self, *args, **kwargs )
 
         # VC 1
-        self._channels["CALL"] = CallChannel( self._bus, "ogsmd.call" )
+        self._channels["CALL"] = CallChannel( self.pathfactory, "ogsmd.call" )
         # VC 2
-        self._channels["UNSOL"] = UnsolicitedResponseChannel( self._bus, "ogsmd.unsolicited" )
+        self._channels["UNSOL"] = UnsolicitedResponseChannel( self.pathfactory, "ogsmd.unsolicited" )
         # VC 3
-        self._channels["MISC"] = MiscChannel( self._bus, "ogsmd.misc" )
+        self._channels["MISC"] = MiscChannel( self.pathfactory, "ogsmd.misc" )
         # VC 4
-        # FIXME GPRS
+        # GPRS
 
         # configure channels
         self._channels["UNSOL"].setDelegate( UnsolicitedResponseDelegate( self._object, mediator ) )
@@ -45,3 +45,8 @@ class Muxed4Line( AbstractModem ):
             return self._channels["CALL"]
         else:
             return self._channels["MISC"]
+
+    def pathfactory( self ):
+        """Allocate a new channel from the MUXer."""
+        muxer = self._bus.get_object( "org.pyneo.muxer", "/org/pyneo/Muxer" )
+        return str( muxer.AllocChannel( self.name ) )

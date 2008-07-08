@@ -12,13 +12,13 @@ This module contains communication channel abstractions that
 transport their data over a (virtual) serial line.
 """
 
-import dbus
-import gobject
-import serial
-import Queue
-import fcntl, os
-import parser
 from ogsmd.gsm.decor import logged
+import parser
+
+import gobject # pygobject
+
+import serial # pyserial
+import Queue, fcntl, os # stdlib
 
 #=========================================================================#
 class PeekholeQueue( Queue.Queue ):
@@ -35,10 +35,6 @@ class VirtualChannel( object ):
     """
     This class represents a serial channel
     over which GSM 07.07 / 07.05 (AT) commands are transported.
-
-    This class supports two modes:
-    * standalone (talking over a serial port to the modem)
-    * multiplexed (talking over a multiplexed virtual channel to the modem)
     """
 
     DEBUGLOG = 0
@@ -47,10 +43,10 @@ class VirtualChannel( object ):
     # public API
     #
     @logged
-    def __init__( self, bus, name=None, **kwargs ):
+    def __init__( self, pathfactory, name=None, **kwargs ):
         """Construct"""
+        self.pathfactory = pathfactory
         self.name = name or self.__class__.__name__
-        self.bus = bus
         self.connected = False
         self.watchReadyToSend = None
         self.watchReadyToRead = None
@@ -59,16 +55,16 @@ class VirtualChannel( object ):
             self.debugFile = open( "/tmp/%s.log" % self.name, "w" )
 
     @logged
-    def open( self, path="MUX" ):
+    def open( self, path=None ):
         """
-        Allocate a virtual channel and open a serial port.
+        Allocate a channel and opens a serial port.
         Returns True, if successful. False, otherwise.
         """
         assert not self.connected, "already connected"
 
-        if path == "MUX":
-            path = self._requestChannelPath()
-        if not path:
+        # gather path
+        path = self.pathfactory( self.name )
+        if path is None or path == "":
             return False
 
         # set up serial port object and open it
@@ -183,12 +179,6 @@ class VirtualChannel( object ):
     #
     # private API
     #
-    def _requestChannelPath( self ):
-        """Allocate a new channel from the MUXer."""
-        oMuxer = self.bus.get_object( "org.pyneo.muxer", "/org/pyneo/Muxer" )
-        self.iMuxer = dbus.Interface( oMuxer, "org.freesmartphone.GSM.MUX" )
-        return self.iMuxer.AllocChannel( self.name )
-
     @logged
     def _hup( self, source, condition ):
         """Called, if there is a HUP condition on the source."""
@@ -439,51 +429,6 @@ class AtCommandChannel( QueuedVirtualChannel ):
     enqueueRaw = QueuedVirtualChannel.enqueue
 
 #=========================================================================#
-# testing stuff here
-#=========================================================================#
-def error( r, o ):
-    print r, o
-
-def queryModem( command ):
-    def genfunc():
-        genfunc.result = (yield)
-
-    g = genfunc()
-    g.next()
-    misc.enqueue( command, g, error )
-    return g
-
-def launchReadThread( serport ):
-    import thread
-    thread.start_new_thread( reader, (serport,) )
-
 if __name__ == "__main__":
-    import dbus, sys, thread, atexit
-
-    def run():
-        import dbus.mainloop.glib
-        dbus.mainloop.glib.DBusGMainLoop( set_as_default=True )
-        run.mainloop = gobject.MainLoop()
-        run.mainloop.run()
-
-    def cleanup( *args, **kwargs ):
-        run.mainloop.quit()
-
-    def reader( serport ):
-        while True:
-            data = serport.read()
-            print ">>>>>>>>>>>>> GOT %d bytes '%s'" % ( len(data), repr(data) )
-
-    bus = dbus.SystemBus()
-    misc = MiscChannel( bus, timeout=5 )
-#    call = CallChannel( bus, timeout=10 )
-#    unsol = UnsolicitedResponseChannel( bus )
-#    call.open()
-#    unsol.open()
-    misc.open()
-
-    gobject.threads_init()
-    if len( sys.argv ) == 1:
-        thread.start_new_thread( run, () )
-
-    atexit.register( cleanup, () )
+#=========================================================================#
+    print "no tests written yet :("
