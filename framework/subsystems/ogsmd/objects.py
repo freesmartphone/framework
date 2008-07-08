@@ -84,14 +84,6 @@ class Device( dbus.service.Object ):
 #=========================================================================#
     """
     This class handles the dbus interface of org.freesmartphone.GSM.*
-
-    We're using the following typical mapping of channels to commands:
-    * Channel 1: Call Handling
-    * Channel 2: Unsolicited Responses
-    * Channel 3: Miscellaneous (everything non-call, SIM, Network, Device, SMS)
-    * Channel 4: GPRS
-    Since all our virtual channels handle interleaved request/response
-    and unsolicited though, we can also send additional commands everywhere :)
     """
 
     def __init__( self, bus, modemtype ):
@@ -113,6 +105,10 @@ class Device( dbus.service.Object ):
             from modems.ti_calypso.modem import TiCalypso as Modem
             global mediator
             import modems.ti_calypso.mediator as mediator
+        elif modemtype == "openezx":
+            from modems.openezx.modem import MotorolaEzx as Modem
+            global mediator
+            import modems.openezx.mediator as mediator
         else:
             assert False, "unsupported modem type"
 

@@ -68,6 +68,7 @@ class VirtualChannel( object ):
             return False
 
         # set up serial port object and open it
+        print "(%s: using modem path '%s')" % ( repr(self), path )
         self.serial = serial.Serial()
         self.serial.port = str( path )
         self.serial.baudrate = 115200

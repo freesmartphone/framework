@@ -112,6 +112,8 @@ class Controller( object ):
                 if subsystem not in systemstolaunch:
                     LOG( LOG_INFO, "skipping subsystem", subsystem, "due to command line configuration" )
                     continue
+                else:
+                    LOG( LOG_INFO, "launching subsystem", subsystem )
             self.busnames.append( dbus.service.BusName( "%s.%s" % ( DBUS_BUS_NAME_PREFIX, subsystem ), self.bus ) )
             self.registerModulesInSubsystem( subsystem, path )
 
