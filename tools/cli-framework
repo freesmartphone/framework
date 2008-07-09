@@ -10,13 +10,13 @@ Interactive console for the freesmartphone.org framework
 GPLv2 or later
 """
 
-import os, sys
+import os, sys, code
 import dbus.service
 import dbus.mainloop.glib
 import dbus
 from syslog import syslog, LOG_ERR, LOG_WARNING, LOG_INFO, LOG_DEBUG
-import dbus, sys, thread, atexit
-from gobject import threads_init, MainLoop
+import dbus, sys, atexit
+from gobject import MainLoop
 
 def handler( *args, **kwargs ):
     if kwargs["path"].startswith( "/org/freesmartphone" ):
@@ -26,6 +26,7 @@ def handler( *args, **kwargs ):
             print "%s, " % arg,
         print "%s" % args[-1]
         print ">>> ",
+        sys.stdout.flush()
 
 def getObject( bus, busname, objectpath ):
     return bus.get_object( busname, objectpath, follow_name_owner_changes=True )
@@ -36,7 +37,6 @@ def getInterface( bus, busname, objectpath, interface ):
 
 dbus.mainloop.glib.DBusGMainLoop( set_as_default=True )
 mainloop = MainLoop()
-
 bus = dbus.SystemBus()
 
 # FIXME use introspection
@@ -97,13 +97,8 @@ def runmainloop():
         mainloop.quit()
         sys.exit( 0 )
 
-threads_init()
-thread.start_new_thread( runmainloop, () )
-
-import code
 console = code.InteractiveConsole( locals() )
 try:
     console.interact( "freesmartphone.org interactive command line" )
 except KeyboardInterrupt:
-    mainloop.quit()
     sys.exit( 0 )
