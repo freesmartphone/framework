@@ -19,13 +19,13 @@ import dbus, sys, thread, atexit
 from gobject import threads_init, MainLoop
 
 def handler( *args, **kwargs ):
-    print "="*78
-    print "got a signal from '%s' (via %s):" % ( kwargs["path"], kwargs["sender"] )
-    print "=> SIGNAL: %s.%s (" % ( kwargs["interface"], kwargs["member"] ),
-    for arg in args[:-1]:
-        print "%s, " % arg,
-    print "%s )" % args[-1]
-    print "="*78
+    if kwargs["path"].startswith( "/org/freesmartphone" ):
+        print "[SIGNAL]   %s.%s    from " % ( kwargs["interface"], kwargs["member"] ),
+        print "%s via %s" % ( kwargs["path"], kwargs["sender"] )
+        for arg in args[:-1]:
+            print "%s, " % arg,
+        print "%s" % args[-1]
+        print ">>> ",
 
 def getObject( bus, busname, objectpath ):
     return bus.get_object( busname, objectpath, follow_name_owner_changes=True )
@@ -75,7 +75,7 @@ gsmtest = getInterface( bus,
     "/org/freesmartphone/GSM/Device",
     "org.freesmartphone.GSM.Test" )
 
-bus.add_signal_receiver( handler, None, None, "org.freesmartphone.frameworkd", None,
+bus.add_signal_receiver( handler, None, None, None, None,
     sender_keyword = "sender",
     destination_keyword = "destination",
     interface_keyword = "interface",
@@ -90,10 +90,20 @@ except IOError:
     pass
 atexit.register( readline.write_history_file, os.path.expanduser( "~/.framework-history" ) )
 
-#threads_init()
-#thread.start_new_thread( mainloop.run, () )
+def runmainloop():
+    try:
+        mainloop.run()
+    except KeyboardInterrupt:
+        mainloop.quit()
+        sys.exit( 0 )
+
+threads_init()
+thread.start_new_thread( runmainloop, () )
 
 import code
 console = code.InteractiveConsole( locals() )
-console.interact( "freesmartphone.org interactive command line" )
-
+try:
+    console.interact( "freesmartphone.org interactive command line" )
+except KeyboardInterrupt:
+    mainloop.quit()
+    sys.exit( 0 )
