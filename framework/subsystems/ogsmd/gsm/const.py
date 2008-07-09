@@ -32,10 +32,21 @@ PAT_SMS_TEXT_HEADER = re.compile( '(?P<index>\d+),"(?P<status>[^"]+)","(?P<numbe
 # +CMGR: "REC READ","Alice-Team",,"08/05/13,09:12:15+08",208,133
 PAT_SMS_TEXT_HEADER_SINGLE = re.compile( '"(?P<status>[^"]+)","(?P<number>[^"]+)",(?:"(?P<name>[^"]+)")?,(?:"(?P<timestamp>[^"]+)")?,(?P<ntype>\d+),(?P<textlen>\d+)' )
 
-PAT_CCFC = re.compile( r'''(?P<enabled>\d+),(?P<class>\d)(?:,"(?P<number>[^"]+)",(?P<ntype>\d+)(?:,,(?:,(?P<seconds>\d+))?)?)?''' )
-
 PAT_STRING = re.compile( r'''"([^"]+?)"''' )
 
+PAT_CCFC = re.compile( r'''(?P<enabled>\d+),(?P<class>\d)(?:,"(?P<number>[^"]+)",(?P<ntype>\d+)(?:,,(?:,(?P<seconds>\d+))?)?)?''' )
+
+PAT_CLCC = re.compile( r'''\+CLCC: (?P<id>\d+),(?P<dir>\d+),(?P<stat>\d+),(?P<mode>\d+),(?P<mpty>\d+)(?:,"(?P<number>[^"]+)",(?P<ntype>\d+)?)(?:,"(?P<alpha>[^"]+)")?''' )
+
+#=========================================================================#
+def groupDictIfMatch( pattern, string ):
+#=========================================================================#
+    """
+    Returns the group dictionary, if the pattern matches.
+    None, otherwise.
+    """
+    match = pattern.match( string )
+    return match.groupdict() if match is not None else None
 
 #=========================================================================#
 # timeouts
@@ -617,6 +628,36 @@ SMS_STATUS_IN = { \
     "sent": "STO SENT",
     "unsent": "STO UNSENT",
     "all": "ALL",
+}
+
+#=========================================================================#
+CALL_DIRECTION = { \
+    0: "outgoing",
+    1: "incoming",
+}
+
+#=========================================================================#
+CALL_MODE = BiDict( { \
+    "voice": 0,
+    "data": 1,
+    "fax": 2,
+    "voice;data:voice": 3,
+    "voice/data:voice": 4,
+    "voice/fax:voice": 5,
+    "voice;data:data": 6,
+    "voice/data:data": 7,
+    "voice/fax:fax": 8,
+    "unknown": 9,
+} )
+
+#=========================================================================#
+CALL_STATUS = { \
+    0: "active",
+    1: "held",
+    2: "outgoing", # we don't distinguish between alerting and outgoing
+    3: "outgoing",
+    4: "incoming",
+    5: "incoming",
 }
 
 #=========================================================================#

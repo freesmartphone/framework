@@ -82,6 +82,9 @@ class CallHandler( object ):
     def release( self, index, commchannel ):
         return self.feedUserInput( "release", index=index, channel=commchannel )
 
+    def hold( self, index, commchannel ):
+        return self.feedUserInput( "hold", channel=commchannel )
+
     def ring( self ):
         for callId, info in self._calls.items():
             if info["status"] == "incoming":
@@ -115,6 +118,18 @@ class CallHandler( object ):
 
     def errorFromChannel( self, request, response ):
         print "AT ERROR FROM CHANNEL=", response
+
+    #
+    # synchronize status
+    #
+    def syncStatus( self, commchannel ):
+        commchannel.enqueue( "+CLCC", self.syncStatus_ok, self.syncStatus_err )
+
+    def syncStatus_ok( self, request, response ):
+        pass
+
+    def syncStatus_err( self, request, error ):
+        print "AT ERROR FROM CHANNEL=", error
 
     #
     # state machine actions following. micro states:
@@ -161,6 +176,21 @@ class CallHandler( object ):
     def state_active_release( self, action, *args, **kwargs ):
         if action == "release" and kwargs["index"] == 1:
             kwargs["channel"].enqueue( 'H' )
+            return True
+        elif action == "hold":
+            # put active call on hold without accepting any waiting or held
+            # this is not supported by all modems / networks
+            kwargs["channel"].enqueue( "+CHLD=2", lambda channel=kwargs["channel"]: self.syncStatus( channel ) )
+            return True
+
+    def state_held_release( self, action, *args, **kwargs ):
+        # state not supported by all modems
+        if action == "release" and kwargs["index"] == 1:
+            kwargs["channel"].enqueue( 'H' )
+            return True
+        elif action == "activate" and kwargs["index"] == 1:
+            # activate held call
+            kwargs["channel"].enqueue( "+CHLD=2", lambda channel=kwargs["channel"]: self.syncStatus( channel ) )
             return True
 
     #

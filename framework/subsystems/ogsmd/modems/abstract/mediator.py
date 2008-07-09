@@ -779,6 +779,33 @@ class NetworkSetCallingIdentification( NetworkMediator ): # s
 from .call import Call
 
 #=========================================================================#
+class CallListCalls( CallMediator ): # a(isa{sv})
+#=========================================================================#
+    def trigger( self ):
+        self._commchannel.enqueue( "+CLCC", self.responseFromChannel, self.errorFromChannel )
+
+    def responseFromChannel( self, request, response ):
+        if response[-1] == "OK":
+            result = []
+            for line in response[:-1]:
+                gd = const.groupDictIfMatch( const.PAT_CLCC, line )
+                assert gd is not None, "parsing error"
+                index = int( gd["id"] )
+                stat = int( gd["stat"] )
+                direction = const.CALL_DIRECTION[ int( gd["dir"] ) ]
+                mode = const.CALL_MODE.revlookup( int( gd["mode"] ) )
+                number, ntype = gd["number"], gd["ntype"]
+
+                properties = { "direction": direction, "type": mode }
+                if number is not None:
+                    properties["peer"] = const.phonebookTupleToNumber( number, int(ntype) )
+                c = ( index, const.CALL_STATUS[ stat ], properties )
+                result.append( c )
+            self._ok( result )
+        else:
+            CallMediator.responseFromChannel( self, request, response )
+
+#=========================================================================#
 class CallInitiate( CallMediator ):
 #=========================================================================#
     def trigger( self ):
