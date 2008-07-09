@@ -29,11 +29,14 @@ class SingleLine( AbstractModem ):
         AbstractModem.__init__( self, *args, **kwargs )
 
         # The one and only serial line
-        self._channels["SINGLE"] = SingleLineChannel( self._bus, "ogsmd" )
+        self._channels["SINGLE"] = SingleLineChannel( self.portfactory, "ogsmd" )
         # configure channels
-        self._channels["UNSOL"].setDelegate( UnsolicitedResponseDelegate( self._object, mediator ) )
+        self._channels["SINGLE"].setDelegate( UnsolicitedResponseDelegate( self._object, mediator ) )
 
     def channel( self, category ):
             # we do not care about a category here, we only have one channel
             return self._channels["SINGLE"]
 
+    def portfactory( self, name ):
+        # FIXME read from configuration
+        return "/dev/ttyS0"
