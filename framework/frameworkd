@@ -14,6 +14,9 @@ import sys
 import os
 from syslog import openlog, LOG_PERROR, LOG_DAEMON
 
+if "FRAMEWORK_DEBUG" in os.environ:
+    openlog( "framework", LOG_PERROR, LOG_DAEMON )
+
 try:
     from framework import controller
 except ImportError:
@@ -21,12 +24,10 @@ except ImportError:
     from framework import controller
 
 if __name__ == "__main__":
-    if "FRAMEWORK_DEBUG" in os.environ:
-        openlog( "framework", LOG_PERROR, LOG_DAEMON )
     c = controller.Controller( "%s/subsystems" % os.path.dirname( controller.__file__ ) )
 
-try:
-    c.run()
-except KeyboardInterrupt:
-    print >>sys.stderr, "ctrl-c: exiting."
-    sys.exit( 0 )
+    try:
+        c.run()
+    except KeyboardInterrupt:
+        print >>sys.stderr, "ctrl-c: exiting."
+        sys.exit( 0 )
