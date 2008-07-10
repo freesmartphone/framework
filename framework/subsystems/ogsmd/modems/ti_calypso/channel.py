@@ -59,8 +59,8 @@ class CalypsoModemChannel( AtCommandChannel ):
                     buf = self.serial.inWaiting()
                 except:
                     self.serial.close()
-                    path = self._requestChannelPath()
-                    if not path:
+                    path = self.pathfactory()
+                    if not path: # path is None or ""
                         return False
                     self.serial.port = str( path )
                     self.serial.open()
@@ -73,8 +73,8 @@ class CalypsoModemChannel( AtCommandChannel ):
             if i == 5:
                 print "(reopening modem)"
                 self.serial.close()
-                path = self._requestChannelPath()
-                if not path:
+                path = self.pathfactory()
+                if not path: # path is None or ""
                     return False
                 self.serial.port = str( path )
                 self.serial.open()
