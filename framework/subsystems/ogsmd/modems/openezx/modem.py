@@ -15,7 +15,7 @@ import mediator
 
 from ogsmd.modems.abstract.modem import AbstractModem
 
-from .channel import MiscChannel
+from .channel import MiscChannel, UnsolicitedResponseChannel
 from .unsolicited import UnsolicitedResponseDelegate
 
 from ogsmd.gsm.decor import logged
@@ -29,12 +29,15 @@ class MotorolaEzx( AbstractModem ):
     def __init__( self, *args, **kwargs ):
         AbstractModem.__init__( self, *args, **kwargs )
 
-        for i in xrange( 1 ): # two channels for now
-            self._channels[ "MUX%d" % i ] = MiscChannel( self.pathfactory, "/dev/mux%d" % i )
+        self._channels[ "UNSOL" ] = UnsolicitedResponseChannel( self.pathfactory, "/dev/mux0" )
+        self._channels[ "CALL" ] = MiscChannel( self.pathfactory, "/dev/mux1" )
+        self._channels[ "MISC" ] = MiscChannel( self.pathfactory, "/dev/mux2" )
+        # self._channels[ "UNSOL2" ] = MiscChannel( self.pathfactory, "/dev/mux4" )
+
+        # configure channels
+        self._channels["UNSOL"].setDelegate( UnsolicitedResponseDelegate( self._object, mediator ) )
 
     def channel( self, category ):
-        return self._channels["MUX0"]
-
         if category == "CallMediator":
             return self._channels["CALL"]
         else:

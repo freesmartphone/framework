@@ -9,11 +9,13 @@ GPLv2 or later
 from ogsmd.modems.abstract.unsolicited import AbstractUnsolicitedResponseDelegate
 from ogsmd.gsm import const
 
+#=========================================================================#
 class UnsolicitedResponseDelegate( AbstractUnsolicitedResponseDelegate ):
+#=========================================================================#
 
     def __init__( self, *args, **kwargs ):
         AbstractUnsolicitedResponseDelegate.__init__( self, *args, **kwargs )
-        self._mediator.createCallHandler( self._object )
+        # self._mediator.createCallHandler( self._object )
 
     # +CRING is only used to trigger a status update
     def plusCRING( self, calltype ):
@@ -30,10 +32,33 @@ class UnsolicitedResponseDelegate( AbstractUnsolicitedResponseDelegate ):
 
     # +CSSU: 2,,"",128
     def plusCSSU( self, righthandside ):
-        code, index, number, type = righthandside.split( "," )
+        code, index, number, type = righthandside.split( ',' )
+
+    def plusCIEV( self, righthandside ):
+        """
+        Indicator Event Reporting. See 3GPP TS 07.07, Chapter 8.9.
+        """
+        # FIXME this can actually go into the AbstractUnsolicitedResponseDelegate
+        indicator, value = ( int(x) for x in righthandside.split( ',' ) )
+        if indicator == 1: # signal strength
+            self._object.SignalStrength( 25*value )
+        else:
+            print "plusCIEV: %s" % righthandside
 
     #
     # Motorola EZX proprietary
+    #
+
+    # +EOPER: 5,"262-03"
+    def plusEOPER( self, righthandside ):
+        values = righthandside.split( ',' )
+        status = { "registration": const.REGISTER_STATUS[int(values[0])] }
+        if len( values ) > 1:
+            status["provider"] = values[1]
+        self._object.Status( status )
+
+    #
+    # TI proprietary (for reference, remove later)
     #
 
     # %CCCN: 0,0,A10E02010402011030068101428F0101
