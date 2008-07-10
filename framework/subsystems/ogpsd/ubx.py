@@ -21,7 +21,7 @@ import string
 import struct
 from gpsdevice import GPSDevice
 from syslog import syslog, LOG_ERR, LOG_WARNING, LOG_INFO, LOG_DEBUG
-from helpers import LOG, readFromFile, writeToFile
+from helpers import LOG
 from gobject import idle_add
 
 SYNC1=0xb5

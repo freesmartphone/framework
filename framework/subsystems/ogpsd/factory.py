@@ -15,6 +15,7 @@ __version__ = "0.0.0"
 import dbus
 from nmea import NMEADevice
 from ubx import UBXDevice
+from om import GTA02Device
 from gpschannel import *
 
 #----------------------------------------------------------------------------#
