@@ -72,9 +72,11 @@ class Server( dbus.service.Object ):
     #
     # dbus
     #
-    @dbus.service.method( DBUS_INTERFACE_SERVER, "", "s" )
-    def Bar( self ):
-        return "bar"
+    @dbus.service.method( DBUS_INTERFACE_SERVER, "s", "",
+                          async_callbacks=( "dbus_ok", "dbus_error" ) )
+    def SetupAndRegister( self, pin, dbus_ok, dbus_error ):
+        self.device.SetAntennaPower( True )
+        dbus_ok()
 
     # Send Diffs only
     # Caching strategy
@@ -167,7 +169,6 @@ class Device( dbus.service.Object ):
     #
     # dbus org.freesmartphone.GSM.SIM
     #
-
     ### SIM auth
     @dbus.service.method( DBUS_INTERFACE_SIM, "", "s",
                           async_callbacks=( "dbus_ok", "dbus_error" ) )
@@ -388,6 +389,11 @@ class Device( dbus.service.Object ):
     def HoldActive( self, dbus_ok, dbus_error ):
         mediator.CallHoldActive( self, dbus_ok, dbus_error )
 
+    @dbus.service.method( DBUS_INTERFACE_CALL, "s", "",
+                          async_callbacks=( "dbus_ok", "dbus_error" ) )
+    def Transfer( self, number, dbus_ok, dbus_error ):
+        mediator.CallTransfer( self, dbus_ok, dbus_error, number=number )
+
     @dbus.service.method( DBUS_INTERFACE_CALL, "", "a(isa{sv})",
                           async_callbacks=( "dbus_ok", "dbus_error" ) )
     def ListCalls( self, dbus_ok, dbus_error ):
@@ -397,9 +403,6 @@ class Device( dbus.service.Object ):
                           async_callbacks=( "dbus_ok", "dbus_error" ) )
     def SendDtmf( self, tones, dbus_ok, dbus_error ):
         mediator.CallSendDtmf( self, dbus_ok, dbus_error, tones=tones )
-
-    # SetDtmfDuration
-    # GetDtmfDuration
 
     #
     # dbus org.freesmartphone.GSM.PDP

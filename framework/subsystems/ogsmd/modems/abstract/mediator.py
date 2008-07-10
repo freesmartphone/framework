@@ -779,6 +779,13 @@ class NetworkSetCallingIdentification( NetworkMediator ): # s
 from .call import Call
 
 #=========================================================================#
+class CallTransfer( CallMediator ):
+#=========================================================================#
+    def trigger( self ):
+        number, ntype = const.numberToPhonebookTuple( self.number )
+        self._commchannel.enqueue( '+CTFR="%s",%d' % ( number, ntype ), self.responseFromChannel, self.errorFromChannel )
+
+#=========================================================================#
 class CallListCalls( CallMediator ): # a(isa{sv})
 #=========================================================================#
     def trigger( self ):
