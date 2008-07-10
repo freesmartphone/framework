@@ -61,6 +61,15 @@ class CallActivate( CallMediator ):
             self._error( error.CallNotFound( "no such call to activate" ) )
 
 #=========================================================================#
+class CallHoldActive( CallMediator ):
+#=========================================================================#
+    def trigger( self ):
+        if callHandler.hold( self._commchannel ) is not None:
+            self._ok()
+        else:
+            self._error( error.CallNotFound( "no such call to hold" ) )
+
+#=========================================================================#
 class CallHandler( object ):
 #=========================================================================#
     def __init__( self, dbus_object ):
@@ -82,7 +91,7 @@ class CallHandler( object ):
     def release( self, index, commchannel ):
         return self.feedUserInput( "release", index=index, channel=commchannel )
 
-    def hold( self, index, commchannel ):
+    def hold( self, commchannel ):
         return self.feedUserInput( "hold", channel=commchannel )
 
     def ring( self ):
@@ -122,11 +131,14 @@ class CallHandler( object ):
     #
     # synchronize status
     #
-    def syncStatus( self, commchannel ):
-        commchannel.enqueue( "+CLCC", self.syncStatus_ok, self.syncStatus_err )
+    def syncStatus( self, request, response ):
+        CallListCalls( self._object, self.syncStatus_ok, self.syncStatus_err )
 
-    def syncStatus_ok( self, request, response ):
-        pass
+    def syncStatus_ok( self, calls ):
+        assert len( calls ) == 1, "unhandled case"
+        # synthesize status change from network
+        callid, status, properties = calls[0]
+        self.statusChangeFromNetwork( callid, {"status": status} )
 
     def syncStatus_err( self, request, error ):
         print "AT ERROR FROM CHANNEL=", error
@@ -180,7 +192,8 @@ class CallHandler( object ):
         elif action == "hold":
             # put active call on hold without accepting any waiting or held
             # this is not supported by all modems / networks
-            kwargs["channel"].enqueue( "+CHLD=2", lambda channel=kwargs["channel"]: self.syncStatus( channel ) )
+            self.channel = kwargs["channel"]
+            kwargs["channel"].enqueue( "+CHLD=2", self.syncStatus )
             return True
 
     def state_held_release( self, action, *args, **kwargs ):
@@ -190,7 +203,8 @@ class CallHandler( object ):
             return True
         elif action == "activate" and kwargs["index"] == 1:
             # activate held call
-            kwargs["channel"].enqueue( "+CHLD=2", lambda channel=kwargs["channel"]: self.syncStatus( channel ) )
+            self.channel = kwargs["channel"]
+            kwargs["channel"].enqueue( "+CHLD=2", self.syncStatus )
             return True
 
     #
