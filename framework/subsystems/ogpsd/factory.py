@@ -14,6 +14,7 @@ __version__ = "0.0.0"
 
 import dbus
 from nmea import NMEADevice
+from ubx import UBXDevice
 from gpschannel import *
 
 #----------------------------------------------------------------------------#
@@ -21,9 +22,12 @@ def factory( prefix, controller ):
 #----------------------------------------------------------------------------#
     objects = []
 
-		# Just open something
-    channel = SerialChannel( "/dev/ttyACM0" )
-    gpsdev = NMEADevice( controller.bus, channel )
+    devname = controller.config.get( "ogpsd", "device" )
+    channame = controller.config.get( "ogpsd", "channel" )
+    pathname = controller.config.get( "ogpsd", "path" )
+
+    channel = globals()[channame]( pathname )
+    gpsdev = globals()[devname]( controller.bus, channel )
     objects.append( gpsdev )
 
     return objects
