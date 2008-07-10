@@ -806,6 +806,26 @@ class CallListCalls( CallMediator ): # a(isa{sv})
             CallMediator.responseFromChannel( self, request, response )
 
 #=========================================================================#
+class CallSendDtmf( CallMediator ):
+#=========================================================================#
+    def trigger( self ):
+        self.tonelist = [ tone.upper() for tone in self.tones if tone.upper() in const.CALL_VALID_DTMF ]
+        self.tonelist.reverse()
+        if not self.tonelist:
+            self._error( error.InvalidParameter( "not enough valid tones" ) )
+        else:
+            self._commchannel.enqueue( "+VTS=%s" % self.tonelist.pop(), self.responseFromChannel, self.errorFromChannel )
+
+    def responseFromChannel( self, request, response ):
+        if response[-1] == "OK":
+            if self.tonelist:
+                self._commchannel.enqueue( "+VTS=%s" % self.tonelist.pop(), self.responseFromChannel, self.errorFromChannel )
+            else:
+                self._ok()
+        else:
+            CallMediator.responseFromChannel( self, request, response )
+
+#=========================================================================#
 class CallInitiate( CallMediator ):
 #=========================================================================#
     def trigger( self ):

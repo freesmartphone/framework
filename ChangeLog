@@ -1,21 +1,25 @@
+2008-07-10	Michael Lauer	<mickey@vanille-media.de>
+
+	* [ogsmd] Implemented DTMF sending
+
 2008-07-09	Michael Lauer	<mickey@vanille-media.de>
 
-	* Implemented call forwarding handling
-	* Implemented calling line identification handling
-	* Added first bits of Motorola EZX support
-	* Refactored getting the port out of VirtualChannel
+	* [ogsmd] Implemented call forwarding handling
+	* [ogsmd] Implemented calling line identification handling
+	* [ogsmd] Added first bits of Motorola EZX support
+	* [ogsmd] Refactored getting the port out of VirtualChannel
 
 2008-07-08	Michael Lauer 	<mickey@vanille-media.de>
 
-	* Implemented org.freesmartphone.GSM.PDP
+	* [ogsmd] Implemented org.freesmartphone.GSM.PDP
 
 2008-07-03	Guillaume Chereau	<charlie@openmoko.org>
 
-	* Add new highlevel ophoned subsystem.
+	* [ophoned] Add new highlevel ophoned subsystem.
 
 2008-07-02	Michael Lauer	<mickey@vanille-media.de>
 
-	* Renamed subsystem ophoned into ogsmd: Reason:
+	* [ogsmd] Renamed subsystem ophoned into ogsmd: Reason:
 		ophoned specifically deals with GSM. There will
 		be a new subsystem that is more abstract.
 

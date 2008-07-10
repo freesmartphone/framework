@@ -393,8 +393,11 @@ class Device( dbus.service.Object ):
     def ListCalls( self, dbus_ok, dbus_error ):
         mediator.CallListCalls( self, dbus_ok, dbus_error )
 
-    # GetCallStatus
-    # SendDtmf
+    @dbus.service.method( DBUS_INTERFACE_CALL, "s", "",
+                          async_callbacks=( "dbus_ok", "dbus_error" ) )
+    def SendDtmf( self, tones, dbus_ok, dbus_error ):
+        mediator.CallSendDtmf( self, dbus_ok, dbus_error, tones=tones )
+
     # SetDtmfDuration
     # GetDtmfDuration
 
