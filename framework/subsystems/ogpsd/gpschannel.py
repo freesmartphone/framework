@@ -26,7 +26,8 @@ class GPSChannel( object ):
 class SerialChannel( GPSChannel ):
     """Serial reader"""
 
-    def __init__( self, path, baud = 2400):
+    def __init__( self, path, baud = 9600):
+        super(SerialChannel, self).__init__()
 
         # set up serial port object and open it
         self.serial = serial.Serial()
