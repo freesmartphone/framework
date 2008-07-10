@@ -121,7 +121,7 @@ class Input( dbus.service.Object ):
                 try:
                     timestamp, timeout = self.events[ ( typ, code ) ]
                 except KeyError:
-                    LOG( LOG_ERROR, "potential logic problem, key released before pressed. watches are", self.watches, "events are", self.events )
+                    LOG( LOG_ERR, "potential logic problem, key released before pressed. watches are", self.watches, "events are", self.events )
                 else:
                     source_remove( timeout )
                     del self.events[ ( typ, code ) ]
