@@ -36,9 +36,20 @@ class UnsolicitedResponseDelegate( AbstractUnsolicitedResponseDelegate ):
 
     def plusCIEV( self, righthandside ):
         """
-        Indicator Event Reporting. See 3GPP TS 07.07, Chapter 8.9.
+        Indicator Event Reporting. Based on 3GPP TS 07.07, Chapter 8.9, but slightly extended.
+
+        As +CIND=? give us a hint (one of the few test commands EZX exposes), we conclude:
+
+        0: battery charge level (0-5)
+        1: signal level (0-5)
+        2: service availability (0-1)
+        3: call active? (0-1)
+        4: voice mail (message) (0-1)
+        5: transmit activated by voice activity (0-1)
+        6: call progress (0-3) [0:no more in progress, 1:incoming, 2:outgoing, 3:ringing]
+        7: roaming (0-2)
+        8: sms storage full (0-1)
         """
-        # FIXME this can actually go into the AbstractUnsolicitedResponseDelegate
         indicator, value = ( int(x) for x in righthandside.split( ',' ) )
         if indicator == 1: # signal strength
             self._object.SignalStrength( 25*value )
