@@ -195,20 +195,10 @@ class Device( dbus.service.Object ):
         mediator.SimChangeAuthCode( self, dbus_ok, dbus_error, old_pin=old_pin, new_pin=new_pin )
 
     ### SIM info
-    @dbus.service.method( DBUS_INTERFACE_SIM, "", "s",
-                          async_callbacks=( "dbus_ok", "dbus_error" ) )
-    def GetImsi( self, dbus_ok, dbus_error ):
-        mediator.SimGetImsi( self, dbus_ok, dbus_error )
-
     @dbus.service.method( DBUS_INTERFACE_SIM, "", "a{sv}",
                           async_callbacks=( "dbus_ok", "dbus_error" ) )
-    def GetSubscriberNumbers( self, dbus_ok, dbus_error ):
-        mediator.SimGetSubscriberNumbers( self, dbus_ok, dbus_error )
-
-    @dbus.service.method( DBUS_INTERFACE_SIM, "", "ss",
-                          async_callbacks=( "dbus_ok", "dbus_error" ) )
-    def GetSimCountryCode( self, dbus_ok, dbus_error ):
-        mediator.SimGetCountryCode( self, dbus_ok, dbus_error )
+    def GetSimInfo( self, dbus_ok, dbus_error ):
+        mediator.SimGetSimInfo( self, dbus_ok, dbus_error )
 
     ### SIM phonebook
     @dbus.service.method( DBUS_INTERFACE_SIM, "", "a{sv}",
@@ -383,7 +373,6 @@ class Device( dbus.service.Object ):
     def Initiate( self, number, type_, dbus_ok, dbus_error ):
         mediator.CallInitiate( self, dbus_ok, dbus_error, number=number, calltype=type_ )
 
-    # FIXME not implemented yet
     @dbus.service.method( DBUS_INTERFACE_CALL, "", "",
                           async_callbacks=( "dbus_ok", "dbus_error" ) )
     def HoldActive( self, dbus_ok, dbus_error ):

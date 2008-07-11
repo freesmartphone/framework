@@ -345,35 +345,41 @@ class SimChangeAuthCode( SimMediator ):
         self._commchannel.enqueue( '+CPWD="SC","%s","%s"' % ( self.old_pin, self.new_pin ), self.responseFromChannel, self.errorFromChannel )
 
 #=========================================================================#
-class SimGetImsi( SimMediator ):
+class SimGetSimInfo( SimMediator ):
 #=========================================================================#
     def trigger( self ):
-        self._commchannel.enqueue( '+CIMI', self.responseFromChannel, self.errorFromChannel )
+        result = {}
 
-    @logged
-    def responseFromChannel( self, request, response ):
-        if response[-1] != "OK":
-            SimMediator.responseFromChannel( self, request, response )
-        if response[0] == "OK":
-            return self._ok( "<??? unknown ???>" )
+        # imsi
+        request, response, error = yield( "+CIMI" )
+        if error is not None:
+            self.errorFromChannel( request, error )
         else:
-            self._ok( response[0].replace( "+CIMI: ", "" ).strip( '"' ) )
+            if response[-1] != "OK":
+                SimMediator.responseFromChannel( self, request, response )
+            else:
+                # not using self.rightHandSide() here since some modems
+                # do not include the +CIMI: prefix
+                imsi = result["imsi"] = response[0].replace( "+CIMI: ", "" ).strip( '"' )
+                code, name = const.mccToCountryCode( int( imsi[:3] ) )
+                result["dial_prefix"] = code
+                result["country"] = name
 
-#=========================================================================#
-class SimGetCountryCode( SimMediator ):
-#=========================================================================#
-    def trigger( self ):
-        self._commchannel.enqueue( '+CIMI', self.responseFromChannel, self.errorFromChannel )
+        request, response, error = yield( "+CNUM" )
 
-    @logged
-    def responseFromChannel( self, request, response ):
-        if response[-1] != "OK":
-            SimMediator.responseFromChannel( self, request, response )
-        if response[0] == "OK":
-            return self._ok( "+???", "<??? unknown ???>" )
+        if error is not None:
+            self.errorFromChannel( request, error )
         else:
-            code, name = const.mccToCountryCode( int(response[0].replace( "+CIMI: ", "" ).strip( '"' )[:3]) )
-            self._ok( code, name )
+            if response[-1] != "OK":
+                # it's perfectly ok for the subscriber number to be not present on the SIM
+                self._ok( result )
+            else:
+                subscriber_numbers = []
+                for line in response[:-1]:
+                    alpha, number, ntype = self.rightHandSide( line )
+                    subscriber_numbers.append( alpha.replace( '"', "" ), const.phonebookTupleToNumber( number, int(ntype) ) )
+                result["subscriber_numbers"] = subscriber_numbers
+                self._ok( result )
 
 #=========================================================================#
 class SimGetPhonebookInfo( SimMediator ):
