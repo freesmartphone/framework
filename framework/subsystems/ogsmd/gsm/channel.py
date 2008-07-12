@@ -449,7 +449,68 @@ class QueuedVirtualChannel( VirtualChannel ):
         self.handleCommandTimeout( self.q.get() )
 
 #=========================================================================#
-class AtCommandChannel( QueuedVirtualChannel ):
+class DelegateChannel( QueuedVirtualChannel ):
+#=========================================================================#
+    """
+    This class contains a setDelegate() function that allows convenient
+    handling of incoming unsolicited messages.
+    """
+
+    def __init__( self, *args, **kwargs ):
+        QueuedVirtualChannel.__init__( self, *args, **kwargs )
+
+        self.prefixmap = { '+': 'plus',
+                           '%': 'percent',
+                           '@': 'at',
+                           '/': 'slash',
+                           '#': 'hash',
+                           '_': 'underscore',
+                           '*': 'star',
+                           '&': 'ampersand',
+                         }
+        self.delegate = None
+
+    def setDelegate( self, object ):
+        """
+        Set a delegate object to which all unsolicited responses are delegated first.
+        """
+        assert self.delegate is None, "delegate already set"
+        self.delegate = object
+
+    @logged
+    def _handleUnsolicitedResponse( self, data ):
+        """
+        Reimplemented for internal purposes.
+
+        This class changes the semantics of how handleUnsolicitedResponse()
+        is getting called. If a delegate is installed, handleUnsolicitedResponse()
+        will only be getting called, if no appropriate delegate method can be found.
+        """
+
+        if not data[0] in self.prefixmap:
+            return False
+        if not ':' in data:
+            return False
+        command, values = data.split( ':', 1 )
+
+        if not self.delegate:
+            # no delegate installed, hand over to generic handler
+            return self.handleUnsolicitedResponse( self, data )
+
+        methodname = "%s%s" % ( self.prefixmap[command[0]], command[1:] )
+
+        try:
+            method = getattr( self.delegate, methodname )
+        except AttributeError:
+            # no appropriate handler found, hand over to generic handler
+            return self.handleUnsolicitedResponse( self, data )
+        else:
+            method( values.strip() )
+
+        return True # unsolicited response handled OK
+
+#=========================================================================#
+class AtCommandChannel( DelegateChannel ):
 #=========================================================================#
     """
     This class represents an AT command channel.

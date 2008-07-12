@@ -45,53 +45,6 @@ class SingleLineChannel( AtCommandChannel ):
         self.enqueue('+CREG=2') # registration information (TODO not all modems support that)
         self.enqueue('+CNMI=2,1,2,1,1') # buffer sms on SIM, report CB directly
 
-        if "callback" in kwargs:
-            self.callback = kwargs["callback"]
-        else:
-            self.callback = self
-
-        self.prefixmap = { '+': 'plus',
-                           '%': 'percent',
-                           '@': 'at',
-                           '/': 'slash',
-                           '#': 'hash',
-                           '_': 'underscore',
-                           '*': 'star',
-                           '&': 'ampersand',
-                         }
-
-        self.delegate = None
-
     @logged
     def open( self, path="/dev/ttySAC0" ):
         AtCommandChannel.open( self, path )
-
-    @logged
-    def handleUnsolicitedResponse( self, data ):
-        if not data[0] in self.prefixmap:
-            return False
-        if not ':' in data:
-            return False
-        command, values = data.split( ':', 1 )
-
-        if not self.delegate:
-            return False
-
-        methodname = "%s%s" % ( self.prefixmap[command[0]], command[1:] )
-
-        try:
-            method = getattr( self.delegate, methodname )
-        except AttributeError:
-            return False
-        else:
-            method( values.strip() )
-
-        return True
-
-    def setDelegate( self, object ):
-        """
-        Set a delegate object to which all unsolicited responses are delegated.
-        """
-        assert self.delegate is None, "delegate already set"
-        self.delegate = object
-

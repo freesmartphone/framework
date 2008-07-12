@@ -73,23 +73,6 @@ class UnsolicitedResponseChannel( GenericModemChannel ):
         # NOTE: This fails until CFUN=4 or CFUN=1 and SIM Auth is given
         self.enqueue( "+CNMI=2,1,2,1,1" ) # buffer sms on SIM, report CB directly
 
-        if "callback" in kwargs:
-            self.callback = kwargs["callback"]
-        else:
-            self.callback = self
-
-        self.prefixmap = { '+': 'plus',
-                           '%': 'percent',
-                           '@': 'at',
-                           '/': 'slash',
-                           '#': 'hash',
-                           '_': 'underscore',
-                           '*': 'star',
-                           '&': 'ampersand',
-                         }
-
-        self.delegate = None
-
     @logged
     def suspend( self, ok_callback, error_callback ):
         self.enqueue( "+CTZU=0;+CTZR=0;+CREG=0;+CNMI=2,1,0,0,0",
@@ -101,32 +84,3 @@ class UnsolicitedResponseChannel( GenericModemChannel ):
         self.enqueue( "+CTZU=1;+CTZR=1;+CREG=2;+CNMI=2,1,2,1,1",
                       SimpleCallback( ok_callback, self ),
                       SimpleCallback( error_callback, self ) )
-
-    @logged
-    def handleUnsolicitedResponse( self, data ):
-        if not data[0] in self.prefixmap:
-            return False
-        if not ':' in data:
-            return False
-        command, values = data.split( ':', 1 )
-
-        if not self.delegate:
-            return False
-
-        methodname = "%s%s" % ( self.prefixmap[command[0]], command[1:] )
-
-        try:
-            method = getattr( self.delegate, methodname )
-        except AttributeError:
-            return False
-        else:
-            method( values.strip() )
-
-        return True
-
-    def setDelegate( self, object ):
-        """
-        Set a delegate object to which all unsolicited responses are delegated.
-        """
-        assert self.delegate is None, "delegate already set"
-        self.delegate = object
