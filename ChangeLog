@@ -1,6 +1,11 @@
+2008-07-12	Michael Lauer	<mickey@vanille-media.de>
+
+	* [ogsmd] Implemented generic and restricted SIM access commands
+
 2008-07-10	Michael Lauer	<mickey@vanille-media.de>
 
 	* [ogsmd] Implemented DTMF sending
+	* [ogsmd] Implemented call deflection
 
 2008-07-09	Michael Lauer	<mickey@vanille-media.de>
 
