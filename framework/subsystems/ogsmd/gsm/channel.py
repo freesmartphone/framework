@@ -495,7 +495,7 @@ class DelegateChannel( QueuedVirtualChannel ):
 
         if not self.delegate:
             # no delegate installed, hand over to generic handler
-            return self.handleUnsolicitedResponse( self, data )
+            return self.handleUnsolicitedResponse( data )
 
         methodname = "%s%s" % ( self.prefixmap[command[0]], command[1:] )
 
@@ -503,7 +503,7 @@ class DelegateChannel( QueuedVirtualChannel ):
             method = getattr( self.delegate, methodname )
         except AttributeError:
             # no appropriate handler found, hand over to generic handler
-            return self.handleUnsolicitedResponse( self, data )
+            return self.handleUnsolicitedResponse( data )
         else:
             method( values.strip() )
 
