@@ -31,12 +31,23 @@ GSM 07.07 / 07.05 Observations and/or Questions:
 * I always receive CME ERROR 32 on +COPS=? until CREG=1
 * +CREG=%d influences both the unsolicited response as well as the solicited response code
 * Phonebook indices start with 1 (not 0)
-* If SIM PIN not given, SIM messagebook requests the slightly misleading
+* If SIM PIN not given, SIM file reading commands (phonebook, messagebook, crm) deliver the slightly misleading
   CMS error code 310 (=SIM NOT INSERTED)
 * If SMS phone number available in messagebook, address name will be automatically inserted
-* +CNUM usually returns CME error 22, but real output looks like:
+* +CNUM usually returns CME error 22 (=NOT FOUND), but real output can look like:
   +CNUM: ,"0775753xxxxx",129 or +CNUM: "LINE 1",+xxyyzz",145
 * If SIM Pin not given, +CNMI fails
+* Homezone:
++CRSM: 144,0,1107919471060040340C8494710600010001000524440008929E0000EA6001686F6
+D65FFFFFFFFFFFFFFFF0200000000000000000000000000FFFFFFFFFFFFFFFFFFFFFFFF030000000
+0000000000000000000FFFFFFFFFFFFFFFFFFFFFFFF040005224B0008940800159BA40363697479F
+FFFFFFFFFFFFFFFFFFF
+
++CRSM: 148,4,00000000000000000000000000000000000000000000
+
+* Cell broadcasts:
++CBM: 88
+001000DD001133DAED46ABD56AB5186CD668341A8Da46A3D168341A8D46A3D168341A8D46A3D168341A8D46A3D168341A8D46A3D168341A8D46tA3D168341A8D46A3D168341A8D46A3D168341A8D46A3D168341A8D46A3D100
 
 
 REAL TODOS:

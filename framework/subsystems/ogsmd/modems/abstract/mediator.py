@@ -218,17 +218,26 @@ class PdpMediator( AbstractMediator, AbstractYieldSupport ):
         AbstractYieldSupport.__init__( self, *args, **kwargs )
 
 #=========================================================================#
-class TestMediator( AbstractMediator, AbstractYieldSupport ):
+class CbMediator( AbstractMediator, AbstractYieldSupport ):
 #=========================================================================#
     def __init__( self, *args, **kwargs ):
         AbstractMediator.__init__( self, *args, **kwargs )
         # this is a bit ugly, but how should we get the channel elsewhere?
-        self._commchannel = self._object.modem.communicationChannel( "TestMediator" )
+        self._commchannel = self._object.modem.communicationChannel( "CbMediator" )
         AbstractYieldSupport.__init__( self, *args, **kwargs )
 
-###########################################################################
+#=========================================================================#
+class DebugMediator( AbstractMediator, AbstractYieldSupport ):
+#=========================================================================#
+    def __init__( self, *args, **kwargs ):
+        AbstractMediator.__init__( self, *args, **kwargs )
+        # this is a bit ugly, but how should we get the channel elsewhere?
+        self._commchannel = self._object.modem.communicationChannel( "DebugMediator" )
+        AbstractYieldSupport.__init__( self, *args, **kwargs )
+
+#
 # Device Mediators
-###########################################################################
+#
 
 #=========================================================================#
 class DeviceGetInfo( DeviceMediator ):
@@ -299,9 +308,9 @@ class DeviceGetFeatures( DeviceMediator ):
             result["FAX"] = response[2]
         self._ok( result )
 
-###########################################################################
+#
 # SIM Mediators
-###########################################################################
+#
 
 #=========================================================================#
 class SimGetAuthStatus( SimMediator ):
@@ -589,9 +598,9 @@ class SimDeleteMessage( SimMediator ):
     def trigger( self ):
         self._commchannel.enqueue( "+CMGD=%d" % self.index, self.responseFromChannel, self.errorFromChannel )
 
-###########################################################################
+#
 # Network Mediators
-###########################################################################
+#
 
 #=========================================================================#
 class NetworkRegister( NetworkMediator ):
@@ -778,9 +787,9 @@ class NetworkSetCallingIdentification( NetworkMediator ): # s
 
         self._commchannel.enqueue( "+CLIR=%d" % restriction, self.responseFromChannel, self.errorFromChannel )
 
-###########################################################################
+#
 # Call Mediators
-###########################################################################
+#
 
 from .call import Call
 
@@ -901,9 +910,9 @@ class CallRelease( CallMediator ):
         else:
             self._error( error.InternalException( "server does not support multiple calls yet" ) )
 
-###########################################################################
+#
 # PDP Mediators
-###########################################################################
+#
 
 from .pdp import Pdp
 pdpConnection = None
@@ -965,16 +974,63 @@ class PdpDeactivateContext( PdpMediator ):
         else:
             self._error( error.PdpNotFound( "there is no active pdp context" ) )
 
-###########################################################################
-# Test Mediators
-###########################################################################
+#
+# CB Mediators
+#
 
 #=========================================================================#
-class TestCommand( TestMediator ):
+class CbGetCellBroadcastSubscriptions( CbMediator ): # s
+#=========================================================================#
+    def trigger( self ):
+
+        request, response, error = yield( "+CSCB?" )
+        if error is not None:
+            self.errorFromChannel( request, error )
+        else:
+            if response[-1] != "OK":
+                self.responseFromChannel( request, response )
+            else:
+                # +CSCB: 0,"0-999","0-3,5"
+                gd = const.groupDictIfMatch( const.PAT_CSCB, response[0] )
+                assert gd is not None, "parsing error"
+                drop = gd["drop"] == '1'
+                channels = gd["channels"]
+                encodings = gd["encodings"]
+
+                if not drop:
+                    if channels == "":
+                        self._ok( "none" )
+                    elif channels == "0-999":
+                        self._ok( "all" )
+                    else:
+                        self._ok( channels )
+                else:
+                    if channels == "": # drop nothing = accept 0-999
+                        self._ok( "all" )
+                    self._error( error.InternalException, "+CSCB: 1 not yet handled" )
+
+#=========================================================================#
+class CbSetCellBroadcastSubscriptions( CbMediator ):
+#=========================================================================#
+    def trigger( self ):
+        if self.channels == "all":
+            message = '1,"",""'
+        elif self.channels == "none":
+            message = '0,"",""'
+        else:
+            message = '0,"%s","0-3,5"' % self.channels
+        self._commchannel.enqueue( "+CSCB=%s" % message, self.responseFromChannel, self.errorFromChannel )
+
+#
+# Debug Mediators
+#
+
+#=========================================================================#
+class DebugCommand( DebugMediator ):
 #=========================================================================#
     def trigger( self ):
         self._commchannel.enqueueRaw( "%s" % self.command, self.responseFromChannel, self.errorFromChannel )
-    @logged
+
     def responseFromChannel( self, request, response ):
         self._ok( response )
 

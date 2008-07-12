@@ -34,7 +34,7 @@ class SimSendAuthCode( SimMediator ):
     """
     EZX violating GSM 07.07 here.
 
-    Format seems to be +CPIN=<number>,"<PIN>", where 1 is PIN1
+    Format seems to be +CPIN=<number>,"<PIN>", where 1 is PIN1, 2 may be PIN2 or PUK1
     """
     def trigger( self ):
         self._commchannel.enqueue( '+CPIN=1,"%s"' % self.code, self.responseFromChannel, self.errorFromChannel )

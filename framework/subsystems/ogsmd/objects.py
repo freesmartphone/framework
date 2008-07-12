@@ -30,10 +30,11 @@ DBUS_INTERFACE_SIM = "org.freesmartphone.GSM.SIM"
 DBUS_INTERFACE_NETWORK = "org.freesmartphone.GSM.Network"
 DBUS_INTERFACE_CALL = "org.freesmartphone.GSM.Call"
 DBUS_INTERFACE_PDP = "org.freesmartphone.GSM.PDP"
+DBUS_INTERFACE_PDP = "org.freesmartphone.GSM.CB"
 
 DBUS_INTERFACE_SERVER = "org.freesmartphone.GSM.Server"
 
-DBUS_INTERFACE_TEST = "org.freesmartphone.GSM.Test"
+DBUS_INTERFACE_DEBUG = "org.freesmartphone.GSM.Debug"
 
 DBUS_BUS_NAME_DEVICE = "org.freesmartphone.ogsmd"
 DBUS_BUS_NAME_SERVER = "org.freesmartphone.ogsmd"
@@ -426,17 +427,40 @@ class Device( dbus.service.Object ):
         LOG( LOG_INFO, "org.freesmartphone.GSM.PDP.ContextStatus: ", repr(index), repr(status), repr(properties) )
 
     #
-    # dbus org.freesmartphone.GSM.Test
+    # dbus org.freesmartphone.GSM.CB
+    #
+    @dbus.service.method( DBUS_INTERFACE_PDP, "", "s",
+                          async_callbacks=( "dbus_ok", "dbus_error" ) )
+    def GetCellBroadcastSubscriptions( self, dbus_ok, dbus_error ):
+        mediator.CbGetCellBroadcastSubscriptions( self, dbus_ok, dbus_error )
+
+    @dbus.service.method( DBUS_INTERFACE_PDP, "s", "",
+                          async_callbacks=( "dbus_ok", "dbus_error" ) )
+    def SetCellBroadcastSubscriptions( self, channels, dbus_ok, dbus_error ):
+        mediator.CbSetCellBroadcastSubscriptions( self, dbus_ok, dbus_error, channels=channels )
+    #
+    # dbus org.freesmartphone.GSM.Debug
     # WARNING: DO NOT USE THIS! :)
     #
-    @dbus.service.method( DBUS_INTERFACE_TEST, "s", "as",
+    @dbus.service.method( DBUS_INTERFACE_DEBUG, "s", "as",
                           async_callbacks=( "dbus_ok", "dbus_error" ) )
-    def Command( self, command, dbus_ok, dbus_error ):
-        mediator.TestCommand( self, dbus_ok, dbus_error, command=command )
+    def DebugCommand( self, command, dbus_ok, dbus_error ):
+        mediator.DebugCommand( self, dbus_ok, dbus_error, command=command )
 
-    @dbus.service.method( DBUS_INTERFACE_TEST, "s", "s",
+    @dbus.service.method( DBUS_INTERFACE_DEBUG, "", "as",
                           async_callbacks=( "dbus_ok", "dbus_error" ) )
-    def Echo( self, echo, dbus_ok, dbus_error ):
+    def DebugListChannels( self, dbus_ok, dbus_error ):
+        dbus_ok( self.modem.channels() )
+
+    @dbus.service.method( DBUS_INTERFACE_DEBUG, "ss", "",
+                          async_callbacks=( "dbus_ok", "dbus_error" ) )
+    def DebugInjectString( self, channel, string, dbus_ok, dbus_error ):
+        self.modem.inject( channel, str(string) )
+        dbus_ok()
+
+    @dbus.service.method( DBUS_INTERFACE_DEBUG, "s", "s",
+                          async_callbacks=( "dbus_ok", "dbus_error" ) )
+    def DebugEcho( self, echo, dbus_ok, dbus_error ):
         import time
         time.sleep( 2 )
         dbus_ok( echo )

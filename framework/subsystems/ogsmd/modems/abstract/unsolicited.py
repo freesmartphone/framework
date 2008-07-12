@@ -29,8 +29,29 @@ class AbstractUnsolicitedResponseDelegate( object ):
         self._object.Status( self.operator, self.register, self.strength )
 
     #
-    # unsolicited callbacks
+    # unsolicited callbacks (alphabetically sorted, please keep it that way)
     #
+
+    @logged
+    # +CBM: 88\r\n001000DD001133DAED46ABD56AB5186CD668341A8D46A3D168341A8D46A3D168341A8D46A3D168341A8D46A3D168341A8D46A3D168341A8D46A3D168341A8D46A3D168341A8D46A3D168341A8D46A3D168341A8D46A3D100
+    def plusCBM( self, righthandside ):
+        print repr(righthandside)
+        # self._object.IncomingCellBroadcast( ... )
+
+    @logged
+    # +CLIP: "+496912345678",145,,,,0
+    def plusCLIP( self, righthandside ):
+        number, ntype, rest = righthandside.split( ',', 2 )
+        number = number.replace( '"', '' )
+        self._mediator.Call.clip( self._object, const.phonebookTupleToNumber( number, int(ntype ) ) )
+
+    @logged
+    # +CMTI: "SM",7
+    def plusCMTI( self, righthandside ):
+        storage, index = righthandside.split( ',' )
+        if storage != '"SM"':
+            assert False, "unhandled message notification"
+        self._object.NewMessage( int(index) )
 
     @logged
     # +CREG: 1,"000F","032F"
@@ -50,21 +71,6 @@ class AbstractUnsolicitedResponseDelegate( object ):
             self._mediator.Call.ring( self._object, calltype )
         else:
             assert False, "unhandled call type"
-
-    @logged
-    # +CLIP: "+496912345678",145,,,,0
-    def plusCLIP( self, righthandside ):
-        number, ntype, rest = righthandside.split( ',', 2 )
-        number = number.replace( '"', '' )
-        self._mediator.Call.clip( self._object, const.phonebookTupleToNumber( number, int(ntype ) ) )
-
-    @logged
-    # +CMTI: "SM",7
-    def plusCMTI( self, righthandside ):
-        storage, index = righthandside.split( ',' )
-        if storage != '"SM"':
-            assert False, "unhandled message notification"
-        self._object.NewMessage( int(index) )
 
     #
     # helpers

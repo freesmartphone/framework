@@ -39,7 +39,7 @@ class AbstractModem( object ):
 
     def open( self, callback ):
         """
-        Trigger opening channels from inside mainloop
+        Trigger opening channels from inside mainloop.
         """
         self._counter = len( self._channels )
         if ( self._counter ):
@@ -47,9 +47,21 @@ class AbstractModem( object ):
 
     def channel( self, category ):
         """
-        Returns the communication channel for certain command category
+        Returns the communication channel for certain command category.
         """
         assert False, "pure virtual method called"
+
+    def channels( self ):
+        """
+        Returns the names of the communication channels.
+        """
+        return self._channels.keys()
+
+    def inject( self, channel, string ):
+        """
+        Inject a string to a channel.
+        """
+        self._channels[channel].readyToRead( string )
 
     def prepareForSuspend( self, ok_callback, error_callback ):
         """

@@ -34,9 +34,14 @@ PAT_SMS_TEXT_HEADER_SINGLE = re.compile( '"(?P<status>[^"]+)","(?P<number>[^"]+)
 
 PAT_STRING = re.compile( r'''"([^"]+?)"''' )
 
+# call forwarding
 PAT_CCFC = re.compile( r'''(?P<enabled>\d+),(?P<class>\d)(?:,"(?P<number>[^"]+)",(?P<ntype>\d+)(?:,,(?:,(?P<seconds>\d+))?)?)?''' )
 
+# list calls
 PAT_CLCC = re.compile( r'''\+CLCC: (?P<id>\d+),(?P<dir>\d+),(?P<stat>\d+),(?P<mode>\d+),(?P<mpty>\d+)(?:,"(?P<number>[^"]+)",(?P<ntype>\d+)?)(?:,"(?P<alpha>[^"]+)")?''' )
+
+# cell broadcast
+PAT_CSCB = re.compile( r'''\+CSCB: (?P<drop>[01]),"(?P<channels>[^"]*)","(?P<encodings>[^"]*)"''' )
 
 #=========================================================================#
 def groupDictIfMatch( pattern, string ):
