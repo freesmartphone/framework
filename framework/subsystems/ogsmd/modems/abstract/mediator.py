@@ -391,25 +391,61 @@ class SimGetSimInfo( SimMediator ):
                 self._ok( result )
 
 #=========================================================================#
-class SimGetPhonebookInfo( SimMediator ):
+class SimSendGenericSimCommand( SimMediator ):
 #=========================================================================#
     def trigger( self ):
-        self._commchannel.enqueue( '+CPBS="SM";+CPBR=?', self.responseFromChannel, self.errorFromChannel )
+        message = "%d,%s" % ( len( self.command ), self.command )
+        self._commchannel.enqueue( "+CSIM=%s" % message, self.responseFromChannel, self.errorFromChannel )
 
     @logged
     def responseFromChannel( self, request, response ):
         if response[-1] != "OK":
             SimMediator.responseFromChannel( self, request, response )
-        result = {}
-        match = const.PAT_PHONEBOOK_INFO.match( self._rightHandSide( response[0] ) )
-        result["min_index"] = int(match.groupdict()["lowest"])
-        result["max_index"] = int(match.groupdict()["highest"])
-        try:
-            result["number_length"] = int(match.groupdict()["numlen"])
-            result["name_length"] = int(match.groupdict()["textlen"])
-        except KeyError:
-            pass
-        self._ok( result )
+        else:
+            length, result = self._rightHandSide( response[0] ).split( ',' )
+            self._ok( result )
+
+#=========================================================================#
+class SimSendRestrictedSimCommand( SimMediator ):
+#=========================================================================#
+    def trigger( self ):
+        message = "%d,%d,%d,%d,%d,%s" % ( self.command, self.fileid, self.p1, self.p2, self.p3, self.data )
+        self._commchannel.enqueue( "+CRSM=%s" % message, self.responseFromChannel, self.errorFromChannel )
+
+    @logged
+    def responseFromChannel( self, request, response ):
+        if response[-1] != "OK":
+            SimMediator.responseFromChannel( self, request, response )
+        else:
+            values = self._rightHandSide( response[0] ).split( ',' )
+            if len( values ) == 2:
+                result = [ int(values[0]), int(values[1]), "" ]
+            elif len( values ) == 3:
+                result = [ int(values[0]), int(values[1]), values[2] ]
+            else:
+                assert False, "parsing error"
+            self._ok( *result )
+
+#=========================================================================#
+class SimGetPhonebookInfo( SimMediator ):
+#=========================================================================#
+    def trigger( self ):
+        self._commchannel.enqueue( '+CPBS="SM";+CPBR=?', self.responseFromChannel, self.errorFromChannel )
+
+    def responseFromChannel( self, request, response ):
+        if response[-1] != "OK":
+            SimMediator.responseFromChannel( self, request, response )
+        else:
+            result = {}
+            match = const.PAT_PHONEBOOK_INFO.match( self._rightHandSide( response[0] ) )
+            result["min_index"] = int(match.groupdict()["lowest"])
+            result["max_index"] = int(match.groupdict()["highest"])
+            try:
+                result["number_length"] = int(match.groupdict()["numlen"])
+                result["name_length"] = int(match.groupdict()["textlen"])
+            except KeyError:
+                pass
+            self._ok( result )
 
 #=========================================================================#
 class SimRetrievePhonebook( SimMediator ):
@@ -422,14 +458,15 @@ class SimRetrievePhonebook( SimMediator ):
     def responseFromChannel( self, request, response ):
         if response[-1] != "OK":
             SimMediator.responseFromChannel( self, request, response )
-        result = []
-        for entry in response[:-1]:
-            index, number, ntype, name = self._rightHandSide( entry ).split( ',' )
-            index = int( index )
-            number = number.strip( '"' )
-            name = const.textToUnicode( name )
-            result.append( ( index, name, const.phonebookTupleToNumber( number, ntype ) ) )
-        self._ok( result )
+        else:
+            result = []
+            for entry in response[:-1]:
+                index, number, ntype, name = self._rightHandSide( entry ).split( ',' )
+                index = int( index )
+                number = number.strip( '"' )
+                name = const.textToUnicode( name )
+                result.append( ( index, name, const.phonebookTupleToNumber( number, ntype ) ) )
+            self._ok( result )
 
 #=========================================================================#
 class SimDeleteEntry( SimMediator ):
@@ -454,16 +491,16 @@ class SimRetrieveEntry( SimMediator ):
     def responseFromChannel( self, request, response ):
         if response[-1] != "OK":
             SimMediator.responseFromChannel( self, request, response )
-
-        if len( response ) == 1:
-            self._ok( "", "" )
         else:
-            if response[0].startswith( "+CPBR" ):
-                index, number, ntype, name = self._rightHandSide( response[0] ).split( ',' )
-                index = int( index )
-                number = number.strip( '"' )
-                name = const.textToUnicode( name )
-                self._ok( name, const.phonebookTupleToNumber( number, ntype ) )
+            if len( response ) == 1:
+                self._ok( "", "" )
+            else:
+                if response[0].startswith( "+CPBR" ):
+                    index, number, ntype, name = self._rightHandSide( response[0] ).split( ',' )
+                    index = int( index )
+                    number = number.strip( '"' )
+                    name = const.textToUnicode( name )
+                    self._ok( name, const.phonebookTupleToNumber( number, ntype ) )
 
 #=========================================================================#
 class SimGetServiceCenterNumber( SimMediator ):
@@ -511,32 +548,33 @@ class SimRetrieveMessagebook( SimMediator ):
     def responseFromChannel( self, request, response ):
         if response[-1] != "OK":
             SimMediator.responseFromChannel( self, request, response )
-        result = []
-        curmsg = None
-        text = ""
-        for line in response[:-1]:
-            #print "parsing line", line
-            if line.startswith( "+CMGL" ):
-                #print "line is header line"
-                if text:
-                    #print "text=", text, "appending to result"
-                    result.append( ( index, status, number, const.textToUnicode(text) ) )
-                header = const.PAT_SMS_TEXT_HEADER.match( self._rightHandSide(line) )
-                index = int(header.groupdict()["index"])
-                status = const.SMS_STATUS_OUT[header.groupdict()["status"]]
-                number = const.phonebookTupleToNumber( header.groupdict()["number"], int(header.groupdict()["ntype"]) )
-                # TODO handle optional arrival... time.strptime( '%s,%s'% (d, t, ), '%y/%m/%d,%H:%M:%S') => const module
-                # TODO handle optional name from phonebook
-                text = ""
-            else:
-                #print "line is text line"
-                if text:
-                    text += "\n%s" % line
+        else:
+            result = []
+            curmsg = None
+            text = ""
+            for line in response[:-1]:
+                #print "parsing line", line
+                if line.startswith( "+CMGL" ):
+                    #print "line is header line"
+                    if text:
+                        #print "text=", text, "appending to result"
+                        result.append( ( index, status, number, const.textToUnicode(text) ) )
+                    header = const.PAT_SMS_TEXT_HEADER.match( self._rightHandSide(line) )
+                    index = int(header.groupdict()["index"])
+                    status = const.SMS_STATUS_OUT[header.groupdict()["status"]]
+                    number = const.phonebookTupleToNumber( header.groupdict()["number"], int(header.groupdict()["ntype"]) )
+                    # TODO handle optional arrival... time.strptime( '%s,%s'% (d, t, ), '%y/%m/%d,%H:%M:%S') => const module
+                    # TODO handle optional name from phonebook
+                    text = ""
                 else:
-                    text += line
-        if text:
-            result.append( ( index, status, number, const.textToUnicode(text) ) )
-        self._ok( result )
+                    #print "line is text line"
+                    if text:
+                        text += "\n%s" % line
+                    else:
+                        text += line
+            if text:
+                result.append( ( index, status, number, const.textToUnicode(text) ) )
+            self._ok( result )
 
 #=========================================================================#
 class SimRetrieveMessage( SimMediator ):
@@ -548,26 +586,27 @@ class SimRetrieveMessage( SimMediator ):
     def responseFromChannel( self, request, response ):
         if response[-1] != "OK":
             SimMediator.responseFromChannel( self, request, response )
-        text = ""
-        for line in response[:-1]:
-            #print "parsing line", line
-            if line.startswith( "+CMGR" ):
-                #print "line is header line"
-                header = const.PAT_SMS_TEXT_HEADER_SINGLE.match( self._rightHandSide(line) )
-                status = const.SMS_STATUS_OUT[header.groupdict()["status"]]
-                number = const.phonebookTupleToNumber( header.groupdict()["number"], int(header.groupdict()["ntype"]) )
-                # TODO handle optional arrival... time.strptime( '%s,%s'% (d, t, ), '%y/%m/%d,%H:%M:%S') => const module
-                # TODO handle optional name from phonebook
-                text = ""
-            else:
-                #print "line is text line"
-                if text:
-                    text += "\n%s" % line
+        else:
+            text = ""
+            for line in response[:-1]:
+                #print "parsing line", line
+                if line.startswith( "+CMGR" ):
+                    #print "line is header line"
+                    header = const.PAT_SMS_TEXT_HEADER_SINGLE.match( self._rightHandSide(line) )
+                    status = const.SMS_STATUS_OUT[header.groupdict()["status"]]
+                    number = const.phonebookTupleToNumber( header.groupdict()["number"], int(header.groupdict()["ntype"]) )
+                    # TODO handle optional arrival... time.strptime( '%s,%s'% (d, t, ), '%y/%m/%d,%H:%M:%S') => const module
+                    # TODO handle optional name from phonebook
+                    text = ""
                 else:
-                    text += line
-        if text:
-            result = ( status, number, const.textToUnicode(text) )
-        self._ok( result )
+                    #print "line is text line"
+                    if text:
+                        text += "\n%s" % line
+                    else:
+                        text += line
+            if text:
+                result = ( status, number, const.textToUnicode(text) )
+            self._ok( result )
 
 #=========================================================================#
 class SimSetServiceCenterNumber( SimMediator ):
@@ -624,20 +663,20 @@ class NetworkGetStatus( NetworkMediator ):
     def responseFromChannel( self, request, response ):
         if response[-1] != "OK":
             NetworkMediator.responseFromChannel( self, request, response )
-
-        # FIXME this not OK
-        if len( response ) != 4:
-            print "OOPS, that was not expected: ", repr(response)
-            self._ok( "", "", 0 )
-            return
-        result = {}
-        result[ "registration"] = const.REGISTER_STATUS[int(self._rightHandSide( response[0] ).split( ',' )[1])] # +CREG: 0,1
-        try:
-            result[ "provider"] = self._rightHandSide( response[1] ).split( ',' )[2].strip( '"') # +COPS: 0,0,"Medion Mobile" or +COPS: 0
-        except IndexError:
-            pass
-        result["strength"] = const.signalQualityToPercentage( int(self._rightHandSide( response[2] ).split( ',' )[0]) ) # +CSQ: 22,99
-        self._ok( result )
+        else:
+            # FIXME this not OK
+            if len( response ) != 4:
+                print "OOPS, that was not expected: ", repr(response)
+                self._ok( "", "", 0 )
+                return
+            result = {}
+            result[ "registration"] = const.REGISTER_STATUS[int(self._rightHandSide( response[0] ).split( ',' )[1])] # +CREG: 0,1
+            try:
+                result[ "provider"] = self._rightHandSide( response[1] ).split( ',' )[2].strip( '"') # +COPS: 0,0,"Medion Mobile" or +COPS: 0
+            except IndexError:
+                pass
+            result["strength"] = const.signalQualityToPercentage( int(self._rightHandSide( response[2] ).split( ',' )[0]) ) # +CSQ: 22,99
+            self._ok( result )
 
 #=========================================================================#
 class NetworkGetSignalStrength( NetworkMediator ): # i

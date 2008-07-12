@@ -195,11 +195,21 @@ class Device( dbus.service.Object ):
     def ChangeAuthCode( self, old_pin, new_pin, dbus_ok, dbus_error ):
         mediator.SimChangeAuthCode( self, dbus_ok, dbus_error, old_pin=old_pin, new_pin=new_pin )
 
-    ### SIM info
+    ### SIM info and low-level access
     @dbus.service.method( DBUS_INTERFACE_SIM, "", "a{sv}",
                           async_callbacks=( "dbus_ok", "dbus_error" ) )
     def GetSimInfo( self, dbus_ok, dbus_error ):
         mediator.SimGetSimInfo( self, dbus_ok, dbus_error )
+
+    @dbus.service.method( DBUS_INTERFACE_SIM, "s", "s",
+                          async_callbacks=( "dbus_ok", "dbus_error" ) )
+    def SendGenericSimCommand( self, command, dbus_ok, dbus_error ):
+        mediator.SimSendGenericSimCommand( self, dbus_ok, dbus_error, command=command )
+
+    @dbus.service.method( DBUS_INTERFACE_SIM, "", "iis",
+                          async_callbacks=( "dbus_ok", "dbus_error" ) )
+    def SendRestrictedSimCommand( self, command, fileid, p1, p2, p3, data, dbus_ok, dbus_error ):
+        mediator.SimSendRestrictedSimCommand( self, dbus_ok, dbus_error, command=command, fileid=fileid, p1=p1, p2=p2, p3=p3, data=data )
 
     ### SIM phonebook
     @dbus.service.method( DBUS_INTERFACE_SIM, "", "a{sv}",
