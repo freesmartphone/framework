@@ -53,8 +53,7 @@ class SimpleLowlevelAtParser( object ):
             if b == '\r' or b == '\n':
                 if self.curline:
                     if not haveCommand:
-                        # FIXME should that be [self.curline] for consistency with solicited responses?
-                        self.unsolicited( self.curline )
+                        self.unsolicited( [self.curline] )
                         self.curline = ""
                         self.lines = []
                     else:
