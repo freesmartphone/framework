@@ -478,7 +478,7 @@ class DelegateChannel( QueuedVirtualChannel ):
         self.delegate = object
 
     @logged
-    def _handleUnsolicitedResponse( self, data ):
+    def _handleUnsolicitedResponse( self, response ):
         """
         Reimplemented for internal purposes.
 
@@ -486,6 +486,11 @@ class DelegateChannel( QueuedVirtualChannel ):
         is getting called. If a delegate is installed, handleUnsolicitedResponse()
         will only be getting called, if no appropriate delegate method can be found.
         """
+
+        if len( response ) == 1:
+            data = response[0]
+        else:
+            assert False, "multiline unsolicited responses not handled yet"
 
         if not data[0] in self.prefixmap:
             return False
