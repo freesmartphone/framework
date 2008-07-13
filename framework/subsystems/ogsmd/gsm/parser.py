@@ -104,6 +104,7 @@ class StateBasedLowlevelAtParser( object ):
     def reset( self ):
         self.lines = []
         self.curline = ""
+        self.hasPdu = False
         return self.state_start
 
     def feed( self, bytes, haveCommand ):
@@ -113,6 +114,7 @@ class StateBasedLowlevelAtParser( object ):
         # to support handing a haveContinuation parameter over to here.
 
         if bytes == "\r\n> ":
+            print "PARSER DEBUG: got continuation character. sending empty response"
             self.response( [] )
             self.state = self.reset()
             return
@@ -123,6 +125,8 @@ class StateBasedLowlevelAtParser( object ):
             nextstate = self.state( b, haveCommand )
             if nextstate is None:
                 print "PARSER DEBUG: WARNING: UNDEFINED PARSER STATE! trying to recover..."
+                self.state = self.reset()
+                break
             else:
                 self.state = nextstate
 
@@ -196,10 +200,33 @@ class StateBasedLowlevelAtParser( object ):
 
     def unsolicitedLineCompleted( self, multipleR = False ):
         print "PARSER DEBUG: unsolicited line completed"
-        if self.curline:
-            self.lines.append( self.curline )
+        self.lines.append( self.curline )
+
+        if self.hasPdu:
+            print "PARSER DEBUG: unsolicited line pdu completed, sending."
+            self.hasPdu = False
             self.unsolicited( self.lines )
             return self.reset()
+
+        # Now this is slightly suboptimal. I tried hard to prevent even more protocol knowledge
+        # infecting this parser, but I can't seem to find another way to detect a multiline
+        # unsolicited response. Ideally, GSM would clearly indicate whether a PDU is following
+        # or not, but alas, that's not the case.
+        if self.curline:
+            if self.curline.startswith( "+CBM" ) \
+            or self.curline.startswith( "+CDS" ) \
+            or self.curline.startswith( "+CMT" ):
+                print "PARSER DEBUG: message has PDU, waiting for 2nd line."
+                self.hasPdu = True
+                self.curline = ""
+                return self.state_inline
+            else:
+                self.unsolicited( self.lines )
+                return self.reset()
+
+        else:
+            print "PARSER DEBUG: unsolicited message with empty line. Ignoring."
+            return self.state_inline
 
 #
 # Choose parser and cleanup namespace
