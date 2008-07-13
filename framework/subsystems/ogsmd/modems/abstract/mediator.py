@@ -542,7 +542,12 @@ class SimGetMessagebookInfo( SimMediator ):
 class SimRetrieveMessagebook( SimMediator ):
 #=========================================================================#
     def trigger( self ):
-        self._commchannel.enqueue( '+CMGL="%s"' % const.SMS_STATUS_IN[self.category], self.responseFromChannel, self.errorFromChannel )
+        try:
+            category = const.SMS_STATUS_IN[self.category]
+        except KeyError:
+            self._error( error.InvalidParameter( "valid categories are %s" % const.SMS_STATUS_IN.keys() ) )
+        else:
+            self._commchannel.enqueue( '+CMGL="%s"' % category, self.responseFromChannel, self.errorFromChannel )
 
     @logged
     def responseFromChannel( self, request, response ):
