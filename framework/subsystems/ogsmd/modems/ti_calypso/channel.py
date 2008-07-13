@@ -174,12 +174,12 @@ class UnsolicitedResponseChannel( CalypsoModemChannel ):
 
     @logged
     def suspend( self, ok_callback, error_callback ):
-        self.enqueue( "+CTZU=0;+CTZR=0;+CREG=0;+CNMI=2,1,0,0,0;+CGEREP=0,0;+CGREG=0;%CSQ=0;%CGEREP=0;%CGREG=0",
+        self.enqueue( "+CTZU=0;+CTZR=0;+CREG=0;+CNMI=2,1,0,0,0;+CGEREP=0,0;+CGREG=0;+%CSQ=0;+%CGEREP=0;+%CGREG=0",
                       SimpleCallback( ok_callback, self ),
                       SimpleCallback( error_callback, self ) )
 
     @logged
     def resume( self, ok_callback, error_callback ):
-        self.enqueue( "+CTZU=1;+CTZR=1;+CREG=2;+CNMI=2,1,2,1,1;+CGEREP=2,1;+CGREG=2;%CSQ=1;%CGEREP=1;%CGREG=3",
+        self.enqueue( "+CTZU=1;+CTZR=1;+CREG=2;+CNMI=2,1,2,1,1;+CGEREP=2,1;+CGREG=2;+%CSQ=1;+%CGEREP=1;+%CGREG=3",
                       SimpleCallback( ok_callback, self ),
                       SimpleCallback( error_callback, self ) )
