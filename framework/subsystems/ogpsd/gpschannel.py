@@ -40,12 +40,14 @@ class SerialChannel( GPSChannel ):
         self.serial.stopbits = serial.STOPBITS_ONE
         self.serial.timeout = None
         self.serial.open()
+        self.datapending = ""
 
         assert self.serial.isOpen(), "Failure opening device"
 
         # set up I/O watches for mainloop
         self.watchReadyToRead = gobject.io_add_watch( self.serial.fd, gobject.IO_IN, self.readyToRead )
         #self.watchReadyToSend = gobject.io_add_watch( self.serial.fd, gobject.IO_OUT, self.readyToSend )
+        self.watchReadyToSend = None
         # self.watchHUP = gobject.io_add_watch( self.serial.fd, gobject.IO_HUP, self.hup )
 
     def readyToRead( self, source, condition ):
@@ -69,7 +71,13 @@ class SerialChannel( GPSChannel ):
         assert source == self.serial.fd, "ready to write on bogus source"
         assert condition == gobject.IO_OUT, "ready to write on bogus condition"
 
+        self.serial.write( self.datapending )
         self.watchReadyToSend = None
         return False
+
+    def send( self, stream ):
+        self.datapending = self.datapending + stream
+        if not self.watchReadyToSend:
+            self.watchReadyToSend = gobject.io_add_watch( self.serial.fd, gobject.IO_OUT, self.readyToSend )
 
 #vim: expandtab

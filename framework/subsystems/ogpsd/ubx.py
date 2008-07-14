@@ -40,8 +40,6 @@ CLASS = {
     "USR" : 0x40
 }
 
-CLASS_INV = dict( [ [v,k] for k,v in CLASS.items() ] )
-
 ID = {
     "ACK"  : 0x01,
     "NACK" : 0x00,
@@ -94,7 +92,7 @@ ID = {
     "POSECEF" : 0x01,
     "POSLLH" : 0x02,
     "POSUTM" : 0x08,
-    "SBAS" : 0x32,
+    #"SBAS" : 0x32,
     "SOL" : 0x06,
     "STATUS" : 0x03,
     "SVINFO" : 0x30,
@@ -116,9 +114,68 @@ ID = {
     "UPLOAD" : 0x02
 }
 
-ID_INV = dict( [ [v,k] for k,v in ID.items() ] )
-
-UBX_MSGFMT = {
+MSGFMT = {
+    ("NAV", "POSECEF", 20) :
+        ["<IiiiI", ["ITOW", "ECEF_X", "ECEF_Y", "ECEF_Z", "Pacc"]],
+#    ("NAV", "POSLLH", 28)
+#    ("NAV", "POSUTM", 18)
+    ("NAV", "DOP", 18) :
+        ["<IHHHHHHH", ["ITOW", "GDOP", "PDOP", "TDOP", "VDOP", "HDOP", "NDOP", "EDOP"]],
+    ("NAV", "STATUS", 16) :
+        ["<IBBBBII", ["ITOW", "GPSfix", "Flags", "DiffS", "res", "TTFF", "MSSS"]],
+    ("NAV", "SOL", 52) :
+        ["<IihBBiiiIiiiIHBBI", ["ITOW", "Frac", "week", "GPSFix", "Flags", "ECEF_X", "ECEF_Y", "ECEF_Z", "Pacc",
+         "ECEFVX", "ECEFVY", "ECEFVZ", "SAcc", "PDOP", "res1", "numSV", "res2"]],
+#    ("NAV", "VELECEF", 20) :
+#    ("NAV", "VELNED", 36) :
+#    ("NAV", "TIMEGPS", 16) :
+    ("NAV", "TIMEUTC", 20) :
+        ["<IIiHBBBBBB", ["ITOW", "TAcc", "Nano", "Year", "Month", "Day", "Hour", "Min", "Sec", "Valid"]],
+#    ("NAV", "CLOCK",  20) :
+#    ("NAV", "SVINFO", 8+NCH*12) :
+# NAV DGPS
+# NAV SBAS
+# NAV EKFSTATUS
+# RXM
+# INF
+    ("ACK", "ACK", 2) :
+        ["<BB", ["ClsID", "MsgID"]],
+    ("ACK", "NACK", 2) :
+        ["<BB", ["ClsID", "MsgID"]],
+# CFG PRT
+# CFG USB
+    ("CFG", "MSG", 2) :
+        ["<BB", ["Class", "MsgID"]],
+    ("CFG", "MSG", 3) :
+        ["<BBB", ["Class", "MsgID", "Rate"]],
+# CFG NMEA
+# CFG RATE
+# CFG CFG
+# CFG TP
+    ("CFG", "NAV2", 40) :
+        ["<BBHBBBBiBBBBBBHHHHHBBHII", ["Platform", "res0", "res1", "MinSVInitial", "MinSVs", "MaxSVs", "FixMode",
+         "FixedAltitude", "MinCN0Initial", "MinCN0After", "MinELE", "DGPSTO", "MaxDR", "NAVOPT", "res2", "PDOP",
+         "TDOP", "PACC", "TACC", "StaticThres", "res3", "res4", "res5", "res6"]],
+# CFG DAT
+# CFG INF
+    ("CFG", "RST", 4) :
+        ["<HBB", ["nav_bbr", "Reset", "Res"]],
+    ("CFG", "RXM", 2) :
+        ["<BB", ["gps_mode", "lp_mode"]],
+# CFG ANT
+    ("CFG", "FXN", 36) :
+        ["<IIIIIIIII", ["flags", "t_reacq", "t_acq", "t_reacq_off", "t_acq_off", "t_on", "t_off", "res", "base_tow"]],
+    ("CFG", "SBAS", 8) :
+        ["<BBBBI", ["mode", "usage", "maxsbas", "reserved", "scanmode"]],
+# CFG LIC
+# CFG TM
+# CFG TM2
+# CFG TMODE
+# CFG EKF
+# UPD
+# MON
+    ("AID", "INI", 48) :
+        ["<iiiIHHIiIIiII", ["X", "Y", "Z", "POSACC", "TM_CFG", "WM", "TOW", "TOW_NS", "TACC_MS", "TACC_NS", "CLKD", "CLKDACC", "FLAGS"]],
     ("AID", "HUI", 72) :
         ["<IddNHHHHHHffffffffI", ["HEALTH", "UTC_A1", "UTC_A0", "UTC_TOT", "UTC_WNT",
          "UTC_LS", "UTC_WNF", "UTC_DN", "UTC_LSF", "UTC_SPARE", "KLOB_A0", "KLOB_A1",
@@ -137,7 +194,10 @@ UBX_MSGFMT = {
         ["<" + "I"*26, ["SVID", "HOW", "SF1D0", "SF1D1", "SF1D2", "SF1D3", "SF1D4",
             "SF1D5", "SF1D6", "SF1D7", "SF2D0", "SF2D1", "SF2D2", "SF2D3", "SF2D4",
             "SF2D5", "SF2D6", "SF1D7", "SF3D0", "SF3D1", "SF3D2", "SF3D3", "SF3D4", "SF3D5", "SF3D6", "SF3D7"]]
+# TIM
 }
+
+MSGFMT_INV = dict( [ [(CLASS[cl], ID[id], le),v + [cl,id]] for (cl,id,le),v in MSGFMT.items() ] )
 
 class UBXDevice( GPSDevice ):
     def __init__( self, bus, gpschannel ):
@@ -148,13 +208,13 @@ class UBXDevice( GPSDevice ):
         self.gpschannel.setCallback( self.parse )
 
         # TODO: Set device in UBX mode
+#        self.send("CFG", "SBAS", 8, {"mode" : 3, "usage" : 7, "maxsbas" : 2, "reserved" : 0, "scanmode" : 0})
 
     def parse( self, data ):
         self.buffer += data
-
         while True:
             # Find the beginning of a UBX message
-            start = self.buffer.find( chr( 0xb5 ) + chr( 0x62 ) )
+            start = self.buffer.find( chr( SYNC1 ) + chr( SYNC2 ) )
             self.buffer = self.buffer[start:]
             # Minimum packet length is 8
             if len(self.buffer) < 8:
@@ -174,6 +234,13 @@ class UBXDevice( GPSDevice ):
             # Discard packet
             self.buffer = self.buffer[length+8:]
 
+    def send( self, cl, id, length, payload ):
+        format = MSGFMT[(cl,id,length)]
+        stream = struct.pack("<BBBBH", SYNC1, SYNC2, CLASS[cl], ID[id], length)
+        stream = stream + struct.pack(format[0], *[payload[i] for i in format[1]])
+        stream = stream + struct.pack("<BB", *self.checksum( stream[2:] ))
+        self.gpschannel.send( stream )
+
     def checksum( self, msg ):
         ck_a = 0
         ck_b = 0
@@ -186,13 +253,13 @@ class UBXDevice( GPSDevice ):
 
     def decode( self, cl, id, length, payload ):
         try:
-            format = UBX_MSGFMT[(CLASS_INV[cl], ID_INV[id], length)]
+            format = MSGFMT_INV[(cl, id, length)]
         except KeyError:
-            print "Unknown message", CLASS_INV[cl], ID_INV[id], length
+            print "Unknown message", cl, id, length
             return
 
         payload = zip(format[1], struct.unpack(format[0], payload))
-        print payload
+        print format[2], format[3], payload
 
 
 #vim: expandtab
