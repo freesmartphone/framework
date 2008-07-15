@@ -140,6 +140,11 @@ class StateBasedLowlevelAtParser( object ):
     def state_start( self, b, s ):
         if b == '\r':
             return self.state_start_r
+        # this is unusal, but we are forgiving
+        if b == '\n':
+            return self.state_inline
+        # this is even more unusual, but we are _really_ forgiving
+        return self.state_inline( b, s )
 
     def state_start_r( self, b, s ):
         if b == '\n':
@@ -236,7 +241,7 @@ class StateBasedLowlevelAtParser( object ):
 #
 # Choose parser and cleanup namespace
 #
-USE_EXPERIMENTAL_PARSER = False
+USE_EXPERIMENTAL_PARSER = True
 
 if USE_EXPERIMENTAL_PARSER:
     LowlevelAtParser = StateBasedLowlevelAtParser
