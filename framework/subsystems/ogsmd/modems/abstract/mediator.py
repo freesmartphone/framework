@@ -684,32 +684,36 @@ class NetworkRegister( NetworkMediator ):
 class NetworkUnregister( NetworkMediator ):
 #=========================================================================#
     def trigger( self ):
-        self._commchannel.enqueue( "+COPS=2", self.responseFromChannel, self.errorFromChannel )
+        self._commchannel.enqueue( "+COPS=2", self.responseFromChannel, self.errorFromChannel, timeout=const.TIMEOUT["COPS"] )
 
 #=========================================================================#
 class NetworkGetStatus( NetworkMediator ):
 #=========================================================================#
     def trigger( self ):
-        self._commchannel.enqueue( '+CREG?;+COPS?;+CSQ', self.responseFromChannel, self.errorFromChannel, timeout=const.TIMEOUT["COPS"] )
-
-    @logged
-    def responseFromChannel( self, request, response ):
-        if response[-1] != "OK":
-            NetworkMediator.responseFromChannel( self, request, response )
+        request, response, error = yield( "+CSQ" )
+        result = {}
+        if error is not None:
+            self.errorFromChannel( request, error )
         else:
-            # FIXME this not OK
-            if len( response ) != 4:
-                print "OOPS, that was not expected: ", repr(response)
-                self._ok( "", "", 0 )
-                return
-            result = {}
-            result[ "registration"] = const.REGISTER_STATUS[int(self._rightHandSide( response[0] ).split( ',' )[1])] # +CREG: 0,1
-            try:
-                result[ "provider"] = self._rightHandSide( response[1] ).split( ',' )[2].strip( '"') # +COPS: 0,0,"Medion Mobile" or +COPS: 0
-            except IndexError:
+            if response[-1] != "OK" or len( response ) == 1:
                 pass
-            result["strength"] = const.signalQualityToPercentage( int(self._rightHandSide( response[2] ).split( ',' )[0]) ) # +CSQ: 22,99
-            self._ok( result )
+            else:
+                result["strength"] = const.signalQualityToPercentage( int(self._rightHandSide( response[0] ).split( ',' )[0]) ) # +CSQ: 22,99
+
+        request, response, error = yield( "+CREG?;+COPS?" )
+        if error is not None:
+            self.errorFromChannel( request, error )
+        else:
+            if response[-1] != "OK" or len( response ) == 1:
+                pass
+            else:
+                result[ "registration"] = const.REGISTER_STATUS[int(self._rightHandSide( response[0] ).split( ',' )[1])] # +CREG: 0,1
+                try:
+                    result[ "provider"] = self._rightHandSide( response[1] ).split( ',' )[2].strip( '"') # +COPS: 0,0,"Medion Mobile" or +COPS: 0
+                except IndexError:
+                    pass
+
+        self._ok( result )
 
 #=========================================================================#
 class NetworkGetSignalStrength( NetworkMediator ): # i
