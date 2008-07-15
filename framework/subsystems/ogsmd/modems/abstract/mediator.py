@@ -427,6 +427,34 @@ class SimSendRestrictedSimCommand( SimMediator ):
             self._ok( *result )
 
 #=========================================================================#
+class SimGetHomeZones( SimMediator ):
+#=========================================================================#
+    def trigger( self ):
+        self._commchannel.enqueue( "+CRSM=176,28512,0,0,123", self.responseFromChannel, self.errorFromChannel )
+
+    def addHomeZone( self, data, number, result ):
+        print data[0:52]
+        if int( data[0:2], 16 ) == number:
+            x = int( data[2:10], 16 )
+            y = int( data[10:18], 16 )
+            r = int( data[18:26], 16 )
+            name = int( data[26:52], 16 )
+            print name
+            if x+y+r:
+                result.append( [ x, y, r ] )
+
+    def responseFromChannel( self, request, response ):
+        try:
+            length, encoding, payload = response.split(",")
+        except ValueError:
+            self._ok( result )
+        else:
+            result = []
+            for i in xrange( 4 ):
+                self.addHomeZone( payload[34+52*i:34+52*(i+1)], i+1, result )
+            self._ok( result )
+
+#=========================================================================#
 class SimGetPhonebookInfo( SimMediator ):
 #=========================================================================#
     def trigger( self ):
