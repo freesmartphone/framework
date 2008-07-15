@@ -13,6 +13,8 @@ SIM_PRESENT = True
 SIM_LOCKED = False
 NUMBER = "0287515071"
 
+import gobject
+import threading
 import dbus
 from dbus.mainloop.glib import DBusGMainLoop
 DBusGMainLoop(set_as_default=True)
@@ -37,7 +39,7 @@ class Test(object):
     def start(self):
         print "== Connect to dbus services =="
         self.bus = dbus.SystemBus()
-        self.gsm = self.bus.get_object( 'org.freesmartphone.ophoned', '/org/freesmartphone/GSM/Device' )
+        self.gsm = self.bus.get_object( 'org.freesmartphone.ogsmd', '/org/freesmartphone/GSM/Device' )
         print "OK"
         
         self.test_set_antenna_power()
@@ -67,35 +69,49 @@ class Test(object):
         
     def test_call(self):
         print "== Test call =="
-        queues = Queue()
+        queue = Queue()
         
-        def on_call_status(self, id, status, properties ):
+        def on_call_status(id, status, properties ):
             vprint("CallStatus= %s, %s, %s", id, status, properties)
             queue.put(status)
             
-        self.gsm.connect_to_signal("CallStatus", on_call_status)
+        gobject_loop = gobject.MainLoop()
         
-        vprint("initiate call to %s", NUMBER)
-        id = self.gsm.Initiate(NUMBER, "voice")
+        def task(): # We run this in a sperate thread
+            try:
+                self.gsm.connect_to_signal("CallStatus", on_call_status)
+                
+                vprint("initiate call to %s", NUMBER)
+                id = self.gsm.Initiate(NUMBER, "voice")
+                
+                time_out = 30
+                
+                vprint("waiting for 'outgoing' signal before %d seconds", time_out)
+                state = queue.get(True, time_out)
+                assert state == 'outgoing'
+                
+                vprint("waiting for 'active' signal before %d seconds", time_out)
+                state = queue.get(True, time_out)
+                assert state == 'active'
+                
+                vprint("releasing the call")
+                self.gsm.Release(id)
+                vprint("waiting for 'inactive' signal before %d seconds", time_out)
+                state = queue.get(True, time_out)
+                assert state == 'inactive'
+                
+                print "OK"
+            finally:
+                gobject_loop.quit()
         
-        time_out = 10
+        gobject.threads_init()  # We enable thread with gobject loop
+        thread = threading.Thread(target = task)    # Start the thread
+        thread.start()
+        gobject_loop.run()  # Wait until the end of the thread
         
-        vprint("waiting for 'outgoing' signal before %d seconds", time_out)
-        state = queues.get(True, time_out)
-        assert state == 'outgoing'
-        
-        vprint("waiting for 'active' signal before %d seconds", time_out)
-        state = queues.get(True, time_out)
-        assert state == 'active'
-        
-        vprint("releasing the call")
-        self.gsm.Release(id)
-        vprint("waiting for 'inactive' signal before %d seconds", time_out)
-        state = queues.get(True, time_out)
-        assert state == 'inactive'
-        
-        print "OK"
 
 if __name__ == '__main__':
     test = Test()
     test.start()
+
+
