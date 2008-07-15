@@ -52,6 +52,13 @@ class CallRelease( CallMediator ):
             self._error( error.CallNotFound( "no such call to release" ) )
 
 #=========================================================================#
+class CallReleaseAll( CallMediator ):
+#=========================================================================#
+    def trigger( self ):
+            callHandler.releaseAll( self._commchannel )
+            self._ok()
+
+#=========================================================================#
 class CallActivate( CallMediator ):
 #=========================================================================#
     def trigger( self ):
@@ -90,6 +97,10 @@ class CallHandler( object ):
 
     def release( self, index, commchannel ):
         return self.feedUserInput( "release", index=index, channel=commchannel )
+
+    def releaseAll( self, commchannel ):
+        # not going via state machine, since this is possible at any time
+        commchannel.enqueue( "ATH" )
 
     def hold( self, commchannel ):
         return self.feedUserInput( "hold", channel=commchannel )

@@ -877,8 +877,11 @@ class CallTransfer( CallMediator ):
         self._commchannel.enqueue( '+CTFR="%s",%d' % ( number, ntype ), self.responseFromChannel, self.errorFromChannel )
 
 #=========================================================================#
-class CallListCalls( CallMediator ): # a(isa{sv})
+class CallListCalls( MiscMediator ): # a(isa{sv})
 #=========================================================================#
+    """
+    CallListCalls is a MiscMediator since its commands should not be issued on the call channel.
+    """
     def trigger( self ):
         self._commchannel.enqueue( "+CLCC", self.responseFromChannel, self.errorFromChannel )
 

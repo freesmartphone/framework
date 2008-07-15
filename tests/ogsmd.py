@@ -2,6 +2,7 @@
 """
 ogsmd tests
 
+(C) 2008 Guillaume 'Charlie' Chereau <charlie@openmoko.org>
 (C) 2008 Michael 'Mickey' Lauer <mlauer@vanille-media.de>
 (C) 2008 Openmoko, Inc.
 GPLv2 or later
@@ -37,13 +38,13 @@ class TE( Exception ):
 queue = Queue()
 
 #=========================================================================#
-def signalHandler( data, member=None, destination=None, interface=None, path=None ):
+def signalHandler( *args, **kwargs ):
 #=========================================================================#
     """
     Signal handler that just puts the received signal with all its data into the queue
     """
-    log( "got signal '%s.%s' with data", data )
-    queue.put( member, data )
+    log( "\n<'%s.%s'(%s)>\n" % ( kwargs["interface"], kwargs["member"], args ) )
+    queue.put( ( kwargs["member"], args ) )
 
 #=========================================================================#
 def logged( fn ):
@@ -85,8 +86,15 @@ def log( *args ):
 
 
 def prettyPrint( expression ):
+    if type( expression ) == dbus.types.Struct:
+        result = ""
+        for val in expression:
+            result += "%s, " % prettyPrint(val)
+        return "( %s )" % result[:-2]
     if type( expression ) == dbus.types.Array:
-        result = [ "%s, " % prettyPrint(val) for val in expression ]
+        result = ""
+        for val in expression:
+            result += "%s, " % prettyPrint(val)
         return "[ %s ]" % result[:-2]
     elif type( expression ) == dbus.types.Dictionary:
         result = ""
@@ -96,7 +104,10 @@ def prettyPrint( expression ):
     elif type( expression ) == dbus.types.String:
         return "'%s'" % expression
     else:
-        return "%s" % expression
+        try:
+            return "%s" % expression
+        except TypeError:
+            return repr(expression)
 
 #=========================================================================#
 class TestRunner( object ):
@@ -225,7 +236,7 @@ class DeviceAndAuthTest( AbstractTest ):
         log( "ok. info:", info )
 
 #=========================================================================#
-class NetworkBaseTest( AbstractTest ):
+class NetworkAutoRegisterTest( AbstractTest ):
 #=========================================================================#
     """
     org.freesmartphone.GSM.Network
@@ -233,8 +244,7 @@ class NetworkBaseTest( AbstractTest ):
     * Unregister()
     * GetStatus()
     * Register()
-    * ListProviders()
-    * RegisterWithProvider()
+    * GetSignalStrength()
     """
     serial = 1
 
@@ -246,6 +256,9 @@ class NetworkBaseTest( AbstractTest ):
         assert status["registration"] == "unregistered"
         log( "ok. status now:", status )
 
+        log( "checking signal strength..." )
+        log( "ok:", network.GetSignalStrength() )
+
         log( "autoregistering..." )
         network.Register()
         assert status["registration"] == "home"
@@ -253,52 +266,64 @@ class NetworkBaseTest( AbstractTest ):
         status = network.GetStatus()
         log( "ok. status now:", status )
 
-        log( "checking available providers [will take some time]..." )
-        providers = network.ListProviders( timeout = 1000 )
-        log( "ok. provider list is:", providers
-
-    # TODO pick a forbidden one, check whether registration is denied
-    # TODO pick an allowed one, check whether registration is ok
+        log( "checking signal strength..." )
+        log( "ok:", network.GetSignalStrength() )
 
 #=========================================================================#
-class CallBaseTest( AbstractTest ):
+class NetworkSpecificRegisterTest( AbstractTest ):
+#=========================================================================#
+    """
+    org.freesmartphone.GSM.Network
+
+    * ListProviders()
+    * RegisterWithProvider()
+    """
+    serial = 2
+
+    def run( self ):
+        log( "checking available providers [will take some time]..." )
+        providers = network.ListProviders( timeout = 1000 )
+        log( "ok. provider list is:", providers )
+
+        for code, status, name, nickname in providers:
+            if status in ( "current", "available" ):
+                log( "trying to specifically register w/", name, "..." )
+                network.RegisterWithProvider( code )
+                status = network.GetStatus()
+                assert status["provider"] == str(code)
+                log( "ok. status now:", status )
+                break
+        else:
+            assert False, "can't find available providers. unable to continue"
+
+#=========================================================================#
+class CallCancelTest( AbstractTest ):
 #=========================================================================#
     """
     org.freesmartphone.GSM.Call
 
+    * ReleaseAll()
+    * ListCalls()
     * Initiate()
     * Release()
-    * HoldActive()
-    * Activate()
 
-    Testplan:
-    * calling a number
-    * check call status
-    * cancel the call
-    * check call status
-    * call a number
-    * check call status
-    * wait for call to become active
-    * check call status
-    * hold call
-    * check call status
-    * activate call again
-    * check call status
-    * release call
-    * check call status
     """
-    serial = 1
+    serial = 2
 
     def run( self ):
-        log( "calling", config["DIAL_NUMBER"], "..." )
-        index = call.Initiate( config["DIAL_NUMBER"] )
+        log( "releasing all active call..." )
+        call.ReleaseAll()
+        log( "ok. calling", config["DIAL_NUMBER"], "..." )
+        index = call.Initiate( config["DIAL_NUMBER"], "voice" )
         time.sleep( 1 )
-        log( "ok. index =", index, ", checking call status..." )
-        calls = call.GetCallStatus()
+        log( "ok. index =", index, ", checking calls..." )
+        calls = call.ListCalls()
         log( "ok. calls:", calls )
         log( "waiting five seconds..." )
         time.sleep( 5 )
         call.Release( index )
+        calls = call.ListCalls()
+        log( "ok. calls now:", calls )
 
 #=========================================================================#
 if __name__ == "__main__":
