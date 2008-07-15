@@ -43,7 +43,10 @@ def signalHandler( *args, **kwargs ):
     """
     Signal handler that just puts the received signal with all its data into the queue
     """
-    log( "\n<'%s.%s'(%s)>\n" % ( kwargs["interface"], kwargs["member"], args ) )
+    log( "\n" )
+    log( "-"*78 )
+    log( "%s.%s (%s)" % ( kwargs["interface"], kwargs["member"], args ) )
+    log( "-"*78 )
     queue.put( ( kwargs["member"], args ) )
 
 #=========================================================================#
@@ -308,7 +311,7 @@ class CallCancelTest( AbstractTest ):
     * Release()
 
     """
-    serial = 2
+    serial = 3
 
     def run( self ):
         log( "releasing all active call..." )
@@ -319,8 +322,8 @@ class CallCancelTest( AbstractTest ):
         log( "ok. index =", index, ", checking calls..." )
         calls = call.ListCalls()
         log( "ok. calls:", calls )
-        log( "waiting five seconds..." )
-        time.sleep( 5 )
+        log( "waiting ten seconds to give call a chance to ring..." )
+        time.sleep( 10 )
         call.Release( index )
         calls = call.ListCalls()
         log( "ok. calls now:", calls )
@@ -328,8 +331,6 @@ class CallCancelTest( AbstractTest ):
 #=========================================================================#
 if __name__ == "__main__":
 #=========================================================================#
-    t = TestRunner()
-
     alltests = [ v for k, v in locals().items() if type(v) == types.TypeType and k.endswith( "Test" ) and k != "AbstractTest" ]
     alltests.sort( key=lambda element: element.serial )
 
@@ -352,6 +353,10 @@ if __name__ == "__main__":
         for t in options.tests:
             tests.append( eval( t ) )
 
+    runner = TestRunner()
+    for test in tests:
+        runner.addTest( test() )
+
     bus = dbus.SystemBus()
     try:
         device = sim = network = call = pdp = cb = bus.get_object( "org.freesmartphone.ogsmd", "/org/freesmartphone/GSM/Device" )
@@ -373,7 +378,7 @@ if __name__ == "__main__":
 
     gobject.threads_init()
 
-    thread.start_new_thread( t.run, () )
+    thread.start_new_thread( runner.run, () )
 
     mainloop = gobject.MainLoop()
     try:
