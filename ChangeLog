@@ -1,3 +1,9 @@
+2008-07-14	Michael Lauer	<mickey@vanille-media.de>
+
+	* [ogsmd] Switched to new AT low level parser
+	* [ogsmd] Implemented cell broadcast handling
+	* [ogsmd] Added dbus method to retrieve home zone coordinates
+
 2008-07-12	Michael Lauer	<mickey@vanille-media.de>
 
 	* [ogsmd] Implemented generic and restricted SIM access commands

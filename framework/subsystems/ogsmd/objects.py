@@ -206,10 +206,15 @@ class Device( dbus.service.Object ):
     def SendGenericSimCommand( self, command, dbus_ok, dbus_error ):
         mediator.SimSendGenericSimCommand( self, dbus_ok, dbus_error, command=command )
 
-    @dbus.service.method( DBUS_INTERFACE_SIM, "", "iis",
+    @dbus.service.method( DBUS_INTERFACE_SIM, "iiiiis", "iis",
                           async_callbacks=( "dbus_ok", "dbus_error" ) )
     def SendRestrictedSimCommand( self, command, fileid, p1, p2, p3, data, dbus_ok, dbus_error ):
         mediator.SimSendRestrictedSimCommand( self, dbus_ok, dbus_error, command=command, fileid=fileid, p1=p1, p2=p2, p3=p3, data=data )
+
+    @dbus.service.method( DBUS_INTERFACE_SIM, "", "a(iii)",
+                          async_callbacks=( "dbus_ok", "dbus_error" ) )
+    def GetHomeZones( self, dbus_ok, dbus_error ):
+        mediator.SimGetHomeZones( self, dbus_ok, dbus_error )
 
     ### SIM phonebook
     @dbus.service.method( DBUS_INTERFACE_SIM, "", "a{sv}",
