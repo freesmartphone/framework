@@ -487,10 +487,7 @@ class DelegateChannel( QueuedVirtualChannel ):
         will only be getting called, if no appropriate delegate method can be found.
         """
 
-        if len( response ) == 1:
-            data = response[0]
-        else:
-            assert False, "multiline unsolicited responses not handled yet"
+        data = response[0]
 
         if not data[0] in self.prefixmap:
             return False
@@ -510,7 +507,11 @@ class DelegateChannel( QueuedVirtualChannel ):
             # no appropriate handler found, hand over to generic handler
             return self.handleUnsolicitedResponse( data )
         else:
-            method( values.strip() )
+            if len( response ) == 2:
+                # unsolicited data contains a PDU
+                method( values.strip(), response[1] )
+            else:
+                method( values.strip() )
 
         return True # unsolicited response handled OK
 

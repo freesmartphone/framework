@@ -30,7 +30,7 @@ DBUS_INTERFACE_SIM = "org.freesmartphone.GSM.SIM"
 DBUS_INTERFACE_NETWORK = "org.freesmartphone.GSM.Network"
 DBUS_INTERFACE_CALL = "org.freesmartphone.GSM.Call"
 DBUS_INTERFACE_PDP = "org.freesmartphone.GSM.PDP"
-DBUS_INTERFACE_PDP = "org.freesmartphone.GSM.CB"
+DBUS_INTERFACE_CB = "org.freesmartphone.GSM.CB"
 
 DBUS_INTERFACE_SERVER = "org.freesmartphone.GSM.Server"
 
@@ -206,10 +206,15 @@ class Device( dbus.service.Object ):
     def SendGenericSimCommand( self, command, dbus_ok, dbus_error ):
         mediator.SimSendGenericSimCommand( self, dbus_ok, dbus_error, command=command )
 
-    @dbus.service.method( DBUS_INTERFACE_SIM, "", "iis",
+    @dbus.service.method( DBUS_INTERFACE_SIM, "iiiiis", "iis",
                           async_callbacks=( "dbus_ok", "dbus_error" ) )
     def SendRestrictedSimCommand( self, command, fileid, p1, p2, p3, data, dbus_ok, dbus_error ):
         mediator.SimSendRestrictedSimCommand( self, dbus_ok, dbus_error, command=command, fileid=fileid, p1=p1, p2=p2, p3=p3, data=data )
+
+    @dbus.service.method( DBUS_INTERFACE_SIM, "", "a(iii)",
+                          async_callbacks=( "dbus_ok", "dbus_error" ) )
+    def GetHomeZones( self, dbus_ok, dbus_error ):
+        mediator.SimGetHomeZones( self, dbus_ok, dbus_error )
 
     ### SIM phonebook
     @dbus.service.method( DBUS_INTERFACE_SIM, "", "a{sv}",
@@ -439,15 +444,20 @@ class Device( dbus.service.Object ):
     #
     # dbus org.freesmartphone.GSM.CB
     #
-    @dbus.service.method( DBUS_INTERFACE_PDP, "", "s",
+    @dbus.service.method( DBUS_INTERFACE_CB, "", "s",
                           async_callbacks=( "dbus_ok", "dbus_error" ) )
     def GetCellBroadcastSubscriptions( self, dbus_ok, dbus_error ):
         mediator.CbGetCellBroadcastSubscriptions( self, dbus_ok, dbus_error )
 
-    @dbus.service.method( DBUS_INTERFACE_PDP, "s", "",
+    @dbus.service.method( DBUS_INTERFACE_CB, "s", "",
                           async_callbacks=( "dbus_ok", "dbus_error" ) )
     def SetCellBroadcastSubscriptions( self, channels, dbus_ok, dbus_error ):
         mediator.CbSetCellBroadcastSubscriptions( self, dbus_ok, dbus_error, channels=channels )
+
+    @dbus.service.signal( DBUS_INTERFACE_CB, "is" )
+    def IncomingCellBroadcast( self, channel, data ):
+        LOG( LOG_INFO, "org.freesmartphone.GSM.CB.IncomingCellBroadcast: ", repr(channel), repr(data) )
+
     #
     # dbus org.freesmartphone.GSM.Debug
     # WARNING: DO NOT USE THIS! :)

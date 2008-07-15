@@ -8,9 +8,6 @@ GPLv2 or later
 
 Package: ogsmd.modems.singeline
 Module: channel
-
-This module contains a communication channel abstractions that
-transport their data over a serial line.
 """
 
 from ogsmd.gsm.decor import logged
@@ -25,14 +22,19 @@ class SingleLineChannel( AtCommandChannel ):
         if not "timeout" in kwargs:
             kwargs["timeout"] = 60*60
 
-        # usual stuff
+        # reset
         self.enqueue('Z') # soft reset
         self.enqueue('E0V1') # echo off, verbose result on
+
+        # error and result reporting reporting
         self.enqueue('+CMEE=1') # report mobile equipment errors: in numerical format
         self.enqueue('+CRC=1') # cellular result codes: enable extended format
-        self.enqueue('+CMGF=1') # message format: disable pdu mode, enable text mode
         self.enqueue('+CSCS="8859-1"') # character set conversion: use 8859-1 (latin 1)
         self.enqueue('+CSDH=1') # show text mode parameters: show values
+
+        # sms
+        self.enqueue('+CMGF=1') # message format: disable pdu mode, enable text mode
+        self.enqueue('+CSMS=1') # GSM Phase 2+ commands: enable
 
         # unsolicited
         self.enqueue('+CLIP=1') # calling line identification presentation enable
@@ -43,6 +45,8 @@ class SingleLineChannel( AtCommandChannel ):
         self.enqueue('+CTZU=1') # timezone update
         self.enqueue('+CTZR=1') # timezone reporting
         self.enqueue('+CREG=2') # registration information (TODO not all modems support that)
+
+        # this will error until SIM authenticated
         self.enqueue('+CNMI=2,1,2,1,1') # buffer sms on SIM, report CB directly
 
     @logged
