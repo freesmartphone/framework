@@ -433,13 +433,13 @@ class SimGetHomeZones( SimMediator ):
         self._commchannel.enqueue( "+CRSM=176,28512,0,0,123", self.responseFromChannel, self.errorFromChannel )
 
     def addHomeZone( self, data, number, result ):
-        print data[0:52]
+        #print data[0:52]
         if int( data[0:2], 16 ) == number:
             x = int( data[2:10], 16 )
             y = int( data[10:18], 16 )
             r = int( data[18:26], 16 )
             name = int( data[26:52], 16 )
-            print name
+            #print name
             if x+y+r:
                 result.append( [ x, y, r ] )
 

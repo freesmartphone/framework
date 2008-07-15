@@ -58,7 +58,7 @@ def groupDictIfMatch( pattern, string ):
 #=========================================================================#
 TIMEOUT = { \
   "CPIN": 6+1,
-  "CFUN": 6+1,
+  "CFUN": 8+1,
   "COPS": 15,
   "COPS=?": 80,
   "RING": 3+1,

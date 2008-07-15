@@ -44,14 +44,16 @@ def vprint(msg, *args):
         print msg % args
 
 
+
 class Test(object):
+
     def __init__(self, sim_present = SIM_PRESENT, sim_locked = SIM_LOCKED):
         self.sim_present = sim_present
         self.sim_locked = sim_locked
-        
-        assert SIM_PRESENT == True, "only this case for now" 
+
+        assert SIM_PRESENT == True, "only this case for now"
         assert SIM_LOCKED == False, "only this case for now"
-        
+
         self.call_status_queue = Queue()
         self.status_queue = Queue()
         
@@ -75,13 +77,13 @@ class Test(object):
         self.gsm.connect_to_signal("Status", self.on_status)
         
         print "OK"
-        
+
         self.test_set_antenna_power()
         self.test_register()
         self.test_call()
         self.test_sim()
         self.test_contacts()
-    
+
     def test_set_antenna_power(self, nb = 1):
         """We try to turn the antenna off and on a few times"""
         print "== Test antenna off/on %d times" % nb
@@ -93,7 +95,7 @@ class Test(object):
             self.gsm.SetAntennaPower(True)
             assert self.gsm_device_iface.GetAntennaPower()
         print "OK"
-            
+
     def test_register(self, nb = 1):
         print "== Test unregister/register %d times ==" % nb
         
@@ -115,27 +117,33 @@ class Test(object):
         
     def test_call(self):
         print "== Test call =="
-        
-        
+        queues = Queue()
+
+        def on_call_status(self, id, status, properties ):
+            vprint("CallStatus= %s, %s, %s", id, status, properties)
+            queue.put(status)
+
+        self.gsm.connect_to_signal("CallStatus", on_call_status)
+
         vprint("initiate call to %s", NUMBER)
         id = self.gsm.Initiate(NUMBER, "voice")
-        
+
         time_out = 30
-        
+
         vprint("waiting for 'outgoing' signal before %d seconds", time_out)
         state = self.call_status_queue.get(True, time_out)
         assert state == 'outgoing'
-        
+
         vprint("waiting for 'active' signal before %d seconds", time_out)
         state = self.call_status_queue.get(True, time_out)
         assert state == 'active'
-        
+
         vprint("releasing the call")
         self.gsm.Release(id)
         vprint("waiting for 'inactive' signal before %d seconds", time_out)
         state = self.call_status_queue.get(True, time_out)
         assert state == 'inactive'
-        
+
         print "OK"
         
     def test_sim(self):
