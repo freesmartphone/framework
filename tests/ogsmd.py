@@ -333,16 +333,24 @@ if __name__ == "__main__":
     alltests = [ v for k, v in locals().items() if type(v) == types.TypeType and k.endswith( "Test" ) and k != "AbstractTest" ]
     alltests.sort( key=lambda element: element.serial )
 
-    argv = sys.argv[1:]
-    try:
-        index = argv.index( "-t" )
-    except ValueError:
+    from optparse import OptionParser
+    usage = "ogsmd -a or ogsmd -t <test1> -t <test2> ..."
+    parser = OptionParser( usage )
+    parser.add_option( "-a", "--all", dest="runAllTests", action="store_true",
+        help="run all tests (%s)" % alltests )
+    parser.add_option( "-t", "--test", dest="tests", metavar="TEST", action="append",
+        help="run test TEST" )
+
+    if len( sys.argv ) < 2:
+        parser.error( "not enough arguments. need to supply at least one test or -a" )
+    options, args = parser.parse_args()
+
+    if options.runAllTests:
         tests = alltests
     else:
-        tests = eval( "[ %s ]" % argv[index+1] )
-
-    for test in tests:
-        t.addTest( test() )
+        tests = []
+        for t in options.tests:
+            tests.append( eval( t ) )
 
     bus = dbus.SystemBus()
     try:
