@@ -19,6 +19,7 @@ import select
 from ogsmd.gsm.decor import logged
 from ogsmd.gsm.channel import AtCommandChannel
 from ogsmd.gsm.callback import SimpleCallback
+from ogsmd.gsm.parser import ThrowStuffAwayParser
 
 #=========================================================================#
 class EzxMuxChannel( AtCommandChannel ):
@@ -45,6 +46,9 @@ class MiscChannel( EzxMuxChannel ):
         # FIXME we can't do this, since it is modem-wide (not VC-wide)
         #self.enqueue( "+CMER=0,0,0,0,0" ) # unsolicited event reporting: none
 
+    def installParser( self ):
+        trash = [ "+CIEV:" ]
+        self.parser = ThrowStuffAwayParser( trash, self._handleResponseToRequest, self._handleUnsolicitedResponse )
 
 #=========================================================================#
 class UnsolicitedResponseChannel( EzxMuxChannel ):
