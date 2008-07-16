@@ -468,6 +468,9 @@ class DelegateChannel( QueuedVirtualChannel ):
                            '_': 'underscore',
                            '*': 'star',
                            '&': 'ampersand',
+                           'C': 'C',
+                           'R': 'R',
+                           'N': 'N',
                          }
         self.delegate = None
 
@@ -490,15 +493,15 @@ class DelegateChannel( QueuedVirtualChannel ):
 
         data = response[0]
 
+        if not self.delegate:
+            # no delegate installed, hand over to generic handler
+            return self.handleUnsolicitedResponse( data )
+
         if not data[0] in self.prefixmap:
             return False
         if not ':' in data:
             return False
         command, values = data.split( ':', 1 )
-
-        if not self.delegate:
-            # no delegate installed, hand over to generic handler
-            return self.handleUnsolicitedResponse( data )
 
         methodname = "%s%s" % ( self.prefixmap[command[0]], command[1:] )
 
