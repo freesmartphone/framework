@@ -277,7 +277,7 @@ class QueuedVirtualChannel( VirtualChannel ):
         VirtualChannel.__init__( self, *args, **kwargs )
         self.q = PeekholeQueue()
 
-        self.parser = parser.LowlevelAtParser( self._handleResponseToRequest, self._handleUnsolicitedResponse )
+        self.installParser()
 
         self.watchTimeout = None
         if "timeout" in kwargs:
@@ -286,6 +286,14 @@ class QueuedVirtualChannel( VirtualChannel ):
             self.timeout = 5 # default timeout in seconds
 
         print "(%s: Creating channel with timeout = %d seconds)" % ( repr(self), self.timeout )
+
+    def installParser( self ):
+        """
+        Install a low level parser for this channel.
+
+        Override this, if you need to install a special low level parser.
+        """
+        self.parser = parser.LowlevelAtParser( self._handleResponseToRequest, self._handleUnsolicitedResponse )
 
     def enqueue( self, data, response_cb=None, error_cb=None, timeout=None ):
         """
