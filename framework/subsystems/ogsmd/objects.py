@@ -211,7 +211,7 @@ class Device( dbus.service.Object ):
     def SendRestrictedSimCommand( self, command, fileid, p1, p2, p3, data, dbus_ok, dbus_error ):
         mediator.SimSendRestrictedSimCommand( self, dbus_ok, dbus_error, command=command, fileid=fileid, p1=p1, p2=p2, p3=p3, data=data )
 
-    @dbus.service.method( DBUS_INTERFACE_SIM, "", "a(iii)",
+    @dbus.service.method( DBUS_INTERFACE_SIM, "", "a(siii)",
                           async_callbacks=( "dbus_ok", "dbus_error" ) )
     def GetHomeZones( self, dbus_ok, dbus_error ):
         mediator.SimGetHomeZones( self, dbus_ok, dbus_error )

@@ -427,7 +427,7 @@ class SimSendRestrictedSimCommand( SimMediator ):
             self._ok( *result )
 
 #=========================================================================#
-class SimGetHomeZones( SimMediator ):
+class SimGetHomeZones( SimMediator ): # a(siii)
 #=========================================================================#
     def trigger( self ):
         self._commchannel.enqueue( "+CRSM=176,28512,0,0,123", self.responseFromChannel, self.errorFromChannel )
@@ -438,14 +438,22 @@ class SimGetHomeZones( SimMediator ):
             x = int( data[2:10], 16 )
             y = int( data[10:18], 16 )
             r = int( data[18:26], 16 )
-            name = int( data[26:52], 16 )
-            #print name
+            nameraw = data[28:52]
+            name = ""
+            for index in xrange( 0, 24, 2 ):
+                c = int(nameraw[index:index+2],16)
+                if 32 < c < 128:
+                    name += chr(c)
+                else:
+                    break
             if x+y+r:
-                result.append( [ x, y, r ] )
+                result.append( [ name, x, y, r ] )
 
     def responseFromChannel( self, request, response ):
+        if response[-1] != "OK":
+            SimMediator.responseFromChannel( self, request, response )
         try:
-            length, encoding, payload = response.split(",")
+            length, encoding, payload = response[0].split(",")
         except ValueError:
             self._ok( result )
         else:
