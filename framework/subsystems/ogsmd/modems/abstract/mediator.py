@@ -898,6 +898,8 @@ class CallListCalls( NetworkMediator ): # a(isa{sv})
         if response[-1] == "OK":
             result = []
             for line in response[:-1]:
+                if not line: # some modems might include empty lines here, one for every (not present) call...
+                    continue
                 gd = const.groupDictIfMatch( const.PAT_CLCC, line )
                 assert gd is not None, "parsing error"
                 index = int( gd["id"] )

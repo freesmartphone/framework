@@ -105,8 +105,8 @@ class CallHandler( object ):
     def __init__( self, dbus_object ):
         self._object = dbus_object
         self._calls = {}
-        self._calls[1] = { "status":"release" }
-        self._calls[2] = { "status":"release" }
+        self._calls[1] = { "status": "release" }
+        self._calls[2] = { "status": "release" }
 
     def _updateStatus( self, callId ):
         """send dbus signal indicating call status for a callId"""
@@ -135,10 +135,25 @@ class CallHandler( object ):
                 break # can't be more than one call incoming at once (GSM limitation)
 
     def statusChangeFromNetwork( self, callId, info ):
+        print "statusChangeFromNetwork:"
+        print "last status was: ", self._calls
+
+        lastStatus = self._calls[callId].copy()
         self._calls[callId].update( info )
+
         if self._calls[callId]["status"] == "release":
-            self._calls[callId] = { "status":"release" }
-        self._updateStatus( callId )
+            # release signal always without properties
+            self._calls[callId] = { "status": "release" }
+
+        if self._calls[callId]["status"] != "incoming":
+            # suppress sending the same signal twice
+            if lastStatus != self._calls[callId]:
+                self._updateStatus( callId )
+        else:
+            self._updateStatus( callId )
+
+        print "status now is: ", self._calls
+
 
     def feedUserInput( self, action, *args, **kwargs ):
         # simple actions

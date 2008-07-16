@@ -29,7 +29,7 @@ class UnsolicitedResponseDelegate( AbstractUnsolicitedResponseDelegate ):
     def plusCLIP( self, righthandside ):
         pass
 
-    # +CCWA: 
+    # +CCWA:
     def plusCCWA( self, righthandside ):
         pass
 
@@ -108,8 +108,15 @@ class UnsolicitedResponseDelegate( AbstractUnsolicitedResponseDelegate ):
        self._mediator.CallListCalls( self._object, self._syncCallStatus_ok, self._syncCallStatus_err )
 
     def _syncCallStatus_ok( self, calls ):
+        seen = []
         for callid, status, properties in calls:
+            seen.append( callid )
             self._mediator.callHandler.statusChangeFromNetwork( callid, {"status": status} )
+        # synthesize remaning calls
+        if not 1 in seen:
+            self._mediator.callHandler.statusChangeFromNetwork( 1, {"status": "release"} )
+        if not 2 in seen:
+            self._mediator.callHandler.statusChangeFromNetwork( 2, {"status": "release"} )
 
     def _syncCallStatus_err( self, request, error ):
         print "EZX: AT ERROR FROM CLCC", error
