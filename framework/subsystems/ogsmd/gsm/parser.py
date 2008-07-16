@@ -130,7 +130,7 @@ class StateBasedLowlevelAtParser( object ):
                 print "previous bytes were:", repr(bytes)
                 print "current byte is:", repr(b)
                 print "lines:", repr(self.lines)
-                print "curline:", repr(curline)
+                print "curline:", repr(self.curline)
                 print "solicited:", haveCommand
                 self.state = self.reset()
                 break
@@ -247,8 +247,39 @@ if USE_EXPERIMENTAL_PARSER:
     LowlevelAtParser = StateBasedLowlevelAtParser
 else:
     LowlevelAtParser = SimpleLowlevelAtParser
-del SimpleLowlevelAtParser
-del StateBasedLowlevelAtParser
+#del SimpleLowlevelAtParser
+#del StateBasedLowlevelAtParser
+
+#=========================================================================#
+class ThrowStuffAwayParser( StateBasedLowlevelAtParser ):
+#=========================================================================#
+    """
+    This parser has the ability to consume certain lines.
+    """
+
+    def __init__( self, trash, response, unsolicited ):
+        StateBasedLowlevelAtParser.__init__( self, response, unsolicited )
+        self.trash = trash
+
+    def consume( self ):
+        for t in self.trash:
+            if self.curline.startswith( t ):
+                print "PARSER: throwing away line starting with", t
+                self.curline = ""
+                return True # throw it away
+        return False # process as usual
+
+    def solicitedLineCompleted( self, multipleR = False ):
+        if not self.consume():
+            return StateBasedLowlevelAtParser.solicitedLineCompleted( self, multipleR )
+        else:
+            return self.state_inline
+
+    def unsolicitedLineCompleted( self, multipleR = False ):
+        if not self.consume():
+            return StateBasedLowlevelAtParser.unsolicitedLineCompleted( self, multipleR )
+        else:
+            return self.state_inline
 
 #=========================================================================#
 if __name__ == "__main__":
