@@ -500,6 +500,7 @@ class SimRetrievePhonebook( SimMediator ):
                 index, number, ntype, name = self._rightHandSide( entry ).split( ',' )
                 index = int( index )
                 number = number.strip( '"' )
+                ntype = int( ntype )
                 name = const.textToUnicode( name )
                 result.append( ( index, name, const.phonebookTupleToNumber( number, ntype ) ) )
             self._ok( result )

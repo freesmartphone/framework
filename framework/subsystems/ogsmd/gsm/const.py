@@ -775,9 +775,14 @@ def phonebookTupleToNumber( nstring, ntype ):
     Returns a full number depending on a number string and a number type.
     """
 
-    assert nstring[0] != '+'
-    assert ntype in ( 129, 145 )
-    return nstring if ntype == 129 else ( "+%s" % nstring )
+    assert ntype in ( 129, 145 ), "unknown type %i" % ntype
+    if ntype == 145: # should not include '+', but sometimes it does
+        if nstring[0] == '+':
+            return nstring
+        else:
+            return "+%s" % nstring
+    else:
+        return nstring
 
 #=========================================================================#
 def numberToPhonebookTuple( nstring ):
