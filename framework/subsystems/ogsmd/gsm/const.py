@@ -28,6 +28,8 @@ PAT_PHONEBOOK_INFO = re.compile( '\((?P<lowest>\d+)-(?P<highest>\d+)\)(?:,(?P<nu
 # +CMGL: 2,"REC READ","491770702810","Jim Panse","08/04/04,01:21:20+08",145,121
 # +CMGL: 3,"STO UNSENT","85291234567",,,145,136
 # +CMGL: 2,"REC READ","Alice-Team",,"08/05/13,09:12:15+08",208,133
+# +CMGL: 0,"REC READ","66658369458410197109",,"07/02/19,15:24:26+04",208,156
+# +CMGL: 1,"REC UNREAD","84971141051024573110102111",,"08/02/22,15:28:04+00",208,158
 PAT_SMS_TEXT_HEADER = re.compile( '(?P<index>\d+),"(?P<status>[^"]+)","(?P<number>[^"]+)",(?:"(?P<name>[^"]+)")?,(?:"(?P<timestamp>[^"]+)")?,(?P<ntype>\d+),(?P<textlen>\d+)' )
 # +CMGR: "REC READ","Alice-Team",,"08/05/13,09:12:15+08",208,133
 PAT_SMS_TEXT_HEADER_SINGLE = re.compile( '"(?P<status>[^"]+)","(?P<number>[^"]+)",(?:"(?P<name>[^"]+)")?,(?:"(?P<timestamp>[^"]+)")?,(?P<ntype>\d+),(?P<textlen>\d+)' )
@@ -780,7 +782,8 @@ def phonebookTupleToNumber( nstring, ntype ):
     Returns a full number depending on a number string and a number type.
     """
 
-    assert ntype in ( 129, 145 ), "unknown type %i" % ntype
+    # FIXME figure out how to decode ntype 208
+    assert ntype in ( 129, 145, 208 ), "unknown type %i" % ntype
     if ntype == 145: # should not include '+', but sometimes it does
         if nstring[0] == '+':
             return nstring
