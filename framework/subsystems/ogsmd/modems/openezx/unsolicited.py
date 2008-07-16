@@ -15,18 +15,21 @@ class UnsolicitedResponseDelegate( AbstractUnsolicitedResponseDelegate ):
 
     def __init__( self, *args, **kwargs ):
         AbstractUnsolicitedResponseDelegate.__init__( self, *args, **kwargs )
-        # self._mediator.createCallHandler( self._object )
+        self._mediator.createCallHandler( self._object )
 
-    # +CRING is only used to trigger a status update
+    #
+    # GSM standards
+    #
+
+    # EZX does not honor +CRM, hence +CRING is not being sent
     def plusCRING( self, calltype ):
         pass
-        # self._mediator.callHandler.ring()
 
-    # +CLIP is not used on TI Calypso. See %CPI
+    # +CLIP: "+4969123456789",145
     def plusCLIP( self, righthandside ):
         pass
 
-    # +CCWA is not used on TI Calypso. See %CPI
+    # +CCWA: 
     def plusCCWA( self, righthandside ):
         pass
 
@@ -38,7 +41,7 @@ class UnsolicitedResponseDelegate( AbstractUnsolicitedResponseDelegate ):
         """
         Indicator Event Reporting. Based on 3GPP TS 07.07, Chapter 8.9, but slightly extended.
 
-        As +CIND=? give us a hint (one of the few test commands EZX exposes), we conclude:
+        As +CIND=? gives us a hint (one of the few test commands EZX exposes), we conclude:
 
         0: battery charge level (0-5)
         1: signal level (0-5)
@@ -51,14 +54,43 @@ class UnsolicitedResponseDelegate( AbstractUnsolicitedResponseDelegate ):
         8: sms storage full (0-1)
         """
         indicator, value = ( int(x) for x in righthandside.split( ',' ) )
-        if indicator == 1: # signal strength
-            self._object.SignalStrength( 25*value )
+
+        try:
+            method = getattr( self, "CIEV_%d" % indicator )
+        except AttributeError:
+            print "EZX: unhandled CIEV", indicator, value
         else:
-            print "plusCIEV: %s" % righthandside
+            method( value )
+
+    def CIEV_0( self, chargelevel ):
+        print "EZX: CHARGE LEVEL:", chargelevel
+
+    def CIEV_signal( self, signallevel ):
+        self._object.SignalStrength( 25*value )
+
+    def CIEV_2( self, service ):
+        print "EZX: SERVICE:", bool(service)
+
+    def CIEV_3( self, present ):
+        print "EZX: CALL PRESENT:", bool(present)
+        self._syncCallStatus( "CIEV" )
+
+    def CIEV_4( self, voicemail ):
+        print "EZX: VOICEMAIL:", bool(voicemail)
+
+    def CIEV_5( self, voice_activity ):
+        print "EZX: VOICE ACTIVITY:", bool(voice_activity)
+
+    def CIEV_6( self, call_progress ):
+        print "EZX: CALL PROGRESS:", call_progress
 
     #
     # Motorola EZX proprietary
     #
+
+    # RING: 1
+    def RING( self, calltype ):
+        self._syncCallStatus( "RING" )
 
     # +EOPER: 5,"262-03"
     def plusEOPER( self, righthandside ):
@@ -69,116 +101,16 @@ class UnsolicitedResponseDelegate( AbstractUnsolicitedResponseDelegate ):
         self._object.Status( status )
 
     #
-    # TI proprietary (for reference, remove later)
+    # helpers
     #
 
-    # %CCCN: 0,0,A10E02010402011030068101428F0101
-    def percentCCCN( self, righthandside ):
-        direction, callId, ie = righthandside.split( "," )
-        # this is ASN.1 BER, but we don't want a full decoder here
-        info = {}
-        if ie[0:8]+ie[10:30] == "A10E020102011030068101428F01":
-            info["held"] = bool( int( ie[30:32], 16 ) )
-        if info:
-            self._mediator.callHandler.statusChangeFromNetwork( int(callId)+1, info )
+    def _syncCallStatus( self, initiator ):
+       self._mediator.CallListCalls( self._object, self._syncCallStatus_ok, self._syncCallStatus_err )
 
-    # %CSSN: 1,0,A11502010802013B300D04010F0408AA510C0683C16423
-    def percentCSSN( self, righthandside ):
-        direction, transPart, ie = righthandside.split( "," )
+    def _syncCallStatus_ok( self, calls ):
+        for callid, status, properties in calls:
+            self._mediator.callHandler.statusChangeFromNetwork( callid, {"status": status} )
 
-    # %CSQ:  17, 0, 1
-    def percentCSQ( self, righthandside ):
-        strength, snr, quality = righthandside.split( "," )
-        self._object.SignalStrength( const.signalQualityToPercentage( int(strength) ) ) # send dbus signal
-
-    # %CPI: 1,0,0,0,1,0,"+491772616464",145,,,0
-    def percentCPI( self, righthandside ):
-        """
-        TI Calypso Call Progress Indication:
-        callId = call number in internal call table (same as call number in CCLD)
-        msgType = 0:setup, 1:disconnect, 2:alert, 3:call, 4:sync, 5:progress, 6:connected, 7:release, 8:reject (from network), 9:request
-        ibt = 1, if in-band-tones enabled
-        tch = 1, if traffic channel assigned
-        direction = 0:MO, 1:MT, 2:CCBS, 3:MO-autoredial
-        mode = 0:voice, 1:data, 2:fax, ..., 9 [see gsm spec bearer type]
-        number = "number" [gsm spec]
-        ntype = number type [gsm spec]
-        alpha = "name", if number found in SIM phonebook [gsm spec]
-        cause = GSM Network Cause [see gsm spec, section 04.08 annex H]
-        line = 0, if line 1. 1, if line2.
-
-        Typical chunks during a call:
-
-        ... case A: incoming (MT) ...
-        %CPI: 1,0,0,0,1,0,"+496912345678",145,,,0 ( setup call, MT, line one, no traffic channel yet )
-        +CRING: VOICE
-        %CPI: 1,0,0,1,1,0,"+496912345678",145,,,0 ( setup call, MT, line one, traffic channel assigned )
-        %CPI: 1,4,0,1,1,0,"+496912345678",145,,,0 ( sync call, MT, line one, traffic channel assigned )
-        %CPI: 1,0,0,1,1,0,"+496912345678",145,,,0 ( setup call, MT, line one, traffic channel assigned )
-        +CRING: VOICE
-        %CPI: 1,4,0,1,1,0,"+496912345678",145,,,0 ( sync call, MT, line one, traffic channel assigned )
-        +CRING: VOICE
-
-        ... case A.1: remote line hangs up ...
-        %CPI: 1,1,0,1,1,0,"+496912345678",145,,,0 ( disconnect call, MT line one, traffic channel assigned )
-        %CPI: 1,7,0,0,,,,,,,0 (release from network, traffic channel freed)
-        (NO CARRIER, if call was connected, i.e. local accepted)
-
-        ... case A.2: local accept (ATA) ...
-        %CPI: 1,6,0,1,1,0,"+496912345678",145,,,0 ( connected call, MT, line one, traffic channel assigned )
-        => from here see case A.1 or A.3
-
-        ... case A.3: local reject (ATH) ...
-        %CPI: 1,1,0,1,1,0,"+496912345678",145,,,0 ( disconnect call, MT line one, traffic channel assigned )
-        %CPI: 1,7,0,0,,,,,,,0 (release from network, traffic channel freed)
-
-        ... case B: outgoing (MO) ...
-        %CPI: 1,9,0,0,0,0,"+496912345678",145,,,0 ( request call, MO, line one, no traffic channel yet )
-        %CPI: 1,3,0,0,0,0,"+496912345678",145,,,0 ( call call, MO, line one, no traffic channel yet )
-        %CPI: 1,4,0,1,0,0,"+496912345678",145,,,0 ( sync call, MO, line one, traffic channel assigned )
-        %CPI: 1,2,1,1,0,0,"+496912345678",145,,,0 ( alert call, MO, line one, traffic channel assigned )
-        (at this point, it is ringing on the other side)
-
-        ... case B.1: remote line rejects or sends busy...
-        %CPI: 1,6,0,1,0,0,"+496912345678",145,,,0 ( connect call, MO, line one, traffic channel assigned )
-        (at this point, ATD returns w/ OK)
-        %CPI: 1,1,0,1,0,0,"+496912345678",145,,17,0 ( disconnect call, MO, line one, traffic channel assigned )
-        (at this point, BUSY(17) or NO CARRIER(16) is sent)
-        %CPI: 1,7,0,0,,,,,,,0 (release from network, traffic channel freed)
-
-        ... case B.2: remote line accepts...
-        %CPI: 1,6,0,1,0,0,"+496912345678",145,,,0 ( connect call, MO, line one, traffic channel assigned )
-        (at this point, ATD returns w/ OK)
-
-        ... case B.3: local cancel ...
-        ?
-
-        """
-        callId, msgType, ibt, tch, direction, mode, number, ntype, alpha, cause, line = righthandside.split( "," )
-
-        devchannel = self._object.modem.communicationChannel( "DeviceMediator" )
-        devchannel.enqueue( "+CPAS;+CEER" )
-
-        info = {}
-
-        if number and ntype:
-            info["peer"] = const.phonebookTupleToNumber( number[1:-1], int(ntype) )
-        if cause:
-            info["reason"] = const.ISUP_RELEASE_CAUSE.get( int(cause), "unknown cause" )
-        if line:
-            info["line"] = int( line )
-
-        if msgType == "0": # setup (MT)
-            info.update ( { "status": "incoming", "direction": "incoming" } )
-        elif msgType == "6": # connected (MO & MT)
-            info.update( { "status": "active" } )
-        elif msgType == "1": # disconnected (MO & MT)
-            # FIXME try to gather reason for disconnect?
-            info.update( { "status": "release" } )
-        elif msgType == "8": # network reject (MO)
-            info.update( { "status": "release", "reason": "no service" } )
-        elif msgType == "9": # request (MO)
-            info.update( { "status": "outgoing", "direction": "outgoing" } )
-        if msgType in ( "01689" ):
-            self._mediator.callHandler.statusChangeFromNetwork( int(callId), info )
+    def _syncCallStatus_err( self, request, error ):
+        print "EZX: AT ERROR FROM CLCC", error
 

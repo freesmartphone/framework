@@ -6,7 +6,8 @@
 
 === GSM standards violations ===
 
-* Motorola demands +CPIN=%d,"%s", %d being 1 for PIN1
+* +CPIN: PIN entry is +CPIN=%d,"%s". %d being 1 for PIN1
+* +CRC: Incoming call alert always RING: %d. +CRC setting is not honored.
 
 === Proprietary commands ===
 

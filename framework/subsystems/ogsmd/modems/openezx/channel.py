@@ -42,6 +42,9 @@ class MiscChannel( EzxMuxChannel ):
     def __init__( self, *args, **kwargs ):
         EzxMuxChannel.__init__( self, *args, **kwargs )
 
+        # FIXME we can't do this, since it is modem-wide (not VC-wide)
+        #self.enqueue( "+CMER=0,0,0,0,0" ) # unsolicited event reporting: none
+
 #=========================================================================#
 class UnsolicitedResponseChannel( EzxMuxChannel ):
 #=========================================================================#
