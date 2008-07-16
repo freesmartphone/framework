@@ -2,6 +2,7 @@
 """
 The Open Device Daemon - Python Implementation
 
+(C) 2007-2008 M. Dietrich.
 (C) 2008 Michael 'Mickey' Lauer <mlauer@vanille-media.de>
 (C) 2008 Openmoko, Inc.
 GPLv2 or later
