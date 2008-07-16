@@ -108,12 +108,13 @@ class Device( dbus.service.Object ):
             from modems.ti_calypso.modem import TiCalypso as Modem
             global mediator
             import modems.ti_calypso.mediator as mediator
-        elif modemtype == "openezx":
-            from modems.openezx.modem import MotorolaEzx as Modem
+        elif modemtype == "freescale_neptune":
+            from modems.freescale_neptune.modem import FreescaleNeptune as Modem
             global mediator
-            import modems.openezx.mediator as mediator
+            import modems.freescale_neptune.mediator as mediator
         else:
-            assert False, "unsupported modem type"
+            LOG( LOG_ERR, "Unsupported modem type %s" % modemtype )
+            return
 
         self.modem = Modem( self, bus )
         self.modem.open( self._channelsOK )

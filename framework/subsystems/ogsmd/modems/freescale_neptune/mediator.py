@@ -5,7 +5,7 @@ The Open Device Daemon - Python Implementation
 (C) 2008 Michael 'Mickey' Lauer <mlauer@vanille-media.de>
 GPLv2 or later
 
-Package: ogsmd.modems.openezx
+Package: ogsmd.modems.freescale_neptune
 Module: mediator
 """
 

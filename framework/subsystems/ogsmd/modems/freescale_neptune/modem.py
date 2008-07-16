@@ -5,10 +5,10 @@ The Open Device Daemon - Python Implementation
 (C) 2008 Michael 'Mickey' Lauer <mlauer@vanille-media.de>
 GPLv2 or later
 
-Package: ogsmd.modems.openezx
+Package: ogsmd.modems.freescale_neptune
 Module: modem
 
-Motorola EZX modem class
+Freescale Neptune modem class
 """
 
 import mediator
@@ -22,10 +22,10 @@ from ogsmd.gsm.decor import logged
 from ogsmd.gsm.channel import AtCommandChannel
 
 #=========================================================================#
-class MotorolaEzx( AbstractModem ):
+class FreescaleNeptune( AbstractModem ):
 #=========================================================================#
     """
-    Support for the Motorola EZX embedded modem as found in the Motorola
+    Support for the Freescale Neptune embedded modem as found in the Motorola EZX
     Linux Smartphones E680, A780, A910, A1200, A1600, ROKR E2, ROKR E6, and more.
 
     We have a hardwired multiplexing mode configuration as follows:
