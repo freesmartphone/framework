@@ -1,3 +1,7 @@
+2008-07-16	Michael Lauer	<mickey@vanille-media.de>
+
+	* [ogsmd] Basic call handling for Freescale Neptune
+
 2008-07-14	Michael Lauer	<mickey@vanille-media.de>
 
 	* [ogsmd] Switched to new AT low level parser
@@ -17,7 +21,7 @@
 
 	* [ogsmd] Implemented call forwarding handling
 	* [ogsmd] Implemented calling line identification handling
-	* [ogsmd] Added first bits of Motorola EZX support
+	* [ogsmd] Added first bits of Freescale Neptune support
 	* [ogsmd] Refactored getting the port out of VirtualChannel
 
 2008-07-08	Michael Lauer 	<mickey@vanille-media.de>

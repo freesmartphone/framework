@@ -12,6 +12,9 @@ Module: mediator
 TODO:
  * refactor to using yield more often
  * refactor to using more regexps
+ * refactor modem error handling (not command error handling), this is not
+   something we need to do for each and every command. Might do it for the yield
+   stuff, then gradually migrate functions to yield
  * decouple from calling dbus result, we might want to reuse these functions in
    non-exported methods as well
  * recover from traceback in parsing / compiling result code
@@ -687,13 +690,13 @@ class SimDeleteMessage( SimMediator ):
 class NetworkRegister( NetworkMediator ):
 #=========================================================================#
     def trigger( self ):
-        self._commchannel.enqueue( "+COPS=0", self.responseFromChannel, self.errorFromChannel, timeout=const.TIMEOUT["COPS"] )
+        self._commchannel.enqueue( "+COPS=0,0", self.responseFromChannel, self.errorFromChannel, timeout=const.TIMEOUT["COPS"] )
 
 #=========================================================================#
 class NetworkUnregister( NetworkMediator ):
 #=========================================================================#
     def trigger( self ):
-        self._commchannel.enqueue( "+COPS=2", self.responseFromChannel, self.errorFromChannel, timeout=const.TIMEOUT["COPS"] )
+        self._commchannel.enqueue( "+COPS=2,0", self.responseFromChannel, self.errorFromChannel, timeout=const.TIMEOUT["COPS"] )
 
 #=========================================================================#
 class NetworkGetStatus( NetworkMediator ):
