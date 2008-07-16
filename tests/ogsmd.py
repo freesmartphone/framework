@@ -24,14 +24,6 @@ import types
 
 verbose = True
 
-# FIXME use OptionParser
-config = dict( \
-    SIM_PRESENT    = True,
-    SIM_LOCKED     = True,
-    SIM_PIN        = "6471",
-    DIAL_NUMBER    = "+496968091892",
-    )
-
 class TE( Exception ):
     pass
 
@@ -182,7 +174,7 @@ class AbstractTest( object ):
             assert False, "%s did not fail. Expected was %s" % ( func, error )
 
 #=========================================================================#
-class DeviceAndAuthTest( AbstractTest ):
+class DeviceAndSimAuthTest( AbstractTest ):
 #=========================================================================#
     """
     org.freesmartphone.GSM.Device
@@ -214,21 +206,21 @@ class DeviceAndAuthTest( AbstractTest ):
         log( "ok" )
 
         log( "antenna power on..." )
-        if config["SIM_LOCKED"]:
+        if options.SIM_LOCKED:
             self.failWithDbusError( lambda: device.SetAntennaPower( True ), "org.freesmartphone.GSM.SIM.AuthFailed" )
 
         log( "checking auth status..." )
         auth = sim.GetAuthStatus()
 
-        if config["SIM_LOCKED"]:
+        if options.SIM_LOCKED:
             assert auth == "SIM PIN"
         else:
             assert auth == "READY"
         log( "ok. auth status is:", auth )
 
-        if config["SIM_LOCKED"]:
+        if options.SIM_LOCKED:
             log( "sending unlock code..." )
-            sim.SendAuthCode( config["SIM_PIN"] )
+            sim.SendAuthCode( options.SIM_PIN )
             log( "ok. auth status now:", sim.GetAuthStatus() )
 
         # FIXME we should have got an AuthChange signal in the meantime
@@ -237,6 +229,47 @@ class DeviceAndAuthTest( AbstractTest ):
         log( "get sim info..." )
         info = sim.GetSimInfo()
         log( "ok. info:", info )
+
+        # TODO should we check Unlock and ChangeAuthCode or is that too dangerous?
+
+#=========================================================================#
+class AuxilliarySimTest( AbstractTest ):
+#=========================================================================#
+    """
+    org.freesmartphone.GSM.SIM
+
+    * GetEnableAuthCodeCheck()
+    * SetEnableAuthCodeCheck()
+    * GetHomeZones()
+    * GetServiceCenterNumber()
+    * SetServiceCenterNumber()
+    """
+    serial = 12
+
+    def run( self ):
+        pass
+
+#=========================================================================#
+class SimPhonebookTest( AbstractTest ):
+#=========================================================================#
+    """
+    org.freesmartphone.GSM.SIM
+    """
+    serial = 12
+
+    def run( self ):
+        pass
+
+#=========================================================================#
+class SimMessagebookTest( AbstractTest ):
+#=========================================================================#
+    """
+    org.freesmartphone.GSM.SIM
+    """
+    serial = 12
+
+    def run( self ):
+        pass
 
 #=========================================================================#
 class NetworkAutoRegisterTest( AbstractTest ):
@@ -249,7 +282,7 @@ class NetworkAutoRegisterTest( AbstractTest ):
     * Register()
     * GetSignalStrength()
     """
-    serial = 1
+    serial = 10
 
     def run( self ):
         log( "unregistering..." )
@@ -281,7 +314,7 @@ class NetworkSpecificRegisterTest( AbstractTest ):
     * ListProviders()
     * RegisterWithProvider()
     """
-    serial = 2
+    serial = 20
 
     def run( self ):
         log( "checking available providers [will take some time]..." )
@@ -311,13 +344,13 @@ class CallCancelTest( AbstractTest ):
     * Release()
 
     """
-    serial = 3
+    serial = 30
 
     def run( self ):
         log( "releasing all active call..." )
         call.ReleaseAll()
-        log( "ok. calling", config["DIAL_NUMBER"], "..." )
-        index = call.Initiate( config["DIAL_NUMBER"], "voice" )
+        log( "ok. calling", options.PHONE_NUMBER, "..." )
+        index = call.Initiate( options.PHONE_NUMBER, "voice" )
         time.sleep( 1 )
         log( "ok. index =", index, ", checking calls..." )
         calls = call.ListCalls()
@@ -333,18 +366,32 @@ if __name__ == "__main__":
 #=========================================================================#
     alltests = [ v for k, v in locals().items() if type(v) == types.TypeType and k.endswith( "Test" ) and k != "AbstractTest" ]
     alltests.sort( key=lambda element: element.serial )
+    alltestnames = [ k for k, v in locals().items() if type(v) == types.TypeType and k.endswith( "Test" ) and k != "AbstractTest" ]
 
     from optparse import OptionParser
-    usage = "ogsmd -a or ogsmd -t <test1> -t <test2> ..."
+    usage = "ogsmd [options]"
     parser = OptionParser( usage )
     parser.add_option( "-a", "--all", dest="runAllTests", action="store_true",
-        help="run all tests (%s)" % alltests )
-    parser.add_option( "-t", "--test", dest="tests", metavar="TEST", action="append",
+        help="run all tests (%s)" % alltestnames )
+    parser.add_option( "-t", "--test", dest="tests", metavar="TEST", action="append", type="choice", choices=alltestnames,
         help="run test TEST" )
+    parser.add_option( "-p", "--pin", dest="SIM_PIN", metavar="PIN", action="store",
+        help="SIM PIN to use" )
+    parser.add_option( "-s", "--nosim", dest="SIM_PRESENT", action="store_false", default=True,
+        help="assume there is no SIM present" )
+    parser.add_option( "-l", "--nosimlock", dest="SIM_LOCKED", action="store_false", default=True,
+        help="assume the SIM is not locked" )
+    parser.add_option( "-n", "--number", dest="PHONE_NUMBER", metavar="NUMBER", action="store",
+        help="set NUMBER for call and SMS tests" )
 
-    if len( sys.argv ) < 2:
-        parser.error( "not enough arguments. need to supply at least one test or -a" )
     options, args = parser.parse_args()
+
+    if not options.runAllTests and not options.tests:
+        parser.error( "need to supply at least one test or -a" )
+    if options.SIM_PRESENT and options.SIM_LOCKED and not options.SIM_PIN:
+        parser.error( "need a SIM PIN, if present and locked" )
+    if options.SIM_PRESENT and not options.PHONE_NUMBER:
+        parser.error( "need a phone number for call and message tests" )
 
     if options.runAllTests:
         tests = alltests
