@@ -1,0 +1,12 @@
+== Motorola EZX modem specific notes ==
+
+=== Behaviour ===
+
+* +CFUN=0;+CFUN=1 does _not_ reset the PIN lock
+
+=== GSM standards violations ===
+
+* Motorola demands +CPIN=%d,"%s", %d being 1 for PIN1
+
+=== Proprietary commands ===
+

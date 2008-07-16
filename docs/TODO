@@ -1,0 +1,40 @@
+== controller / general ==
+* get rid of self.interface in every dbus object and solely rely on introspection
+  Benefits: 1.) get rid of double bookkeeping 2.) one object can serve multiple interfaces anyways
+* introduce dbus subsystem or dbus object inter-dependencies and honor the dependency graph on startup
+
+== odeviced ==
+* enhance main module interface for simple introspection
+* add device specific modules
+* how to deal with granularity?
+* how to handle priorities, e.g. when a device specific module would
+  offer the same object/interface as a generic module?
+
+* get more characteristics from the Display object
+
+== oeventd ==
+
+== ousaged ==
+
+== ophoned ==
+
+General Question:
+* How much can or should we rely on ophoned being the only one talking to the modem?
+  If so, we can simplify a lot on keeping internal state instead of
+  poking the modem every time.
+
+TODOS:
+* add CCLD inspection for generic modem call handling
+* make dbus_object a singleton
+* multipart SMSes (SMS PDU mode)
+* USSD
+* Cell Broadcasts
+* Call multiparty handling
+* Call deflection et. al.
+* COLP=1
+
+== opreferencesd ==
+
+* Add support for tree keys (like : foo/spam)
+* Add support for dictionaries
+* in the test dir, add a profile configuration file, that defines the possible profiles
