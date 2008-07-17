@@ -512,7 +512,7 @@ class SimRetrievePhonebook( SimMediator ):
 class SimDeleteEntry( SimMediator ):
 #=========================================================================#
     def trigger( self ):
-        self._commchannel.enqueue( '+CPBS="SM";CPBW=%d,,,' % ( self.index, number, ntype, self.name ), self.responseFromChannel, self.errorFromChannel )
+        self._commchannel.enqueue( '+CPBS="SM";+CPBW=%d,,,' % self.index, self.responseFromChannel, self.errorFromChannel )
 
 #=========================================================================#
 class SimStoreEntry( SimMediator ):
