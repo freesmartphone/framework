@@ -128,60 +128,102 @@ MSGFMT = {
     ("NAV-SOL", 52) :
         ["<IihBBiiiIiiiIHxBxxxx", ["ITOW", "Frac", "week", "GPSFix", "Flags", "ECEF_X", "ECEF_Y", "ECEF_Z", "Pacc",
          "ECEFVX", "ECEFVY", "ECEFVZ", "SAcc", "PDOP", "numSV"]],
-#    ("NAV-VELECEF", 20) :
-#    ("NAV-VELNED", 36) :
-#    ("NAV-TIMEGPS", 16) :
+    ("NAV-VELECEF", 20) :
+        ["<IiiiI", ["ITOW", "ECEFVX", "ECEFVY", "ECEFVZ", "SAcc"]],
+    ("NAV-VELNED", 36) :
+        ["<IiiiIIiII", ["ITOW", "VEL_N", "VEL_E", "VEL_D", "Speed", "GSpeed", "Heading", "SAcc", "CAcc"]],
+    ("NAV-TIMEGPS", 16) :
+        ["<IihbBI", ["ITOW", "Frac", "week", "LeapS", "Valid", "TAcc"]],
     ("NAV-TIMEUTC", 20) :
         ["<IIiHBBBBBB", ["ITOW", "TAcc", "Nano", "Year", "Month", "Day", "Hour", "Min", "Sec", "Valid"]],
-#    ("NAV-CLOCK",  20) :
-#    ("NAV-SVINFO", 8+NCH*12) :
-# NAV DGPS
+    ("NAV-CLOCK",  20) :
+        ["<IiiII", ["ITOW", "CLKB", "CLKD", "TAcc", "FAcc"]],
+
 # Some packets have variable length, need special format/detection for that
-#    ("NAV-SBAS") :
+#    ("NAV-SVINFO", 8+NCH*12) :
+#    ("NAV-DGPS", 16+NCH*12) :
+#    ("NAV-SBAS", 12+CNT*12) :
 #        [12, 12, "<IBBbBBxxx", ["ITOW", "GEO", "MODE", "SYS", "SERVICE", "CNT"], "BBBBBxhxxh", ["SVID", "FLAGS", "UDRE", "SYSn", "SERVICEn", "PRC", "IC"]]
-# NAV EKFSTATUS
-# RXM
-# INF
+# NAV-EKFSTATUS - Dead reckoning
+#    ("RXM-RAW", 8+SV*24) :
+#    ("RXM-SVSI", 8+NumSV*6) :
+# RXM-SFRB - Subframe buffer
+    ("RXM-ALM", 1) :
+        ["<B", ["SVID"]],
+    ("RXM-ALM", 8)  :
+        ["<II", ["SVID", "WEEK"]],
+    ("RXM-ALM", 40) :
+        ["<" + "I"*10, ["SVID", "WEEK", "DWRD0", "DWRD1", "DWRD2", "DWRD3", "DWRD4", "DWRD5", "DWRD6", "DWRD7"]],
+    ("RXM-EPH", 1) :
+        ["<B", ["SVID"]],
+    ("RXM-EPH", 8) :
+        ["<II", ["SVID", "HOW"]],
+    ("RXM-EPH", 104) :
+        ["<" + "I"*26, ["SVID", "HOW", "SF1D0", "SF1D1", "SF1D2", "SF1D3", "SF1D4",
+            "SF1D5", "SF1D6", "SF1D7", "SF2D0", "SF2D1", "SF2D2", "SF2D3", "SF2D4",
+            "SF2D5", "SF2D6", "SF1D7", "SF3D0", "SF3D1", "SF3D2", "SF3D3", "SF3D4", "SF3D5", "SF3D6", "SF3D7"]],
+
+#    ("INF-ERROR", VAR) :
+#    ("INF-WARNING", VAR) :
+#    ("INF-NOTICE", VAR) :
+#    ("INF-TEST", VAR) :
+#    ("INF-DEBUG", VAR) :
+#    ("INF-USER", VAR) :
     ("ACK-ACK", 2) :
         ["<BB", ["ClsID", "MsgID"]],
     ("ACK-NACK", 2) :
         ["<BB", ["ClsID", "MsgID"]],
-# CFG PRT
-# CFG USB
+# CFG PRT - Port configuration
+# CFG USB - USB port configuration
     ("CFG-MSG", 2) :
         ["<BB", ["Class", "MsgID"]],
     ("CFG-MSG", 3) :
         ["<BBB", ["Class", "MsgID", "Rate"]],
-# CFG NMEA
-# CFG RATE
-# CFG CFG
-# CFG TP
+    ("CFG-NMEA", 4) :
+        ["<BBBB", ["Filter", "Version", "NumSV", "Flags"]],
+    ("CFG-RATE", 6) :
+        ["<HHH", ["Meas", "Rate", "Time"]],
+    ("CFG-CFG", 12) :
+        ["<III", ["Clear_mask", "Save_mask", "Load_mask"]],
+    ("CFG-TP", 20) :
+        ["<IIbBxxhhi", ["interval", "length", "status", "time_ref", "antenna_cable_delay", "RF_group_delay", "user_delay"]],
     ("CFG-NAV2", 40) :
         ["<BxxxBBBBiBBBBBBxxHHHHBxxxxxxxxxxx", ["Platform", "MinSVInitial", "MinSVs", "MaxSVs", "FixMode",
          "FixedAltitude", "MinCN0Initial", "MinCN0After", "MinELE", "DGPSTO", "MaxDR", "NAVOPT", "PDOP",
          "TDOP", "PACC", "TACC", "StaticThres"]],
-# CFG DAT
-# CFG INF
+# CFG DAT - Get/Set current Datum
+    ("CFG-INF", 1) :
+        ["<B", ["ProtocolID"]],
+#    ("CFG-INF", N*8) :
     ("CFG-RST", 4) :
         ["<HBx", ["nav_bbr", "Reset"]],
     ("CFG-RXM", 2) :
         ["<BB", ["gps_mode", "lp_mode"]],
-# CFG ANT
+    ("CFG-ANT", 4) :
+        ["<HH", ["flags", "pins"]],
     ("CFG-FXN", 36) :
         ["<IIIIIIIxxxxI", ["flags", "t_reacq", "t_acq", "t_reacq_off", "t_acq_off", "t_on", "t_off", "base_tow"]],
     ("CFG-SBAS", 8) :
         ["<BBBxI", ["mode", "usage", "maxsbas", "scanmode"]],
-# CFG LIC
-# CFG TM
-# CFG TM2
-# CFG TMODE
-# CFG EKF
-# UPD
-# MON
+    ("CFG-LIC", 12) :
+        ["<HHHHHH", ["lic1", "lic2", "lic3", "lic4", "lic5", "lic6"]],
+    ("CFG-TM", 12) :
+        ["<III", ["INTID", "RATE", "FLAGS"]],
+    ("CFG-TM2", 1) :
+        ["<B", ["CH"]],
+    ("CFG-TM2", 12) :
+        ["<BxxxII", ["CH", "RATE", "FLAGS"]],
+    ("CFG-TMODE", 28) :
+        ["<IiiiIII", ["TimeMode", "FixedPosX", "FixedPosY", "FixedPosZ", "FixedPosVar", "SvinMinDur", "SvinVarLimit"]],
+# CFG EKF - Dead Reckoning
+# UPD - Lowlevel memory manipulation
+    ("MON-SCHD", 24) :
+        ["<IIIIHHHBB", ["TSKRUN", "TSKSCHD", "TSKOVRR", "TSKREG", "STACK", "STACKSIZE", "CPUIDLE", "FLYSLY", "PTLSLY"]],
+# MON - GPS system statistics
     ("AID-INI", 48) :
         ["<iiiIHHIiIIiII", ["X", "Y", "Z", "POSACC", "TM_CFG", "WM", "TOW", "TOW_NS", "TACC_MS", "TACC_NS", "CLKD", "CLKDACC", "FLAGS"]],
     ("AID-HUI", 72) :
-        ["<IddNHHHHHHffffffffI", ["HEALTH", "UTC_A1", "UTC_A0", "UTC_TOT", "UTC_WNT",
+        ["<IddiHHHHHHffffffffI", ["HEALTH", "UTC_A1", "UTC_A0", "UTC_TOT", "UTC_WNT",
          "UTC_LS", "UTC_WNF", "UTC_DN", "UTC_LSF", "UTC_SPARE", "KLOB_A0", "KLOB_A1",
          "KLOB_A2", "KLOB_A3", "KLOB_B0", "KLOB_B1", "KLOB_B2", "KLOB_B3", "FLAGS"]],
     ("AID-ALM", 1) :
