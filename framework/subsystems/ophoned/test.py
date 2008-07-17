@@ -1,9 +1,11 @@
 
 import gobject
 
-from protocol import Protocol, Call
+import protocol
 
-class TestProtocol(Protocol):
+from framework.config import LOG, LOG_ERR, LOG_WARNING, LOG_INFO, LOG_DEBUG
+
+class TestProtocol(protocol.Protocol):
     """This special protocol is just used to emulate a real call
     """
     def name(self):
@@ -12,40 +14,35 @@ class TestProtocol(Protocol):
     def __init__(self, bus):
         super(TestProtocol, self).__init__(bus)
     
-    def CreateChanel(self, number):
-        return TestCall(self, number)
-    
 
-class TestCall(Call):
-    def __init__(self, proto, number):
-        super(TestCall, self).__init__(proto, number)
+    class Call(protocol.Call):
+        def __init__(self, proto, number):
+            super(TestProtocol.Call, self).__init__(proto, number)
 
-    def Initiate(self):
-        """Initiate the call"""
-        super(TestCall, self).Initiate()
-        # Now since this is a test we simulate outgoing even after a short time...
-        def on_timeout(*args):
-            if self.status == 'Initiating':
-                self.Outgoing()
-        gobject.timeout_add(2000, on_timeout)
-        return self.status
-        
-    def Outgoing(self):
-        """Emited when the call is outgoing"""
-        super(TestCall, self).Outgoing()
-        # Since this is a test, after a while we activate the call
-        def on_timeout(*args):
-            if self.status == 'Outgoing':
-                self.Activated()
-        gobject.timeout_add(2000, on_timeout)
-        
-        
-    def Release(self):
-        """Release the call"""
-        super(TestCall, self).Release()
-        # Since this is a test, after a while we release the call
-        def on_timeout(*args):
-            if self.status == 'Releasing':
-                self.Activated()
-        return self.status
-        
+        def Initiate(self):
+            """Initiate the call"""
+            # Now since this is a test we simulate outgoing even after a short time...
+            def on_timeout(*args):
+                if self.status == 'Initiating':
+                    self.Outgoing()
+            gobject.timeout_add(1000, on_timeout)
+            return super(TestProtocol.Call, self).Initiate()
+            
+        def Outgoing(self):
+            """Emited when the call is outgoing"""
+            super(TestProtocol.Call, self).Outgoing()
+            # Since this is a test, after a while we activate the call
+            def on_timeout(*args):
+                if self.status == 'Outgoing':
+                    self.Activated()
+            gobject.timeout_add(1000, on_timeout)
+            
+            
+        def Release(self):
+            """Release the call"""
+            # Since this is a test, after a while we release the call
+            def on_timeout(*args):
+                if self.status == 'Releasing':
+                    self.Released()
+            gobject.timeout_add(1000, on_timeout)
+            return super(TestProtocol.Call, self).Release()

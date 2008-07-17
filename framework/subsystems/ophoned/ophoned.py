@@ -18,36 +18,53 @@ import dbus
 import dbus.service
 from dbus import DBusException
 
+from framework.config import LOG, LOG_ERR, LOG_WARNING, LOG_INFO, LOG_DEBUG
+
 class Phone(dbus.service.Object):
     def __init__(self, bus):
         # Those two attributes are needed by the framwork
+        self.bus = bus
         self.path = '/org/freesmartphone/Phone'
         self.interface = "org.freesmartphone.Phone"
         super(Phone, self).__init__(bus, self.path)
-        # We create the protocols dictionary
+        self.protocols = None
+          
+    @dbus.service.method('org.freesmartphone.Phone', in_signature='', out_signature='as')
+    def InitProtocols(self):
+        """Initialize all the protocoles
+        
+           It is not compulsory to call this method, since it will be automatically called the first time
+           we attempt to create a call.
+        """
+        print 'INIT PROTOCOLS'
         self.protocols = {}
         for protocol_cls in Protocol.all_instances:
             try:
-                protocol = protocol_cls(bus)
+                protocol = protocol_cls(self.bus)
                 self.protocols[protocol.name()] = protocol
             except ProtocolUnusable, e:
                 print "can't use protocole %s : %s" % (protocol_cls, e)
+        return self.protocols.keys()
 
-    @dbus.service.method('org.freesmartphone.Phone', in_signature='ss', out_signature='o')
-    def CreateChanel(self, number, protocol = None):
-        """ Return a new chanel targeting the given number, with an optional protocol.
+    @dbus.service.method('org.freesmartphone.Phone', in_signature='ssb', out_signature='o')
+    def CreateCall(self, number, protocol = None, force = True):
+        """ Return a new Call targeting the given number, with an optional protocol.
         
             If the protocole is not provided, the service will determine the best protocole to use.
+            if force is set to true, then we kill the channel if it is already opened
         """
+        if self.protocols is None:
+            self.InitProtocols()
+            
         number = str(number)
         # first we guess the best protocol to use
         if protocol:
-            protocol = self.protocols[protocol]
+            protocol = self.protocols[str(protocol)]
         else:
             # Here we need to guess the best protocol for the number
             protocol = self.protocols["Test"]
         # Then we just ask the protocol class
-        ret = protocol.CreateChanel(number)
+        ret = protocol.CreateCall(number, force = force)
         return ret
         
 
