@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 """
-Open Device Daemon - Controller
+freesmartphone.org Framework Daemon
 
 (C) 2008 Michael 'Mickey' Lauer <mlauer@vanille-media.de>
 (C) 2008 Openmoko, Inc.
@@ -12,10 +12,12 @@ __version__ = "0.9.0"
 from framework.config import DBUS_BUS_NAME_PREFIX
 from framework.config import LOG, LOG_ERR, LOG_WARNING, LOG_INFO, LOG_DEBUG
 
-import sys, os
 import dbus, dbus.service
 from dbus.mainloop.glib import DBusGMainLoop
 from gobject import MainLoop, idle_add
+import os
+import sys
+import types
 
 try: # not present in older glib versions
     from gobject import timeout_add_seconds
@@ -25,14 +27,7 @@ except ImportError:
 
 import ConfigParser
 from optparse import OptionParser
-
-#----------------------------------------------------------------------------#
-class TheConfigParser( ConfigParser.SafeConfigParser ):
-#----------------------------------------------------------------------------#
-    def __init__( self, filename = None ):
-        ConfigParser.SafeConfigParser.__init__( self )
-        if filename is not None:
-            self.read( filename )
+from .configparse import SmartConfigParser
 
 #----------------------------------------------------------------------------#
 class TheOptionParser( OptionParser ):
@@ -78,11 +73,11 @@ class Controller( object ):
                 os.path.join( os.path.dirname( __file__ ), "../conf/frameworkd.conf" )
             ]:
             if os.path.exists( p ):
-                LOG( LOG_INFO, "using configuration file", p )
-                self.config = TheConfigParser( p )
+                LOG( LOG_INFO, "Using configuration file", p )
+                self.config = SmartConfigParser( p )
                 break
         else:
-            self.config = TheConfigParser()
+            self.config = SmartConfigParser( "~/.frameworkd.conf" )
 
         # options
         self.options = TheOptionParser()
@@ -99,7 +94,10 @@ class Controller( object ):
         # framework subsystem / management object will always be there
         subsystem = "frameworkd"
         from .objectquery import factory
-        self.busnames.append( dbus.service.BusName( "%s.%s" % ( DBUS_BUS_NAME_PREFIX, subsystem ), self.bus ) )
+        ok = self.tryClaimBusName( "%s.%s" % ( DBUS_BUS_NAME_PREFIX, subsystem ) )
+        if not ok:
+            LOG( LOG_ERR, "Unable to claim master bus name. Exiting." )
+            sys.exit( -1 )
         self.framework = factory( "%s.%s" % ( DBUS_BUS_NAME_PREFIX, subsystem ), self )
 
         # walk subsystems and find 'em
@@ -114,8 +112,8 @@ class Controller( object ):
                     continue
                 else:
                     LOG( LOG_INFO, "launching subsystem", subsystem )
-            self.busnames.append( dbus.service.BusName( "%s.%s" % ( DBUS_BUS_NAME_PREFIX, subsystem ), self.bus ) )
-            self.registerModulesInSubsystem( subsystem, path )
+            if self.tryClaimBusName( "%s.%s" % ( DBUS_BUS_NAME_PREFIX, subsystem ) ):
+                self.registerModulesInSubsystem( subsystem, path )
 
         LOG( LOG_INFO, "==================" )
         LOG( LOG_INFO, "objects registered" )
@@ -124,6 +122,14 @@ class Controller( object ):
         objectnames.sort()
         for obj in objectnames:
             LOG( LOG_INFO, obj, "[%s]" % self.objects[obj].interface )
+
+    def tryClaimBusName( self, busname ):
+        try:
+            self.busnames.append( dbus.service.BusName( busname, self.bus ) )
+            return True
+        except dbus.DBusException:
+            LOG( LOG_WARNING, "Can't claim bus name '%s', check configuration in /etc/dbus-1/system.d/frameworkd.conf -- ignoring subsystem." % busname )
+            return False
 
     def registerModulesInSubsystem( self, subsystem, path ):
         LOG( LOG_DEBUG, "found subsystem %s" % subsystem )

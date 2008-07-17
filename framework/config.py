@@ -1,3 +1,5 @@
+# (C) 2007 M. Dietrich
+
 DBUS_BUS_NAME_PREFIX = "org.freesmartphone"
 DBUS_INTERFACE_PREFIX = "org.freesmartphone"
 DBUS_PATH_PREFIX = "/org/freesmartphone"
