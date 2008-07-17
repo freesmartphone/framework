@@ -38,6 +38,8 @@ class Input( dbus.service.Object ):
     """A Dbus Object implementing org.freesmartphone.Device.Input"""
     DBUS_INTERFACE = DBUS_INTERFACE_PREFIX + ".Input"
 
+    action = { "key": 1, "switch": 5 }
+
     def __init__( self, bus, config, index, node ):
         self.interface = self.DBUS_INTERFACE
         self.path = DBUS_PATH_PREFIX + "/Input"
@@ -70,23 +72,26 @@ class Input( dbus.service.Object ):
         self.q = Queue()
         self.watches = {}
         self.events = {}
+        self.reportheld = {}
 
         # FIXME parse these ones from framework.config after milestone 1
-        #self.watchForEvent( "Aux", "key", 0x1e )
-        #self.watchForEvent( "Power", "key", 0x19 )
-        self.watchForEvent( "AUX", "key", 169 )
-        self.watchForEvent( "POWER", "key", 116 )
+        self.watchForEvent( "AUX", "key", 169, True )
+        self.watchForEvent( "POWER", "key", 116, True )
+        self.watchForEvent( "CHARGER", "key", 356, False )
+        self.watchForEvent( "HEADSET", "switch", 2, False )
 
         if len( self.input ):
             self.launchStateMachine()
 
-    def watchForEvent( self, name, action, inputcode ):
-        if not action in ( "key" ):
+    def watchForEvent( self, name, action, inputcode, reportheld ):
+        try:
+            action = self.action[action]
+        except KeyError:
             LOG( LOG_ERR, "don't know how to deal with event action", action )
             return False
         else:
-            action = 0x01 # EV_KEY
-        self.watches[ ( action, inputcode ) ] = name
+            self.watches[ ( action, inputcode ) ] = name
+            self.reportheld[ ( action, inputcode ) ] = reportheld
 
     def launchStateMachine( self ):
         for i in self.input:
@@ -94,12 +99,13 @@ class Input( dbus.service.Object ):
 
     def onInputActivity( self, source, condition ):
         data = os.read( source, 512 )
-        LOG( LOG_DEBUG, self.__class__.__name__, "read %d bytes from fd %d ('%s')" % ( len( data ), source, self.input[source] ) )
         events = [ data[i:i+input_event_size] for i in range( 0, len(data), input_event_size ) ]
         for e in events:
             timestamp, microseconds, typ, code, value = struct.unpack( input_event_struct, e )
             if typ != 0x00: # ignore EV_SYN (synchronization event)
                 self.q.put( ( timestamp, typ, code, value ) )
+                LOG( LOG_DEBUG, self.__class__.__name__, "read %d bytes from fd %d ('%s'): %s" % ( len( data ), source, self.input[source], (typ, code, value) ) )
+
         idle_add( self.processEvents )
         return True
 
@@ -113,7 +119,10 @@ class Input( dbus.service.Object ):
         timestamp, typ, code, value = event
         if ( typ, code ) in self.watches:
             if value == 0x01: # pressed
-                timeout = timeout_add_seconds( 1, self.callbackKeyHeldTimeout, typ, code )
+                if self.reportheld[ typ, code ]:
+                    timeout = timeout_add_seconds( 1, self.callbackKeyHeldTimeout, typ, code )
+                else:
+                    timeout = 0
                 self.events[ ( typ, code ) ] = timestamp, timeout
                 self.Event( self.watches[ ( typ, code ) ], "pressed", 0 )
             elif value == 0x00: # released
@@ -123,7 +132,8 @@ class Input( dbus.service.Object ):
                 except KeyError:
                     LOG( LOG_ERR, "potential logic problem, key released before pressed. watches are", self.watches, "events are", self.events )
                 else:
-                    source_remove( timeout )
+                    if timeout:
+                        source_remove( timeout )
                     del self.events[ ( typ, code ) ]
 
     def callbackKeyHeldTimeout( self, typ, code ):
