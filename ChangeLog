@@ -1,3 +1,8 @@
+2008-07-17	Michael Lauer	<mickey@vanille-media.de>
+
+	* [odeviced] Removed hardcoded button/switches, from now
+      on define them in the configuration file.
+
 2008-07-16	Michael Lauer	<mickey@vanille-media.de>
 
 	* [ogsmd] Basic call handling for Freescale Neptune

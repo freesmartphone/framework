@@ -31,6 +31,14 @@ class SmartConfigParser( ConfigParser.SafeConfigParser ):
         assert self.filename is not None, "no filename given yet"
         ConfigParser.SafeConfigParser.write( self, open(self.filename, "w" ) )
 
+    def getOptions( self, section ):
+        try:
+            options = self.options( section )
+        except ConfigParser.NoSectionError:
+            return []
+        else:
+            return options
+
     def getValue( self, section, key, default=None, set=False, getmethod=ConfigParser.SafeConfigParser.get ):
         try:
             value = getmethod( self, section, key )

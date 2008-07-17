@@ -74,16 +74,20 @@ class Input( dbus.service.Object ):
         self.events = {}
         self.reportheld = {}
 
-        # FIXME parse these ones from framework.config after milestone 1
-        self.watchForEvent( "AUX", "key", 169, True )
-        self.watchForEvent( "POWER", "key", 116, True )
-        self.watchForEvent( "CHARGER", "key", 356, False )
-        self.watchForEvent( "HEADSET", "switch", 2, False )
+        for option in config.getOptions( "input" ):
+            if option.startswith( "report" ):
+                try:
+                    name, typ, code, reportheld = config.get( "input", option ).split( ',' )
+                except ValueError:
+                    pass
+                else:
+                    self.watchForEvent( name, typ, int(code), bool( int( reportheld ) ) )
 
         if len( self.input ):
             self.launchStateMachine()
 
     def watchForEvent( self, name, action, inputcode, reportheld ):
+        LOG( LOG_DEBUG, "adding watch for", name, action, inputcode, reportheld )
         try:
             action = self.action[action]
         except KeyError:
