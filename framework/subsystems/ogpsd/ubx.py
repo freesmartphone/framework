@@ -138,15 +138,17 @@ MSGFMT = {
         ["<IIiHBBBBBB", ["ITOW", "TAcc", "Nano", "Year", "Month", "Day", "Hour", "Min", "Sec", "Valid"]],
     ("NAV-CLOCK",  20) :
         ["<IiiII", ["ITOW", "CLKB", "CLKD", "TAcc", "FAcc"]],
-
-# Some packets have variable length, need special format/detection for that
-#    ("NAV-SVINFO", 8+NCH*12) :
-#    ("NAV-DGPS", 16+NCH*12) :
-#    ("NAV-SBAS", 12+CNT*12) :
-#        [12, 12, "<IBBbBBxxx", ["ITOW", "GEO", "MODE", "SYS", "SERVICE", "CNT"], "BBBBBxhxxh", ["SVID", "FLAGS", "UDRE", "SYSn", "SERVICEn", "PRC", "IC"]]
+    ("NAV-SVINFO", None) :
+        [8, "<IBxxx", ["ITOW", "NCH"], 12, "<BBBbBbhi", ["chn", "SVID", "Flags", "QI", "CNO", "Elev", "Azim", "PRRes"]],
+    ("NAV-DGPS", None) :
+        [16, "<IihhBBxx", ["ITOW", "AGE", "BASEID", "BASEHLTH", "NCH", "STATUS"], 12, "<BBHff", ["SVID", "Flags", "AGECH", "PRC", "PRRC"]],
+    ("NAV-SBAS", None) :
+        [12, "<IBBbBBxxx", ["ITOW", "GEO", "MODE", "SYS", "SERVICE", "CNT"], 12, "<BBBBBxhxxh", ["SVID", "FLAGS", "UDRE", "SYSn", "SERVICEn", "PRC", "IC"]],
 # NAV-EKFSTATUS - Dead reckoning
-#    ("RXM-RAW", 8+SV*24) :
-#    ("RXM-SVSI", 8+NumSV*6) :
+    ("RXM-RAW", None) :
+        [8, "<ihBx", ["ITOW", "Week", "NSV"], 24, "<ddfBbbB", ["CPMes", "PRMes", "DOMes", "SV", "MesQI", "CNO", "LLI"]],
+    ("RXM-SVSI", None) :
+        [8, "<ihBB", ["ITOW", "Week", "NumVis", "NumSv"], 6, "<BBhbB", ["SVID", "SVFlag", "Azim", "Elev", "Age"]],
 # RXM-SFRB - Subframe buffer
     ("RXM-ALM", 1) :
         ["<B", ["SVID"]],
@@ -162,19 +164,28 @@ MSGFMT = {
         ["<" + "I"*26, ["SVID", "HOW", "SF1D0", "SF1D1", "SF1D2", "SF1D3", "SF1D4",
             "SF1D5", "SF1D6", "SF1D7", "SF2D0", "SF2D1", "SF2D2", "SF2D3", "SF2D4",
             "SF2D5", "SF2D6", "SF1D7", "SF3D0", "SF3D1", "SF3D2", "SF3D3", "SF3D4", "SF3D5", "SF3D6", "SF3D7"]],
-
-#    ("INF-ERROR", VAR) :
-#    ("INF-WARNING", VAR) :
-#    ("INF-NOTICE", VAR) :
-#    ("INF-TEST", VAR) :
-#    ("INF-DEBUG", VAR) :
-#    ("INF-USER", VAR) :
+    ("INF-ERROR", None) :
+        [0, "", [], 1, "B", ["Char"]],
+    ("INF-WARNING", None) :
+        [0, "", [], 1, "B", ["Char"]],
+    ("INF-NOTICE", None) :
+        [0, "", [], 1, "B", ["Char"]],
+    ("INF-TEST", None) :
+        [0, "", [], 1, "B", ["Char"]],
+    ("INF-DEBUG", None) :
+       [0, "", [], 1, "B", ["Char"]],
+    ("INF-USER", None) :
+        [0, "", [], 1, "B", ["Char"]],
     ("ACK-ACK", 2) :
         ["<BB", ["ClsID", "MsgID"]],
     ("ACK-NACK", 2) :
         ["<BB", ["ClsID", "MsgID"]],
-# CFG PRT - Port configuration
-# CFG USB - USB port configuration
+    ("CFG-PRT", 1) :
+        ["<B", ["PortID"]],
+    ("CFG-PRT", None) :
+        [0, "", [], 20, "<BxxxIIHHHxx", ["PortID", "Mode", "Baudrate", "In_proto_mask", "Out_proto_mask", "Flags"]],
+    ("CFG-USB", 108) :
+        ["<HHxxHHH32s32s32s", ["VendorID", "ProductID", "reserved2", "PowerConsumption", "Flags", "VendorString", "ProductString", "SerialNumber"]],
     ("CFG-MSG", 2) :
         ["<BB", ["Class", "MsgID"]],
     ("CFG-MSG", 3) :
@@ -194,7 +205,8 @@ MSGFMT = {
 # CFG DAT - Get/Set current Datum
     ("CFG-INF", 1) :
         ["<B", ["ProtocolID"]],
-#    ("CFG-INF", N*8) :
+    ("CFG-INF", None) :
+        [0, "", [], 8, "<BxxxBBBB", ["ProtocolID", "INFMSG_mask0", "INFMSG_mask1", "INFMSG_mask2", "INFMSG_mask3"]],
     ("CFG-RST", 4) :
         ["<HBx", ["nav_bbr", "Reset"]],
     ("CFG-RXM", 2) :
@@ -308,14 +320,31 @@ class UBXDevice( GPSDevice ):
         return (ck_a, ck_b)
 
     def decode( self, cl, id, length, payload ):
+        data = []
         try:
             format = MSGFMT_INV[((cl, id), length)]
+            data.append(zip(format[1], struct.unpack(format[0], payload)))
         except KeyError:
-            print "Unknown message", CLID_INV[(cl, id)], length
-            return
+            try:
+                # Try if this is one of the variable field messages
+                format = MSGFMT_INV[((cl, id), None)]
+                fmt_base = format[:3]
+                fmt_rep = format[3:]
+                # Check if the length matches
+                if (length - fmt_base[0])%fmt_rep[0] != 0:
+                    print "Variable length message Class", cl, "ID", id, "has wrong length", length
+                    return
+                data.append(zip(fmt_base[2], struct.unpack(fmt_base[1], payload[:fmt_base[0]])))
+                for i in range(0, (length - fmt_base[0])/fmt_rep[0]):
+                    offset = fmt_base[0] + fmt_rep[0] * i
+                    data.append(zip(fmt_rep[2], struct.unpack(fmt_rep[1], payload[offset:offset+fmt_rep[0]])))
 
-        payload = zip(format[1], struct.unpack(format[0], payload))
-        print format[2], payload
+            except KeyError:
+                print "Unknown message Class", cl, "ID", id, "Length", length
+                return
+
+        print format[-1], data
+
 
 
 #vim: expandtab
