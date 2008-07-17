@@ -178,6 +178,7 @@ class UnsolicitedResponseChannel( CalypsoModemChannel ):
         self.enqueue( "%CGEREP=1" )
         self.enqueue( "%CGREG=3" )
         self.enqueue( "%CSTAT=1" )
+        self.enqueue( '@ST="-26"' ) # audio side tone: set to minimum
 
         # FIXME might enable %CPRI later
 
