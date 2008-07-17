@@ -3,7 +3,7 @@ import gobject
 
 import protocol
 
-from framework.config import LOG, LOG_ERR, LOG_WARNING, LOG_INFO, LOG_DEBUG
+# from framework.config import LOG, LOG_ERR, LOG_WARNING, LOG_INFO, LOG_DEBUG
 
 class TestProtocol(protocol.Protocol):
     """This special protocol is just used to emulate a real call

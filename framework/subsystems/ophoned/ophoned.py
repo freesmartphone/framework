@@ -18,7 +18,7 @@ import dbus
 import dbus.service
 from dbus import DBusException
 
-from framework.config import LOG, LOG_ERR, LOG_WARNING, LOG_INFO, LOG_DEBUG
+# from framework.config import LOG, LOG_ERR, LOG_WARNING, LOG_INFO, LOG_DEBUG
 
 class Phone(dbus.service.Object):
     def __init__(self, bus):
@@ -31,26 +31,25 @@ class Phone(dbus.service.Object):
           
     @dbus.service.method('org.freesmartphone.Phone', in_signature='', out_signature='as')
     def InitProtocols(self):
-        """Initialize all the protocoles
+        """Initialize all the protocols
         
            It is not compulsory to call this method, since it will be automatically called the first time
            we attempt to create a call.
         """
-        print 'INIT PROTOCOLS'
         self.protocols = {}
         for protocol_cls in Protocol.all_instances:
             try:
                 protocol = protocol_cls(self.bus)
                 self.protocols[protocol.name()] = protocol
             except ProtocolUnusable, e:
-                print "can't use protocole %s : %s" % (protocol_cls, e)
+                print "can't use protocol %s : %s" % (protocol_cls, e)
         return self.protocols.keys()
 
     @dbus.service.method('org.freesmartphone.Phone', in_signature='ssb', out_signature='o')
     def CreateCall(self, number, protocol = None, force = True):
         """ Return a new Call targeting the given number, with an optional protocol.
         
-            If the protocole is not provided, the service will determine the best protocole to use.
+            If the protocol is not provided, the service will determine the best protocol to use.
             if force is set to true, then we kill the channel if it is already opened
         """
         if self.protocols is None:

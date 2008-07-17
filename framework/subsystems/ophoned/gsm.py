@@ -5,11 +5,13 @@ from dbus import DBusException
 from protocol import Protocol, Call, ProtocolUnusable
 import protocol
 
+# TODO: add logs
 
 class GSMProtocol(protocol.Protocol):
     """Phone protocol using ogsm service
     """
     def name(self):
+        """The name of this protocol"""
         return 'GSM'
     
     def __init__(self, bus):
@@ -20,7 +22,6 @@ class GSMProtocol(protocol.Protocol):
             self.gsm = bus.get_object( 'org.freesmartphone.ogsmd', '/org/freesmartphone/GSM/Device' )
             self.gsm.connect_to_signal('CallStatus', self.on_call_status)
         except Exception, e:
-            print e
             raise protocol.ProtocolUnusable(e.message)
         
         self.calls_by_id = {} # This will contain a list of all the created calls
@@ -46,18 +47,17 @@ class GSMProtocol(protocol.Protocol):
                 self.Released()
             self.state = status
 
+        # We make the call asynchronous, because we can't block the framwork mainloop on it !
         @dbus.service.method(
             'org.freesmartphone.Phone.Call', in_signature='', out_signature='s',
             async_callbacks=("dbus_ok","dbus_error")
         )
         def Initiate(self, dbus_ok, dbus_error):
             """Initiate the call"""
-            print 'INITIATE'
             super(GSMProtocol.Call, self).Initiate()
             # TODO: separate id and number ?
             
             def on_initiate(id):
-                print 'on intitiate'
                 self.gsm_id = id
                 self.protocol.calls_by_id[self.gsm_id] = self
                 dbus_ok(self.status)
@@ -68,6 +68,7 @@ class GSMProtocol(protocol.Protocol):
             )
             return ''
         
+        # We make the call asynchronous, because we can't block the framwork mainloop on it !
         @dbus.service.method(
             'org.freesmartphone.Phone.Call', in_signature='', out_signature='s',
             async_callbacks=("dbus_ok","dbus_error")
