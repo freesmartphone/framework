@@ -162,8 +162,9 @@ class UnsolicitedResponseChannel( CalypsoModemChannel ):
 
         self.enqueue( "+CAOC=2" ) # advice of charge: send unsol. code
 
-        # FIXME This will fail until CFUN=4 or CFUN=1 and SIM Auth is given
+        # FIXME These will fail until CFUN=4 or CFUN=1 and SIM Auth is given
         self.enqueue( "+CNMI=2,1,2,1,1" ) # buffer SMS on SIM, report new SMS after storing, report CB directly
+        self.enqueue( "%CBHZ=1" ) # home zone cell broadcast: activate automatic
 
         # GPRS
         self.enqueue( "+CGEREP=2,1" )
@@ -173,7 +174,6 @@ class UnsolicitedResponseChannel( CalypsoModemChannel ):
         self.enqueue( "%CPI=3" ) # call progress indication: enable with call number ID, GSM Cause, and ALS
         self.enqueue( "%CSCN=1,2,1,2" ) # show service change: call control service and supplementary service
         self.enqueue( "%CSQ=1" ) # signal strength: send unsol. code
-        self.enqueue( "%CBHZ=1" ) # home zone cell broadcast: activate automatic
         self.enqueue( "%CNIV=1" )
         self.enqueue( "%CGEREP=1" )
         self.enqueue( "%CGREG=3" )
