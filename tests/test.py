@@ -7,6 +7,20 @@ Open Device Daemon - Controller
 GPLv2 or later
 """
 
+# This is a test script that will perform several actions to test the framework
+#
+# There is one tricky thing to notice in the code, it is the use of Tasklet (see the file tasklet.py)
+# The problem is the following one :
+# We need to run gobject.mainloop in order to catch the dbus signals
+# But we also want to be able to block for a given signal, and we need to do so without blocking the mainloop
+# There are several solutions :
+# - Using a separate thread for the the gobject mainloop, and queues to pass the dbus signals to the code loop
+#   This should work, but I experienced some locking problems (even segfault from dbus.so !)
+# - Using a lot of callbacks. This works too, but it makes the code impossible to read
+# - Using tasklets, that is a mechanisme that use python co-routine to make callbacks look like a thread.
+#   In the code I use this method... The drawback is that I now depends on my complicated Tasklet class :O
+#   Also it makes the exception traceback difficult to follow
+
 # Set those parameters to reflect the real conditions of the test
 # TODO: make these command line options
 SIM_PRESENT = True
@@ -19,7 +33,9 @@ import dbus
 from dbus.mainloop.glib import DBusGMainLoop
 DBusGMainLoop(set_as_default=True)
 
-from Queue import Queue # The Queue object is convenient to synchronize threads
+import time
+
+from tasklet import Tasklet, WaitDBusSignal
 
 verbose = True
 
@@ -45,44 +61,33 @@ def vprint(msg, *args):
 
 
 
-class Test(object):
-
+class Test(Tasklet):
     def __init__(self, sim_present = SIM_PRESENT, sim_locked = SIM_LOCKED):
+        super(Test, self).__init__()
         self.sim_present = sim_present
         self.sim_locked = sim_locked
 
         assert SIM_PRESENT == True, "only this case for now"
         assert SIM_LOCKED == False, "only this case for now"
 
-        self.call_status_queue = Queue()
-        self.status_queue = Queue()
         
-    def on_status(self, status):
-        status = dbus_to_python(status)
-        vprint("Status Signal : %s", status)
-        self.status_queue.put(status)
-        
-    def on_call_status(self, id, status, properties):
-        id = dbus_to_python(id)
-        status = dbus_to_python(status)
-        properties = dbus_to_python(properties)
-        vprint("CallStatus Signal : %s, %s, %s", id, status, properties)
-        self.call_status_queue.put(status)
-        
-    def start(self):
+    def run(self):
+        """This is the main task of the Test class.
+           It runs in a tasklet, so I can use yield to block without using thread
+        """
         print "== Connect to dbus services =="
         self.bus = dbus.SystemBus()
         self.gsm = self.bus.get_object( 'org.freesmartphone.ogsmd', '/org/freesmartphone/GSM/Device' )
-        self.gsm.connect_to_signal("CallStatus", self.on_call_status)
-        self.gsm.connect_to_signal("Status", self.on_status)
         
         print "OK"
 
-        self.test_set_antenna_power()
-        self.test_register()
-        self.test_call()
-        self.test_sim()
-        self.test_contacts()
+        # We run the tests one by one (we use tasklet because the test functions can block)
+        yield Tasklet(self.test_set_antenna_power())
+        yield Tasklet(self.test_register())
+        # yield Tasklet(self.test_call())
+        yield Tasklet(self.test_ophoned())
+        yield Tasklet(self.test_sim())
+        yield Tasklet(self.test_contacts())
 
     def test_set_antenna_power(self, nb = 1):
         """We try to turn the antenna off and on a few times"""
@@ -95,6 +100,7 @@ class Test(object):
             self.gsm.SetAntennaPower(True)
             assert self.gsm_device_iface.GetAntennaPower()
         print "OK"
+        yield True
 
     def test_register(self, nb = 1):
         print "== Test unregister/register %d times ==" % nb
@@ -108,22 +114,16 @@ class Test(object):
             time_out = 30
             vprint("Waiting for registeration signal before %d seconds" % time_out)
             while True:
-                status = self.status_queue.get(True, time_out)
+                status = yield(WaitDBusSignal(self.gsm, 'Status', time_out))
                 if 'provider' in status:
                     break
                     
         print "OK"
+        yield True
 
         
     def test_call(self):
         print "== Test call =="
-        queues = Queue()
-
-        def on_call_status(self, id, status, properties ):
-            vprint("CallStatus= %s, %s, %s", id, status, properties)
-            queue.put(status)
-
-        self.gsm.connect_to_signal("CallStatus", on_call_status)
 
         vprint("initiate call to %s", NUMBER)
         id = self.gsm.Initiate(NUMBER, "voice")
@@ -131,20 +131,51 @@ class Test(object):
         time_out = 30
 
         vprint("waiting for 'outgoing' signal before %d seconds", time_out)
-        state = self.call_status_queue.get(True, time_out)
+        id, state, properties = yield(WaitDBusSignal(self.gsm, 'CallStatus', time_out))
         assert state == 'outgoing'
 
         vprint("waiting for 'active' signal before %d seconds", time_out)
-        state = self.call_status_queue.get(True, time_out)
+        id, state, properties = yield(WaitDBusSignal(self.gsm, 'CallStatus', time_out))
         assert state == 'active'
 
         vprint("releasing the call")
         self.gsm.Release(id)
         vprint("waiting for 'inactive' signal before %d seconds", time_out)
-        state = self.call_status_queue.get(True, time_out)
+        id, state, properties = yield(WaitDBusSignal(self.gsm, 'CallStatus', time_out))
         assert state == 'inactive'
 
         print "OK"
+        yield True
+        
+    def test_ophoned(self):
+        print "== Test ophoned =="
+        phone = self.bus.get_object('org.freesmartphone.ophoned', '/org/freesmartphone/Phone')
+        print 'phone dbus object =', phone
+        
+        for protocol in ['Test', 'GSM']:
+            vprint("creating call object to number %s using protocol %s" % (NUMBER, protocol))
+            call_path = phone.CreateCall(NUMBER, protocol)
+            vprint("path = %s", call_path)
+            call = self.bus.get_object('org.freesmartphone.ophoned', call_path)
+            
+            vprint("Initiating connection")
+            call.Initiate()
+            time_out = 30
+            
+            vprint("Waiting for activated signal before %d seconds", time_out)
+            yield WaitDBusSignal(call, "Activated", time_out = 30)
+            
+            vprint("releasing the connection")
+            call.Release()
+            
+            vprint("Waiting for released signal before %d seconds", time_out)
+            yield WaitDBusSignal(call, "Released")
+            
+            vprint("removing the channel")
+            call.Remove()
+        
+        print "OK"
+        yield True
         
     def test_sim(self):
         print "== Test sim =="
@@ -153,6 +184,7 @@ class Test(object):
         vprint("Sim info = %s", dbus_to_python(info))
         
         print "OK"
+        yield True
         
     def test_contacts(self):
         print "== Test Contacts =="
@@ -173,26 +205,20 @@ class Test(object):
         vprint("phone book = %s", phone_book)
         
         print "OK"
+        yield True
 
         
 
 if __name__ == '__main__':
-    # Since we want to be able wait for DBus signal,
-    # We run the test function in a separate thread
-    # We use queues to synchronize the function with the gobject.MainLoop thread
-     
     loop = gobject.MainLoop()
-    gobject.threads_init()
-    
-    def task():
+    def on_start():
         try:
-            test = Test()
-            test.start()
+            yield Test()
         finally:
-            loop.quit() # Whatever happen we need to stop the mainloop at the end
-    
-    thread = threading.Thread(target = task)
-    thread.start()
+            loop.quit() # whatever happend, we need to stop the mainloop at the end
+
+    gobject.idle_add(Tasklet(on_start()).start)
     loop.run()
+    print "Exit"
 
 
