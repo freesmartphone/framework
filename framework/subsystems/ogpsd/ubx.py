@@ -265,6 +265,10 @@ class UBXDevice( GPSDevice ):
         self.gpschannel = gpschannel
         self.gpschannel.setCallback( self.parse )
 
+        self.configure()
+
+    def configure( self ):
+        print "configureing UBXDevice"
         # Clear volatile fields
 #        self.send("CFG-RST", 4, {"nav_bbr" : 0xffff, "Reset" : 0x01})
 
@@ -285,7 +289,6 @@ class UBXDevice( GPSDevice ):
         self.send("CFG-MSG", 3, {"Class" : CLIDPAIR["NAV-STATUS"][0] , "MsgID" : CLIDPAIR["NAV-STATUS"][1] , "Rate" : 1 })
         # Send NAV SVINFO
         self.send("CFG-MSG", 3, {"Class" : CLIDPAIR["NAV-SVINFO"][0] , "MsgID" : CLIDPAIR["NAV-SVINFO"][1] , "Rate" : 5 })
-
 
     def parse( self, data ):
         self.buffer += data

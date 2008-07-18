@@ -15,11 +15,11 @@ import dbus
 import dbus.service
 import os
 import sys
-from nmea import NMEADevice
+from ubx import UBXDevice
 from syslog import syslog, LOG_ERR, LOG_WARNING, LOG_INFO, LOG_DEBUG
 from helpers import LOG
 
-class GTA02Device( NMEADevice ):
+class GTA02Device( UBXDevice ):
     """GTA02 specific GPS device"""
 
     #
@@ -33,10 +33,10 @@ class GTA02Device( NMEADevice ):
         gps.SetPower( power, reply_handler=self._replyCallback, error_handler=self._errorCallback )
 
     def _replyCallback( self ):
-      pass
+        self.configure()
 
     def _errorCallback( self, e ):
-      pass
+        pass
 
 
 #vim: expandtab
