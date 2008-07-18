@@ -24,6 +24,15 @@ import gobject
 class UnknownFormat( DBusException ):
     _dbus_error_name = "org.freesmartphone.Audio.UnknownFormat"
 
+class PlayerError( DBusException ):
+    _dbus_error_name = "org.freesmartphone.Audio.PlayerError"
+
+class NotPlaying( DBusException ):
+    _dbus_error_name = "org.freesmartphone.Audio.NotPlaying"
+
+class AlreadyPlaying( DBusException ):
+    _dbus_error_name = "org.freesmartphone.Audio.AlreadyPlaying"
+
 class Player( object ):
     pass
 
@@ -42,25 +51,43 @@ class GStreamerPlayer( Player ):
         self.process_source = None
 
     def _onMessage( self, bus, message, name ):
-        pipeline = self.pipelines[name][0]
+        pipeline, status, repeat, ok_cb, error_cb = self.pipelines[name]
         t = message.type
         if t == gst.MESSAGE_EOS:
             print "G: EOS"
             pipeline.set_state(gst.STATE_NULL)
+            del self.pipelines[name]
 
         elif t == gst.MESSAGE_ERROR:
             pipeline.set_state(gst.STATE_NULL)
+            del self.pipelines[name]
             err, debug = message.parse_error()
             print "G: ERROR", err, debug
-            # TODO call error dbus callback
+            error_cb( PlayerError( err.message ) )
 
         elif t == gst.MESSAGE_STATE_CHANGED:
             previous, current, pending = message.parse_state_changed()
-            print "G: STATE NOW", current
-            if current == gst.STATE_PLAYING:
-                pass
-                # TODO call signal on dbus object
-                # TODO call ok callback
+            print "G: STATE NOW", "(%s) -> %s -> (%s)" % ( previous, current, pending )
+            if previous == gst.STATE_PAUSED and current == gst.STATE_PLAYING:
+                self._updateSoundStatus( name, "playing" )
+                ok_cb()
+            elif previous == gst.STATE_PAUSED and current == gst.STATE_PLAYING:
+                self._updateSoundStatus( name, "paused" )
+                # ok_cb()
+            elif previous == gst.STATE_PAUSED and current == gst.STATE_READY:
+                self._updateSoundStatus( name, "stopped" )
+                pipeline.set_state( gst.STATE_NULL )
+                del self.pipelines[name]
+                # ok_cb()
+
+        else:
+            print "G: UNHANDLED", t
+
+    def _updateSoundStatus( self, name, newstatus ):
+        pipeline, status, repeat, ok_cb, error_cb = self.pipelines[name]
+        if newstatus != status:
+            self.pipelines[name] = pipeline, newstatus, repeat, ok_cb, error_cb
+            self._object.SoundStatus( name, newstatus, {} )
 
     def _processTask( self ):
         if self.q.empty():
@@ -83,16 +110,32 @@ class GStreamerPlayer( Player ):
             self.process_source = gobject.idle_add( self._processTask )
 
     def task_play( self, ok_cb, error_cb, name, repeat ):
-        pipeline = self.createPipeline( name )
-        print pipeline
-        if pipeline is None:
-            error_cb( UnknownFormat( "known formats are %s" % self.decoderMap.keys() ) )
+        if name in self.pipelines:
+            error_cb( AlreadyPlaying( name ) )
         else:
-            bus = pipeline.get_bus()
-            bus.add_signal_watch()
-            bus.connect( "message", self._onMessage, name )
-            self.pipelines[name] = ( pipeline, repeat, ok_cb, error_cb )
-            pipeline.set_state( gst.STATE_PLAYING )
+            pipeline = self.createPipeline( name )
+            if pipeline is None:
+                error_cb( UnknownFormat( "known formats are %s" % self.decoderMap.keys() ) )
+            else:
+                bus = pipeline.get_bus()
+                bus.add_signal_watch()
+                bus.connect( "message", self._onMessage, name )
+                self.pipelines[name] = ( pipeline, "unknown", repeat, ok_cb, error_cb )
+                pipeline.set_state( gst.STATE_PLAYING )
+
+    def task_stop( self, ok_cb, error_cb, name ):
+        try:
+            pipeline = self.pipelines[name][0]
+        except KeyError:
+            error_cb( NotPlaying( name ) )
+        else:
+            pipeline.set_state( gst.STATE_READY )
+            ok_cb()
+
+    def task_panic( self, ok_cb, error_cb ):
+        for name in self.pipelines:
+            self.pipelines[name][0].set_state( gst.STATE_READY )
+        ok_cb()
 
     def createPipeline( self, name ):
         extension = name.split( '.' )[-1]
@@ -111,17 +154,6 @@ class GStreamerPlayer( Player ):
             filesrc.link( decoder )
             decoder.link( sink )
             return pipeline
-
-    def stop( self, name, ok_cb, error_cb ):
-        try:
-            self.pipelines[name].set_state( gst.STATE_NULL )
-        except KeyError:
-            error_cb( "not found" )
-        del self.pipeline
-        self.ringing = False
-
-    def stopAll( self ):
-        pass
 
 #----------------------------------------------------------------------------#
 class Audio( dbus.service.Object ):
@@ -160,9 +192,13 @@ class Audio( dbus.service.Object ):
     #
     # dbus signals
     #
-    @dbus.service.signal( DBUS_INTERFACE, "ssi" )
+    @dbus.service.signal( DBUS_INTERFACE, "ssa{sv}" )
     def SoundStatus( self, name, status, properties ):
-        LOG( LOG_INFO, __name__, "event", name, status, properties )
+        LOG( LOG_INFO, __name__, "sound status", name, status, properties )
+
+    @dbus.service.signal( DBUS_INTERFACE, "ss" )
+    def Scenario( self, scenario, reason ):
+        LOG( LOG_INFO, __name__, "scenario", scenario, reason )
 
 #----------------------------------------------------------------------------#
 def factory( prefix, controller ):
