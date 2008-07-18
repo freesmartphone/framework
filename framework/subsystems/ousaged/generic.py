@@ -88,16 +88,46 @@ class ODeviceDResource( AbstractResource ):
         self.bus = dbus.SystemBus()
         self.name = name
 
+    def _replyCallback( self ):
+        pass
+
+    def _errorCallback( self, e ):
+        pass
+
     def _enable( self ):
-        proxy = bus.get_object( "org.freesmartphone.Device", "/org/freesmartphone/Device/PowerControl/" + self.name )
+        proxy = self.bus.get_object( "org.freesmartphone.Device", "/org/freesmartphone/Device/PowerControl/" + self.name )
         iface = dbus.Interface( proxy, "org.freesmartphone.Device.PowerControl" )
-        iface.SetPower( True )
+        iface.SetPower( True, reply_handler=self._replyCallback, error_handler=self._errorCallback )
         print "Enabled %s" % self.name
 
     def _disable( self ):
-        proxy = bus.get_object( "org.freesmartphone.Device", "/org/freesmartphone/Device/PowerControl/" + self.name )
+        proxy = self.bus.get_object( "org.freesmartphone.Device", "/org/freesmartphone/Device/PowerControl/" + self.name )
         iface = dbus.Interface( proxy, "org.freesmartphone.Device.PowerControl" )
-        iface.SetPower( False )
+        iface.SetPower( False, reply_handler=self._replyCallback, error_handler=self._errorCallback )
+        print "Disabled %s" % self.name
+
+class OGPSDResource( AbstractResource ):
+    def __init__( self, usageControl, name ):
+        AbstractResource.__init__( self , usageControl )
+        self.bus = dbus.SystemBus()
+        self.name = name
+
+    def _replyCallback( self ):
+        pass
+
+    def _errorCallback( self, e ):
+        pass
+
+    def _enable( self ):
+        proxy = self.bus.get_object( "org.freesmartphone.ogpsd", "/org/freedesktop/Gypsy" )
+        iface = dbus.Interface( proxy, "org.freesmartphone.GPS" )
+        iface.SetPower( True, reply_handler=self._replyCallback, error_handler=self._errorCallback )
+        print "Enabled %s" % self.name
+
+    def _disable( self ):
+        proxy = self.bus.get_object( "org.freesmartphone.ogpsd", "/org/freedesktop/Gypsy" )
+        iface = dbus.Interface( proxy, "org.freesmartphone.GPS" )
+        iface.SetPower( False, reply_handler=self._replyCallback, error_handler=self._errorCallback )
         print "Disabled %s" % self.name
 
 #----------------------------------------------------------------------------#
@@ -175,7 +205,7 @@ def factory( prefix, controller ):
     objects = []
     genericUsageControl = GenericUsageControl( controller.bus )
     genericUsageControl.addResource( DummyResource( genericUsageControl, "GSM" ) )
-    genericUsageControl.addResource( DummyResource( genericUsageControl, "GPS" ) )
+    genericUsageControl.addResource( OGPSDResource( genericUsageControl, "GPS" ) )
     genericUsageControl.addResource( DummyResource( genericUsageControl, "Bluetooth" ) )
     genericUsageControl.addResource( DummyResource( genericUsageControl, "WiFi" ) )
     objects.append( genericUsageControl )
