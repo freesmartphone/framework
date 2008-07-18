@@ -165,17 +165,17 @@ MSGFMT = {
             "SF1D5", "SF1D6", "SF1D7", "SF2D0", "SF2D1", "SF2D2", "SF2D3", "SF2D4",
             "SF2D5", "SF2D6", "SF1D7", "SF3D0", "SF3D1", "SF3D2", "SF3D3", "SF3D4", "SF3D5", "SF3D6", "SF3D7"]],
     ("INF-ERROR", None) :
-        [0, "", [], 1, "B", ["Char"]],
+        [0, "", [], 1, "c", ["Char"]],
     ("INF-WARNING", None) :
-        [0, "", [], 1, "B", ["Char"]],
+        [0, "", [], 1, "c", ["Char"]],
     ("INF-NOTICE", None) :
-        [0, "", [], 1, "B", ["Char"]],
+        [0, "", [], 1, "c", ["Char"]],
     ("INF-TEST", None) :
-        [0, "", [], 1, "B", ["Char"]],
+        [0, "", [], 1, "c", ["Char"]],
     ("INF-DEBUG", None) :
-       [0, "", [], 1, "B", ["Char"]],
+       [0, "", [], 1, "c", ["Char"]],
     ("INF-USER", None) :
-        [0, "", [], 1, "B", ["Char"]],
+        [0, "", [], 1, "c", ["Char"]],
     ("ACK-ACK", 2) :
         ["<BB", ["ClsID", "MsgID"]],
     ("ACK-NACK", 2) :
@@ -338,7 +338,7 @@ class UBXDevice( GPSDevice ):
         data = []
         try:
             format = MSGFMT_INV[((cl, id), length)]
-            data.append(zip(format[1], struct.unpack(format[0], payload)))
+            data.append(dict(zip(format[1], struct.unpack(format[0], payload))))
         except KeyError:
             try:
                 # Try if this is one of the variable field messages
@@ -349,17 +349,33 @@ class UBXDevice( GPSDevice ):
                 if (length - fmt_base[0])%fmt_rep[0] != 0:
                     print "Variable length message Class", cl, "ID", id, "has wrong length", length
                     return
-                data.append(zip(fmt_base[2], struct.unpack(fmt_base[1], payload[:fmt_base[0]])))
+                data.append(dict(zip(fmt_base[2], struct.unpack(fmt_base[1], payload[:fmt_base[0]]))))
                 for i in range(0, (length - fmt_base[0])/fmt_rep[0]):
                     offset = fmt_base[0] + fmt_rep[0] * i
-                    data.append(zip(fmt_rep[2], struct.unpack(fmt_rep[1], payload[offset:offset+fmt_rep[0]])))
+                    data.append(dict(zip(fmt_rep[2], struct.unpack(fmt_rep[1], payload[offset:offset+fmt_rep[0]]))))
 
             except KeyError:
                 print "Unknown message Class", cl, "ID", id, "Length", length
                 return
 
-        print format[-1], data
+        methodname = "handle_"+format[-1].replace("-", "_")
+        try:
+            method = getattr( self, methodname )
+        except AttributeError:
+            print "No method to handle", format[-1], data
+        else:
+            try:
+                method( data )
+            except Exception, e:
+                print "Error in %s method: %s" % ( methodname, e )
 
+    def handle_NAV_DOP( self, data ):
+        data = data[0]
+        self.AccuracyChanged( 7, data["PDOP"]/100.0, data["HDOP"]/100.0, data["VDOP"]/100.0 )
+    def handle_NAV_POSLLH( self, data ):
+        scaling = 10000000.0
+        data = data[0]
+        self.PositionChanged( 7, data["ITOW"], data["LAT"]/scaling, data["LON"]/scaling, data["HEIGHT"]/1000.0 )
 
 
 #vim: expandtab
