@@ -284,8 +284,8 @@ class UBXDevice( GPSDevice ):
         self.send("CFG-MSG", 3, {"Class" : CLIDPAIR["NAV-POSLLH"][0] , "MsgID" : CLIDPAIR["NAV-POSLLH"][1] , "Rate" : 1 })
         # Send NAV POSUTM
         #self.send("CFG-MSG", 3, {"Class" : CLIDPAIR["NAV-POSUTM"][0] , "MsgID" : CLIDPAIR["NAV-POSUTM"][1] , "Rate" : 1 })
-        # Send NAV TIMEUTC
-        self.send("CFG-MSG", 3, {"Class" : CLIDPAIR["NAV-TIMEUTC"][0] , "MsgID" : CLIDPAIR["NAV-TIMEUTC"][1] , "Rate" : 1 })
+        # Disable NAV TIMEUTC
+        self.send("CFG-MSG", 3, {"Class" : CLIDPAIR["NAV-TIMEUTC"][0] , "MsgID" : CLIDPAIR["NAV-TIMEUTC"][1] , "Rate" : 0 })
         # Send NAV DOP
         self.send("CFG-MSG", 3, {"Class" : CLIDPAIR["NAV-DOP"][0] , "MsgID" : CLIDPAIR["NAV-DOP"][1] , "Rate" : 1 })
         # Send NAV STATUS
@@ -318,24 +318,25 @@ class UBXDevice( GPSDevice ):
             self.buffer = self.buffer[length+8:]
 
     def send( self, clid, length, payload ):
-        try:
-            fmt_base = [length] + MSGFMT[(clid,length)]
-            fmt_rep = [0, "", []]
-            payload_base = payload
-        except KeyError:
-            format = MSGFMT[(clid, None)]
-            fmt_base = format[:3]
-            fmt_rep = format[3:]
-            payload_base = payload[0]
-            payload_rep = payload[1:]
-            if (length - fmt_base[0])%fmt_rep[0] != 0:
-                print "Variable length message Class", cl, "ID", id, "has wrong length", length
-                return
         stream = struct.pack("<BBBBH", SYNC1, SYNC2, CLIDPAIR[clid][0], CLIDPAIR[clid][1], length)
-        stream = stream + struct.pack(fmt_base[1], *[payload_base[i] for i in fmt_base[2]])
-        if fmt_rep[0] != 0:
-            for i in range(0, (length - fmt_base[0])/fmt_rep[0]):
-                stream = stream + struct.pack(fmt_rep[1], *[payload_rep[i][j] for j in fmt_rep[2]])
+        if length > 0:
+            try:
+                fmt_base = [length] + MSGFMT[(clid,length)]
+                fmt_rep = [0, "", []]
+                payload_base = payload
+            except KeyError:
+                format = MSGFMT[(clid, None)]
+                fmt_base = format[:3]
+                fmt_rep = format[3:]
+                payload_base = payload[0]
+                payload_rep = payload[1:]
+                if (length - fmt_base[0])%fmt_rep[0] != 0:
+                    print "Variable length message Class", cl, "ID", id, "has wrong length", length
+                    return
+            stream = stream + struct.pack(fmt_base[1], *[payload_base[i] for i in fmt_base[2]])
+            if fmt_rep[0] != 0:
+                for i in range(0, (length - fmt_base[0])/fmt_rep[0]):
+                    stream = stream + struct.pack(fmt_rep[1], *[payload_rep[i][j] for j in fmt_rep[2]])
         stream = stream + struct.pack("<BB", *self.checksum( stream[2:] ))
         self.gpschannel.send( stream )
 
@@ -401,9 +402,10 @@ class UBXDevice( GPSDevice ):
     #
     # dbus methods
     #
-    @dbus.service.method( DBUS_INTERFACE, "", "iiiiiii" )
+    @dbus.service.method( DBUS_INTERFACE, "", "" )
     def GetTime( self ):
-        return self.time
+        self.send("NAV-TIMEUTC", 0, {})
+
 
     #
     # dbus signals
