@@ -3,6 +3,10 @@
   Benefits: 1.) get rid of double bookkeeping 2.) one object can serve multiple interfaces anyways
 * introduce dbus subsystem or dbus object inter-dependencies and honor the dependency graph on startup
 
+* listen for new clients appearing on the bus and trigger a coldplug to all registered objects
+** ogsmd should use this for indicating phonebook / messagebok readyness
+** odeviced should use this for indicating button/switches states
+
 == odeviced ==
 * enhance main module interface for simple introspection
 * add device specific modules

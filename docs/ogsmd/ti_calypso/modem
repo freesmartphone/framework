@@ -4,14 +4,25 @@
 
 * On channel init, we better send \x1a first -- just in case something crashed while we
   were inside a multiline request command
+
 * +CFUN=1 resets previous +CPIN="abcd" (even with 2nd parameter?)
+
 * +CFUN=1 always "succeeds" even if it answers with ERROR (SIM PIN Required)
+
 * I always receive CME ERROR 32 on +COPS=? until CREG=1
+
 * +CREG=%d influences both the unsolicited response as well as the solicited response code
+
 * Phonebook indices start with 1 (not 0)
+
 * If SIM PIN not given, SIM file reading commands (phonebook, messagebook, crm) deliver the slightly misleading
-  CMS error code 310 (=SIM NOT INSERTED)
+  * CMS error code 310 (=SIM NOT INSERTED), or (yes, that can happen as well, if the PHB is not ready yet)
+  * OK (=empty response) :( Readyness of the PHB is available if CFUN=1 and SMS auth given
+
 * If SMS phone number available in messagebook, address name will be automatically inserted
+
+* +CIEV supports 'signal' and 'smsfull' and has to be explicitly enabled with:
+  +CMER=2,0,0,1,0 and +CIND=5,1
 
 === GSM standards violations ===
 
