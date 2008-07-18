@@ -15,10 +15,13 @@ import sys
 import math
 import string
 import struct
+import dbus
 from gpsdevice import GPSDevice
 from syslog import syslog, LOG_ERR, LOG_WARNING, LOG_INFO, LOG_DEBUG
 from helpers import LOG
 from gobject import idle_add
+
+DBUS_INTERFACE = "org.freesmartphone.GPS"
 
 SYNC1=0xb5
 SYNC2=0x62
@@ -383,11 +386,32 @@ class UBXDevice( GPSDevice ):
 
     def handle_NAV_DOP( self, data ):
         data = data[0]
-        self.AccuracyChanged( 7, data["PDOP"]/100.0, data["HDOP"]/100.0, data["VDOP"]/100.0 )
+        self._updateAccuracy( 7, data["PDOP"]/100.0, data["HDOP"]/100.0, data["VDOP"]/100.0 )
     def handle_NAV_POSLLH( self, data ):
         scaling = 10000000.0
         data = data[0]
-        self.PositionChanged( 7, data["ITOW"], data["LAT"]/scaling, data["LON"]/scaling, data["HEIGHT"]/1000.0 )
+        self._updatePosition( 7, data["ITOW"], data["LAT"]/scaling, data["LON"]/scaling, data["HEIGHT"]/1000.0 )
+
+    def handle_NAV_TIMEUTC( self, data):
+        data = data[0]
+        self.time = ( data["Valid"], data["Year"], data["Month"], data["Day"],
+                data["Hour"], data["Min"], data["Sec"] )
+        self.TimeChanged( *self.time )
+
+    #
+    # dbus methods
+    #
+    @dbus.service.method( DBUS_INTERFACE, "", "iiiiiii" )
+    def GetTime( self ):
+        return self.time
+
+    #
+    # dbus signals
+    #
+    @dbus.service.signal( DBUS_INTERFACE, "iiiiiii" )
+    def TimeChanged( self, fields, year, month, day, hour, min, sec ):
+        pass
+
 
 
 #vim: expandtab

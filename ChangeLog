@@ -1,3 +1,8 @@
+2008-07-18	Daniel Willmann <daniel@totalueberwachung.de>
+
+	* [ogpsd] UBXDevice basic functionality is now complete
+			The Gypsy DBus interface is partly implemented
+
 2008-07-17	Michael Lauer	<mickey@vanille-media.de>
 
 	* [odeviced] Removed hardcoded button/switches, from now

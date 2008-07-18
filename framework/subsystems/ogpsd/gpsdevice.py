@@ -25,24 +25,40 @@ class GPSDevice( dbus.service.Object ):
     """An Dbus Object implementing org.freedesktop.Gypsy"""
 
     def __init__( self, bus ):
+        self.accuracy = ()
+        self.position = ()
+
         self.interface = DBUS_INTERFACE_PREFIX
         self.path = DBUS_PATH_PREFIX
         self.bus = bus
         dbus.service.Object.__init__( self, bus, self.path )
         LOG( LOG_INFO, "%s initialized. Serving %s at %s" % ( self.__class__.__name__, self.interface, self.path ) )
 
+    def _updateAccuracy( self, fields, pdop, hdop, vdop ):
+        if ( fields, pdop, hdop, vdop ) != self.accuracy:
+            self.accuracy = ( fields, pdop, hdop, vdop )
+            self.AccuracyChanged( *self.accuracy )
+
+    def _updatePosition( self, fields, tstamp, lat, lon, alt ):
+        if self.position == () or fields != self.position[0] or \
+          lat != self.position[2] or lon != self.position[3] or \
+          alt != self.position[4]:
+            self.position = ( fields, tstamp, lat, lon, alt )
+            self.PositionChanged( *self.position )
+        else:
+            # Update tstamp anyway
+            self.position = ( fields, tstamp, lat, lon, alt )
+
     #
     # dbus methods
     #
     @dbus.service.method( DBUS_INTERFACE_PREFIX + ".Accuracy", "", "iddd" )
     def GetAccuracy( self ):
-        acc = self.gpsinfo.accuracy
-        return acc.fields, acc.pdop, acc.hdop, acc.vdop
+        return self.accuracy
 
     @dbus.service.method( DBUS_INTERFACE_PREFIX + ".Position", "", "iiddd" )
     def GetPosition( self ):
-        pos = self.gpsinfo.position
-        return pos.fields, pos.tstamp, pos.lat, pos.lon, pos.alt
+        return self.position
 
     #
     # dbus signals
@@ -51,9 +67,6 @@ class GPSDevice( dbus.service.Object ):
     def AccuracyChanged( self, fields, pdop, hdop, vdop ):
         pass
 
-    #
-    # dbus signals
-    #
     @dbus.service.signal( DBUS_INTERFACE_PREFIX + ".Position", "iiddd" )
     def PositionChanged( self, fields, tstamp, lat, lon, alt ):
         pass
