@@ -9,7 +9,7 @@ Open GPS Daemon
 GPLv2 or later
 """
 
-DBUS_INTERFACE = "org.freesmartphone.ogpsd"
+DBUS_INTERFACE = "org.freesmartphone.GPS"
 
 import dbus
 import dbus.service
