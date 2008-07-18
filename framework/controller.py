@@ -143,7 +143,7 @@ class Controller( object ):
                     except ConfigParser.Error:
                         disable = False
                     if disable:
-                        LOG( LOG_INFO, "skipping module '%s' as requested in '%s'" % ( modulename, p ) )
+                        LOG( LOG_INFO, "skipping module '%s' as requested in config." % ( modulename ) )
                         continue
                     module = __import__(
                         name = ".".join( ["framework.subsystems", subsystem, modulename] ),

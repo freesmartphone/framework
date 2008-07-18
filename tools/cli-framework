@@ -43,6 +43,13 @@ bus = dbus.SystemBus()
 
 gsm = getObject( bus, "org.freesmartphone.ogsmd", "/org/freesmartphone/GSM/Device" )
 
+audio = getInterface( \
+    bus,
+    "org.freesmartphone.odeviced",
+    "/org/freesmartphone/Device/Audio",
+    "org.freesmartphone.Device.Audio" \
+    )
+
 # ophoned
 gsmserver = getInterface( bus,
     "org.freesmartphone.ogsmd",
