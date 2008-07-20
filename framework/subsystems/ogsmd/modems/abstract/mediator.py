@@ -276,16 +276,16 @@ class DeviceGetAntennaPower( DeviceMediator ):
 class DeviceSetAntennaPower( DeviceMediator ):
 #=========================================================================#
     def trigger( self ):
-        self._commchannel.enqueue( "+CFUN?", self.intermediateResponse, self.errorFromChannel )
+        self._commchannel.enqueue( "+CPIN?", self.intermediateResponse, self.errorFromChannel )
 
     def intermediateResponse( self, request, response ):
-        assert response[-1] == "OK"
-        state = self._rightHandSide( response[0] ) == "1"
-        if state == self.power:
-            # nothing to do
-            self._ok()
+        if not response[-1] == "OK":
+            # unknown PIN state
+            self.pin_state = "UNKNOWN"
         else:
-            self._commchannel.enqueue( "+CFUN=%d" % self.power, self.responseFromChannel, self.errorFromChannel )
+            self.pin_state = self._rightHandSide( response[0] )
+
+        self._commchannel.enqueue( "+CFUN=%d" % self.power, self.responseFromChannel, self.errorFromChannel )
 
     @logged
     def responseFromChannel( self, request, response ):
@@ -293,6 +293,19 @@ class DeviceSetAntennaPower( DeviceMediator ):
             self._ok()
         else:
             DeviceMediator.responseFromChannel( self, request, response )
+
+        self._commchannel.enqueue( "+CPIN?", self.intermediateResponse2, self.errorFromChannel )
+
+    def intermediateResponse2( self, request, response ):
+        if not response[-1] == "OK":
+            # unknown PIN state
+            new_pin_state = "UNKNOWN"
+        else:
+            new_pin_state = self._rightHandSide( response[0] )
+
+        if self.pin_state != new_pin_state:
+            # notify clients
+            self._object.AuthStatus( new_pin_state )
 
 #=========================================================================#
 class DeviceGetFeatures( DeviceMediator ):
@@ -355,6 +368,24 @@ class SimChangeAuthCode( SimMediator ):
 #=========================================================================#
     def trigger( self ):
         self._commchannel.enqueue( '+CPWD="SC","%s","%s"' % ( self.old_pin, self.new_pin ), self.responseFromChannel, self.errorFromChannel )
+
+#=========================================================================#
+class SimGetAuthCodeRequired( SimMediator ):
+#=========================================================================#
+    def trigger( self ):
+        self._commchannel.enqueue( '+CLCK="SC",2', self.responseFromChannel, self.errorFromChannel )
+
+    def responseFromChannel( self, request, response ):
+        if response[-1] != "OK":
+            SimMediator.responseFromChannel( self, request, response )
+        else:
+            self._ok( self._rightHandSide( response[0] ) == "1" )
+
+#=========================================================================#
+class SimSetAuthCodeRequired( SimMediator ):
+#=========================================================================#
+    def trigger( self ):
+        self._commchannel.enqueue( '+CLCK="SC",%d,"%s"' % ( self.required, self.pin ), self.responseFromChannel, self.errorFromChannel )
 
 #=========================================================================#
 class SimGetSimInfo( SimMediator ):

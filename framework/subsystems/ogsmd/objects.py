@@ -198,6 +198,16 @@ class Device( dbus.service.Object ):
     def ChangeAuthCode( self, old_pin, new_pin, dbus_ok, dbus_error ):
         mediator.SimChangeAuthCode( self, dbus_ok, dbus_error, old_pin=old_pin, new_pin=new_pin )
 
+    @dbus.service.method( DBUS_INTERFACE_SIM, "bs", "",
+                          async_callbacks=( "dbus_ok", "dbus_error" ) )
+    def SetAuthCodeRequired( self, required, pin, dbus_ok, dbus_error ):
+        mediator.SimSetAuthCodeRequired( self, dbus_ok, dbus_error, required=required, pin=pin )
+
+    @dbus.service.method( DBUS_INTERFACE_SIM, "", "b",
+                          async_callbacks=( "dbus_ok", "dbus_error" ) )
+    def GetAuthCodeRequired( self, dbus_ok, dbus_error ):
+        mediator.SimGetAuthCodeRequired( self, dbus_ok, dbus_error )
+
     ### SIM info and low-level access
     @dbus.service.method( DBUS_INTERFACE_SIM, "", "a{sv}",
                           async_callbacks=( "dbus_ok", "dbus_error" ) )
