@@ -51,6 +51,43 @@ class SimSendAuthCode( SimMediator ):
 
 
 #=========================================================================#
+class NetworkGetStatus( NetworkMediator ):
+#=========================================================================#
+    """
+    EZX violating GSM 07.07 here. No matter which answering format you specify
+    with +COPS=..., +COPS? will always return the numerical ID of the provider
+    as a string. We might have +ESPN? to the rescue, but that always returns
+    an empty string for me. So until this is cleared, we have to use PLNM matching.
+
+    Oh, by the way, +CREG? is not implemented either.
+    """
+    def trigger( self ):
+        request, response, error = yield( "+CSQ" )
+        result = {}
+        if error is not None:
+            self.errorFromChannel( request, error )
+        else:
+            if response[-1] != "OK" or len( response ) == 1:
+                pass
+            else:
+                result["strength"] = const.signalQualityToPercentage( int(self._rightHandSide( response[0] ).split( ',' )[0]) ) # +CSQ: 22,99
+
+        request, response, error = yield( "+COPS?" )
+        if error is not None:
+            self.errorFromChannel( request, error )
+        else:
+            if response[-1] != "OK" or len( response ) == 1:
+                pass
+            else:
+                result[ "registration"] = const.REGISTER_STATUS[int(self._rightHandSide( response[0] ).split( ',' )[1])] # +CREG: 0,1
+                try:
+                    result[ "provider"] = self._rightHandSide( response[1] ).split( ',' )[2].strip( '"') # +COPS: 0,0,"Medion Mobile" or +COPS: 0
+                except IndexError:
+                    pass
+
+        self._ok( result )
+
+#=========================================================================#
 class CallInitiate( CallMediator ):
 #=========================================================================#
     def trigger( self ):

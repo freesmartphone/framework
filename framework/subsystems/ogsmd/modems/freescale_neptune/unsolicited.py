@@ -52,6 +52,7 @@ class UnsolicitedResponseDelegate( AbstractUnsolicitedResponseDelegate ):
         6: call progress (0-3) [0:no more in progress, 1:incoming, 2:outgoing, 3:ringing]
         7: roaming (0-2)
         8: sms storage full (0-1)
+        11: ???
         """
         indicator, value = ( int(x) for x in righthandside.split( ',' ) )
 
