@@ -7,7 +7,7 @@ freesmartphone.org Framework Daemon
 GPLv2 or later
 """
 
-__version__ = "0.9.0"
+__version__ = "0.9.1"
 
 from framework.config import DBUS_BUS_NAME_PREFIX
 from framework.config import LOG, LOG_ERR, LOG_WARNING, LOG_INFO, LOG_DEBUG
@@ -48,11 +48,18 @@ class TheOptionParser( OptionParser ):
             help = "launch following subsystems (default=all)",
             action = "store",
         )
+        self.add_option( "-d", "--debug",
+            dest = "debug",
+            help = "launch in debug mode",
+            action = "store_true",
+        )
 
 #----------------------------------------------------------------------------#
 class Controller( object ):
 #----------------------------------------------------------------------------#
-    """Loading and registering plugins"""
+    """
+    Loading and registering plugins.
+    """
     def __init__( self, path ):
         self.objects = {}
 
@@ -85,8 +92,11 @@ class Controller( object ):
 
         # overrides
         for override in self.options.values.overrides:
-            left, value = override.split( '=', 1 )
-            section, key = left.split( '.', 1 )
+            try:
+                left, value = override.split( '=', 1 )
+                section, key = left.split( '.', 1 )
+            except ValueError:
+                self.options.error( "Wrong format for override values" )
             if not self.config.has_section( section ):
                 self.config.add_section( section )
             self.config.set( section, key, value )
@@ -114,6 +124,11 @@ class Controller( object ):
                     LOG( LOG_INFO, "launching subsystem", subsystem )
             if self.tryClaimBusName( "%s.%s" % ( DBUS_BUS_NAME_PREFIX, subsystem ) ):
                 self.registerModulesInSubsystem( subsystem, path )
+
+        if not self.options.values.debug:
+            if len( self.busnames ) == 1: # no additional subsystems could be loaded
+                LOG( LOG_ERR, "can't launch without at least one subsystem. Exiting." )
+                sys.exit( -1 )
 
         LOG( LOG_INFO, "==================" )
         LOG( LOG_INFO, "objects registered" )
@@ -173,15 +188,30 @@ class Controller( object ):
                     LOG( LOG_ERR, format_exc() )
 
     def idle( self ):
-        LOG( LOG_DEBUG, "in-mainloop initializer" )
-        return False
+        LOG( LOG_DEBUG, "entered mainloop" )
+        #self.bus.add_signal_receiver(
+            #self._nameOwnerChanged,
+            #"NameOwnerChanged",
+            #"org.freedesktop.DBus",
+            #"org.freedesktop.DBus",
+            #"/org/freedesktop/DBus",
+            #sender_keyword = None,
+            #destination_keyword = None,
+            #interface_keyword = None,
+            #member_keyword = None,
+            #path_keyword = None )
+
+        return False # don't call me again
 
     def timeout( self ):
-        LOG( LOG_DEBUG, "regular timeout" )
-        return True
+        LOG( LOG_DEBUG, "alive and kicking" )
+        return True # call me again
 
     def run( self ):
         self.mainloop.run()
+
+    def _nameOwnerChanged( self, name_owner, *args ):
+        pass
 
 #----------------------------------------------------------------------------#
 if __name__ == "__main__":

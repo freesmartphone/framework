@@ -31,11 +31,12 @@ class AbstractModem( object ):
         assert AbstractModem.instance is None
         AbstractModem.instance = self
 
-        # container for channel instances
-        self._channels = {}
-        self._object = object
-        self._bus = bus
-        self._sCounter = None
+        self._channels = {}         # container for channel instances
+        self._object = object       # dbus object
+        self._bus = bus             # dbus bus
+        self._phonebookReady = False
+        self._messagebookReady = False
+        self._state = "off"
 
     def open( self, callback ):
         """
@@ -59,13 +60,55 @@ class AbstractModem( object ):
 
     def inject( self, channel, string ):
         """
-        Inject a string to a channel.
+        Injects a string to a channel.
         """
         self._channels[channel].readyToRead( string )
 
+    def isPhonebookReady( self ):
+        """
+        Returns true, if the SIM phonebook is ready. False, otherwise.
+        """
+        return self._phonebookReady
+
+    def isMessagebookReady( self ):
+        """
+        Returns true, if the SIM messagebook is ready. False, otherwise.
+        """
+        return self._messagebookReady
+
+    def stateAntennaOn( self ):
+        """
+        Notify channels that the antenna is now powered on.
+        """
+        for channel in self._channels.itervalues():
+            channel.modemStateAntennaOn()
+
+    def stateSimUnlocked( self ):
+        """
+        Notify channels that the SIM is now accessable.
+        """
+        for channel in self._channels.itervalues():
+            channel.modemStateSimUnlocked()
+
+    def statePhonebookReady( self ):
+        """
+        Notify channels that the phonebook is ready.
+        """
+        for channel in self._channels.itervalues():
+            channel.modemStatePhonebookReady()
+        self._phonebookReady = True
+
+    def stateMessagebookReady( self ):
+        """
+        Notify channels that the messagebook is ready.
+        """
+        for channel in self._channels.itervalues():
+            channel.modemStateMessagebookReady()
+        self._messagebookReady = True
+
     def prepareForSuspend( self, ok_callback, error_callback ):
         """
-        Prepare modem for suspend
+        Prepares the modem for suspend.
         """
         # FIXME can we refactor this into a generic useful callback/object adapter class?
         class MyOk(object):
@@ -97,7 +140,7 @@ class AbstractModem( object ):
 
     def recoverFromSuspend( self, ok_callback, error_callback ):
         """
-        Recover modem from suspend
+        Recovers the modem from suspend.
         """
         # FIXME can we refactor this into a generic useful callback/object adapter class?
         class MyOk(object):

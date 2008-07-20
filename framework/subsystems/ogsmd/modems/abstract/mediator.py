@@ -457,8 +457,8 @@ class SimGetHomeZones( SimMediator ): # a(siii)
             SimMediator.responseFromChannel( self, request, response )
         try:
             length, encoding, payload = response[0].split(",")
-        except ValueError:
-            self._ok( result )
+        except ValueError: # response did not include a payload
+            self._ok( [] )
         else:
             result = []
             for i in xrange( 4 ):

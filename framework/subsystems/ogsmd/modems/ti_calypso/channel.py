@@ -18,31 +18,17 @@ import itertools
 import select
 
 from ogsmd.gsm.decor import logged
-from ogsmd.gsm.channel import AtCommandChannel
 from ogsmd.gsm.callback import SimpleCallback
 
+from ogsmd.modems.abstract.channel import AbstractModemChannel
+
 #=========================================================================#
-class CalypsoModemChannel( AtCommandChannel ):
+class CalypsoModemChannel( AbstractModemChannel ):
 #=========================================================================#
     modem_communication_timestamp = 1
 
     def __init__( self, *args, **kwargs ):
-        AtCommandChannel.__init__( self, *args, **kwargs )
-
-        # reset
-        self.enqueue( "Z" ) # soft reset
-        self.enqueue( "E0V1" ) # echo off, verbose result on
-
-        # result and error reporting
-        self.enqueue( "+CMEE=1" ) # report mobile equipment errors: in numerical format
-        self.enqueue( "+CRC=1" ) # cellular result codes: enable extended format
-        self.enqueue( '+CSCS="8859-1" ') # character set conversion: use 8859-1 (latin 1)
-        self.enqueue( "+CSDH=1" ) # show text mode parameters: show values
-
-        # sms
-        self.enqueue( "+CMGF=1" ) # message format: disable pdu mode, enable text mode
-        self.enqueue( "+CSMS=1" ) # gsm phase 2+ extensions: enable
-
+        AbstractModemChannel.__init__( self, *args, **kwargs )
 
     @logged
     def _hookLowLevelInit( self ):
@@ -150,37 +136,26 @@ class UnsolicitedResponseChannel( CalypsoModemChannel ):
     def __init__( self, *args, **kwargs ):
         CalypsoModemChannel.__init__( self, *args, **kwargs )
 
-        self.enqueue( "+CLIP=1" ) # calling line identification presentation enable
-        self.enqueue( "+COLP=1" ) # connected line identification presentation enable
-        self.enqueue( "+CCWA=1" ) # call waiting: send unsol. code
-        self.enqueue( "+CSSN=1,1") # supplementary service notifications: send unsol. code
-        self.enqueue( "+CRC=1" ) # cellular result codes: extended
-        self.enqueue( "+CSNS=0" ) # single numbering scheme: voice
-        self.enqueue( "+CTZU=1" ) # timezone update: send unsol. code
-        self.enqueue( "+CTZR=1" ) # timezone reporting: send unsol. code
-        self.enqueue( "+CREG=2" ) # registration information (TODO not all modems support that)
+    def _populateCommands( self ):
+        CalypsoModemChannel._populateCommands( self )
 
-        self.enqueue( "+CAOC=2" ) # advice of charge: send unsol. code
-
-        # FIXME These will fail until CFUN=4 or CFUN=1 and SIM Auth is given
-        self.enqueue( "+CNMI=2,1,2,1,1" ) # buffer SMS on SIM, report new SMS after storing, report CB directly
-        self.enqueue( "%CBHZ=1" ) # home zone cell broadcast: activate automatic
-
+        c = self._commands["init"]
         # GPRS
-        self.enqueue( "+CGEREP=2,1" )
-        self.enqueue( "+CGREG=2" )
-
+        c.append( "+CGEREP=2,1" )
+        c.append( "+CGREG=2" )
         # calypso proprietary
-        self.enqueue( "%CPI=3" ) # call progress indication: enable with call number ID, GSM Cause, and ALS
-        self.enqueue( "%CSCN=1,2,1,2" ) # show service change: call control service and supplementary service
-        self.enqueue( "%CSQ=1" ) # signal strength: send unsol. code
-        self.enqueue( "%CNIV=1" )
-        self.enqueue( "%CGEREP=1" )
-        self.enqueue( "%CGREG=3" )
-        self.enqueue( "%CSTAT=1" )
-        self.enqueue( '@ST="-26"' ) # audio side tone: set to minimum
-
+        c.append( "%CPI=3" ) # call progress indication: enable with call number ID, GSM Cause, and ALS
+        c.append( "%CSCN=1,2,1,2" ) # show service change: call control service and supplementary service
+        c.append( "%CSQ=1" ) # signal strength: send unsol. code
+        c.append( "%CNIV=1" )
+        c.append( "%CGEREP=1" )
+        c.append( "%CGREG=3" )
+        c.append( "%CSTAT=1" )
+        c.append( '@ST="-26"' ) # audio side tone: set to minimum
         # FIXME might enable %CPRI later
+
+        c = self._commands["sim"]
+        c.append( "%CBHZ=1" ) # home zone cell broadcast: activate automatic (send frequently, not just once)
 
     @logged
     def suspend( self, ok_callback, error_callback ):

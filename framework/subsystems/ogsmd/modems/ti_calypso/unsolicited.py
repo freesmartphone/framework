@@ -47,19 +47,10 @@ class UnsolicitedResponseDelegate( AbstractUnsolicitedResponseDelegate ):
         if info:
             self._mediator.callHandler.statusChangeFromNetwork( int(callId)+1, info )
 
-    # %CSSN: 1,0,A11502010802013B300D04010F0408AA510C0683C16423
-    def percentCSSN( self, righthandside ):
-        direction, transPart, ie = righthandside.split( "," )
-
-    # %CSQ:  17, 0, 1
-    def percentCSQ( self, righthandside ):
-        strength, snr, quality = righthandside.split( "," )
-        self._object.SignalStrength( const.signalQualityToPercentage( int(strength) ) ) # send dbus signal
-
     # %CPI: 1,0,0,0,1,0,"+491772616464",145,,,0
     def percentCPI( self, righthandside ):
         """
-        TI Calypso Call Progress Indication:
+        Call Progress Indication:
         callId = call number in internal call table (same as call number in CCLD)
         msgType = 0:setup, 1:disconnect, 2:alert, 3:call, 4:sync, 5:progress, 6:connected, 7:release, 8:reject (from network), 9:request
         ibt = 1, if in-band-tones enabled
@@ -121,8 +112,8 @@ class UnsolicitedResponseDelegate( AbstractUnsolicitedResponseDelegate ):
         """
         callId, msgType, ibt, tch, direction, mode, number, ntype, alpha, cause, line = righthandside.split( "," )
 
-        devchannel = self._object.modem.communicationChannel( "DeviceMediator" )
-        devchannel.enqueue( "+CPAS;+CEER" )
+        #devchannel = self._object.modem.communicationChannel( "DeviceMediator" )
+        #devchannel.enqueue( "+CPAS;+CEER" )
 
         info = {}
 
@@ -147,3 +138,30 @@ class UnsolicitedResponseDelegate( AbstractUnsolicitedResponseDelegate ):
         if msgType in ( "01689" ):
             self._mediator.callHandler.statusChangeFromNetwork( int(callId), info )
 
+    # %CSSN: 1,0,A11502010802013B300D04010F0408AA510C0683C16423
+    def percentCSSN( self, righthandside ):
+        direction, transPart, ie = righthandside.split( "," )
+
+    # %CSTAT: PHB,1
+    # %CSTAT: SMS,1
+    # %CSTAT: READY,1
+    # %CSTAT: EONS,1 ???
+    def percentCSTAT( self, righthandside ):
+        """
+        subsystem status report
+        """
+        subsystem, available = righthandside.split( "," )
+        if not bool(int(available)):
+            return # we only care about good news ;)
+        if subsystem == "PHB":
+            self._object.PhonebookReady()
+        elif subsystem == "SMS":
+            self._object.MessagebookReady()
+
+    # %CSQ:  17, 0, 1
+    def percentCSQ( self, righthandside ):
+        """
+        signal strength report
+        """
+        strength, snr, quality = righthandside.split( "," )
+        self._object.SignalStrength( const.signalQualityToPercentage( int(strength) ) ) # send dbus signal

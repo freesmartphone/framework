@@ -197,7 +197,6 @@ class VirtualChannel( object ):
         self.open()
         return True
 
-    @logged
     def _readyToRead( self, source, condition ):
         """Called, if data is available on the source."""
         assert source == self.serial.fd, "ready to read on bogus source"
@@ -218,7 +217,6 @@ class VirtualChannel( object ):
         self._hookPostReading()
         return True
 
-    @logged
     def _readyToSend( self, source, condition ):
         """Called, if source is ready to receive data."""
         assert source == self.serial.fd, "ready to write on bogus source"
@@ -346,7 +344,6 @@ class QueuedVirtualChannel( VirtualChannel ):
             self.watchTimeout = gobject.timeout_add_seconds( self.q.peek()[3], self._handleCommandTimeout )
         return False
 
-    @logged
     def readyToRead( self, data ):
         """
         Reimplemented for internal purposes.
@@ -389,9 +386,9 @@ class QueuedVirtualChannel( VirtualChannel ):
         """
         reqstring, ok_cb, error_cb, timeout = request
         if not ok_cb and not error_cb:
-            print "(%s: TIMEOUT '%s' => ???)" % ( repr(self), reqstring.strip() )
+            if __debug__: print "(%s: TIMEOUT '%s' => ???)" % ( repr(self), reqstring.strip() )
         else:
-            print "(%s: TIMEOUT '%s' => ???)" % ( repr(self), reqstring.strip() )
+            if __debug__: print "(%s: TIMEOUT '%s' => ???)" % ( repr(self), reqstring.strip() )
             error_cb( reqstring.strip(), ( "timeout", timeout ) )
 
     #
@@ -411,9 +408,9 @@ class QueuedVirtualChannel( VirtualChannel ):
         gobject.source_remove( self.watchTimeout )
         self.watchTimeout = None
         # send EOF to cancel current command
-        print "(%s: sending EOF)" % repr(self)
+        if __debug__: print "(%s: sending EOF)" % repr(self)
         self.serial.write( "\x1A" )
-        print "(%s: EOF sent)" % repr(self)
+        if __debug__: print "(%s: EOF sent)" % repr(self)
         # We do _not_ erase the current command and send cancellation ACK,
         # otherwise we would get an "unsolicited" OK as response. If for
         # whatever reason we want to change the semantics, we could do
@@ -422,14 +419,14 @@ class QueuedVirtualChannel( VirtualChannel ):
         #   reqstring, ok_cb, error_cb, timeout = request
         #   error_cb( reqstring.strip(), ( "cancel", timeout ) )
 
-    @logged
+    #@logged
     def _handleUnsolicitedResponse( self, response ):
         """
         Called, when an unsolicited response has been parsed.
         """
         self.handleUnsolicitedResponse( response )
 
-    @logged
+    #@logged
     def _handleResponseToRequest( self, response ):
         """
         Called, when a response to a request has been parsed.
@@ -445,7 +442,7 @@ class QueuedVirtualChannel( VirtualChannel ):
         if not self.watchReadyToSend:
             self.watchReadyToSend = gobject.io_add_watch( self.serial.fd, gobject.IO_OUT, self._readyToSend )
 
-    @logged
+    #@logged
     def _handleCommandTimeout( self ):
         """
         Called, when a command does not get a response within a certain timeout.
@@ -535,7 +532,6 @@ class AtCommandChannel( DelegateChannel ):
 
     Commands are prefixed according to v25ter. Multiline commands are handled.
     """
-    @logged
     def enqueue( self, command, response_cb=None, error_cb=None, timeout=None ):
         """
         Enqueue a single line or multiline command. Multiline commands have

@@ -180,6 +180,8 @@ class Device( dbus.service.Object ):
     @dbus.service.signal( DBUS_INTERFACE_SIM, "s" )
     def AuthStatus( self, status ):
         LOG( LOG_INFO, "auth status changed to", status )
+        if status == "READY":
+            self.modem.stateSimUnlocked()
 
     @dbus.service.method( DBUS_INTERFACE_SIM, "s", "",
                           async_callbacks=( "dbus_ok", "dbus_error" ) )
@@ -218,6 +220,16 @@ class Device( dbus.service.Object ):
         mediator.SimGetHomeZones( self, dbus_ok, dbus_error )
 
     ### SIM phonebook
+    @dbus.service.method( DBUS_INTERFACE_SIM, "", "b",
+                          async_callbacks=( "dbus_ok", "dbus_error" ) )
+    def GetPhonebookReady( self, dbus_ok, dbus_error ):
+        dbus_ok( self.modem.isPhonebookReady() )
+
+    @dbus.service.signal( DBUS_INTERFACE_SIM, "" )
+    def PhonebookReady( self ):
+        LOG( LOG_INFO, "sim phonebook is now ready" )
+        self.modem.statePhonebookReady()
+
     @dbus.service.method( DBUS_INTERFACE_SIM, "", "a{sv}",
                           async_callbacks=( "dbus_ok", "dbus_error" ) )
     def GetPhonebookInfo( self, dbus_ok, dbus_error ):
@@ -244,6 +256,16 @@ class Device( dbus.service.Object ):
         mediator.SimRetrieveEntry( self, dbus_ok, dbus_error, index=index )
 
     ### SIM messagebook
+    @dbus.service.method( DBUS_INTERFACE_SIM, "", "b",
+                          async_callbacks=( "dbus_ok", "dbus_error" ) )
+    def GetMessagebookReady( self, dbus_ok, dbus_error ):
+        dbus_ok( self.modem.isMessagebookReady() )
+
+    @dbus.service.signal( DBUS_INTERFACE_SIM, "" )
+    def MessagebookReady( self ):
+        LOG( LOG_INFO, "sim messagebook is now ready" )
+        self.modem.stateMessagebookReady()
+
     @dbus.service.method( DBUS_INTERFACE_SIM, "", "a{sv}",
                           async_callbacks=( "dbus_ok", "dbus_error" ) )
     def GetMessagebookInfo( self, dbus_ok, dbus_error ):
