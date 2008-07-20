@@ -356,6 +356,11 @@ ISUP_RELEASE_CAUSE = { \
  125: "125",
  126: "126",
  127: "Interworking, unspecified",
+ 252: "Call barring on outgoing calls",
+ 253: "Call barring on incoming calls",
+ 254: "Call impossible",
+ 255: "Lower layer failure",
+
 }
 
 #=========================================================================#
