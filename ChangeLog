@@ -1,3 +1,8 @@
+2008-07-20	Daniel Willmann <daniel@totalueberwachung.de>
+
+	* [ogpsd] Most of the Gypsy DBus interface is now implemented.
+	  What's missing are the GypsyDevice.Start/Stop and Control functions
+
 2008-07-18	Michael Lauer	<mickey@vanille-media.de>
 
 	* [odeviced] Added audio device plugin listening 

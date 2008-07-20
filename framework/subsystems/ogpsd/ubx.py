@@ -271,7 +271,6 @@ class UBXDevice( GPSDevice ):
         self.configure()
 
     def configure( self ):
-        print "configureing UBXDevice"
         # Clear volatile fields
 #        self.send("CFG-RST", 4, {"nav_bbr" : 0xffff, "Reset" : 0x01})
 
@@ -280,16 +279,18 @@ class UBXDevice( GPSDevice ):
         # Enable use of SBAS (even in testmode)
         self.send("CFG-SBAS", 8, {"mode" : 3, "usage" : 7, "maxsbas" : 3, "scanmode" : 0})
 
+        # Send NAV STATUS
+        self.send("CFG-MSG", 3, {"Class" : CLIDPAIR["NAV-STATUS"][0] , "MsgID" : CLIDPAIR["NAV-STATUS"][1] , "Rate" : 1 })
         # Send NAV POSLLH
         self.send("CFG-MSG", 3, {"Class" : CLIDPAIR["NAV-POSLLH"][0] , "MsgID" : CLIDPAIR["NAV-POSLLH"][1] , "Rate" : 1 })
+        # Send NAV VELNED
+        self.send("CFG-MSG", 3, {"Class" : CLIDPAIR["NAV-VELNED"][0] , "MsgID" : CLIDPAIR["NAV-VELNED"][1] , "Rate" : 1 })
         # Send NAV POSUTM
         #self.send("CFG-MSG", 3, {"Class" : CLIDPAIR["NAV-POSUTM"][0] , "MsgID" : CLIDPAIR["NAV-POSUTM"][1] , "Rate" : 1 })
         # Disable NAV TIMEUTC
         self.send("CFG-MSG", 3, {"Class" : CLIDPAIR["NAV-TIMEUTC"][0] , "MsgID" : CLIDPAIR["NAV-TIMEUTC"][1] , "Rate" : 0 })
         # Send NAV DOP
         self.send("CFG-MSG", 3, {"Class" : CLIDPAIR["NAV-DOP"][0] , "MsgID" : CLIDPAIR["NAV-DOP"][1] , "Rate" : 1 })
-        # Send NAV STATUS
-        self.send("CFG-MSG", 3, {"Class" : CLIDPAIR["NAV-STATUS"][0] , "MsgID" : CLIDPAIR["NAV-STATUS"][1] , "Rate" : 1 })
         # Send NAV SVINFO
         self.send("CFG-MSG", 3, {"Class" : CLIDPAIR["NAV-SVINFO"][0] , "MsgID" : CLIDPAIR["NAV-SVINFO"][1] , "Rate" : 5 })
 
@@ -385,13 +386,48 @@ class UBXDevice( GPSDevice ):
             except Exception, e:
                 print "Error in %s method: %s" % ( methodname, e )
 
-    def handle_NAV_DOP( self, data ):
+    def handle_NAV_STATUS( self, data ):
         data = data[0]
-        self._updateAccuracy( 7, data["PDOP"]/100.0, data["HDOP"]/100.0, data["VDOP"]/100.0 )
+        self.gpsfixstatus = data["Flags"]&0x01
+        fixtranstbl = [ 1, 1, 2, 3, 2, 1 ]
+        self._updateFixStatus( fixtranstbl[ data["GPSfix"] ] )
+
     def handle_NAV_POSLLH( self, data ):
         scaling = 10000000.0
+        valid = self.gpsfixstatus*3
+        if self.fixstatus == 3:
+            valid += 4
         data = data[0]
-        self._updatePosition( 7, data["ITOW"], data["LAT"]/scaling, data["LON"]/scaling, data["HEIGHT"]/1000.0 )
+        self._updatePosition( valid , data["ITOW"], data["LAT"]/scaling,
+                data["LON"]/scaling, data["HEIGHT"]/1000.0 )
+
+    def handle_NAV_DOP( self, data ):
+        valid = self.gpsfixstatus*2
+        if self.fixstatus == 3:
+            valid += 5
+        data = data[0]
+        self._updateAccuracy( valid, data["PDOP"]/100.0,
+                data["HDOP"]/100.0, data["VDOP"]/100.0 )
+
+    def handle_NAV_VELNED( self, data ):
+        valid = self.gpsfixstatus*3
+        if self.fixstatus == 3:
+            valid += 4
+        data = data[0]
+        self._updateCourse( valid, data["ITOW"], data["GSpeed"]*0.036,
+                data["Heading"]/100000.0, data["VEL_D"]*0.036 )
+
+    def handle_NAV_SVINFO( self, data ):
+        satellites = []
+        base = data[0]
+        data = data[1:]
+        for sat in data:
+            in_use = bool(sat["Flags"] & 0x01)
+            # Don't include satellites that are below the horizon
+            # (Gypsy interface requires positive elevation)
+            if sat["Elev"] > 0:
+                satellites.append( (sat["SVID"], in_use, sat["Elev"], sat["Azim"], sat["CNO"]) )
+        self._updateSatellites( satellites )
 
     def handle_NAV_TIMEUTC( self, data):
         data = data[0]
@@ -405,7 +441,6 @@ class UBXDevice( GPSDevice ):
     @dbus.service.method( DBUS_INTERFACE, "", "" )
     def GetTime( self ):
         self.send("NAV-TIMEUTC", 0, {})
-
 
     #
     # dbus signals
