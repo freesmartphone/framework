@@ -497,11 +497,11 @@ class SimGetHomeZones( SimMediator ): # a(siii)
         if response[-1] != "OK":
             SimMediator.responseFromChannel( self, request, response )
         try:
-            length, encoding, payload = response[0].split(",")
+            sw1, sw2, payload = self._rightHandSide( response[0] ).split(",")
         except ValueError: # response did not include a payload
             self._ok( [] )
         else:
-            if length, encoding != "144","0":
+            if int(sw1) != 144 or int(sw2) != 0: # command succeeded as per GSM 11.11, 9.4.1
                 self._ok( [] )
             else:
                 result = []
