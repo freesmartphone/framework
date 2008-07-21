@@ -13,6 +13,7 @@ Module: channel
 
 from ogsmd.gsm.decor import logged
 from ogsmd.gsm.channel import AtCommandChannel
+import gobject
 
 #=========================================================================#
 class AbstractModemChannel( AtCommandChannel ):
@@ -35,22 +36,19 @@ class AbstractModemChannel( AtCommandChannel ):
 
     def modemStateSimUnlocked( self ):
         """
-        Called, when the modem signalizes the SIM being accessable.
+        Called, when the modem signalizes the SIM being unlocked.
         """
-        self._sendCommands( "sim" )
 
-    def modemStatePhonebookReady( self ):
+        # don't hammer modem too early with the additional commands
+        # FIXME it's actually modem specific whether we can send the command directly
+        # after +CPIN: READY or not, so we should not have this here
+        gobject.timeout_add_seconds( 2, self._sendCommands, "sim" )
+
+    def modemStateSimReady( self ):
         """
-        Called, when the modem signalizes the phonebook being ready.
+        Called, when the modem signalizes the SIM data can be read.
         """
         pass
-
-    def modemStateMessagebookReady( self ):
-        """
-        Called, when the modem signalizes the messagebook being ready.
-        """
-        pass
-
     #
     # internal API
     #
@@ -67,31 +65,25 @@ class AbstractModemChannel( AtCommandChannel ):
 
         c = []
         # reset
-        c.append( 'Z' ) # soft reset
-        c.append( 'E0V1' ) # echo off, verbose result on
+        c.append( 'Z' )                 # soft reset
+        c.append( 'E0V1' )              # echo off, verbose result on
         # error and result reporting reporting
-        c.append( '+CMEE=1' ) # report mobile equipment errors: in numerical format
-        c.append( '+CRC=1' ) # cellular result codes: enable extended format
-        c.append( '+CSCS="8859-1"' ) # character set conversion: use 8859-1 (latin 1)
-        c.append( '+CSDH=1' ) # show text mode parameters: show values
+        c.append( '+CMEE=1' )           # report mobile equipment errors: in numerical format
+        c.append( '+CRC=1' )            # cellular result codes: enable extended format
+        c.append( '+CSCS="8859-1"' )    # character set conversion: use 8859-1 (latin 1)
+        c.append( '+CSDH=1' )           # show text mode parameters: show values
+        c.append( '+CSNS=0' )           # single numbering scheme: voice
         # sms
-        c.append( '+CMGF=1' ) # message format: disable pdu mode, enable text mode
-        c.append( '+CSMS=1' ) # GSM Phase 2+ commands: enable
+        c.append( '+CMGF=1' )           # message format: disable pdu mode, enable text mode
+        c.append( '+CSMS=1' )           # GSM Phase 2+ commands: enable
         # unsolicited
-        c.append( '+CLIP=1' ) # calling line identification presentation enable
-        c.append( '+COLP=1' ) # connected line identification presentation enable
-        c.append( '+CCWA=1' ) # call waiting
-        c.append( "+CSSN=1,1" ) # supplementary service notifications: send unsol. code
-        c.append( '+CRC=1' ) # cellular result codes: extended
-        c.append( '+CSNS=0' ) # single numbering scheme: voice
-        c.append( '+CTZU=1' ) # timezone update
-        c.append( '+CTZR=1' ) # timezone reporting
-        c.append( '+CREG=2' ) # registration information (TODO not all modems support that)
-        c.append( "+CAOC=2" ) # advice of charge: send unsol. code
+        c.append( '+CLIP=0' )           # calling line identification presentation: disable
+        c.append( '+COLP=0' )           # connected line identification presentation: disable
+        c.append( '+CCWA=0' )           # call waiting: disable
         self._commands["init"] = c
 
         c = []
-        c.append( "+CNMI=2,1,2,1,1" ) # buffer sms on SIM, report CB directly
+        c.append( "+CNMI=2,1,2,1,1" )   # buffer sms on SIM, report CB directly
 
         self._commands["sim"] = c
 

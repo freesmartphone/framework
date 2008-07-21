@@ -16,6 +16,8 @@ class UnsolicitedResponseDelegate( AbstractUnsolicitedResponseDelegate ):
         AbstractUnsolicitedResponseDelegate.__init__( self, *args, **kwargs )
         self._mediator.createCallHandler( self._object )
 
+        self.readyness = "unknown"
+
     # +CRING is only used to trigger a status update
     def plusCRING( self, calltype ):
         pass
@@ -144,7 +146,7 @@ class UnsolicitedResponseDelegate( AbstractUnsolicitedResponseDelegate ):
 
     # %CSTAT: PHB,1
     # %CSTAT: SMS,1
-    # %CSTAT: READY,1
+    # %CSTAT: RDY,1
     # %CSTAT: EONS,1 ???
     def percentCSTAT( self, righthandside ):
         """
@@ -152,11 +154,15 @@ class UnsolicitedResponseDelegate( AbstractUnsolicitedResponseDelegate ):
         """
         subsystem, available = righthandside.split( "," )
         if not bool(int(available)):
-            return # we only care about good news ;)
-        if subsystem == "PHB":
-            self._object.PhonebookReady()
-        elif subsystem == "SMS":
-            self._object.MessagebookReady()
+            if subsystem in ( "PHB", "SMS" ):
+                if not self.readyness == False:
+                    self._object.ReadyStatus( False )
+                    self.readyness = False
+        else:
+            if subsystem == "RDY":
+                if not self.readyness == True:
+                    self._object.ReadyStatus( True )
+                    self.readyness = True
 
     # %CSQ:  17, 0, 1
     def percentCSQ( self, righthandside ):

@@ -31,12 +31,11 @@ class AbstractModem( object ):
         assert AbstractModem.instance is None
         AbstractModem.instance = self
 
-        self._channels = {}         # container for channel instances
-        self._object = object       # dbus object
-        self._bus = bus             # dbus bus
-        self._phonebookReady = False
-        self._messagebookReady = False
-        self._state = "off"
+        self._channels = {}             # container for channel instances
+        self._object = object           # dbus object
+        self._bus = bus                 # dbus bus
+        self._simPinState = "unknown"   # SIM PIN state
+        self._simReady = "unknown"      # SIM data access state
 
     def open( self, callback ):
         """
@@ -64,17 +63,17 @@ class AbstractModem( object ):
         """
         self._channels[channel].readyToRead( string )
 
-    def isPhonebookReady( self ):
+    def simPinState( self ):
         """
-        Returns true, if the SIM phonebook is ready. False, otherwise.
+        Returns the SIM PIN state
         """
-        return self._phonebookReady
+        return self._simPinState
 
-    def isMessagebookReady( self ):
+    def simReady( self ):
         """
-        Returns true, if the SIM messagebook is ready. False, otherwise.
+        Returns the SIM availability state.
         """
-        return self._messagebookReady
+        return self._simReady
 
     def stateAntennaOn( self ):
         """
@@ -83,28 +82,23 @@ class AbstractModem( object ):
         for channel in self._channels.itervalues():
             channel.modemStateAntennaOn()
 
-    def stateSimUnlocked( self ):
+    def setSimPinState( self, state ):
         """
-        Notify channels that the SIM is now accessable.
+        Set and notify channels about a new SIM PIN state.
         """
-        for channel in self._channels.itervalues():
-            channel.modemStateSimUnlocked()
+        self._simPinState = state
+        if state == "READY":
+            for channel in self._channels.itervalues():
+                channel.modemStateSimUnlocked()
 
-    def statePhonebookReady( self ):
+    def setSimReady( self, ready ):
         """
-        Notify channels that the phonebook is ready.
+        Set and notify channels about a SIM data accessibility.
         """
-        for channel in self._channels.itervalues():
-            channel.modemStatePhonebookReady()
-        self._phonebookReady = True
-
-    def stateMessagebookReady( self ):
-        """
-        Notify channels that the messagebook is ready.
-        """
-        for channel in self._channels.itervalues():
-            channel.modemStateMessagebookReady()
-        self._messagebookReady = True
+        self._simReady = ready
+        if ready == True:
+            for channel in self._channels.itervalues():
+                channel.modemStateSimReady()
 
     def prepareForSuspend( self, ok_callback, error_callback ):
         """

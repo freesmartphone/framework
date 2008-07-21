@@ -24,6 +24,10 @@
 * +CIEV supports 'signal' and 'smsfull' and has to be explicitly enabled with:
   +CMER=2,0,0,1,0 and +CIND=5,1
 
+* +CBM Cell broadcasts only appear on the channel that issued +CNMI the last time.
+
+* %CBHZ=1 needs to be issued otherwise the Calypso will swallow everything but the first CB
+
 === GSM standards violations ===
 
 === Proprietary commands ===

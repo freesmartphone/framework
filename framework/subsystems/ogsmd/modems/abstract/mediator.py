@@ -280,10 +280,11 @@ class DeviceSetAntennaPower( DeviceMediator ):
 
     def intermediateResponse( self, request, response ):
         if not response[-1] == "OK":
-            # unknown PIN state
-            self.pin_state = "UNKNOWN"
+            pin_state = "UNKNOWN"
         else:
-            self.pin_state = self._rightHandSide( response[0] )
+            pin_state = self._rightHandSide( response[0] )
+            if pin_state != self._object.modem._simPinState:
+                self._object.AuthStatus( pin_state )
 
         self._commchannel.enqueue( "+CFUN=%d" % self.power, self.responseFromChannel, self.errorFromChannel )
 
@@ -299,13 +300,11 @@ class DeviceSetAntennaPower( DeviceMediator ):
     def intermediateResponse2( self, request, response ):
         if not response[-1] == "OK":
             # unknown PIN state
-            new_pin_state = "UNKNOWN"
+            pin_state = "UNKNOWN"
         else:
-            new_pin_state = self._rightHandSide( response[0] )
-
-        if self.pin_state != new_pin_state:
-            # notify clients
-            self._object.AuthStatus( new_pin_state )
+            pin_state = self._rightHandSide( response[0] )
+            if pin_state != self._object.modem._simPinState:
+                self._object.AuthStatus( pin_state )
 
 #=========================================================================#
 class DeviceGetFeatures( DeviceMediator ):

@@ -39,4 +39,4 @@ class SingleLine( AbstractModem ):
 
     def portfactory( self, name ):
         # FIXME read from configuration
-        return "/dev/ttyS0"
+        return "/dev/ttySAC0"

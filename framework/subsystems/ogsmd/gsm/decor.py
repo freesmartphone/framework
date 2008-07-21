@@ -52,6 +52,31 @@ def logged( fn ):
     return logIt
 
 #=========================================================================#
+def cached( fn ):
+#=========================================================================#
+    """
+    Decorator that caches the last function result.
+    """
+    def wrapper( self, *args, **kwargs ):
+        if fn.args != args or fn.kwargs != kwargs:
+            result = fn( self, *args, **kwargs )
+            fn.args = args
+            fn.kwargs = kwargs
+            fn.result = result
+            return result
+        else:
+            return fn.result
+
+    fn.args = None
+    fn.kwargs = None
+    fn.result = None
+
+    wrapper.__dict__ = fn.__dict__
+    wrapper.__name__ = fn.__name__
+    wrapper.__doc__ = fn.__doc__
+    return wrapper
+
+#=========================================================================#
 def dbuscalls( fn ):
 #=========================================================================#
     """

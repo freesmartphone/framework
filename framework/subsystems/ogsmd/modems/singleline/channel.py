@@ -22,33 +22,40 @@ class SingleLineChannel( AtCommandChannel ):
         if not "timeout" in kwargs:
             kwargs["timeout"] = 60*60
 
+    def _populateCommands( self ):
+        """
+        Populate the command queues to be sent on modem state changes.
+        """
+
+        c = []
         # reset
-        self.enqueue('Z') # soft reset
-        self.enqueue('E0V1') # echo off, verbose result on
-
+        c.append( 'Z' ) # soft reset
+        c.append( 'E0V1' ) # echo off, verbose result on
         # error and result reporting reporting
-        self.enqueue('+CMEE=1') # report mobile equipment errors: in numerical format
-        self.enqueue('+CRC=1') # cellular result codes: enable extended format
-        self.enqueue('+CSCS="8859-1"') # character set conversion: use 8859-1 (latin 1)
-        self.enqueue('+CSDH=1') # show text mode parameters: show values
-
+        c.append( '+CMEE=1' ) # report mobile equipment errors: in numerical format
+        c.append( '+CRC=1' ) # cellular result codes: enable extended format
+        c.append( '+CSCS="8859-1"' ) # character set conversion: use 8859-1 (latin 1)
+        c.append( '+CSDH=1' ) # show text mode parameters: show values
         # sms
-        self.enqueue('+CMGF=1') # message format: disable pdu mode, enable text mode
-        self.enqueue('+CSMS=1') # GSM Phase 2+ commands: enable
-
+        c.append( '+CMGF=1' ) # message format: disable pdu mode, enable text mode
+        c.append( '+CSMS=1' ) # GSM Phase 2+ commands: enable
         # unsolicited
-        self.enqueue('+CLIP=1') # calling line identification presentation enable
-        self.enqueue('+COLP=1') # connected line identification presentation enable
-        self.enqueue('+CCWA=1') # call waiting
-        self.enqueue('+CRC=1') # cellular result codes: extended
-        self.enqueue('+CSNS=0') # single numbering scheme: voice
-        self.enqueue('+CTZU=1') # timezone update
-        self.enqueue('+CTZR=1') # timezone reporting
-        self.enqueue('+CREG=2') # registration information (TODO not all modems support that)
+        c.append( '+CLIP=1' ) # calling line identification presentation enable
+        c.append( '+COLP=1' ) # connected line identification presentation enable
+        c.append( '+CCWA=1' ) # call waiting
+        c.append( "+CSSN=1,1" ) # supplementary service notifications: send unsol. code
+        c.append( '+CRC=1' ) # cellular result codes: extended
+        c.append( '+CSNS=0' ) # single numbering scheme: voice
+        c.append( '+CTZU=1' ) # timezone update
+        c.append( '+CTZR=1' ) # timezone reporting
+        c.append( '+CREG=2' ) # registration information (TODO not all modems support that)
+        c.append( "+CAOC=2" ) # advice of charge: send unsol. code
+        self._commands["init"] = c
 
-        # this will error until SIM authenticated
-        self.enqueue('+CNMI=2,1,2,1,1') # buffer sms on SIM, report CB directly
+        c = []
+        c.append( "+CNMI=2,1,2,1,1" ) # buffer sms on SIM, report CB directly
 
-    @logged
-    def open( self, path="/dev/ttySAC0" ):
-        AtCommandChannel.open( self, path )
+        self._commands["sim"] = c
+
+        c = []
+        self._commands["antenna"] = c
