@@ -21,6 +21,8 @@ from gpschannel import *
 #----------------------------------------------------------------------------#
 def factory( prefix, controller ):
 #----------------------------------------------------------------------------#
+    controller.tryClaimBusName( "org.freedesktop.Gypsy" )
+
     objects = []
 
     devname = controller.config.get( "ogpsd", "device" )
