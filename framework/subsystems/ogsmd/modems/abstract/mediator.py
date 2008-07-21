@@ -363,6 +363,16 @@ class SimUnlock( SimMediator ):
     def trigger( self ):
         self._commchannel.enqueue( '+CPIN="%s","%s"' % ( self.puk, self.new_pin ), self.responseFromChannel, self.errorFromChannel )
 
+    @logged
+    def responseFromChannel( self, request, response ):
+        if response[-1] == "OK":
+            self._ok()
+            # send auth status signal
+            if response[0].startswith( "+CPIN" ):
+                self._object.AuthStatus( self._rightHandSide( response[0] ) )
+        else:
+            SimMediator.responseFromChannel( self, request, response )
+
 #=========================================================================#
 class SimChangeAuthCode( SimMediator ):
 #=========================================================================#
