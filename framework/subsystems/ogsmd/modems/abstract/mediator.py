@@ -501,10 +501,13 @@ class SimGetHomeZones( SimMediator ): # a(siii)
         except ValueError: # response did not include a payload
             self._ok( [] )
         else:
-            result = []
-            for i in xrange( 4 ):
-                self.addHomeZone( payload[34+52*i:34+52*(i+1)], i+1, result )
-            self._ok( result )
+            if length, encoding != "144","0":
+                self._ok( [] )
+            else:
+                result = []
+                for i in xrange( 4 ):
+                    self.addHomeZone( payload[34+52*i:34+52*(i+1)], i+1, result )
+                self._ok( result )
 
 #=========================================================================#
 class SimGetPhonebookInfo( SimMediator ):
