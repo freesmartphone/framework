@@ -290,15 +290,20 @@ class Device( dbus.service.Object ):
     def SetServiceCenterNumber( self, number, dbus_ok, dbus_error ):
         mediator.SimSetServiceCenterNumber( self, dbus_ok, dbus_error, number=number )
 
-    @dbus.service.method( DBUS_INTERFACE_SIM, "i", "",
-                          async_callbacks=( "dbus_ok", "dbus_error" ) )
-    def DeleteMessage( self, index, dbus_ok, dbus_error ):
-        mediator.SimDeleteMessage( self, dbus_ok, dbus_error, index=index )
-
     @dbus.service.method( DBUS_INTERFACE_SIM, "ss", "i",
                           async_callbacks=( "dbus_ok", "dbus_error" ) )
     def StoreMessage( self, number, contents, dbus_ok, dbus_error ):
         mediator.SimStoreMessage( self, dbus_ok, dbus_error, number=number, contents=contents )
+
+    @dbus.service.method( DBUS_INTERFACE_SIM, "i", "",
+                          async_callbacks=( "dbus_ok", "dbus_error" ) )
+    def SendStoredMessage( self, index, dbus_ok, dbus_error ):
+        mediator.SimSendStoredMessage( self, dbus_ok, dbus_error, index=index )
+
+    @dbus.service.method( DBUS_INTERFACE_SIM, "i", "",
+                          async_callbacks=( "dbus_ok", "dbus_error" ) )
+    def DeleteMessage( self, index, dbus_ok, dbus_error ):
+        mediator.SimDeleteMessage( self, dbus_ok, dbus_error, index=index )
 
     @dbus.service.signal( DBUS_INTERFACE_SIM, "i" )
     def NewMessage( self, index ):

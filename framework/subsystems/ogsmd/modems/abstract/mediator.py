@@ -89,7 +89,7 @@ class AbstractMediator( object ):
 
         if category == "CME":
             if code == 3:
-                # seen as result of +COPS=0 w/ auth state = SIM PIN
+                # seen as result of +COPS=0 or +CLCK=... w/ auth state = SIM PIN
                 # seen as result of +CPBR w/ index out of bounds
                 e = error.NetworkUnauthorized()
             elif code == 4:
@@ -718,6 +718,12 @@ class SimStoreMessage( SimMediator ):
             SimMediator.responseFromChannel( self, request, response )
         else:
             self._ok( int(self._rightHandSide(response[0])) )
+
+#=========================================================================#
+class SimSendStoredMessage( SimMediator ):
+#=========================================================================#
+    def trigger( self ):
+        self._commchannel.enqueue( "+CMSS=%d" % self.index, self.responseFromChannel, self.errorFromChannel )
 
 #=========================================================================#
 class SimDeleteMessage( SimMediator ):
