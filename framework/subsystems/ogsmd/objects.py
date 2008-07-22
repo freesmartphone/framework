@@ -34,6 +34,7 @@ DBUS_INTERFACE_PDP = "org.freesmartphone.GSM.PDP"
 DBUS_INTERFACE_CB = "org.freesmartphone.GSM.CB"
 
 DBUS_INTERFACE_SERVER = "org.freesmartphone.GSM.Server"
+DBUS_INTERFACE_HZ = "org.freesmartphone.GSM.HZ"
 
 DBUS_INTERFACE_DEBUG = "org.freesmartphone.GSM.Debug"
 
@@ -42,6 +43,8 @@ DBUS_BUS_NAME_SERVER = "org.freesmartphone.ogsmd"
 
 DBUS_OBJECT_PATH_DEVICE = "/org/freesmartphone/GSM/Device"
 DBUS_OBJECT_PATH_SERVER = "/org/freesmartphone/GSM/Server"
+
+DEBUG = False
 
 #=========================================================================#
 class Server( dbus.service.Object ):
@@ -84,14 +87,12 @@ class Server( dbus.service.Object ):
     #
     def onIncomingCellBroadcast( self, channel, data ):
 
-        def failed( *args, **kwargs ):
-            print "error getting SIM homezones"
-            print args, kwargs
-
         def gotHomezones( homezones, self=self ):
             print "got SIM homezones:", homezones
             self.homezones = homezones
-            self.homezones = [ ( "city", 347747, 555093, 1000 ), ( "home", 400000, 500000, 1000 ) ]
+            # debug code, if you have no homezones on your SIM. To test, use:
+            # gsm.DebugInjectString("UNSOL","+CBM: 16,221,0,1,1\r\n347747555093\r\r\r\n")
+            if DEBUG: self.homezones = [ ( "city", 347747, 555093, 1000 ), ( "home", 400000, 500000, 1000 ) ]
             self.checkInHomezones()
 
         if channel == 221: # home zone cell broadcast
@@ -101,7 +102,7 @@ class Server( dbus.service.Object ):
             print "home zone cell broadcast detected:", self.x, self.y
             if self.homezones is None: # never tried to read them
                 print "trying to read home zones from SIM"
-                self.fso_sim.GetHomeZones( reply_handler=gotHomezones, error_handler=failed )
+                self.fso_sim.GetHomeZones( reply_handler=gotHomezones, error_handler=lambda error:None )
             else:
                 self.checkInHomezones()
 
@@ -120,17 +121,31 @@ class Server( dbus.service.Object ):
         return dist < maxdist
 
     #
-    # Homezone
+    # dbus
     #
-    @dbus.service.method( DBUS_INTERFACE_SERVER, "", "s",
+    @dbus.service.method( DBUS_INTERFACE_HZ, "", "s",
                           async_callbacks=( "dbus_ok", "dbus_error" ) )
     def GetHomeZoneStatus( self, dbus_ok, dbus_error ):
         dbus_ok( self.zone )
 
-    @dbus.service.signal( DBUS_INTERFACE_SERVER, "s" )
+    @dbus.service.signal( DBUS_INTERFACE_HZ, "s" )
     def HomeZoneStatus( self, zone ):
         self.zone = zone
         LOG( LOG_INFO, "home zone status now", zone )
+
+    @dbus.service.method( DBUS_INTERFACE_HZ, "", "as",
+                          async_callbacks=( "dbus_ok", "dbus_error" ) )
+    def GetKnownHomeZones( self, dbus_ok, dbus_error ):
+
+        def gotHomezones( homezones, self=self, dbus_ok=dbus_ok ):
+            print "got SIM homezones:", homezones
+            self.homezones = homezones
+            # debug code, if you have no homezones on your SIM. To test, use:
+            # gsm.DebugInjectString("UNSOL","+CBM: 16,221,0,1,1\r\n347747555093\r\r\r\n")
+            if DEBUG: self.homezones = [ ( "city", 347747, 555093, 1000 ), ( "home", 400000, 500000, 1000 ) ]
+            dbus_ok( [ zone[0] for zone in self.homezones ] )
+
+        self.fso_sim.GetHomeZones( reply_handler=gotHomezones, error_handler=lambda error:None )
 
     # Send Diffs only
     # Caching strategy
