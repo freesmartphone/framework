@@ -140,10 +140,19 @@ class UnsolicitedResponseChannel( CalypsoModemChannel ):
         CalypsoModemChannel._populateCommands( self )
 
         c = self._commands["init"]
-        # GPRS
+        # GSM unsolicited
+        c.append( '+CLIP=1' ) # calling line identification presentation enable
+        c.append( '+COLP=1' ) # connected line identification presentation enable
+        c.append( '+CCWA=1' ) # call waiting
+        c.append( "+CSSN=1,1" ) # supplementary service notifications: send unsol. code
+        c.append( '+CTZU=1' ) # timezone update
+        c.append( '+CTZR=1' ) # timezone reporting
+        c.append( '+CREG=2' ) # registration information (NOTE not all modems support =2)
+        c.append( "+CAOC=2" ) # advice of charge: send unsol. code
+        # GPRS unsolicited
         c.append( "+CGEREP=2,1" )
         c.append( "+CGREG=2" )
-        # calypso proprietary
+        # calypso proprietary unsolicited
         c.append( "%CPI=3" ) # call progress indication: enable with call number ID, GSM Cause, and ALS
         c.append( "%CSCN=1,2,1,2" ) # show service change: call control service and supplementary service
         c.append( "%CSQ=1" ) # signal strength: send unsol. code
