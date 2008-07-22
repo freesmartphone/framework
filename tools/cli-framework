@@ -41,7 +41,14 @@ bus = dbus.SystemBus()
 
 # FIXME use introspection
 
+# ogsmd device object
 gsm = getObject( bus, "org.freesmartphone.ogsmd", "/org/freesmartphone/GSM/Device" )
+
+# ogsmd server object
+gsmserver = getInterface( bus,
+    "org.freesmartphone.ogsmd",
+    "/org/freesmartphone/GSM/Server",
+    "org.freesmartphone.GSM.Server" )
 
 audio = getInterface( \
     bus,
@@ -50,11 +57,6 @@ audio = getInterface( \
     "org.freesmartphone.Device.Audio" \
     )
 
-# ophoned
-gsmserver = getInterface( bus,
-    "org.freesmartphone.ogsmd",
-    "/org/freesmartphone/GSM/Server",
-    "org.freesmartphone.GSM.Server" )
 
 # device
 gsmdevice = getInterface( bus,

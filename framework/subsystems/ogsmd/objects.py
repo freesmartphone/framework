@@ -23,6 +23,7 @@ import dbus.service
 from dbus import DBusException
 from gobject import timeout_add, idle_add
 import weakref
+import math
 import sys, os
 
 DBUS_INTERFACE_DEVICE = "org.freesmartphone.GSM.Device"
@@ -64,20 +65,72 @@ class Server( dbus.service.Object ):
         self.path = DBUS_OBJECT_PATH_SERVER
         dbus.service.Object.__init__( self, bus, self.path )
         LOG( LOG_INFO, "%s initialized. Serving %s at %s" % ( self.__class__.__name__, self.interface, self.path ) )
+        self.bus = bus
+        self.homezones = None
+        self.zone = "unknown"
+        self.setupSignals()
 
-        self.device = device
+    def setupSignals( self ):
+        device = self.bus.get_object( DBUS_BUS_NAME_DEVICE, DBUS_OBJECT_PATH_DEVICE )
+        self.fso_cb = dbus.Interface( device, DBUS_INTERFACE_CB )
+        self.fso_cb.connect_to_signal( "IncomingCellBroadcast", self.onIncomingCellBroadcast )
+        self.fso_sim = dbus.Interface( device, DBUS_INTERFACE_SIM )
 
     def __del__( self ):
         server = None
 
     #
-    # dbus
+    # signal handlers
     #
-    @dbus.service.method( DBUS_INTERFACE_SERVER, "s", "",
+    def onIncomingCellBroadcast( self, channel, data ):
+
+        def failed( *args, **kwargs ):
+            print "error getting SIM homezones"
+            print args, kwargs
+
+        def gotHomezones( homezones, self=self ):
+            print "got SIM homezones:", homezones
+            self.homezones = homezones
+            self.homezones = [ ( "city", 347747, 555093, 1000 ), ( "home", 400000, 500000, 1000 ) ]
+            self.checkInHomezones()
+
+        if channel == 221: # home zone cell broadcast
+            if len( data ) != 12:
+                return
+            self.x, self.y = int( data[:6] ), int( data[6:] )
+            print "home zone cell broadcast detected:", self.x, self.y
+            if self.homezones is None: # never tried to read them
+                print "trying to read home zones from SIM"
+                self.fso_sim.GetHomeZones( reply_handler=gotHomezones, error_handler=failed )
+            else:
+                self.checkInHomezones()
+
+    def checkInHomezones( self ):
+        status = ""
+        for zname, zx, zy, zr in self.homezones:
+            if self.checkInHomezone( self.x, self.y, zx, zy, zr ):
+                status = zname
+                break
+        self.HomeZoneStatus( status )
+
+    def checkInHomezone( self, x, y, zx, zy, zr ):
+        print "matching", x, y, "with", zx, zy, "(", zr, ")"
+        dist = math.sqrt( math.pow( x-zx, 2 ) + math.pow( y-zy, 2 ) ) * 10
+        maxdist = math.sqrt( zr ) * 10
+        return dist < maxdist
+
+    #
+    # Homezone
+    #
+    @dbus.service.method( DBUS_INTERFACE_SERVER, "", "s",
                           async_callbacks=( "dbus_ok", "dbus_error" ) )
-    def SetupAndRegister( self, pin, dbus_ok, dbus_error ):
-        self.device.SetAntennaPower( True )
-        dbus_ok()
+    def GetHomeZoneStatus( self, dbus_ok, dbus_error ):
+        dbus_ok( self.zone )
+
+    @dbus.service.signal( DBUS_INTERFACE_SERVER, "s" )
+    def HomeZoneStatus( self, zone ):
+        self.zone = zone
+        LOG( LOG_INFO, "home zone status now", zone )
 
     # Send Diffs only
     # Caching strategy
