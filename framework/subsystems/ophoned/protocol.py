@@ -59,13 +59,24 @@ class Call(dbus.service.Object):
         self.path = "%s/%s" % (protocol.path, id)
         super(Call, self).__init__(protocol.phone.bus, self.path)
         self.protocol = protocol
-        self.id = id
+        self.id = id    # TODO: change the name to number, because in fact it is exactly that
         self.status = 'Idle'
+        
+    @dbus.service.method('org.freesmartphone.Phone.Call', in_signature='', out_signature='s')
+    def GetPeer(self):
+        """Return the number of the peer (usually the number of the call)"""
+        return self.id
 
     @dbus.service.method('org.freesmartphone.Phone.Call', in_signature='', out_signature='s')
     def Initiate(self):
         """Initiate the call"""
         self.status = 'Initiating'
+        return self.status
+        
+    @dbus.service.method('org.freesmartphone.Phone.Call', in_signature='', out_signature='s')
+    def Activate(self):
+        """Accept the call"""
+        self.status = 'Activating'
         return self.status
     
     @dbus.service.method('org.freesmartphone.Phone.Call', in_signature='', out_signature='s')

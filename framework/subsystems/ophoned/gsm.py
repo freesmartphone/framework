@@ -5,7 +5,7 @@ from dbus import DBusException
 from protocol import Protocol, Call, ProtocolUnusable
 import protocol
 
-# TODO: add logs
+# TODO: Use logs
 
 class GSMProtocol(protocol.Protocol):
     """Phone protocol using ogsm service
@@ -20,7 +20,6 @@ class GSMProtocol(protocol.Protocol):
         # We create all the interfaces to GSM/Device
         try:
             self.gsm = phone.bus.get_object( 'org.freesmartphone.ogsmd', '/org/freesmartphone/GSM/Device' )
-            print 'TEST: connect to signal'
             self.gsm.connect_to_signal('CallStatus', self.on_call_status)
         except Exception, e:
             raise protocol.ProtocolUnusable(e.message)
@@ -30,7 +29,6 @@ class GSMProtocol(protocol.Protocol):
     def on_call_status(self, id, status, properties ):
         """This method is called every time ogsmd emmits a status change"""
         # First we convert the arguments into python values
-        print "TEST 0"
         id = int(id)
         status = str(status)
         
@@ -42,10 +40,9 @@ class GSMProtocol(protocol.Protocol):
             # Is there a way to check if the signal has listeners, and only create the call object if so ?
             if id in self.calls_by_id:
                 print "WARNING: call %d already registered" % id
+                return
             number = str(properties.get('peer', "Unknown"))
-            print "TEST 1"
             call = self.CreateCall(number, force = True)
-            print "TEST 2"
             # Don't forget to register the call gsm id :
             call.gsm_id = id
             self.calls_by_id[id] = call
@@ -90,6 +87,22 @@ class GSMProtocol(protocol.Protocol):
                 reply_handler = on_initiate, error_handler = dbus_error
             )
             return ''
+            
+        # We make the call asynchronous, because we can't block the framwork mainloop on it !
+        @dbus.service.method(
+            'org.freesmartphone.Phone.Call', in_signature='', out_signature='s',
+            async_callbacks=("dbus_ok","dbus_error")
+        )
+        def Activate(self, dbus_ok, dbus_error):
+            """Activate the call"""
+            def on_activate():
+                dbus_ok(super(GSMProtocol.Call, self).Activate())
+            
+            self.protocol.gsm.Activate(
+                self.gsm_id,
+                reply_handler = on_activate, error_handler = dbus_error
+            )
+            return ''
         
         # We make the call asynchronous, because we can't block the framwork mainloop on it !
         @dbus.service.method(
@@ -97,12 +110,13 @@ class GSMProtocol(protocol.Protocol):
             async_callbacks=("dbus_ok","dbus_error")
         )
         def Release(self, dbus_ok, dbus_error):
-            """Release the call""" 
+            """Release the call"""
             def on_release():
                 dbus_ok(super(GSMProtocol.Call, self).Release())
             
-            if self.status != 'Idle':   # We add this check so that we can release a call several time
-                self.protocol.gsm.Release(self.id, reply_handler = on_release, error_handler = dbus_error)
+            if self.status != 'Released':   # We add this check so that we can release a call several time
+                self.protocol.gsm.Release(self.gsm_id, reply_handler = on_release, error_handler = dbus_error)
+            return ''
             
         def Released(self):
             """Emited when the call is released"""
