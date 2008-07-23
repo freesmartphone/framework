@@ -31,10 +31,10 @@ class Protocol(object):
     def name(self):
         raise NotImplemented
     
-    def __init__(self, bus):
-        self.bus = bus
+    def __init__(self, phone):
+        self.phone = phone
         self.path = "/org/freesmartphone/Phone/%s" % self.name()
-        self.calls = {} # We keep a map number -> call for every calls
+        self.calls = {} # We keep a map : number -> call for every calls
 
     def CreateCall(self, number, force = True):
         """Return a new chanel targeting the given number
@@ -57,7 +57,7 @@ class Protocol(object):
 class Call(dbus.service.Object):
     def __init__(self, protocol, id):
         self.path = "%s/%s" % (protocol.path, id)
-        super(Call, self).__init__(protocol.bus, self.path)
+        super(Call, self).__init__(protocol.phone.bus, self.path)
         self.protocol = protocol
         self.id = id
         self.status = 'Idle'
@@ -93,7 +93,7 @@ class Call(dbus.service.Object):
     @dbus.service.signal('org.freesmartphone.Phone.Call', signature='')
     def Released(self):
         """Emitted when the call is released"""
-        self.status = 'Idle'
+        self.status = 'Released'
     
     @dbus.service.signal('org.freesmartphone.Phone.Call', signature='')
     def Activated(self):

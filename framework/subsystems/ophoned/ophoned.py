@@ -39,7 +39,7 @@ class Phone(dbus.service.Object):
         self.protocols = {}
         for protocol_cls in Protocol.all_instances:
             try:
-                protocol = protocol_cls(self.bus)
+                protocol = protocol_cls(self)
                 self.protocols[protocol.name()] = protocol
             except ProtocolUnusable, e:
                 print "can't use protocol %s : %s" % (protocol_cls, e)
@@ -65,6 +65,12 @@ class Phone(dbus.service.Object):
         # Then we just ask the protocol class
         ret = protocol.CreateCall(number, force = force)
         return ret
+        
+    @dbus.service.signal('org.freesmartphone.Phone', signature='o')
+    def Incoming(self, call):
+        """Emitted when a call is incoming"""
+        pass
+        
         
 
 def factory(prefix, controller):
