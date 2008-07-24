@@ -12,10 +12,10 @@ Module: channel
 """
 
 from ogsmd.gsm.decor import logged
-from ogsmd.gsm.channel import AtCommandChannel
+from ogsmd.modems.abstract.channel import AbstractModemChannel
 
 #=========================================================================#
-class SierraChannel( AtCommandChannel ):
+class SierraChannel( AbstractModemChannel ):
 #=========================================================================#
 
     def _populateCommands( self ):
