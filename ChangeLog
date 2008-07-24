@@ -1,3 +1,7 @@
+2008-07-24	Guillaume Chereau	<charlie@openmoko.org>
+
+	* Converted logging to Use the Python Logging framework.
+
 2008-07-20	Daniel Willmann <daniel@totalueberwachung.de>
 
 	* [ogpsd] Most of the Gypsy DBus interface is now implemented.
