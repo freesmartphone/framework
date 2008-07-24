@@ -7,16 +7,15 @@ Open Device Daemon - A plugin for input device peripherals
 GPLv2 or later
 """
 
-__version__ = "0.1.0"
+__version__ = "0.2.0"
 
 from dbus import DBusException
 import dbus.service
 import sys, os, time, struct
 from Queue import Queue
-from syslog import syslog, LOG_ERR, LOG_WARNING, LOG_INFO, LOG_DEBUG
 from gobject import io_add_watch, IO_IN, source_remove, timeout_add, timeout_add_seconds, idle_add
 from itertools import count
-from helpers import LOG, DBUS_INTERFACE_PREFIX, DBUS_PATH_PREFIX, readFromFile, writeToFile, cleanObjectName
+from helpers import DBUS_INTERFACE_PREFIX, DBUS_PATH_PREFIX, readFromFile, writeToFile, cleanObjectName
 import ConfigParser
 import gst
 import gobject
@@ -24,22 +23,34 @@ import gobject
 import logging
 logger = logging.getLogger('odeviced')
 
+#----------------------------------------------------------------------------#
 class UnknownFormat( DBusException ):
+#----------------------------------------------------------------------------#
     _dbus_error_name = "org.freesmartphone.Audio.UnknownFormat"
 
+#----------------------------------------------------------------------------#
 class PlayerError( DBusException ):
+#----------------------------------------------------------------------------#
     _dbus_error_name = "org.freesmartphone.Audio.PlayerError"
 
+#----------------------------------------------------------------------------#
 class NotPlaying( DBusException ):
+#----------------------------------------------------------------------------#
     _dbus_error_name = "org.freesmartphone.Audio.NotPlaying"
 
+#----------------------------------------------------------------------------#
 class AlreadyPlaying( DBusException ):
+#----------------------------------------------------------------------------#
     _dbus_error_name = "org.freesmartphone.Audio.AlreadyPlaying"
 
+#----------------------------------------------------------------------------#
 class Player( object ):
+#----------------------------------------------------------------------------#
     pass
 
+#----------------------------------------------------------------------------#
 class GStreamerPlayer( Player ):
+#----------------------------------------------------------------------------#
 
     decoderMap = { \
         "sid": "siddec",
@@ -57,7 +68,7 @@ class GStreamerPlayer( Player ):
         pipeline, status, repeat, ok_cb, error_cb = self.pipelines[name]
         t = message.type
         if t == gst.MESSAGE_EOS:
-            print "G: EOS"
+            logger.debug( "audio: G: EOS" )
             pipeline.set_state(gst.STATE_NULL)
             del self.pipelines[name]
 
@@ -65,12 +76,12 @@ class GStreamerPlayer( Player ):
             pipeline.set_state(gst.STATE_NULL)
             del self.pipelines[name]
             err, debug = message.parse_error()
-            print "G: ERROR", err, debug
+            logger.debug( "audio: G: ERROR: %s %s" % ( err, debug ) )
             error_cb( PlayerError( err.message ) )
 
         elif t == gst.MESSAGE_STATE_CHANGED:
             previous, current, pending = message.parse_state_changed()
-            print "G: STATE NOW", "(%s) -> %s -> (%s)" % ( previous, current, pending )
+            logger.debug( "audio: G: STATE NOW", "(%s) -> %s -> (%s)" % ( previous, current, pending ) )
             if previous == gst.STATE_PAUSED and current == gst.STATE_PLAYING:
                 self._updateSoundStatus( name, "playing" )
                 ok_cb()
@@ -84,7 +95,7 @@ class GStreamerPlayer( Player ):
                 # ok_cb()
 
         else:
-            print "G: UNHANDLED", t
+            logger.debug( "audio: G: UNHANDLED: %s" % t )
 
     def _updateSoundStatus( self, name, newstatus ):
         pipeline, status, repeat, ok_cb, error_cb = self.pipelines[name]
@@ -95,13 +106,13 @@ class GStreamerPlayer( Player ):
     def _processTask( self ):
         if self.q.empty():
             return False # don't call me again
-        print "getting task from queue...",
+        logger.debug( "audio: getting task from queue..." )
         ok_cb, error_cb, task, args = self.q.get()
-        print "got task", task, args
+        logger.debug( "audio: got task: %s %s" % ( task, args ) )
         try:
             method = getattr( self, "task_%s" % task )
         except AttributeError:
-            print "unhandled task", task, args
+            logger.debug( "audio: unhandled task: %s %s" % ( task, args ) )
         else:
             method( ok_cb, error_cb, *args )
         return True
@@ -169,7 +180,7 @@ class Audio( dbus.service.Object ):
         self.path = DBUS_PATH_PREFIX + "/Audio"
         dbus.service.Object.__init__( self, bus, self.path )
         self.config = config
-        logger.info( "%s initialized. Serving %s at %s", self.__class__.__name__, self.interface, self.path )
+        logger.info( "audio: %s initialized. Serving %s at %s", self.__class__.__name__, self.interface, self.path )
         # FIXME make it configurable or autodetect
         self.player = GStreamerPlayer( self )
 

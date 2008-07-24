@@ -13,8 +13,7 @@ import dbus.service
 import os
 import sys
 import time
-from syslog import syslog, LOG_ERR, LOG_WARNING, LOG_INFO, LOG_DEBUG
-from helpers import LOG, DBUS_INTERFACE_PREFIX, DBUS_PATH_PREFIX, readFromFile, writeToFile, cleanObjectName
+from helpers import DBUS_INTERFACE_PREFIX, DBUS_PATH_PREFIX, readFromFile, writeToFile, cleanObjectName
 
 import logging
 logger = logging.getLogger('odeviced')

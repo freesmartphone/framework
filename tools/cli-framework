@@ -58,6 +58,13 @@ audio = getInterface( \
     "org.freesmartphone.Device.Audio" \
     )
 
+input = getInterface( \
+    bus,
+    "org.freesmartphone.odeviced",
+    "/org/freesmartphone/Device/Audio",
+    "org.freesmartphone.Device.Audio" \
+    )
+
 # device
 gsmdevice = getInterface( bus,
     "org.freesmartphone.ogsmd",

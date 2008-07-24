@@ -12,8 +12,7 @@ __version__ = "0.5.0"
 import dbus.service
 import os
 import sys
-from syslog import syslog, LOG_ERR, LOG_WARNING, LOG_INFO, LOG_DEBUG
-from helpers import LOG, DBUS_INTERFACE_PREFIX, DBUS_PATH_PREFIX, readFromFile, writeToFile
+from helpers import DBUS_INTERFACE_PREFIX, DBUS_PATH_PREFIX, readFromFile, writeToFile
 from gobject import idle_add
 
 import logging

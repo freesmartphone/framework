@@ -10,7 +10,6 @@ GPLv2 or later
 __version__ = "0.9.1"
 
 from framework.config import DBUS_BUS_NAME_PREFIX
-from framework.config import LOG, LOG_ERR, LOG_WARNING, LOG_INFO, LOG_DEBUG
 
 import dbus, dbus.service
 from dbus.mainloop.glib import DBusGMainLoop
@@ -19,18 +18,18 @@ import os
 import sys
 import types
 
+import logging
+logger = logging.getLogger('frameworkd')
+
 try: # not present in older glib versions
     from gobject import timeout_add_seconds
 except ImportError:
-    LOG( LOG_ERR, "python-gobject >= 2.14.0 required" )
+    logger.error( "python-gobject >= 2.14.0 required" )
     sys.exit( -1 )
 
 import ConfigParser
 from optparse import OptionParser
 from .configparse import SmartConfigParser
-
-import logging
-logger = logging.getLogger('')
 
 #----------------------------------------------------------------------------#
 class TheOptionParser( OptionParser ):
@@ -83,7 +82,7 @@ class Controller( object ):
                 os.path.join( os.path.dirname( __file__ ), "../conf/frameworkd.conf" )
             ]:
             if os.path.exists( p ):
-                LOG( LOG_INFO, "Using configuration file", p )
+                logger.info( "Using configuration file %s" % p )
                 self.config = SmartConfigParser( p )
                 break
         else:
@@ -103,11 +102,11 @@ class Controller( object ):
             if not self.config.has_section( section ):
                 self.config.add_section( section )
             self.config.set( section, key, value )
-            
+
         # Set the logging levels :
         for section in self.config.sections():
             debuglevel = self.config.getValue( section, 'log_level', default = 'INFO' )
-            logger.debug("set %s log level to %s", section, debuglevel)
+            logger.debug("set %s log level to %s" % ( section, debuglevel ) )
             debuglevel = getattr(logging, debuglevel)
             logging.getLogger(section).setLevel(debuglevel)
 
@@ -116,7 +115,7 @@ class Controller( object ):
         from .objectquery import factory
         ok = self.tryClaimBusName( "%s.%s" % ( DBUS_BUS_NAME_PREFIX, subsystem ) )
         if not ok:
-            LOG( LOG_ERR, "Unable to claim master bus name. Exiting." )
+            logger.error( "Unable to claim master bus name. Exiting." )
             sys.exit( -1 )
         self.framework = factory( "%s.%s" % ( DBUS_BUS_NAME_PREFIX, subsystem ), self )
 
@@ -128,36 +127,36 @@ class Controller( object ):
         for subsystem in subsystems:
             if systemstolaunch != [""]:
                 if subsystem not in systemstolaunch:
-                    LOG( LOG_INFO, "skipping subsystem", subsystem, "due to command line configuration" )
+                    logger.info( "skipping subsystem %s due to command line configuration" % subsystem )
                     continue
                 else:
-                    LOG( LOG_INFO, "launching subsystem", subsystem )
+                    logger.info( "launching subsystem %s" % subsystem )
             if self.tryClaimBusName( "%s.%s" % ( DBUS_BUS_NAME_PREFIX, subsystem ) ):
                 self.registerModulesInSubsystem( subsystem, path )
 
         if not self.options.values.debug:
             if len( self.busnames ) == 1: # no additional subsystems could be loaded
-                LOG( LOG_ERR, "can't launch without at least one subsystem. Exiting." )
+                logger.error( "can't launch without at least one subsystem. Exiting." )
                 sys.exit( -1 )
 
-        LOG( LOG_INFO, "==================" )
-        LOG( LOG_INFO, "objects registered" )
-        LOG( LOG_INFO, "==================" )
+        logger.info( "==================" )
+        logger.info( "objects registered" )
+        logger.info( "==================" )
         objectnames = self.objects.keys()
         objectnames.sort()
         for obj in objectnames:
-            LOG( LOG_INFO, obj, "[%s]" % self.objects[obj].interface )
+            logger.info( "%s [%s]" % ( obj, self.objects[obj].interface ) )
 
     def tryClaimBusName( self, busname ):
         try:
             self.busnames.append( dbus.service.BusName( busname, self.bus ) )
             return True
         except dbus.DBusException:
-            LOG( LOG_WARNING, "Can't claim bus name '%s', check configuration in /etc/dbus-1/system.d/frameworkd.conf -- ignoring subsystem." % busname )
+            logger.warning( "Can't claim bus name '%s', check configuration in /etc/dbus-1/system.d/frameworkd.conf -- ignoring subsystem." % busname )
             return False
 
     def registerModulesInSubsystem( self, subsystem, path ):
-        LOG( LOG_DEBUG, "found subsystem %s" % subsystem )
+        logger.debug( "found subsystem %s" % subsystem )
         # walk the modules path and find plugins
         for filename in os.listdir( "%s/%s" % ( path, subsystem ) ):
             if filename.endswith( ".py" ): # FIXME: we should look for *.pyc, *.pyo, *.so as well
@@ -165,12 +164,12 @@ class Controller( object ):
                     modulename = filename[:-3]
                     try:
                         #XXX: if the name of the file is not the same than the name of the module
-                        #     e.g : gsm.py instead of ogsmd.py, then this line is useless  
+                        #     e.g : gsm.py instead of ogsmd.py, then this line is useless
                         disable = self.config.getboolean( modulename, "disable" )
                     except ConfigParser.Error:
                         disable = False
                     if disable:
-                        LOG( LOG_INFO, "skipping module '%s' as requested in config." % ( modulename ) )
+                        logger.info( "skipping module '%s' as requested in config." % ( modulename ) )
                         continue
                     module = __import__(
                         name = ".".join( ["framework.subsystems", subsystem, modulename] ),
@@ -178,29 +177,29 @@ class Controller( object ):
                         level = 0
                     )
                 except ImportError, e:
-                    LOG( LOG_ERR, "could not import %s: %s" % ( filename, e ) )
+                    logger.error( "could not import %s: %s" % ( filename, e ) )
                 except Exception, e:
-                    LOG( LOG_ERR, "could not import %s: %s" % ( filename, e ) )
+                    logger.error( "could not import %s: %s" % ( filename, e ) )
                 else:
                     self.registerObjectsFromModule( subsystem, module, path )
 
     def registerObjectsFromModule( self, subsystem, module, path ):
-        LOG( LOG_DEBUG, "...in subsystem %s: found module %s" % ( subsystem, module ) )
+        logger.debug( "...in subsystem %s: found module %s" % ( subsystem, module ) )
         try:
             factory = getattr( module, "factory" )
         except AttributeError:
-            LOG( LOG_DEBUG, "no plugin: factory function not found in module %s" % module )
+            logger.debug( "no plugin: factory function not found in module %s" % module )
         else:
             try:
                 for obj in factory( "%s.%s" % ( DBUS_BUS_NAME_PREFIX, subsystem ), self ):
                     self.objects[obj.path] = obj
             except Exception, e:
                     from traceback import format_exc
-                    LOG( LOG_ERR, "factory method not successfully completed for module %s" % module )
-                    LOG( LOG_ERR, format_exc() )
+                    logger.error( "factory method not successfully completed for module %s" % module )
+                    logger.error( format_exc() )
 
     def idle( self ):
-        LOG( LOG_DEBUG, "entered mainloop" )
+        logger.debug( "entered mainloop" )
         #self.bus.add_signal_receiver(
             #self._nameOwnerChanged,
             #"NameOwnerChanged",
@@ -216,7 +215,7 @@ class Controller( object ):
         return False # don't call me again
 
     def timeout( self ):
-        LOG( LOG_DEBUG, "alive and kicking" )
+        logger.debug( "alive and kicking" )
         return True # call me again
 
     def run( self ):
