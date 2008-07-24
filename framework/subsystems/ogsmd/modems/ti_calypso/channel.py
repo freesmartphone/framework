@@ -118,6 +118,11 @@ class CallChannel( CalypsoModemChannel ):
         CalypsoModemChannel.__init__( self, *args, **kwargs )
         self.callback = None
 
+    def _populateCommands( self ):
+        CalypsoModemChannel._populateCommands( self )
+        self._commands["sim"] = []
+        self._commands["antenna"] = []
+
     def setIntermediateResponseCallback( self, callback ):
         assert self.callback is None, "callback already set"
         self.callback = callback
@@ -131,7 +136,10 @@ class CallChannel( CalypsoModemChannel ):
 #=========================================================================#
 class MiscChannel( CalypsoModemChannel ):
 #=========================================================================#
-    pass
+    def _populateCommands( self ):
+        CalypsoModemChannel._populateCommands( self )
+        self._commands["sim"] = []
+        self._commands["antenna"] = []
 
 #=========================================================================#
 class UnsolicitedResponseChannel( CalypsoModemChannel ):
