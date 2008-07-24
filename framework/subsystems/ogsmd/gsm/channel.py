@@ -212,7 +212,7 @@ class VirtualChannel( object ):
         except IOError:
             inWaiting = 0
         data = self.serial.read( inWaiting )
-        logger.debug( "(%s: got %d bytes from %s: %s)", self, len(data), self.serial.port, data )
+        logger.debug( "(%s: got %d bytes from %s: %s)", self, len(data), self.serial.port, repr(data) )
         if VirtualChannel.DEBUGLOG:
             self.debugFile.write( data )
         self.readyToRead( data )
@@ -338,7 +338,7 @@ class QueuedVirtualChannel( VirtualChannel ):
             self.watchReadyToSend = None
             return False
 
-        # print "(%s: sending %d bytes to %s: %s)" % ( repr(self), len(self.q.peek()[0]), self.serial.port, repr(self.q.peek()[0]) )
+        logger.debug( "(%s: sending %d bytes to %s: %s)" % ( repr(self), len(self.q.peek()[0]), self.serial.port, repr(self.q.peek()[0]) ) )
         if VirtualChannel.DEBUGLOG:
             self.debugFile.write( self.q.peek()[0] ) # channel data
 
@@ -359,7 +359,7 @@ class QueuedVirtualChannel( VirtualChannel ):
 
         The default implementation does nothing.
         """
-        logger.info( "(%s: unsolicited data incoming: %s)", self, response )
+        logger.info( "(%s: unsolicited data incoming: %s)", self, repr(response) )
 
     def handleResponseToRequest( self, request, response ):
         """
@@ -369,10 +369,9 @@ class QueuedVirtualChannel( VirtualChannel ):
         """
         reqstring, ok_cb, error_cb, timeout = request
         if not ok_cb and not error_cb:
-            pass
-            # print "(%s: COMPLETED '%s' => %s)" % ( repr(self), reqstring.strip(), response )
+            logger.debug( "(%s: COMPLETED '%s' => %s)" % ( repr(self), reqstring.strip(), response ) )
         else:
-            # print "(%s: COMPLETED '%s' => %s)" % ( repr(self), reqstring.strip(), response )
+            logger.debug( "(%s: COMPLETED '%s' => %s)" % ( repr(self), reqstring.strip(), response ) )
 
             # check whether given callback is a generator
             # if so, advance and give result, if not
@@ -390,9 +389,9 @@ class QueuedVirtualChannel( VirtualChannel ):
         """
         reqstring, ok_cb, error_cb, timeout = request
         if not ok_cb and not error_cb:
-            if __debug__: print "(%s: TIMEOUT '%s' => ???)" % ( repr(self), reqstring.strip() )
+            logger.debug( "(%s: TIMEOUT '%s' => ???)" % ( repr(self), reqstring.strip() ) )
         else:
-            if __debug__: print "(%s: TIMEOUT '%s' => ???)" % ( repr(self), reqstring.strip() )
+            logger.debug( "(%s: TIMEOUT '%s' => ???)" % ( repr(self), reqstring.strip() ) )
             error_cb( reqstring.strip(), ( "timeout", timeout ) )
 
     #
@@ -412,9 +411,9 @@ class QueuedVirtualChannel( VirtualChannel ):
         gobject.source_remove( self.watchTimeout )
         self.watchTimeout = None
         # send EOF to cancel current command
-        if __debug__: print "(%s: sending EOF)" % repr(self)
+        logger.debug( "(%s: sending EOF)" % repr(self) )
         self.serial.write( "\x1A" )
-        if __debug__: print "(%s: EOF sent)" % repr(self)
+        logger.debug( "(%s: EOF sent)" % repr(self) )
         # We do _not_ erase the current command and send cancellation ACK,
         # otherwise we would get an "unsolicited" OK as response. If for
         # whatever reason we want to change the semantics, we could do
