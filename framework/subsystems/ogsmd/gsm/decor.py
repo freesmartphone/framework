@@ -7,6 +7,9 @@ The Open Device Daemon - Python Implementation
 GPLv2 or later
 """
 
+import logging
+logger = logging.getLogger('ogsmd')
+
 # FUNCTION_DEBUG = False
 FUNCTION_DEBUG = True
 
@@ -36,13 +39,13 @@ def logged( fn ):
                 colorclasses[classname] = random.randrange( 30, 47 )
             colorpre = "\033[1;%dm" % colorclasses[classname]
             colorpost = "\033[m"
-        print colorpre,
-        print "%s> %s.%s: ENTER %s,%s" % ( '|...' * calldepth, classname, fn.__name__, repr(args[1:]), repr(kwargs) ),
-        print colorpost
+        # print colorpre,
+        logger.debug("%s> %s.%s: ENTER %s,%s", '|...' * calldepth, classname, fn.__name__, args[1:], kwargs ),
+        # print colorpost
         result = fn( *args, **kwargs )
-        print colorpre,
-        print "%s> %s.%s: LEAVE" % ( '|...' * calldepth, classname, fn.__name__ ),
-        print colorpost
+        # print colorpre,
+        logger.debug("%s> %s.%s: LEAVE", '|...' * calldepth, classname, fn.__name__ )
+        # print colorpost
 
         return result
 

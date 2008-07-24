@@ -22,6 +22,9 @@ from syslog import syslog, LOG_ERR, LOG_WARNING, LOG_INFO, LOG_DEBUG
 from helpers import LOG, readFromFile, writeToFile
 from gobject import idle_add
 
+import logging
+logger = logging.getLogger('ousaged')
+
 class AbstractResource( object ):
     def __init__( self, usageControl ):
         self.usageControl = usageControl
@@ -69,7 +72,7 @@ class AbstractResource( object ):
     def cleanup( self, user ):
         if user in self.users:
             self.release( user )
-            LOG( LOG_INFO, "Releasing %s for vanished user %s" % ( self.name, user ) )
+            logger.info( "Releasing %s for vanished user %s", self.name, user )
 
 class DummyResource( AbstractResource ):
     def __init__( self, usageControl, name ):
@@ -149,7 +152,7 @@ class GenericUsageControl( dbus.service.Object ):
             dbus.BUS_DAEMON_NAME,
             dbus.BUS_DAEMON_PATH
         )
-        LOG( LOG_INFO, "%s initialized. Serving %s at %s" % ( self.__class__.__name__, self.interface, self.path ) )
+        logger.info( "%s initialized. Serving %s at %s", self.__class__.__name__, self.interface, self.path )
 
     def addResource( self, resource ):
         # FIXME check for existing resource with the same name

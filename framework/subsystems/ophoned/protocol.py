@@ -2,6 +2,9 @@ import dbus
 import dbus.service
 from dbus import DBusException
 
+import logging
+logger = logging.getLogger('ophoned')
+
 class ProtocolMetaClass(type):
     """The meta class for Protocole class
     
@@ -42,7 +45,7 @@ class Protocol(object):
             if force is True and a call on this number is already present, then the call will be removed
         """
         if force and number in self.calls:
-            print 'removing %s' % number
+            logger.info("removing %s", number)
             self.calls[number].Remove()
         # Every Protocl class need to define an inner Call class
         call = self.__class__.Call(self, number)

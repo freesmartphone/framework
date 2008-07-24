@@ -22,6 +22,9 @@ import gobject # pygobject
 import serial # pyserial
 import Queue, fcntl, os # stdlib
 
+import logging
+logger = logging.getLogger('ogsmd')
+
 #=========================================================================#
 class PeekholeQueue( Queue.Queue ):
 #=========================================================================#
@@ -74,7 +77,7 @@ class VirtualChannel( object ):
             return False
 
         # set up serial port object and open it
-        print "(%s: using modem path '%s')" % ( repr(self), path )
+        logger.info( "(%s: using modem path '%s')", self, path )
         self.serial = serial.Serial()
         self.serial.port = str( path )
         self.serial.baudrate = 115200
@@ -191,7 +194,7 @@ class VirtualChannel( object ):
         """Called, if there is a HUP condition on the source."""
         assert source == self.serial.fd, "HUP on bogus source"
         assert condition == gobject.IO_HUP, "HUP on bogus condition"
-        print( "%s: HUP on socket, trying to recover" % repr(self) )
+        logger.info( "%s: HUP on socket, trying to recover", self )
         self.close()
         time.sleep( 1 )
         self.open()
@@ -209,7 +212,7 @@ class VirtualChannel( object ):
         except IOError:
             inWaiting = 0
         data = self.serial.read( inWaiting )
-        print "(%s: got %d bytes from %s: %s)" % ( repr(self), len(data), self.serial.port, repr(data) )
+        logger.debug( "(%s: got %d bytes from %s: %s)", self, len(data), self.serial.port, data )
         if VirtualChannel.DEBUGLOG:
             self.debugFile.write( data )
         self.readyToRead( data )
@@ -283,7 +286,7 @@ class QueuedVirtualChannel( VirtualChannel ):
         else:
             self.timeout = 5 # default timeout in seconds
 
-        print "(%s: Creating channel with timeout = %d seconds)" % ( repr(self), self.timeout )
+        logger.info( "(%s: Creating channel with timeout = %d seconds)", self, self.timeout )
 
     def installParser( self ):
         """
@@ -335,7 +338,7 @@ class QueuedVirtualChannel( VirtualChannel ):
             self.watchReadyToSend = None
             return False
 
-        print "(%s: sending %d bytes to %s: %s)" % ( repr(self), len(self.q.peek()[0]), self.serial.port, repr(self.q.peek()[0]) )
+        # print "(%s: sending %d bytes to %s: %s)" % ( repr(self), len(self.q.peek()[0]), self.serial.port, repr(self.q.peek()[0]) )
         if VirtualChannel.DEBUGLOG:
             self.debugFile.write( self.q.peek()[0] ) # channel data
 
@@ -356,7 +359,7 @@ class QueuedVirtualChannel( VirtualChannel ):
 
         The default implementation does nothing.
         """
-        print "(%s: unsolicited data incoming: %s)" % ( repr(self), response )
+        logger.info( "(%s: unsolicited data incoming: %s)", self, response )
 
     def handleResponseToRequest( self, request, response ):
         """
@@ -366,9 +369,10 @@ class QueuedVirtualChannel( VirtualChannel ):
         """
         reqstring, ok_cb, error_cb, timeout = request
         if not ok_cb and not error_cb:
-            print "(%s: COMPLETED '%s' => %s)" % ( repr(self), reqstring.strip(), response )
+            pass
+            # print "(%s: COMPLETED '%s' => %s)" % ( repr(self), reqstring.strip(), response )
         else:
-            print "(%s: COMPLETED '%s' => %s)" % ( repr(self), reqstring.strip(), response )
+            # print "(%s: COMPLETED '%s' => %s)" % ( repr(self), reqstring.strip(), response )
 
             # check whether given callback is a generator
             # if so, advance and give result, if not

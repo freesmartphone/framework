@@ -17,6 +17,9 @@ import time
 import itertools
 import select
 
+import logging
+logger = logging.getLogger('ogsmd')
+
 from ogsmd.gsm.decor import logged
 from ogsmd.gsm.callback import SimpleCallback
 
@@ -44,7 +47,7 @@ class CalypsoModemChannel( AbstractModemChannel ):
         we assume that the modem is broken and fail.
         """
         for i in itertools.count():
-            print "(modem init... try #%d)" % ( i+1 )
+            logger.info( "(modem init... try #%d)", i+1 )
             select.select( [], [self.serial.fd], [], 0.5 )
             self.serial.write( "\x1a\r\n" )
             r, w, x = select.select( [self.serial.fd], [], [], 0.5 )
@@ -60,12 +63,12 @@ class CalypsoModemChannel( AbstractModemChannel ):
                     self.serial.open()
                     buf = self.serial.inWaiting()
                 ok = self.serial.read(buf).strip()
-                print "read:", repr(ok)
+                logger.info( "read: %s", ok )
                 if "OK" in ok or "AT" in ok:
                     break
-            print "(modem not responding)"
+            logger.info( "(modem not responding)" )
             if i == 5:
-                print "(reopening modem)"
+                logger.info( "(reopening modem)" )
                 self.serial.close()
                 path = self.pathfactory()
                 if not path: # path is None or ""
@@ -74,10 +77,10 @@ class CalypsoModemChannel( AbstractModemChannel ):
                 self.serial.open()
 
             if i == 10:
-                print "(giving up)"
+                logger.info( "(giving up)" )
                 self.serial.close()
                 return False
-        print "(modem responding)"
+        logger.info( "(modem responding)" )
         self.serial.flushInput()
 
         # reset global modem communication timestamp
@@ -97,7 +100,7 @@ class CalypsoModemChannel( AbstractModemChannel ):
         if CalypsoModemChannel.modem_communication_timestamp:
             current_time = time.time()
             if current_time - CalypsoModemChannel.modem_communication_timestamp > 7:
-                print "(%s: last communication with modem was %d seconds ago. Sending EOF to wakeup)" % ( repr(self), int(current_time - CalypsoModemChannel.modem_communication_timestamp) )
+                logger.info( "(%s: last communication with modem was %d seconds ago. Sending EOF to wakeup)", self, int(current_time - CalypsoModemChannel.modem_communication_timestamp) )
                 self.serial.write( "\x1a" )
                 time.sleep( 0.2 )
             CalypsoModemChannel.modem_communication_timestamp = current_time
@@ -123,7 +126,7 @@ class CallChannel( CalypsoModemChannel ):
         if self.callback is not None:
             self.callback( response )
         else:
-            print "CALLCHANNEL: UNHANDLED INTERMEDIATE: ", response
+            logger.info( "CALLCHANNEL: UNHANDLED INTERMEDIATE: %s", response )
 
 #=========================================================================#
 class MiscChannel( CalypsoModemChannel ):

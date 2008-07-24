@@ -5,7 +5,8 @@ from dbus import DBusException
 from protocol import Protocol, Call, ProtocolUnusable
 import protocol
 
-# TODO: Use logs
+import logging
+logger = logging.getLogger('ophoned')
 
 class GSMProtocol(protocol.Protocol):
     """Phone protocol using ogsm service
@@ -15,7 +16,7 @@ class GSMProtocol(protocol.Protocol):
         return 'GSM'
     
     def __init__(self, phone):
-        print "INIT GSM Protocol"
+        logger.info("init GSM Protocol")
         super(GSMProtocol, self).__init__(phone)
         # We create all the interfaces to GSM/Device
         try:
@@ -39,7 +40,7 @@ class GSMProtocol(protocol.Protocol):
             # The call object will never be removed.
             # Is there a way to check if the signal has listeners, and only create the call object if so ?
             if id in self.calls_by_id:
-                print "WARNING: call %d already registered" % id
+                logger.warning("call %d already registered", id)
                 return
             number = str(properties.get('peer', "Unknown"))
             call = self.CreateCall(number, force = True)

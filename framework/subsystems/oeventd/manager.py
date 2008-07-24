@@ -21,6 +21,8 @@ from syslog import syslog, LOG_ERR, LOG_WARNING, LOG_INFO, LOG_DEBUG
 from helpers import LOG, readFromFile, writeToFile
 from gobject import idle_add
 
+import logging
+logger = logging.getLogger('oeventd')
 
 #----------------------------------------------------------------------------#
 class Signal( dbus.service.Object ):
@@ -36,8 +38,8 @@ class Signal( dbus.service.Object ):
         self.controller = controller
         self.attributes = attributes
         dbus.service.Object.__init__( self, controller.bus, self.path )
-        LOG( LOG_INFO, "%s initialized. Serving %s at %s" %
-            ( self.__class__.__name__, self.interface, list( self.locations ) )
+        logger.info( "%s initialized. Serving %s at %s",
+            self.__class__.__name__, self.interface, list( self.locations )
         )
 
     def fire( self ):
@@ -74,8 +76,8 @@ class Manager( dbus.service.Object ):
         dbus.service.Object.__init__( self, controller.bus, self.path )
         self.controller = controller
         self.signals = []
-        LOG( LOG_INFO, "%s initialized. Serving %s at %s" %
-            ( self.__class__.__name__, self.interface, list( self.locations ) )
+        logger.info( "%s initialized. Serving %s at %s",
+            self.__class__.__name__, self.interface, list( self.locations )
         )
         Manager.instance = self
 

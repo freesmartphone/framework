@@ -15,11 +15,15 @@ import sys
 from syslog import syslog, LOG_ERR, LOG_WARNING, LOG_INFO, LOG_DEBUG
 from helpers import LOG, DBUS_INTERFACE_PREFIX, DBUS_PATH_PREFIX, readFromFile, writeToFile
 from gobject import idle_add
+
+import logging
+logger = logging.getLogger('odeviced')
+
 try:
     import wireless
 except ImportError:
     wireless = None
-    LOG( LOG_ERR, "wireless module not available" )
+    logger.error( "wireless module not available" )
 
 #----------------------------------------------------------------------------#
 class GenericPowerControl( dbus.service.Object ):
@@ -32,7 +36,7 @@ class GenericPowerControl( dbus.service.Object ):
         self.interface = self.DBUS_INTERFACE
         self.path = DBUS_PATH_PREFIX + "/PowerControl/%s" % name
         dbus.service.Object.__init__( self, bus, self.path )
-        LOG( LOG_INFO, "%s initialized. Serving %s at %s" % ( self.__class__.__name__, self.interface, self.path ) )
+        logger.info( "%s initialized. Serving %s at %s", self.__class__.__name__, self.interface, self.path )
         self.node = node
         self.name = name
         self.powernode = None
@@ -55,7 +59,7 @@ class GenericPowerControl( dbus.service.Object ):
         if self.getPower() == expectedPower:
             self.Power( self.name, expectedPower )
         else:
-            LOG( LOG_WARNING, __name__, "expected a power change for", self.name, "to", expectedPower, "which didn't happen" )
+            logger.warning("%s expected a power change for %s to %s which didn't happen", __name__, self.name, expectedPower)
 
     #
     # dbus methods
@@ -86,7 +90,7 @@ class GenericPowerControl( dbus.service.Object ):
     #
     @dbus.service.signal( DBUS_INTERFACE, "sb" )
     def Power( self, device, power ):
-        LOG( LOG_INFO, __name__, "power for", self.name, "changed to", power )
+        logger.info("%s power for %s changed to %s", __name__, self.name, power)
 
 #----------------------------------------------------------------------------#
 class NeoBluetoothPowerControl( GenericPowerControl ):

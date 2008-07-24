@@ -16,6 +16,9 @@ import time
 from syslog import syslog, LOG_ERR, LOG_WARNING, LOG_INFO, LOG_DEBUG
 from helpers import LOG, DBUS_INTERFACE_PREFIX, DBUS_PATH_PREFIX, readFromFile, writeToFile, cleanObjectName
 
+import logging
+logger = logging.getLogger('odeviced')
+
 #----------------------------------------------------------------------------#
 class Display( dbus.service.Object ):
 #----------------------------------------------------------------------------#
@@ -27,10 +30,10 @@ class Display( dbus.service.Object ):
         self.interface = self.DBUS_INTERFACE
         self.path = DBUS_PATH_PREFIX + "/Display/%s" % cleanObjectName( node.split('/')[-1] )
         dbus.service.Object.__init__( self, bus, self.path )
-        LOG( LOG_INFO, "%s initialized. Serving %s at %s" % ( self.__class__.__name__, self.interface, self.path ) )
+        logger.info( "%s initialized. Serving %s at %s", self.__class__.__name__, self.interface, self.path )
         self.node = node
         self.max = int( readFromFile( "%s/max_brightness" % self.node ) )
-        LOG( LOG_DEBUG, "max brightness", self.max )
+        logger.debug( "max brightness %d", self.max )
 
     #
     # dbus
@@ -74,10 +77,10 @@ class LED( dbus.service.Object ):
         self.interface = self.DBUS_INTERFACE
         self.path = DBUS_PATH_PREFIX + "/LED/%s" % cleanObjectName( node.split('/')[-1] )
         dbus.service.Object.__init__( self, bus, self.path )
-        LOG( LOG_INFO, "%s initialized. Serving %s at %s" % ( self.__class__.__name__, self.interface, self.path ) )
+        logger.info( "%s initialized. Serving %s at %s", self.__class__.__name__, self.interface, self.path )
         self.node = node
         self.triggers = readFromFile( "%s/trigger" % self.node ).split()
-        LOG( LOG_DEBUG, "available triggers", self.triggers )
+        logger.debug( "available triggers %s", self.triggers )
 
     #
     # dbus
@@ -119,7 +122,7 @@ class PowerSupply( dbus.service.Object ):
         self.interface = self.DBUS_INTERFACE
         self.path = DBUS_PATH_PREFIX + "/PowerSupply/%s" % cleanObjectName( node.split('/')[-1] )
         dbus.service.Object.__init__( self, bus, self.path )
-        LOG( LOG_INFO, "%s initialized. Serving %s at %s" % ( self.__class__.__name__, self.interface, self.path ) )
+        logger.info( "%s initialized. Serving %s at %s", self.__class__.__name__, self.interface, self.path )
         self.node = node
 
     #
@@ -162,7 +165,7 @@ class PowerSupplyApm( dbus.service.Object ):
         self.interface = self.DBUS_INTERFACE
         self.path = DBUS_PATH_PREFIX + "/PowerSupply/%s" % cleanObjectName( node.split('/')[-1] )
         dbus.service.Object.__init__( self, bus, self.path )
-        LOG( LOG_INFO, "%s initialized. Serving %s at %s" % ( self.__class__.__name__, self.interface, self.path ) )
+        logger.info( "%s initialized. Serving %s at %s", self.__class__.__name__, self.interface, self.path )
         self.node = node
 
     def readApm( self ):
@@ -200,7 +203,7 @@ class RealTimeClock( dbus.service.Object ):
         self.interface = self.DBUS_INTERFACE
         self.path = DBUS_PATH_PREFIX + "/RealTimeClock/%s" % cleanObjectName( node.split('/')[-1] )
         dbus.service.Object.__init__( self, bus, self.path )
-        LOG( LOG_INFO, "%s initialized. Serving %s at %s" % ( self.__class__.__name__, self.interface, self.path ) )
+        logger.info( "%s initialized. Serving %s at %s", self.__class__.__name__, self.interface, self.path )
         self.node = node
 
     #
@@ -232,7 +235,7 @@ class RealTimeClock( dbus.service.Object ):
             try:
                 import pyrtc
             except ImportError:
-                LOG( LOG_ERR, "pyrtc not present. Can not operate real time clock" )
+                logger.error( "pyrtc not present. Can not operate real time clock" )
             ( enabled, pending ), t = pyrtc.rtcReadAlarm()
             return "0" if not enabled else str( time.mktime( t ) )
 
@@ -246,7 +249,7 @@ class RealTimeClock( dbus.service.Object ):
             try:
                 import pyrtc
             except ImportError:
-                LOG( LOG_ERR, "pyrtc not present. Can not operate real time clock" )
+                logger.error( "pyrtc not present. Can not operate real time clock" )
             if time == "0":
                 pyrtc.rtcDisableAlarm()
             else:
@@ -276,33 +279,33 @@ def factory( prefix, controller ):
     backlightpath = "/sys/class/backlight"
     if os.path.exists( backlightpath ):
         for ( index, node ) in enumerate( os.listdir( backlightpath ) ):
-            LOG( LOG_DEBUG, "scanning", index, node )
+            logger.debug( "scanning %s %s", index, node )
             objects.append( Display( bus, index, "%s/%s" % ( backlightpath, node ) ) )
 
     # scan for leds
     ledpath = "/sys/class/leds"
     if os.path.exists( ledpath ):
         for ( index, node ) in enumerate( os.listdir( ledpath ) ):
-            LOG( LOG_DEBUG, "scanning", index, node )
+            logger.debug( "scanning %s %s", index, node )
             objects.append( LED( bus, index, "%s/%s" % ( ledpath, node ) ) )
 
     # scan for power supplies (apm first, then power supply [kernel 2.6.24++])
     powerpath = "/proc/apm"
-    LOG( LOG_DEBUG, "scanning", powerpath )
+    logger.debug( "scanning %s", powerpath )
     if os.path.exists( powerpath ):
         objects.append( PowerSupplyApm( bus, 0, powerpath ) )
 
     powerpath = "/sys/class/power_supply"
     if os.path.exists( powerpath ):
         for ( index, node ) in enumerate( os.listdir( powerpath ) ):
-            LOG( LOG_DEBUG, "scanning", index, node )
+            logger.debug( "scanning %s %s", index, node )
             objects.append( PowerSupply( bus, index+1, "%s/%s" % ( powerpath, node ) ) )
 
     # scan for real time clocks
     rtcpath = "/sys/class/rtc"
     if os.path.exists( rtcpath ):
         for ( index, node ) in enumerate( os.listdir( rtcpath ) ):
-            LOG( LOG_DEBUG, "scanning", index, node )
+            logger.debug( "scanning %s %s", index, node )
             objects.append( RealTimeClock( bus, index, "%s/%s" % ( rtcpath, node ) ) )
 
     return objects

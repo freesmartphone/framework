@@ -21,6 +21,9 @@ import ConfigParser
 import gst
 import gobject
 
+import logging
+logger = logging.getLogger('odeviced')
+
 class UnknownFormat( DBusException ):
     _dbus_error_name = "org.freesmartphone.Audio.UnknownFormat"
 
@@ -166,7 +169,7 @@ class Audio( dbus.service.Object ):
         self.path = DBUS_PATH_PREFIX + "/Audio"
         dbus.service.Object.__init__( self, bus, self.path )
         self.config = config
-        LOG( LOG_INFO, "%s initialized. Serving %s at %s" % ( self.__class__.__name__, self.interface, self.path ) )
+        logger.info( "%s initialized. Serving %s at %s", self.__class__.__name__, self.interface, self.path )
         # FIXME make it configurable or autodetect
         self.player = GStreamerPlayer( self )
 
@@ -194,11 +197,11 @@ class Audio( dbus.service.Object ):
     #
     @dbus.service.signal( DBUS_INTERFACE, "ssa{sv}" )
     def SoundStatus( self, name, status, properties ):
-        LOG( LOG_INFO, __name__, "sound status", name, status, properties )
+        logger.info( "%s sound status %s %s %s", __name__, name, status, properties )
 
     @dbus.service.signal( DBUS_INTERFACE, "ss" )
     def Scenario( self, scenario, reason ):
-        LOG( LOG_INFO, __name__, "scenario", scenario, reason )
+        logger.info( "%s scenario %s %s", __name__, scenario, reason )
 
 #----------------------------------------------------------------------------#
 def factory( prefix, controller ):

@@ -18,6 +18,9 @@ from itertools import count
 from helpers import LOG, DBUS_INTERFACE_PREFIX, DBUS_PATH_PREFIX, readFromFile, writeToFile, cleanObjectName
 import ConfigParser
 
+import logging
+logger = logging.getLogger('odeviced')
+
 """
     struct timeval {
         (unsigned long) time_t          tv_sec;         /* seconds */
@@ -45,7 +48,7 @@ class Input( dbus.service.Object ):
         self.path = DBUS_PATH_PREFIX + "/Input"
         dbus.service.Object.__init__( self, bus, self.path )
         self.config = config
-        LOG( LOG_INFO, "%s initialized. Serving %s at %s" % ( self.__class__.__name__, self.interface, self.path ) )
+        logger.info( "%s initialized. Serving %s at %s", self.__class__.__name__, self.interface, self.path )
 
         try:
             ignoreinput = self.config.get( "input", "ignoreinput" )
@@ -57,17 +60,17 @@ class Input( dbus.service.Object ):
         self.input = {}
         for i in count():
             if i in ignoreinput:
-                LOG( LOG_INFO, __name__, "skipping input node %d due to configuration" % i )
+                logger.info( "%s skipping input node %d due to configuration", __name__, i)
                 continue
             try:
                 f = os.open( "/dev/input/event%d" % i, os.O_NONBLOCK )
             except OSError, e:
-                LOG( LOG_ERR, "can't open /dev/input/event%d: %s" % ( i, e ) )
+                logger.error( "can't open /dev/input/event%d: %s", i, e )
                 break
             else:
                 self.input[f] = "event%d" % i
 
-        LOG( LOG_DEBUG, "opened %d input file descriptors" % len( self.input ) )
+        logger.debug( "opened %d input file descriptors", len( self.input ) )
 
         self.q = Queue()
         self.watches = {}
@@ -87,11 +90,11 @@ class Input( dbus.service.Object ):
             self.launchStateMachine()
 
     def watchForEvent( self, name, action, inputcode, reportheld ):
-        LOG( LOG_DEBUG, "adding watch for", name, action, inputcode, reportheld )
+        logger.debug( "adding watch for %s %s %s %s", name, action, inputcode, reportheld )
         try:
             action = self.action[action]
         except KeyError:
-            LOG( LOG_ERR, "don't know how to deal with event action", action )
+            logger.error( "don't know how to deal with event action %s", action )
             return False
         else:
             self.watches[ ( action, inputcode ) ] = name
@@ -108,7 +111,8 @@ class Input( dbus.service.Object ):
             timestamp, microseconds, typ, code, value = struct.unpack( input_event_struct, e )
             if typ != 0x00: # ignore EV_SYN (synchronization event)
                 self.q.put( ( timestamp, typ, code, value ) )
-                LOG( LOG_DEBUG, self.__class__.__name__, "read %d bytes from fd %d ('%s'): %s" % ( len( data ), source, self.input[source], (typ, code, value) ) )
+                logger.debug("%s read %d bytes from fd %d ('%s'): %s",
+                             self.__class__.__name__, len( data ), source, self.input[source], (typ, code, value) )
 
         idle_add( self.processEvents )
         return True
@@ -134,7 +138,8 @@ class Input( dbus.service.Object ):
                 try:
                     timestamp, timeout = self.events[ ( typ, code ) ]
                 except KeyError:
-                    LOG( LOG_ERR, "potential logic problem, key released before pressed. watches are", self.watches, "events are", self.events )
+                    logger.error( "potential logic problem, key released before pressed. watches are %s events are %s",
+                                    self.watches, self.events )
                 else:
                     if timeout:
                         source_remove( timeout )
@@ -149,7 +154,7 @@ class Input( dbus.service.Object ):
     #
     @dbus.service.signal( DBUS_INTERFACE, "ssi" )
     def Event( self, name, action, seconds ):
-        LOG( LOG_INFO, __name__, "event", name, action, seconds )
+        logger.info( "%s name %s %s %s", __name__, name, action, seconds )
 
 #----------------------------------------------------------------------------#
 def factory( prefix, controller ):

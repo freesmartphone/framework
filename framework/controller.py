@@ -29,6 +29,9 @@ import ConfigParser
 from optparse import OptionParser
 from .configparse import SmartConfigParser
 
+import logging
+logger = logging.getLogger('')
+
 #----------------------------------------------------------------------------#
 class TheOptionParser( OptionParser ):
 #----------------------------------------------------------------------------#
@@ -100,6 +103,13 @@ class Controller( object ):
             if not self.config.has_section( section ):
                 self.config.add_section( section )
             self.config.set( section, key, value )
+            
+        # Set the logging levels :
+        for section in self.config.sections():
+            debuglevel = self.config.getValue( section, 'log_level', default = 'INFO' )
+            logger.debug("set %s log level to %s", section, debuglevel)
+            debuglevel = getattr(logging, debuglevel)
+            logging.getLogger(section).setLevel(debuglevel)
 
         # framework subsystem / management object will always be there
         subsystem = "frameworkd"
@@ -154,6 +164,8 @@ class Controller( object ):
                 try:
                     modulename = filename[:-3]
                     try:
+                        #XXX: if the name of the file is not the same than the name of the module
+                        #     e.g : gsm.py instead of ogsmd.py, then this line is useless  
                         disable = self.config.getboolean( modulename, "disable" )
                     except ConfigParser.Error:
                         disable = False

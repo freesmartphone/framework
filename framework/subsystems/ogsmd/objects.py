@@ -26,6 +26,9 @@ import weakref
 import math
 import sys, os
 
+import logging
+logger = logging.getLogger('ogsmd')
+
 DBUS_INTERFACE_DEVICE = "org.freesmartphone.GSM.Device"
 DBUS_INTERFACE_SIM = "org.freesmartphone.GSM.SIM"
 DBUS_INTERFACE_NETWORK = "org.freesmartphone.GSM.Network"
@@ -44,7 +47,7 @@ DBUS_BUS_NAME_SERVER = "org.freesmartphone.ogsmd"
 DBUS_OBJECT_PATH_DEVICE = "/org/freesmartphone/GSM/Device"
 DBUS_OBJECT_PATH_SERVER = "/org/freesmartphone/GSM/Server"
 
-DEBUG = False
+DEBUG = False   # TODO: remove this
 
 #=========================================================================#
 class Server( dbus.service.Object ):
@@ -67,7 +70,7 @@ class Server( dbus.service.Object ):
         self.interface = DBUS_INTERFACE_SERVER
         self.path = DBUS_OBJECT_PATH_SERVER
         dbus.service.Object.__init__( self, bus, self.path )
-        LOG( LOG_INFO, "%s initialized. Serving %s at %s" % ( self.__class__.__name__, self.interface, self.path ) )
+        logger.info( "%s initialized. Serving %s at %s", self.__class__.__name__, self.interface, self.path )
         self.bus = bus
         self.homezones = None
         self.zone = "unknown"
@@ -88,7 +91,7 @@ class Server( dbus.service.Object ):
     def onIncomingCellBroadcast( self, channel, data ):
 
         def gotHomezones( homezones, self=self ):
-            print "got SIM homezones:", homezones
+            logger.info( "got SIM homezones: %s", homezones )
             self.homezones = homezones
             # debug code, if you have no homezones on your SIM. To test, use:
             # gsm.DebugInjectString("UNSOL","+CBM: 16,221,0,1,1\r\n347747555093\r\r\r\n")
@@ -99,9 +102,9 @@ class Server( dbus.service.Object ):
             if len( data ) != 12:
                 return
             self.x, self.y = int( data[:6] ), int( data[6:] )
-            print "home zone cell broadcast detected:", self.x, self.y
+            logger.info( "home zone cell broadcast detected: %s %s", self.x, self.y )
             if self.homezones is None: # never tried to read them
-                print "trying to read home zones from SIM"
+                logger.info( "trying to read home zones from SIM" )
                 self.fso_sim.GetHomeZones( reply_handler=gotHomezones, error_handler=lambda error:None )
             else:
                 self.checkInHomezones()
@@ -115,7 +118,7 @@ class Server( dbus.service.Object ):
         self.HomeZoneStatus( status )
 
     def checkInHomezone( self, x, y, zx, zy, zr ):
-        print "matching", x, y, "with", zx, zy, "(", zr, ")"
+        logger.info( "matching %s %s %s %s %s %s %s %s", x, y, "with", zx, zy, "(", zr, ")" )
         dist = math.sqrt( math.pow( x-zx, 2 ) + math.pow( y-zy, 2 ) ) * 10
         maxdist = math.sqrt( zr ) * 10
         return dist < maxdist
@@ -131,14 +134,14 @@ class Server( dbus.service.Object ):
     @dbus.service.signal( DBUS_INTERFACE_HZ, "s" )
     def HomeZoneStatus( self, zone ):
         self.zone = zone
-        LOG( LOG_INFO, "home zone status now", zone )
+        logger.info( "home zone status now %s", zone )
 
     @dbus.service.method( DBUS_INTERFACE_HZ, "", "as",
                           async_callbacks=( "dbus_ok", "dbus_error" ) )
     def GetKnownHomeZones( self, dbus_ok, dbus_error ):
 
         def gotHomezones( homezones, self=self, dbus_ok=dbus_ok ):
-            print "got SIM homezones:", homezones
+            logger.info( "got SIM homezones: %s", homezones )
             self.homezones = homezones
             # debug code, if you have no homezones on your SIM. To test, use:
             # gsm.DebugInjectString("UNSOL","+CBM: 16,221,0,1,1\r\n347747555093\r\r\r\n")
@@ -162,7 +165,7 @@ class Device( dbus.service.Object ):
         self.interface = DBUS_INTERFACE_DEVICE
         self.path = DBUS_OBJECT_PATH_DEVICE
         dbus.service.Object.__init__( self, bus, self.path )
-        LOG( LOG_INFO, "%s initialized. Serving %s at %s" % ( self.__class__.__name__, self.interface, self.path ) )
+        logger.info( "%s initialized. Serving %s at %s", self.__class__.__name__, self.interface, self.path )
 
         if modemtype == "singleline":
             from modems.singleline.modem import SingleLine as Modem
@@ -185,7 +188,7 @@ class Device( dbus.service.Object ):
             global mediator
             import modems.sierra.mediator as mediator
         else:
-            LOG( LOG_ERR, "Unsupported modem type %s" % modemtype )
+            logger.error( "Unsupported modem type %s", modemtype )
             return
 
         self.modem = Modem( self, bus )
@@ -197,7 +200,7 @@ class Device( dbus.service.Object ):
 
     def _channelsOK( self ):
         """Called when idle and all channels have been successfully opened."""
-        print "NOTIFY SERVER: ALL CHANNELS OK, START TRAFFICING :)"
+        logger.info( "NOTIFY SERVER: ALL CHANNELS OK, START TRAFFICING :)" )
         return False # don't call again
 
     #
@@ -251,7 +254,7 @@ class Device( dbus.service.Object ):
 
     @dbus.service.signal( DBUS_INTERFACE_SIM, "s" )
     def AuthStatus( self, status ):
-        LOG( LOG_INFO, "auth status changed to", status )
+        logger.info( "auth status changed to %s", status )
         self.modem.setSimPinState( status )
 
     @dbus.service.method( DBUS_INTERFACE_SIM, "s", "",
@@ -287,7 +290,7 @@ class Device( dbus.service.Object ):
 
     @dbus.service.signal( DBUS_INTERFACE_SIM, "b" )
     def ReadyStatus( self, status ):
-        LOG( LOG_INFO, "sim ready status", status )
+        logger.info( "sim ready status %s", status )
         self.modem.setSimReady( status )
 
     @dbus.service.method( DBUS_INTERFACE_SIM, "", "a{sv}",
@@ -379,7 +382,7 @@ class Device( dbus.service.Object ):
 
     @dbus.service.signal( DBUS_INTERFACE_SIM, "i" )
     def NewMessage( self, index ):
-        LOG( LOG_INFO, "new message on sim storage index", index )
+        logger.info( "new message on sim storage index %s", index )
 
     #
     # dbus org.freesmartphone.GSM.Network
@@ -401,7 +404,7 @@ class Device( dbus.service.Object ):
 
     @dbus.service.signal( DBUS_INTERFACE_NETWORK, "a{sv}" )
     def Status( self, status ):
-        LOG( LOG_INFO, "org.freesmartphone.GSM.Network.Status: ", repr(status) )
+        logger.info( "org.freesmartphone.GSM.Network.Status: %s", status )
 
     @dbus.service.method( DBUS_INTERFACE_NETWORK, "", "i",
                           async_callbacks=( "dbus_ok", "dbus_error" ) )
@@ -410,7 +413,7 @@ class Device( dbus.service.Object ):
 
     @dbus.service.signal( DBUS_INTERFACE_NETWORK, "i" )
     def SignalStrength( self, strength ):
-        LOG( LOG_INFO, "org.freesmartphone.GSM.Network.SignalStrength: ", repr(strength) )
+        logger.info( "org.freesmartphone.GSM.Network.SignalStrength: %s", strength )
 
     @dbus.service.method( DBUS_INTERFACE_NETWORK, "", "a(isss)",
                           async_callbacks=( "dbus_ok", "dbus_error" ) )
@@ -456,7 +459,7 @@ class Device( dbus.service.Object ):
     #
     @dbus.service.signal( DBUS_INTERFACE_CALL, "isa{sv}" )
     def CallStatus( self, index, status, properties ):
-        LOG( LOG_INFO, "org.freesmartphone.GSM.Call.CallStatus: ", repr(index), repr(status), repr(properties) )
+        logger.info( "org.freesmartphone.GSM.Call.CallStatus: %s %s %s", index, status, properties )
 
     @dbus.service.method( DBUS_INTERFACE_CALL, "i", "",
                           async_callbacks=( "dbus_ok", "dbus_error" ) )
@@ -538,7 +541,7 @@ class Device( dbus.service.Object ):
 
     @dbus.service.signal( DBUS_INTERFACE_PDP, "isa{sv}" )
     def ContextStatus( self, index, status, properties ):
-        LOG( LOG_INFO, "org.freesmartphone.GSM.PDP.ContextStatus: ", repr(index), repr(status), repr(properties) )
+        logger.info( "org.freesmartphone.GSM.PDP.ContextStatus: %s %s %s", index, status, properties )
 
     #
     # dbus org.freesmartphone.GSM.CB
@@ -555,7 +558,7 @@ class Device( dbus.service.Object ):
 
     @dbus.service.signal( DBUS_INTERFACE_CB, "is" )
     def IncomingCellBroadcast( self, channel, data ):
-        LOG( LOG_INFO, "org.freesmartphone.GSM.CB.IncomingCellBroadcast: ", repr(channel), repr(data) )
+        logger.info( "org.freesmartphone.GSM.CB.IncomingCellBroadcast: %s %s", channel, data )
 
     #
     # dbus org.freesmartphone.GSM.Debug

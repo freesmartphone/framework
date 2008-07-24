@@ -22,13 +22,16 @@ from syslog import syslog, LOG_ERR, LOG_WARNING, LOG_INFO, LOG_DEBUG
 from helpers import LOG, readFromFile, writeToFile
 from gobject import idle_add
 
+import logging
+logger = logging.getLogger('oeventd')
+
 def requestInterfaceForObject( bus, prefix, interface, object ):
     proxy = bus.get_object( prefix, object )
     iface = dbus.Interface( proxy, interface )
     return iface
 
 def printAction( events ):
-    print events
+    logger.info("%s", events)
 
 def attributeFilter( key, value ):
     def _attributeFilter( event, key=key, value=value):
@@ -56,8 +59,8 @@ class Receiver( dbus.service.Object ):
         self.filter = filter
         self.active = []
         dbus.service.Object.__init__( self, bus, self.path )
-        LOG( LOG_INFO, "%s initialized. Serving %s at %s" %
-            ( self.__class__.__name__, self.interface, list( self.locations ) )
+        logger.info( "%s initialized. Serving %s at %s",
+            self.__class__.__name__, self.interface, list( self.locations ) 
         )
 
     def _matchEvent( self, event ):
@@ -91,7 +94,7 @@ class AudioSetupReceiver( Receiver ):
         else:
             scenario = "stereoout"
         if not self.scenario == scenario:
-            print 'setting alsa to', scenario
+            logger.info( 'setting alsa to %s', scenario )
             os.system( "alsactl -f /usr/share/openmoko/scenarios/%s.state restore" % scenario )
             self.scenario = scenario
 
@@ -122,10 +125,10 @@ class VibratorReceiver( Receiver ):
         )
         if active:
             led.SetBlinking( 300, 700, reply_handler=self._replyCallback, error_handler=self._errorCallback )
-            print 'enabling led', self.target
+            logger.info( 'enabling led %s', self.target )
         else:
             led.SetBrightness( 0, reply_handler=self._replyCallback, error_handler=self._errorCallback )
-            print 'disabling led', self.target
+            logger.info( 'disabling led %s', self.target )
 
 #----------------------------------------------------------------------------#
 class RingReceiver( Receiver ):
@@ -142,10 +145,10 @@ class RingReceiver( Receiver ):
         elif t == gst.MESSAGE_ERROR:
             self.player.set_state(gst.STATE_NULL)
             err, debug = message.parse_error()
-            print "Error: %s" % err, debug
+            logger.error( "Error: %s %s", err, debug )
             self.ringing = False
         else:
-            print "GST:MSG", t
+            logger.info( "GST:MSG %s", t )
 
     def _play( self ):
         self.player = pipeline = gst.Pipeline( "oeventd-pipeline" )
@@ -162,14 +165,14 @@ class RingReceiver( Receiver ):
         bus.connect( "message", self._onMessage )
         filesrc.set_property( "location", "/usr/share/sounds/Arkanoid_PSID.sid" )
         pipeline.set_state(gst.STATE_PLAYING)
-        print 'playing ringtone'
+        logger.info( 'playing ringtone' )
         self.ringing = True
 
     def _stop( self ):
         self.player.set_state(gst.STATE_NULL)
         del self.player
         self.ringing = False
-        print 'stopped ringtone'
+        logger.info( 'stopped ringtone' )
 
     def action( self, active ):
         status = [event.attributes.get( "status" ) for event in active]

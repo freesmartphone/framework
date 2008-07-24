@@ -6,20 +6,31 @@ DBUS_PATH_PREFIX = "/org/freesmartphone"
 
 VERSION = "0.0.0"
 
-log_debug = True
-log_info = True
-
 from syslog import syslog, LOG_ERR, LOG_WARNING, LOG_INFO, LOG_DEBUG
 from traceback import format_exc
 
+import logging
+
+logger = logging.getLogger('')  # The root logger
+
+# This dict map syslog message levels to logging message levels                
+logging_levels_map = {
+    LOG_ERR :       logging.ERROR,
+    LOG_WARNING :   logging.WARNING,
+    LOG_INFO :      logging.INFO,
+    LOG_DEBUG :     logging.DEBUG,
+}
+
 def LOG(level, *values):
-    if level <= LOG_ERR and log_debug:
-            syslog(level, '%s %s'% (values[0], format_exc(), ))
-    if level <= LOG_ERR \
-    or level <= LOG_INFO and log_info \
-    or level <= LOG_DEBUG and log_debug:
-            try: syslog(level, ' '.join([str(i) for i in values]).__repr__())
-            except Exception, e:
-                    print 'error on syslog', values.__repr__()
-                    print 'error on syslog', format_exc()
-                    print 'error on syslog', e
+    """log a message
+    
+       this function is deprecated, we should use logging module instead 
+    """
+    if level == LOG_ERR:
+        values = values + (format_exc(),)
+    logger.log(logging_levels_map[level], ' '.join(str(i) for i in values))
+    
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(name)-8s %(levelname)-8s %(message)s'
+)

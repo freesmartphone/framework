@@ -25,7 +25,8 @@ GPLv2 or later
 # TODO: make these command line options
 SIM_PRESENT = True
 SIM_LOCKED = False
-NUMBER = "0287515071"
+# NUMBER = "0287515071"
+NUMBER = "0939662463"
 
 import gobject
 import threading
@@ -86,16 +87,16 @@ class Test(Tasklet):
         yield Tasklet(self.test_register())
         # yield Tasklet(self.test_call())
         yield Tasklet(self.test_ophoned())
-        yield Tasklet(self.test_sim())
+        # yield Tasklet(self.test_sim())
         yield Tasklet(self.test_contacts())
 
     def test_set_antenna_power(self, nb = 1):
         """We try to turn the antenna off and on a few times"""
         print "== Test antenna off/on %d times" % nb
         for i in range(nb):
-            vprint("Turn off")
-            self.gsm.SetAntennaPower(False)
-            assert not self.gsm.GetAntennaPower()
+            # vprint("Turn off")
+            # self.gsm.SetAntennaPower(False)
+            # assert not self.gsm.GetAntennaPower()
             vprint("Turn on")
             self.gsm.SetAntennaPower(True)
             assert self.gsm_device_iface.GetAntennaPower()
@@ -193,13 +194,12 @@ class Test(Tasklet):
         phone_book = dbus_to_python(phone_book)
         vprint("phone book = %s", phone_book)
         
-        name = "freesmartphonetest"
+        name = "test"
         number = "0287515071"
         vprint("Store a new entry : %s", name)
-        
-        # XXX: We need to wait for the sim to be ready before. How to do that ?
         index = max(e[0] for e in phone_book) + 1 if phone_book else 1   # We get a free index
         self.gsm.StoreEntry(index, name, number)
+        
         phone_book = self.gsm.RetrievePhonebook()
         phone_book = dbus_to_python(phone_book)
         vprint("phone book = %s", phone_book)

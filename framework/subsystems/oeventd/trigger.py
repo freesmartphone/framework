@@ -21,6 +21,9 @@ from syslog import syslog, LOG_ERR, LOG_WARNING, LOG_INFO, LOG_DEBUG
 from helpers import LOG, readFromFile, writeToFile
 from gobject import idle_add
 
+import logging
+logger = logging.getLogger('oeventd')
+
 #----------------------------------------------------------------------------#
 class Trigger( dbus.service.Object ):
 #----------------------------------------------------------------------------#
@@ -35,8 +38,8 @@ class Trigger( dbus.service.Object ):
         Trigger.INDEX += 1
         self.controller = controller
         dbus.service.Object.__init__( self, controller.bus, self.path )
-        LOG( LOG_INFO, "%s initialized. Serving %s at %s" %
-            ( self.__class__.__name__, self.interface, list( self.locations ) )
+        logger.info( "%s initialized. Serving %s at %s",
+            self.__class__.__name__, self.interface, list( self.locations )
         )
 
 #----------------------------------------------------------------------------#
@@ -69,17 +72,17 @@ class CallTrigger( DBusTrigger ):
             signal = Manager.instance.CreateSignal({'type': 'Call', 'status': status})
             self.calls[id] = signal
             self.calls[id].fire()
-            print self.calls[id], 'fired', self.calls[id].attributes
+            logger.info( "%s fired %s", self.calls[id], self.calls[id].attributes)
         else: # updated call
             oldstatus = self.calls[id].attributes['status']
             self.calls[id].attributes['status'] = status
             self.calls[id].fire()
-            print self.calls[id], 'fired', self.calls[id].attributes
+            logger.info( "%s fired %s", self.calls[id], self.calls[id].attributes)
         if status == "release":
             signal = self.calls[id]
             signal.release()
             del self.calls[id]
-            print signal, 'deleted'
+            logger.info("%s deleted", signal)
         
 #----------------------------------------------------------------------------#
 def factory( prefix, controller ):

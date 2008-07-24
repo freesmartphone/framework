@@ -31,6 +31,9 @@ from itertools import count
 from helpers import LOG, DBUS_INTERFACE_PREFIX, DBUS_PATH_PREFIX, readFromFile, writeToFile
 import ConfigParser
 
+import logging
+logger = logging.getLogger('odeviced')
+
 #----------------------------------------------------------------------------#
 class IdleNotifier( dbus.service.Object ):
 #----------------------------------------------------------------------------#
@@ -42,7 +45,7 @@ class IdleNotifier( dbus.service.Object ):
         self.path = DBUS_PATH_PREFIX + "/IdleNotifier/%s" % index
         dbus.service.Object.__init__( self, bus, self.path )
         self.config = config
-        LOG( LOG_INFO, "%s initialized. Serving %s at %s" % ( self.__class__.__name__, self.interface, self.path ) )
+        logger.info( "%s initialized. Serving %s at %s", self.__class__.__name__, self.interface, self.path )
 
         self.state = "AWAKE"
         # FIXME: Get this from preferences
@@ -76,17 +79,17 @@ class IdleNotifier( dbus.service.Object ):
         self.input = {}
         for i in count():
             if i in ignoreinput:
-                LOG( LOG_INFO, __name__, "skipping input node %d due to configuration" % i )
+                logger.info("%s skipping input node %d due to configuration", __name__, i)
                 continue
             try:
                 f = os.open( "/dev/input/event%d" % i, os.O_NONBLOCK )
             except OSError, e:
-                LOG( LOG_ERR, "can't open /dev/input/event%d: %s" % ( i, e ) )
+                logger.error( "can't open /dev/input/event%d: %s", i, e )
                 break
             else:
                 self.input[f] = "event%d" % i
 
-        LOG( LOG_DEBUG, "opened %d input file descriptors" % len( self.input ) )
+        logger.debug( "opened %d input file descriptors", len( self.input ) )
 
         if len( self.input ):
             self.launchStateMachine()
@@ -136,7 +139,7 @@ class IdleNotifier( dbus.service.Object ):
     #
     @dbus.service.signal( DBUS_INTERFACE, "s" )
     def State( self, state ):
-        LOG( LOG_INFO, __name__, "state change to", state )
+        logger.info("%s state change to %s", __name__, state)
         self.state = state
     #
     # dbus methods

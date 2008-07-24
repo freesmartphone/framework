@@ -18,6 +18,9 @@ import dbus
 import dbus.service
 from dbus import DBusException
 
+import logging
+logger = logging.getLogger('ophoned')
+
 # from framework.config import LOG, LOG_ERR, LOG_WARNING, LOG_INFO, LOG_DEBUG
 
 class Phone(dbus.service.Object):
@@ -42,7 +45,7 @@ class Phone(dbus.service.Object):
                 protocol = protocol_cls(self)
                 self.protocols[protocol.name()] = protocol
             except ProtocolUnusable, e:
-                print "can't use protocol %s : %s" % (protocol_cls, e)
+                logger.info("can't use protocol %s : %s", protocol_cls, e)
         return self.protocols.keys()
 
     @dbus.service.method('org.freesmartphone.Phone', in_signature='ssb', out_signature='o')
@@ -75,11 +78,13 @@ class Phone(dbus.service.Object):
 
 def factory(prefix, controller):
     """This is the magic function that will be called bye the framework module manager"""
+    logger.info("Logging test")
     try:    # We use a try because the module manager ignores the exceptions in the factory
         phone = Phone(controller.bus)
         return [phone]
     except Exception, e:
-        print e # Just so that if an exception is raised, we can at least see the error message
+        # XXX: remove that
+        logger.error("%s", e) # Just so that if an exception is raised, we can at least see the error message
         raise
         
 def generate_doc():
