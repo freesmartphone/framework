@@ -799,6 +799,9 @@ def numberToPhonebookTuple( nstring ):
     Returns a phonebook tuple depending on a number.
     """
 
+    if type( nstring ) != types.StringType():
+        nstring = nstring.encode( "iso-8859-1" ) # as set via +CSCS
+
     if nstring[0] == '+':
         return nstring[1:], 145
     else:
