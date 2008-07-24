@@ -710,7 +710,7 @@ class SimStoreMessage( SimMediator ):
 #=========================================================================#
     def trigger( self ):
         number, ntype = const.numberToPhonebookTuple( self.number )
-        contents = unicodeToString( self.contents.replace( '\n', '\r\n' ) )
+        contents = const.unicodeToString( self.contents.replace( '\n', '\r\n' ) )
         self._commchannel.enqueue( '+CMGW="%s",%d,"STO UNSENT"\r%s' % ( number, ntype, contents ), self.responseFromChannel, self.errorFromChannel )
 
     @logged
