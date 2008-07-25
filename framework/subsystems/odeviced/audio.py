@@ -10,47 +10,52 @@ GPLv2 or later
 __version__ = "0.2.0"
 
 from patterns import asyncworker
-from dbus import DBusException
-import dbus.service
-from gobject import io_add_watch, IO_IN, source_remove, timeout_add, timeout_add_seconds, idle_add
-from itertools import count
 from helpers import DBUS_INTERFACE_PREFIX, DBUS_PATH_PREFIX, readFromFile, writeToFile, cleanObjectName
-import ConfigParser
+
 import gst
 import gobject
+import dbus.service
 import sys, os, time, struct
 
 import logging
 logger = logging.getLogger( "odeviced.audio" )
 
 #----------------------------------------------------------------------------#
-class UnknownFormat( DBusException ):
+class UnknownFormat( dbus.DBusException ):
 #----------------------------------------------------------------------------#
     _dbus_error_name = "org.freesmartphone.Audio.UnknownFormat"
 
 #----------------------------------------------------------------------------#
-class PlayerError( DBusException ):
+class PlayerError( dbus.DBusException ):
 #----------------------------------------------------------------------------#
     _dbus_error_name = "org.freesmartphone.Audio.PlayerError"
 
 #----------------------------------------------------------------------------#
-class NotPlaying( DBusException ):
+class NotPlaying( dbus.DBusException ):
 #----------------------------------------------------------------------------#
     _dbus_error_name = "org.freesmartphone.Audio.NotPlaying"
 
 #----------------------------------------------------------------------------#
-class AlreadyPlaying( DBusException ):
+class AlreadyPlaying( dbus.DBusException ):
 #----------------------------------------------------------------------------#
     _dbus_error_name = "org.freesmartphone.Audio.AlreadyPlaying"
 
 #----------------------------------------------------------------------------#
 class Player( object ):
 #----------------------------------------------------------------------------#
+    """
+    Base class implementing common logic for all Players.
+    """
+
+    # FIXME refactor common stuff out of GStreamer player into this class
     pass
 
 #----------------------------------------------------------------------------#
 class GStreamerPlayer( Player, asyncworker.AsyncWorker ):
 #----------------------------------------------------------------------------#
+    """
+    A Gstreamer based Player.
+    """
 
     decoderMap = { \
         "sid": "siddec",
@@ -177,7 +182,7 @@ class Audio( dbus.service.Object ):
         dbus.service.Object.__init__( self, bus, self.path )
         self.config = config
         logger.info( "%s initialized. Serving %s at %s" % ( self.__class__.__name__, self.interface, self.path ) )
-        # FIXME make it configurable or autodetect
+        # FIXME make it configurable or autodetect which player is to be used
         self.player = GStreamerPlayer( self )
 
     #
@@ -213,8 +218,7 @@ class Audio( dbus.service.Object ):
 #----------------------------------------------------------------------------#
 def factory( prefix, controller ):
 #----------------------------------------------------------------------------#
-    """Scan for available sysfs nodes and instanciate corresponding
-    dbus server objects"""
+    """Instanciate plugins"""
 
     return [ Audio( controller.bus, controller.config, 0, "" ) ]
 

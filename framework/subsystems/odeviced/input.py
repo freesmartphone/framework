@@ -7,15 +7,15 @@ Open Device Daemon - A plugin for input device peripherals
 GPLv2 or later
 """
 
-__version__ = "0.9.0"
+__version__ = "0.9.9"
 
 from patterns import asyncworker
-import dbus.service
-from gobject import io_add_watch, IO_IN, source_remove, timeout_add, timeout_add_seconds, idle_add
-from itertools import count
 from helpers import DBUS_INTERFACE_PREFIX, DBUS_PATH_PREFIX, readFromFile, writeToFile, cleanObjectName
+
+import gobject
+import dbus.service
 import ConfigParser
-import sys, os, time, struct
+import itertools, sys, os, time, struct
 
 import logging
 logger = logging.getLogger( "odeviced.input" )
@@ -58,7 +58,7 @@ class Input( dbus.service.Object, asyncworker.AsyncWorker ):
             ignoreinput = [ int(value) for value in ignoreinput.split(',') ]
 
         self.input = {}
-        for i in count():
+        for i in itertools.count():
             if i in ignoreinput:
                 logger.info( "skipping input node %d due to configuration" % ( i ) )
                 continue
@@ -101,7 +101,7 @@ class Input( dbus.service.Object, asyncworker.AsyncWorker ):
 
     def launchStateMachine( self ):
         for i in self.input:
-            io_add_watch( i, IO_IN, self.onInputActivity )
+            gobject.io_add_watch( i, gobject.IO_IN, self.onInputActivity )
 
     def onInputActivity( self, source, condition ):
         data = os.read( source, 512 )
@@ -118,7 +118,7 @@ class Input( dbus.service.Object, asyncworker.AsyncWorker ):
         if ( typ, code ) in self.watches:
             if value == 0x01: # pressed
                 if self.reportheld[ typ, code ]:
-                    timeout = timeout_add_seconds( 1, self.callbackKeyHeldTimeout, typ, code )
+                    timeout = gobject.timeout_add_seconds( 1, self.callbackKeyHeldTimeout, typ, code )
                 else:
                     timeout = 0
                 self.events[ ( typ, code ) ] = timestamp, timeout
@@ -131,7 +131,7 @@ class Input( dbus.service.Object, asyncworker.AsyncWorker ):
                     logger.warning( "potential logic problem, key released before pressed. watches are %s events are %s" % ( self.watches, self.events ) )
                 else:
                     if timeout:
-                        source_remove( timeout )
+                        gobject.source_remove( timeout )
                     del self.events[ ( typ, code ) ]
 
     def callbackKeyHeldTimeout( self, typ, code ):
@@ -148,13 +148,12 @@ class Input( dbus.service.Object, asyncworker.AsyncWorker ):
 #----------------------------------------------------------------------------#
 def factory( prefix, controller ):
 #----------------------------------------------------------------------------#
-    """Scan for available sysfs nodes and instanciate corresponding
-    dbus server objects"""
-
+    """
+    Initialize dbus plugin objects.
+    """
     return [ Input( controller.bus, controller.config, 0, "" ) ]
 
 if __name__ == "__main__":
     import dbus
     bus = dbus.SystemBus()
 
-    #proxy = bus.get_object( DBUS_INTERFACE_PREFIX, Input.DBUS_INTERFACE )

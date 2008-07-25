@@ -19,15 +19,14 @@ Known states and possible use cases:
 GPLv2 or later
 """
 
-__version__ = "0.9.1"
+__version__ = "0.9.9"
 
 from helpers import DBUS_INTERFACE_PREFIX, DBUS_PATH_PREFIX, readFromFile, writeToFile
 
 import gobject
 import dbus.service
-from itertools import count
 import ConfigParser
-import os, sys
+import itertools, os, sys
 
 import logging
 logger = logging.getLogger( "odeviced.idlenotifier" )
@@ -79,7 +78,7 @@ class IdleNotifier( dbus.service.Object ):
             ignoreinput = [ int(value) for value in ignoreinput.split(',') ]
 
         self.input = {}
-        for i in count():
+        for i in itertools.count():
             if i in ignoreinput:
                 logger.info( "skipping input node %d due to configuration" % i )
                 continue
@@ -160,10 +159,6 @@ class IdleNotifier( dbus.service.Object ):
     #
     # dbus methods
     #
-    @dbus.service.method( DBUS_INTERFACE, "", "s" )
-    def GetName( self ):
-        return "IdleNotifier"
-
     @dbus.service.method( DBUS_INTERFACE, "", "s" )
     def GetState( self ):
         return self.state
