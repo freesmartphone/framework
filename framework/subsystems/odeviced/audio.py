@@ -12,7 +12,7 @@ __version__ = "0.2.0"
 from dbus import DBusException
 import dbus.service
 import sys, os, time, struct
-from Queue import Queue
+from patterns import asyncworker
 from gobject import io_add_watch, IO_IN, source_remove, timeout_add, timeout_add_seconds, idle_add
 from itertools import count
 from helpers import DBUS_INTERFACE_PREFIX, DBUS_PATH_PREFIX, readFromFile, writeToFile, cleanObjectName
@@ -49,7 +49,7 @@ class Player( object ):
     pass
 
 #----------------------------------------------------------------------------#
-class GStreamerPlayer( Player ):
+class GStreamerPlayer( Player, asyncworker.AsyncWorker ):
 #----------------------------------------------------------------------------#
 
     decoderMap = { \
@@ -59,10 +59,11 @@ class GStreamerPlayer( Player ):
         }
 
     def __init__( self, dbus_object ):
+        Player.__init__( self )
+        asyncworker.AsyncWorker.__init__( self )
         self.pipelines = {}
         self._object = dbus_object
-        self.q = Queue()
-        self.process_source = None
+
 
     def _onMessage( self, bus, message, name ):
         pipeline, status, repeat, ok_cb, error_cb = self.pipelines[name]
@@ -81,7 +82,7 @@ class GStreamerPlayer( Player ):
 
         elif t == gst.MESSAGE_STATE_CHANGED:
             previous, current, pending = message.parse_state_changed()
-            logger.debug( "audio: G: STATE NOW", "(%s) -> %s -> (%s)" % ( previous, current, pending ) )
+            logger.debug( "audio: G: STATE NOW: (%s) -> %s -> (%s)" % ( previous, current, pending ) )
             if previous == gst.STATE_PAUSED and current == gst.STATE_PLAYING:
                 self._updateSoundStatus( name, "playing" )
                 ok_cb()
@@ -103,11 +104,9 @@ class GStreamerPlayer( Player ):
             self.pipelines[name] = pipeline, newstatus, repeat, ok_cb, error_cb
             self._object.SoundStatus( name, newstatus, {} )
 
-    def _processTask( self ):
-        if self.q.empty():
-            return False # don't call me again
+    def onProcessElement( self, element ):
         logger.debug( "audio: getting task from queue..." )
-        ok_cb, error_cb, task, args = self.q.get()
+        ok_cb, error_cb, task, args = element
         logger.debug( "audio: got task: %s %s" % ( task, args ) )
         try:
             method = getattr( self, "task_%s" % task )
@@ -117,11 +116,8 @@ class GStreamerPlayer( Player ):
             method( ok_cb, error_cb, *args )
         return True
 
-    def enqueue( self, ok_cb, error_cb, task, *args ):
-        restart = self.q.empty()
-        self.q.put( ( ok_cb, error_cb, task, args ) )
-        if restart:
-            self.process_source = gobject.idle_add( self._processTask )
+    def enqueueTask( self, ok_cb, error_cb, task, *args ):
+        self.enqueue( ok_cb, error_cb, task, args )
 
     def task_play( self, ok_cb, error_cb, name, repeat ):
         if name in self.pipelines:
@@ -180,7 +176,7 @@ class Audio( dbus.service.Object ):
         self.path = DBUS_PATH_PREFIX + "/Audio"
         dbus.service.Object.__init__( self, bus, self.path )
         self.config = config
-        logger.info( "audio: %s initialized. Serving %s at %s", self.__class__.__name__, self.interface, self.path )
+        logger.info( "audio: %s initialized. Serving %s at %s" % ( self.__class__.__name__, self.interface, self.path ) )
         # FIXME make it configurable or autodetect
         self.player = GStreamerPlayer( self )
 
@@ -191,17 +187,17 @@ class Audio( dbus.service.Object ):
     @dbus.service.method( DBUS_INTERFACE, "s", "",
                           async_callbacks=( "dbus_ok", "dbus_error" ) )
     def PlaySound( self, name, dbus_ok, dbus_error ):
-        self.player.enqueue( dbus_ok, dbus_error, "play", name, False )
+        self.player.enqueueTask( dbus_ok, dbus_error, "play", name, False )
 
     @dbus.service.method( DBUS_INTERFACE, "s", "",
                           async_callbacks=( "dbus_ok", "dbus_error" ) )
     def StopSound( self, name, dbus_ok, dbus_error ):
-        self.player.enqueue( dbus_ok, dbus_error, "stop", name )
+        self.player.enqueueTask( dbus_ok, dbus_error, "stop", name )
 
     @dbus.service.method( DBUS_INTERFACE, "", "",
                           async_callbacks=( "dbus_ok", "dbus_error" ) )
     def StopAllSounds( self, dbus_ok, dbus_error ):
-        self.player.enqueue( dbus_ok, dbus_error, "panic" )
+        self.player.enqueueTask( dbus_ok, dbus_error, "panic" )
 
     #
     # dbus signals

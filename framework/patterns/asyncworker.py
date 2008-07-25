@@ -14,8 +14,16 @@ __author__ = "Michael 'Mickey' Lauer <mickey@vanille-media.de>"
 from Queue import Queue
 import gobject
 
-import logging
-logger = logging
+# FIXME use parent/child logger hierarchy for subsystems/modules
+if __debug__:
+    class logger():
+        @staticmethod
+        def debug( message ):
+            print message
+else:
+    import logging
+    logger = logging
+
 
 #============================================================================#
 class AsyncWorker( object ):
@@ -41,6 +49,7 @@ class AsyncWorker( object ):
         """
         self._queue = Queue()
         self._source = None
+        logger.debug( "asyncworker: init" )
 
     def __del__( self ):
         """
@@ -49,15 +58,30 @@ class AsyncWorker( object ):
         if self._source is not None:
             gobject.source_remove( self._source )
 
-    def enqueue( self, *args ):
+    def enqueue( self, *element ):
         """
         Enqueue an element, start processing queue if necessary.
         """
         restart = self._queue.empty() # should we wrap this in a mutex to play thread-safe?
-        self._queue.put( args )
+        self._queue.put( element )
         if restart:
            logger.debug( "asyncworker: no elements in queue: starting idle task." )
            self._source = gobject.idle_add( self._processElement )
+
+    def remove( self, *element ):
+        """
+        Remove one element from the queue.
+        """
+        self._queue.queue.remove( element )
+        if self._queue.empty() and ( self._source is not None ):
+            gobject.source_remove( self._source )
+
+    def removeAll( self, *element ):
+        while True:
+            try:
+                self.remove( *element )
+            except ValueError:
+                break
 
     def onProcessElement( self, element ):
         """
@@ -88,10 +112,9 @@ class AsyncWorker( object ):
 if __name__ == "__main__":
 #============================================================================#
 
-    class Test( AsyncWorker ):
+    class TestAsyncWorker( AsyncWorker ):
         def onProcessElement( self, element ):
             print ( "asyncworker: processing %s\n>>>" % repr(element) )
-
 
     logging.basicConfig( \
         level=logging.DEBUG,
@@ -102,12 +125,26 @@ if __name__ == "__main__":
     gobject.threads_init()
     import thread
 
-    a = AsyncWorker()
-    for i in xrange( 10000 ):
+    a = TestAsyncWorker()
+    for i in xrange( 10 ):
         a.enqueue( i )
+
+    for i in xrange( 10 ):
+        a.enqueue( "yo" )
+
+    a.removeAll( "yo" )
+    a.remove( 9 )
+
 
     mainloop = gobject.MainLoop()
     thread.start_new_thread( mainloop.run, () )
 
     import time
-    time.sleep( 2 )
+    time.sleep( 1 )
+
+    for i in xrange( 1000 ):
+        a.enqueue( i )
+
+    del a
+    import sys
+    sys.exit( 0 )
