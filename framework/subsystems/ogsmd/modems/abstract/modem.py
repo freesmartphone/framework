@@ -31,11 +31,13 @@ class AbstractModem( object ):
         assert AbstractModem.instance is None
         AbstractModem.instance = self
 
-        self._channels = {}             # container for channel instances
-        self._object = object           # dbus object
-        self._bus = bus                 # dbus bus
-        self._simPinState = "unknown"   # SIM PIN state
-        self._simReady = "unknown"      # SIM data access state
+        self._channels = {}                     # container for channel instances
+        self._object = object                   # dbus object
+        self._bus = bus                         # dbus bus
+        self._simPinState = "unknown"           # SIM PIN state
+        self._simReady = "unknown"              # SIM data access state
+
+        self._phonebookIndices = None, None      # min. index, max. index
 
     def open( self, callback ):
         """
@@ -99,6 +101,12 @@ class AbstractModem( object ):
         if ready == True:
             for channel in self._channels.itervalues():
                 channel.modemStateSimReady()
+
+    def setPhonebookIndices( self, first, last ):
+        self._phonebookIndices = first, last
+
+    def phonebookIndices( self ):
+        return self._phonebookIndices
 
     def prepareForSuspend( self, ok_callback, error_callback ):
         """

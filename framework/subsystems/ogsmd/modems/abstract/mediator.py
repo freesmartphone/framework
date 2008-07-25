@@ -522,19 +522,27 @@ class SimGetPhonebookInfo( SimMediator ):
             match = const.PAT_PHONEBOOK_INFO.match( self._rightHandSide( response[0] ) )
             result["min_index"] = int(match.groupdict()["lowest"])
             result["max_index"] = int(match.groupdict()["highest"])
+
             try:
                 result["number_length"] = int(match.groupdict()["numlen"])
                 result["name_length"] = int(match.groupdict()["textlen"])
             except KeyError:
                 pass
+
+            # store in modem for later use
+            self._object.modem.setPhonebookIndices( result["min_index"], result["max_index"] )
+
             self._ok( result )
 
 #=========================================================================#
 class SimRetrievePhonebook( SimMediator ):
 #=========================================================================#
     def trigger( self ):
-        # FIXME quick hack. Need to query the phonebook for valid indices prior to doing that :)
-        self._commchannel.enqueue( '+CPBS="SM";+CPBR=1,250', self.responseFromChannel, self.errorFromChannel )
+        minimum, maximum = self._object.modem.phonebookIndices()
+        if minimum is None: # we don't know yet
+            SimGetPhonebookInfo( self._object, self.tryAgain, self.dummy )
+        else:
+            self._commchannel.enqueue( '+CPBS="SM";+CPBR=%d,%d' % ( minimum, maximum ), self.responseFromChannel, self.errorFromChannel )
 
     @logged
     def responseFromChannel( self, request, response ):
@@ -550,6 +558,16 @@ class SimRetrievePhonebook( SimMediator ):
                 name = const.textToUnicode( name )
                 result.append( ( index, name, const.phonebookTupleToNumber( number, ntype ) ) )
             self._ok( result )
+
+    def tryAgain( self, result ):
+        minimum, maximum = self._object.modem.phonebookIndices()
+        if minimum is None: # still?
+            raise error.InternalException( "can't get valid phonebook indices from modem" )
+        else:
+            self._commchannel.enqueue( '+CPBS="SM";+CPBR=%d,%d' % ( minimum, maximum ), self.responseFromChannel, self.errorFromChannel )
+
+    def dummy( self, *args, **kwargs ):
+        pass
 
 #=========================================================================#
 class SimDeleteEntry( SimMediator ):
