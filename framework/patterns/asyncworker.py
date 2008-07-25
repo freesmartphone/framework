@@ -2,7 +2,7 @@
 """
 Asynchronous Worker
 
-This file is part of Mickey's Python Pattern Library
+This file is part of MPPL: Mickey's Python Pattern Library
 
 (C) 2008 Michael 'Mickey' Lauer <mlauer@vanille-media.de>
 GPLv2 or later

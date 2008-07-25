@@ -9,13 +9,13 @@ GPLv2 or later
 
 __version__ = "0.9.0"
 
+from patterns import asyncworker
 import dbus.service
-import sys, os, time, struct
-from Queue import Queue
 from gobject import io_add_watch, IO_IN, source_remove, timeout_add, timeout_add_seconds, idle_add
 from itertools import count
 from helpers import DBUS_INTERFACE_PREFIX, DBUS_PATH_PREFIX, readFromFile, writeToFile, cleanObjectName
 import ConfigParser
+import sys, os, time, struct
 
 import logging
 logger = logging.getLogger('odeviced')
@@ -35,7 +35,7 @@ input_event_struct = "@LLHHi"
 input_event_size = struct.calcsize( input_event_struct )
 
 #----------------------------------------------------------------------------#
-class Input( dbus.service.Object ):
+class Input( dbus.service.Object, asyncworker.AsyncWorker ):
 #----------------------------------------------------------------------------#
     """A Dbus Object implementing org.freesmartphone.Device.Input"""
     DBUS_INTERFACE = DBUS_INTERFACE_PREFIX + ".Input"
@@ -46,6 +46,7 @@ class Input( dbus.service.Object ):
         self.interface = self.DBUS_INTERFACE
         self.path = DBUS_PATH_PREFIX + "/Input"
         dbus.service.Object.__init__( self, bus, self.path )
+        asyncworker.AsyncWorker.__init__( self )
         self.config = config
         logger.info( "input: %s initialized. Serving %s at %s" % ( self.__class__.__name__, self.interface, self.path ) )
 
@@ -71,7 +72,6 @@ class Input( dbus.service.Object ):
 
         logger.info( "input: opened %d input file descriptors", len( self.input ) )
 
-        self.q = Queue()
         self.watches = {}
         self.events = {}
         self.reportheld = {}
@@ -109,19 +109,11 @@ class Input( dbus.service.Object ):
         for e in events:
             timestamp, microseconds, typ, code, value = struct.unpack( input_event_struct, e )
             if typ != 0x00: # ignore EV_SYN (synchronization event)
-                self.q.put( ( timestamp, typ, code, value ) )
+                self.enqueue( timestamp, typ, code, value )
                 if __debug__: logger.debug( "input: read %d bytes from fd %d ('%s'): %s" % ( len( data ), source, self.input[source], (typ, code, value) ) )
-
-        idle_add( self.processEvents )
         return True
 
-    def processEvents( self ):
-        if self.q.empty():
-            return False
-        self.processEvent( self.q.get() )
-        return not self.q.empty() # call me again, if there's more data in the queue
-
-    def processEvent( self, event ):
+    def onProcessElement( self, event ):
         timestamp, typ, code, value = event
         if ( typ, code ) in self.watches:
             if value == 0x01: # pressed

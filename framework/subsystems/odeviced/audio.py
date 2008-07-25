@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 """
-Open Device Daemon - A plugin for input device peripherals
+Open Device Daemon - A plugin for audio device peripherals
 
 (C) 2008 Michael 'Mickey' Lauer <mlauer@vanille-media.de>
 (C) 2008 Openmoko, Inc.
@@ -9,16 +9,16 @@ GPLv2 or later
 
 __version__ = "0.2.0"
 
+from patterns import asyncworker
 from dbus import DBusException
 import dbus.service
-import sys, os, time, struct
-from patterns import asyncworker
 from gobject import io_add_watch, IO_IN, source_remove, timeout_add, timeout_add_seconds, idle_add
 from itertools import count
 from helpers import DBUS_INTERFACE_PREFIX, DBUS_PATH_PREFIX, readFromFile, writeToFile, cleanObjectName
 import ConfigParser
 import gst
 import gobject
+import sys, os, time, struct
 
 import logging
 logger = logging.getLogger('odeviced')
