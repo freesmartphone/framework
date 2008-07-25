@@ -8,11 +8,12 @@ This file is part of MPPL: Mickey's Python Pattern Library
 GPLv2 or later
 """
 
-__version__ = "0.0.1"
+__version__ = "1.0.0"
 __author__ = "Michael 'Mickey' Lauer <mickey@vanille-media.de>"
 
 from Queue import Queue
 import gobject
+
 
 # FIXME use parent/child logger hierarchy for subsystems/modules
 if __debug__:
@@ -22,8 +23,7 @@ if __debug__:
             print message
 else:
     import logging
-    logger = logging
-
+    logger = logging.getLogger( "mppl.asyncworker" )
 
 #============================================================================#
 class AsyncWorker( object ):
@@ -49,7 +49,7 @@ class AsyncWorker( object ):
         """
         self._queue = Queue()
         self._source = None
-        logger.debug( "asyncworker: init" )
+        logger.debug( "init" )
 
     def __del__( self ):
         """
@@ -65,7 +65,7 @@ class AsyncWorker( object ):
         restart = self._queue.empty() # should we wrap this in a mutex to play thread-safe?
         self._queue.put( element )
         if restart:
-           logger.debug( "asyncworker: no elements in queue: starting idle task." )
+           logger.debug( "no elements in queue: starting idle task." )
            self._source = gobject.idle_add( self._processElement )
 
     def remove( self, *element ):
@@ -99,12 +99,12 @@ class AsyncWorker( object ):
         """
         Process an element. Start idle processing, if necessary.
         """
-        logger.debug( "asyncworker: _processElement()" )
+        logger.debug( "_processElement()" )
         if self._queue.empty():
-            logger.debug( "asyncworker: no more elements: stopping idle task." )
+            logger.debug( "no more elements: stopping idle task." )
             self._source = None
             return False # don't call me again
-        logger.debug( "asyncworker: got an element from the queue" )
+        logger.debug( "got an element from the queue" )
         self.onProcessElement( self._queue.get() )
         return True
 
@@ -114,7 +114,7 @@ if __name__ == "__main__":
 
     class TestAsyncWorker( AsyncWorker ):
         def onProcessElement( self, element ):
-            print ( "asyncworker: processing %s\n>>>" % repr(element) )
+            print ( "processing %s\n>>>" % repr(element) )
 
     logging.basicConfig( \
         level=logging.DEBUG,

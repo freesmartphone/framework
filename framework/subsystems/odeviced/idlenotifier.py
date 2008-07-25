@@ -21,17 +21,16 @@ GPLv2 or later
 
 __version__ = "0.9.1"
 
-import dbus.service
-import os
-import sys
-from gobject import io_add_watch, IO_IN, source_remove, timeout_add
-from gobject import timeout_add_seconds
-from itertools import count
 from helpers import DBUS_INTERFACE_PREFIX, DBUS_PATH_PREFIX, readFromFile, writeToFile
+
+import gobject
+import dbus.service
+from itertools import count
 import ConfigParser
+import os, sys
 
 import logging
-logger = logging.getLogger('odeviced')
+logger = logging.getLogger( "odeviced.idlenotifier" )
 
 #----------------------------------------------------------------------------#
 class IdleNotifier( dbus.service.Object ):
@@ -44,7 +43,7 @@ class IdleNotifier( dbus.service.Object ):
         self.path = DBUS_PATH_PREFIX + "/IdleNotifier/%s" % index
         dbus.service.Object.__init__( self, bus, self.path )
         self.config = config
-        logger.info( "idle: %s initialized. Serving %s at %s", self.__class__.__name__, self.interface, self.path )
+        logger.info( "%s initialized. Serving %s at %s", self.__class__.__name__, self.interface, self.path )
 
         self.state = "AWAKE"
 
@@ -77,23 +76,23 @@ class IdleNotifier( dbus.service.Object ):
         self.input = {}
         for i in count():
             if i in ignoreinput:
-                logger.info( "idle: skipping input node %d due to configuration" % i )
+                logger.info( "skipping input node %d due to configuration" % i )
                 continue
             try:
                 f = os.open( "/dev/input/event%d" % i, os.O_NONBLOCK )
             except OSError, e:
-                logger.debug( "idle: can't open /dev/input/event%d: %s. Assuming it doesn't exist." % ( i, e ) )
+                logger.debug( "can't open /dev/input/event%d: %s. Assuming it doesn't exist." % ( i, e ) )
                 break
             else:
                 self.input[f] = "event%d" % i
 
-        logger.info( "idle: opened %d input file descriptors" % len( self.input ) )
+        logger.info( "opened %d input file descriptors" % len( self.input ) )
 
         for key in self.timeouts:
             try:
                 self.timeouts[key] = self.config.getint( "idlenotifier", key.lower() )
             except ConfigParser.Error:
-                logger.info( "idle: timeout for %s not configured. using default" % key )
+                logger.info( "timeout for %s not configured. using default" % key )
 
         # states without timeout
         self.timeouts["AWAKE"] = -1
@@ -104,38 +103,38 @@ class IdleNotifier( dbus.service.Object ):
 
     def launchStateMachine( self ):
         for i in self.input:
-            io_add_watch( i, IO_IN, self.onInputActivity )
-        self.timeout = timeout_add_seconds( 2, self.onIdleTimeout )
+            gobject.io_add_watch( i, gobject.IO_IN, self.onInputActivity )
+        self.timeout = gobject.timeout_add_seconds( 2, self.onIdleTimeout )
 
     def onInputActivity( self, source, condition ):
         data = os.read( source, 512 )
-        if __debug__: logger.debug( "idle: read %d bytes from fd %d ('%s')" % ( len( data ), source, self.input[source] ) )
+        if __debug__: logger.debug( "read %d bytes from fd %d ('%s')" % ( len( data ), source, self.input[source] ) )
         if self.state == "BUSY":
             pass
         else:
             self.State( "BUSY" )
-        source_remove( self.timeout )
-        self.timeout = timeout_add_seconds( self.timeouts["IDLE"], self.onIdleTimeout )
+        gobject.source_remove( self.timeout )
+        self.timeout = gobject.timeout_add_seconds( self.timeouts["IDLE"], self.onIdleTimeout )
         return True
 
     def onIdleTimeout( self ):
         self.State( "IDLE" )
-        self.timeout = timeout_add_seconds( self.timeouts["IDLE_DIM"], self.onIdleDimTimeout )
+        self.timeout = gobject.timeout_add_seconds( self.timeouts["IDLE_DIM"], self.onIdleDimTimeout )
         return False
 
     def onIdleDimTimeout( self ):
         self.State( "IDLE_DIM" )
-        self.timeout = timeout_add_seconds( self.timeouts["IDLE_PRELOCK"], self.onIdlePrelockTimeout )
+        self.timeout = gobject.timeout_add_seconds( self.timeouts["IDLE_PRELOCK"], self.onIdlePrelockTimeout )
         return False
 
     def onIdlePrelockTimeout( self ):
         self.State( "IDLE_PRELOCK" )
-        self.timeout = timeout_add_seconds( self.timeouts["LOCK"], self.onLockTimeout )
+        self.timeout = gobject.timeout_add_seconds( self.timeouts["LOCK"], self.onLockTimeout )
         return False
 
     def onLockTimeout( self ):
         self.State( "LOCK" )
-        self.timeout = timeout_add_seconds( self.timeouts["SUSPEND"], self.onSuspendTimeout )
+        self.timeout = gobject.timeout_add_seconds( self.timeouts["SUSPEND"], self.onSuspendTimeout )
         return False
 
     def onSuspendTimeout( self ):
@@ -167,8 +166,8 @@ class IdleNotifier( dbus.service.Object ):
             # FIXME: This is wrong
             raise "DBUS_INTERFACE"+".Error.InvalidState"
         elif state == "BUSY":
-            source_remove( self.timeout )
-            self.timeout = timeout_add_seconds( self.timeouts["IDLE"], self.onIdleTimeout )
+            gobject.source_remove( self.timeout )
+            self.timeout = gobject.timeout_add_seconds( self.timeouts["IDLE"], self.onIdleTimeout )
         # FIXME: handle other states correctly
         self.State( state )
 

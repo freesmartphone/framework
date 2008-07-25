@@ -7,16 +7,15 @@ Open Device Daemon - A plugin for Kernel 2.6 based class interfaces
 GPLv2 or later
 """
 
-__version__ = "0.9.0"
+__version__ = "0.9.1"
 
-import dbus.service
-import os
-import sys
-import time
 from helpers import DBUS_INTERFACE_PREFIX, DBUS_PATH_PREFIX, readFromFile, writeToFile, cleanObjectName
 
+import dbus.service
+import os, time, sys
+
 import logging
-logger = logging.getLogger('odeviced')
+logger = logging.getLogger( "odeviced.kernel26" )
 
 #----------------------------------------------------------------------------#
 class Display( dbus.service.Object ):
@@ -29,10 +28,10 @@ class Display( dbus.service.Object ):
         self.interface = self.DBUS_INTERFACE
         self.path = DBUS_PATH_PREFIX + "/Display/%s" % cleanObjectName( node.split('/')[-1] )
         dbus.service.Object.__init__( self, bus, self.path )
-        logger.info( "%s initialized. Serving %s at %s", self.__class__.__name__, self.interface, self.path )
+        logger.info( "%s initialized. Serving %s at %s" % ( self.__class__.__name__, self.interface, self.path ) )
         self.node = node
         self.max = int( readFromFile( "%s/max_brightness" % self.node ) )
-        logger.debug( "max brightness %d", self.max )
+        logger.debug( "max brightness %d" % self.max )
 
     #
     # dbus
@@ -76,10 +75,10 @@ class LED( dbus.service.Object ):
         self.interface = self.DBUS_INTERFACE
         self.path = DBUS_PATH_PREFIX + "/LED/%s" % cleanObjectName( node.split('/')[-1] )
         dbus.service.Object.__init__( self, bus, self.path )
-        logger.info( "%s initialized. Serving %s at %s", self.__class__.__name__, self.interface, self.path )
+        logger.info( "%s initialized. Serving %s at %s" % ( self.__class__.__name__, self.interface, self.path ) )
         self.node = node
         self.triggers = readFromFile( "%s/trigger" % self.node ).split()
-        logger.debug( "available triggers %s", self.triggers )
+        logger.debug( "available triggers %s" % self.triggers )
 
     #
     # dbus
@@ -121,7 +120,7 @@ class PowerSupply( dbus.service.Object ):
         self.interface = self.DBUS_INTERFACE
         self.path = DBUS_PATH_PREFIX + "/PowerSupply/%s" % cleanObjectName( node.split('/')[-1] )
         dbus.service.Object.__init__( self, bus, self.path )
-        logger.info( "%s initialized. Serving %s at %s", self.__class__.__name__, self.interface, self.path )
+        logger.info( "%s initialized. Serving %s at %s" % ( self.__class__.__name__, self.interface, self.path ) )
         self.node = node
 
     #
@@ -164,7 +163,7 @@ class PowerSupplyApm( dbus.service.Object ):
         self.interface = self.DBUS_INTERFACE
         self.path = DBUS_PATH_PREFIX + "/PowerSupply/%s" % cleanObjectName( node.split('/')[-1] )
         dbus.service.Object.__init__( self, bus, self.path )
-        logger.info( "%s initialized. Serving %s at %s", self.__class__.__name__, self.interface, self.path )
+        logger.info( "%s initialized. Serving %s at %s" % ( self.__class__.__name__, self.interface, self.path ) )
         self.node = node
 
     def readApm( self ):
@@ -202,7 +201,7 @@ class RealTimeClock( dbus.service.Object ):
         self.interface = self.DBUS_INTERFACE
         self.path = DBUS_PATH_PREFIX + "/RealTimeClock/%s" % cleanObjectName( node.split('/')[-1] )
         dbus.service.Object.__init__( self, bus, self.path )
-        logger.info( "%s initialized. Serving %s at %s", self.__class__.__name__, self.interface, self.path )
+        logger.info( "%s initialized. Serving %s at %s" % ( self.__class__.__name__, self.interface, self.path ) )
         self.node = node
 
     #

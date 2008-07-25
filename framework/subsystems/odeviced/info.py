@@ -9,12 +9,13 @@ GPLv2 or later
 
 __version__ = "0.1.1"
 
-import dbus.service
 from helpers import DBUS_INTERFACE_PREFIX, DBUS_PATH_PREFIX, readFromFile, writeToFile
+
+import dbus.service
 import ConfigParser
 
 import logging
-logger = logging.getLogger('odeviced')
+logger = logging.getLogger( "odeviced.info" )
 
 #----------------------------------------------------------------------------#
 class Info( dbus.service.Object ):
@@ -27,7 +28,7 @@ class Info( dbus.service.Object ):
         self.path = DBUS_PATH_PREFIX + "/Info"
         dbus.service.Object.__init__( self, bus, self.path )
         self.config = config
-        logger.info( "info: %s initialized. Serving %s at %s" % ( self.__class__.__name__, self.interface, self.path ) )
+        logger.info( "%s initialized. Serving %s at %s" % ( self.__class__.__name__, self.interface, self.path ) )
 
     #
     # dbus methods

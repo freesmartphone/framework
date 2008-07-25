@@ -18,7 +18,7 @@ import ConfigParser
 import sys, os, time, struct
 
 import logging
-logger = logging.getLogger('odeviced')
+logger = logging.getLogger( "odeviced.input" )
 
 """
     struct timeval {
@@ -48,7 +48,7 @@ class Input( dbus.service.Object, asyncworker.AsyncWorker ):
         dbus.service.Object.__init__( self, bus, self.path )
         asyncworker.AsyncWorker.__init__( self )
         self.config = config
-        logger.info( "input: %s initialized. Serving %s at %s" % ( self.__class__.__name__, self.interface, self.path ) )
+        logger.info( "%s initialized. Serving %s at %s" % ( self.__class__.__name__, self.interface, self.path ) )
 
         try:
             ignoreinput = self.config.get( "input", "ignoreinput" )
@@ -60,17 +60,17 @@ class Input( dbus.service.Object, asyncworker.AsyncWorker ):
         self.input = {}
         for i in count():
             if i in ignoreinput:
-                logger.info( "input: skipping input node %d due to configuration" % ( i ) )
+                logger.info( "skipping input node %d due to configuration" % ( i ) )
                 continue
             try:
                 f = os.open( "/dev/input/event%d" % i, os.O_NONBLOCK )
             except OSError, e:
-                logger.debug( "input: can't open /dev/input/event%d: %s. Assuming it doesn't exist.", i, e )
+                logger.debug( "can't open /dev/input/event%d: %s. Assuming it doesn't exist.", i, e )
                 break
             else:
                 self.input[f] = "event%d" % i
 
-        logger.info( "input: opened %d input file descriptors", len( self.input ) )
+        logger.info( "opened %d input file descriptors", len( self.input ) )
 
         self.watches = {}
         self.events = {}
@@ -89,11 +89,11 @@ class Input( dbus.service.Object, asyncworker.AsyncWorker ):
             self.launchStateMachine()
 
     def watchForEvent( self, name, action, inputcode, reportheld ):
-        logger.debug( "input: adding watch for %s %s %s %s", name, action, inputcode, reportheld )
+        logger.debug( "adding watch for %s %s %s %s", name, action, inputcode, reportheld )
         try:
             action = self.action[action]
         except KeyError:
-            logger.error( "input: don't know how to deal with event action %s", action )
+            logger.error( "don't know how to deal with event action %s", action )
             return False
         else:
             self.watches[ ( action, inputcode ) ] = name
@@ -110,7 +110,7 @@ class Input( dbus.service.Object, asyncworker.AsyncWorker ):
             timestamp, microseconds, typ, code, value = struct.unpack( input_event_struct, e )
             if typ != 0x00: # ignore EV_SYN (synchronization event)
                 self.enqueue( timestamp, typ, code, value )
-                if __debug__: logger.debug( "input: read %d bytes from fd %d ('%s'): %s" % ( len( data ), source, self.input[source], (typ, code, value) ) )
+                if __debug__: logger.debug( "read %d bytes from fd %d ('%s'): %s" % ( len( data ), source, self.input[source], (typ, code, value) ) )
         return True
 
     def onProcessElement( self, event ):
@@ -143,7 +143,7 @@ class Input( dbus.service.Object, asyncworker.AsyncWorker ):
     #
     @dbus.service.signal( DBUS_INTERFACE, "ssi" )
     def Event( self, name, action, seconds ):
-        logger.info( "input: name %s %s %s" % ( name, action, seconds ) )
+        logger.info( "name %s %s %s" % ( name, action, seconds ) )
 
 #----------------------------------------------------------------------------#
 def factory( prefix, controller ):

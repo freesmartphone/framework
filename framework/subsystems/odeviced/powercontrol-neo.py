@@ -9,14 +9,14 @@ GPLv2 or later
 
 __version__ = "0.5.0"
 
-import dbus.service
-import os
-import sys
 from helpers import DBUS_INTERFACE_PREFIX, DBUS_PATH_PREFIX, readFromFile, writeToFile
-from gobject import idle_add
+
+import gobject
+import dbus.service
+import os, sys
 
 import logging
-logger = logging.getLogger('odeviced')
+logger = logging.getLogger( "odeviced.powercontrol-neo" )
 
 try:
     import wireless
@@ -35,7 +35,7 @@ class GenericPowerControl( dbus.service.Object ):
         self.interface = self.DBUS_INTERFACE
         self.path = DBUS_PATH_PREFIX + "/PowerControl/%s" % name
         dbus.service.Object.__init__( self, bus, self.path )
-        logger.info( "%s initialized. Serving %s at %s", self.__class__.__name__, self.interface, self.path )
+        logger.info( "%s initialized. Serving %s at %s" % ( self.__class__.__name__, self.interface, self.path ) )
         self.node = node
         self.name = name
         self.powernode = None
@@ -58,7 +58,7 @@ class GenericPowerControl( dbus.service.Object ):
         if self.getPower() == expectedPower:
             self.Power( self.name, expectedPower )
         else:
-            logger.warning("%s expected a power change for %s to %s which didn't happen", __name__, self.name, expectedPower)
+            logger.warning( "%s expected a power change for %s to %s which didn't happen" % ( __name__, self.name, expectedPower ) )
 
     #
     # dbus methods
@@ -75,7 +75,7 @@ class GenericPowerControl( dbus.service.Object ):
     def SetPower( self, power ):
         if power != self.getPower():
             self.setPower( power )
-            idle_add( lambda self=self: self.sendPowerSignal( power ) )
+            gobject.idle_add( lambda self=self: self.sendPowerSignal( power ) )
         else:
             # FIXME should we issue an error here or just silently ignore?
             pass
@@ -89,7 +89,7 @@ class GenericPowerControl( dbus.service.Object ):
     #
     @dbus.service.signal( DBUS_INTERFACE, "sb" )
     def Power( self, device, power ):
-        logger.info("%s power for %s changed to %s", __name__, self.name, power)
+        logger.info( "%s power for %s changed to %s" % ( __name__, self.name, power ) )
 
 #----------------------------------------------------------------------------#
 class NeoBluetoothPowerControl( GenericPowerControl ):
@@ -209,4 +209,3 @@ if __name__ == "__main__":
 
     for d in device:
         print( "found interface for '%s' (power status = %d)" % ( d.GetName(), d.GetPower() ) )
-

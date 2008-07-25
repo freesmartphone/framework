@@ -21,7 +21,7 @@ import gobject
 import sys, os, time, struct
 
 import logging
-logger = logging.getLogger('odeviced')
+logger = logging.getLogger( "odeviced.audio" )
 
 #----------------------------------------------------------------------------#
 class UnknownFormat( DBusException ):
@@ -69,7 +69,7 @@ class GStreamerPlayer( Player, asyncworker.AsyncWorker ):
         pipeline, status, repeat, ok_cb, error_cb = self.pipelines[name]
         t = message.type
         if t == gst.MESSAGE_EOS:
-            logger.debug( "audio: G: EOS" )
+            logger.debug( "G: EOS" )
             pipeline.set_state(gst.STATE_NULL)
             del self.pipelines[name]
 
@@ -77,12 +77,12 @@ class GStreamerPlayer( Player, asyncworker.AsyncWorker ):
             pipeline.set_state(gst.STATE_NULL)
             del self.pipelines[name]
             err, debug = message.parse_error()
-            logger.debug( "audio: G: ERROR: %s %s" % ( err, debug ) )
+            logger.debug( "G: ERROR: %s %s" % ( err, debug ) )
             error_cb( PlayerError( err.message ) )
 
         elif t == gst.MESSAGE_STATE_CHANGED:
             previous, current, pending = message.parse_state_changed()
-            logger.debug( "audio: G: STATE NOW: (%s) -> %s -> (%s)" % ( previous, current, pending ) )
+            logger.debug( "G: STATE NOW: (%s) -> %s -> (%s)" % ( previous, current, pending ) )
             if previous == gst.STATE_PAUSED and current == gst.STATE_PLAYING:
                 self._updateSoundStatus( name, "playing" )
                 ok_cb()
@@ -96,7 +96,7 @@ class GStreamerPlayer( Player, asyncworker.AsyncWorker ):
                 # ok_cb()
 
         else:
-            logger.debug( "audio: G: UNHANDLED: %s" % t )
+            logger.debug( "G: UNHANDLED: %s" % t )
 
     def _updateSoundStatus( self, name, newstatus ):
         pipeline, status, repeat, ok_cb, error_cb = self.pipelines[name]
@@ -105,13 +105,13 @@ class GStreamerPlayer( Player, asyncworker.AsyncWorker ):
             self._object.SoundStatus( name, newstatus, {} )
 
     def onProcessElement( self, element ):
-        logger.debug( "audio: getting task from queue..." )
+        logger.debug( "getting task from queue..." )
         ok_cb, error_cb, task, args = element
-        logger.debug( "audio: got task: %s %s" % ( task, args ) )
+        logger.debug( "got task: %s %s" % ( task, args ) )
         try:
             method = getattr( self, "task_%s" % task )
         except AttributeError:
-            logger.debug( "audio: unhandled task: %s %s" % ( task, args ) )
+            logger.debug( "unhandled task: %s %s" % ( task, args ) )
         else:
             method( ok_cb, error_cb, *args )
         return True
@@ -176,7 +176,7 @@ class Audio( dbus.service.Object ):
         self.path = DBUS_PATH_PREFIX + "/Audio"
         dbus.service.Object.__init__( self, bus, self.path )
         self.config = config
-        logger.info( "audio: %s initialized. Serving %s at %s" % ( self.__class__.__name__, self.interface, self.path ) )
+        logger.info( "%s initialized. Serving %s at %s" % ( self.__class__.__name__, self.interface, self.path ) )
         # FIXME make it configurable or autodetect
         self.player = GStreamerPlayer( self )
 
