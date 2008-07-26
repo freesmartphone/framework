@@ -1,10 +1,16 @@
+2008-07-25	Michael Lauer	<mickey@vanille-media.de>
+
+	* [odeviced] Use hierarchical loggers.
+	* [odeviced] Commit first bits of pattern library and use asyncworker
+	  for Audio and Input.
+
 2008-07-25  John Lee  <john_lee@openmoko.com>
 
 	* [odeviced] Added accelerometer support for om-gta02.
 
 2008-07-24	Guillaume Chereau	<charlie@openmoko.org>
 
-	* Converted logging to Use the Python Logging framework.
+	* Converted logging to use the Python Logging framework.
 
 2008-07-20	Daniel Willmann <daniel@totalueberwachung.de>
 

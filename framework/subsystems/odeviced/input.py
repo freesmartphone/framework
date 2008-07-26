@@ -9,7 +9,7 @@ GPLv2 or later
 
 __version__ = "0.9.9"
 
-from patterns import asyncworker
+from framework.patterns import asyncworker
 from helpers import DBUS_INTERFACE_PREFIX, DBUS_PATH_PREFIX, readFromFile, writeToFile, cleanObjectName
 
 import gobject
