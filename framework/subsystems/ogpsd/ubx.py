@@ -10,16 +10,11 @@ GPLv2
 
 __version__ = "0.0.0"
 
-import os
-import sys
-import math
-import string
 import struct
 import dbus
 from gpsdevice import GPSDevice
 from syslog import syslog, LOG_ERR, LOG_WARNING, LOG_INFO, LOG_DEBUG
 from helpers import LOG
-from gobject import idle_add
 
 DBUS_INTERFACE = "org.freesmartphone.GPS"
 
@@ -255,7 +250,7 @@ MSGFMT = {
         ["<" + "I"*26, ["SVID", "HOW", "SF1D0", "SF1D1", "SF1D2", "SF1D3", "SF1D4",
             "SF1D5", "SF1D6", "SF1D7", "SF2D0", "SF2D1", "SF2D2", "SF2D3", "SF2D4",
             "SF2D5", "SF2D6", "SF1D7", "SF3D0", "SF3D1", "SF3D2", "SF3D3", "SF3D4", "SF3D5", "SF3D6", "SF3D7"]]
-# TIM
+# TIM - Timekeeping
 }
 
 MSGFMT_INV = dict( [ [(CLIDPAIR[clid], le),v + [clid]] for (clid, le),v in MSGFMT.items() ] )
@@ -429,11 +424,15 @@ class UBXDevice( GPSDevice ):
                 satellites.append( (sat["SVID"], in_use, sat["Elev"], sat["Azim"], sat["CNO"]) )
         self._updateSatellites( satellites )
 
-    def handle_NAV_TIMEUTC( self, data):
+    def handle_NAV_TIMEUTC( self, data ):
         data = data[0]
         self.time = ( data["Valid"], data["Year"], data["Month"], data["Day"],
                 data["Hour"], data["Min"], data["Sec"] )
         self.TimeChanged( *self.time )
+
+    # Ignore ACK packets for now
+    def handle_ACK_ACK( self, data ):
+        pass
 
     #
     # dbus methods

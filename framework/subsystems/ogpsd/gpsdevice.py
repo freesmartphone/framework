@@ -15,11 +15,8 @@ DBUS_PATH_PREFIX = "/org/freedesktop/Gypsy"
 
 import dbus
 import dbus.service
-import os
-import sys
 from syslog import syslog, LOG_ERR, LOG_WARNING, LOG_INFO, LOG_DEBUG
 from helpers import LOG
-from gobject import idle_add
 
 class GPSDevice( dbus.service.Object ):
     """An Dbus Object implementing org.freedesktop.Gypsy"""
