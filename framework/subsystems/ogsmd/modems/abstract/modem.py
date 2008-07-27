@@ -155,14 +155,14 @@ class AbstractModem( object ):
                         setattr( self, key, value )
 
             def __call__( self, channel ):
-                LOG( LOG_DEBUG, "prepareForSuspend ACK from channel", channel, "received" )
+                LOG( LOG_DEBUG, "recoverForSuspend ACK from channel", channel, "received" )
                 self.__class__.counter -= 1
                 if self.__class__.counter == 0:
                     self.ok()
 
         class MyError(MyOk):
             def __call__( self, channel ):
-                LOG( LOG_DEBUG, "prepareForSuspend NACK from channel", channel, "received" )
+                LOG( LOG_DEBUG, "recoverForSuspend NACK from channel", channel, "received" )
                 self.__class__.counter -= 1
                 if self.__class__.counter == 0:
                     self.error()
