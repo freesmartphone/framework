@@ -15,8 +15,9 @@ DBUS_PATH_PREFIX = "/org/freedesktop/Gypsy"
 
 import dbus
 import dbus.service
-from syslog import syslog, LOG_ERR, LOG_WARNING, LOG_INFO, LOG_DEBUG
-from helpers import LOG
+
+import logging
+logger = logging.getLogger('ogpsd')
 
 class GPSDevice( dbus.service.Object ):
     """An Dbus Object implementing org.freedesktop.Gypsy"""
@@ -33,7 +34,7 @@ class GPSDevice( dbus.service.Object ):
         self.path = DBUS_PATH_PREFIX
         self.bus = bus
         dbus.service.Object.__init__( self, bus, self.path )
-        LOG( LOG_INFO, "%s initialized. Serving %s at %s" % ( self.__class__.__name__, self.interface, self.path ) )
+        logger.info("%s initialized. Serving %s at %s" % ( self.__class__.__name__, self.interface, self.path ) )
 
     def _updateFixStatus( self, fixstatus ):
         if self.fixstatus != fixstatus:

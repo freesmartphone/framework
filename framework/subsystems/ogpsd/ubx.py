@@ -13,8 +13,9 @@ __version__ = "0.0.0"
 import struct
 import dbus
 from gpsdevice import GPSDevice
-from syslog import syslog, LOG_ERR, LOG_WARNING, LOG_INFO, LOG_DEBUG
-from helpers import LOG
+
+import logging
+logger = logging.getLogger('ogpsd')
 
 DBUS_INTERFACE = "org.freesmartphone.GPS"
 
@@ -314,6 +315,8 @@ class UBXDevice( GPSDevice ):
             self.buffer = self.buffer[length+8:]
 
     def send( self, clid, length, payload ):
+        logger.debug( "Sending UBX packet of type %s: %s" % ( clid, payload ) )
+
         stream = struct.pack("<BBBBH", SYNC1, SYNC2, CLIDPAIR[clid][0], CLIDPAIR[clid][1], length)
         if length > 0:
             try:
@@ -327,7 +330,8 @@ class UBXDevice( GPSDevice ):
                 payload_base = payload[0]
                 payload_rep = payload[1:]
                 if (length - fmt_base[0])%fmt_rep[0] != 0:
-                    print "Variable length message Class", cl, "ID", id, "has wrong length", length
+                    logger.error( "Cannot send: Variable length message class \
+                        0x%x, id 0x%x has wrong length %i" % ( cl, id, length ) )
                     return
             stream = stream + struct.pack(fmt_base[1], *[payload_base[i] for i in fmt_base[2]])
             if fmt_rep[0] != 0:
@@ -359,7 +363,8 @@ class UBXDevice( GPSDevice ):
                 fmt_rep = format[3:]
                 # Check if the length matches
                 if (length - fmt_base[0])%fmt_rep[0] != 0:
-                    print "Variable length message Class", cl, "ID", id, "has wrong length", length
+                    logger.error( "Variable length message class 0x%x, id 0x%x \
+                        has wrong length %i" % ( cl, id, length ) )
                     return
                 data.append(dict(zip(fmt_base[2], struct.unpack(fmt_base[1], payload[:fmt_base[0]]))))
                 for i in range(0, (length - fmt_base[0])/fmt_rep[0]):
@@ -367,19 +372,20 @@ class UBXDevice( GPSDevice ):
                     data.append(dict(zip(fmt_rep[2], struct.unpack(fmt_rep[1], payload[offset:offset+fmt_rep[0]]))))
 
             except KeyError:
-                print "Unknown message Class", cl, "ID", id, "Length", length
+                logger.info( "Unknown message class 0x%x, id 0x%x, length %i" % ( cl, id, length ) )
                 return
 
+        logger.debug( "Got UBX packet of type %s: %s" % (format[-1] , data ) )
         methodname = "handle_"+format[-1].replace("-", "_")
         try:
             method = getattr( self, methodname )
         except AttributeError:
-            print "No method to handle", format[-1], data
+            logger.debug( "No method to handle %s: %s" % ( format[-1], data ) )
         else:
             try:
                 method( data )
             except Exception, e:
-                print "Error in %s method: %s" % ( methodname, e )
+                logger.error( "Error in %s method: %s" % ( methodname, e ) )
 
     def handle_NAV_STATUS( self, data ):
         data = data[0]
@@ -432,7 +438,8 @@ class UBXDevice( GPSDevice ):
 
     # Ignore ACK packets for now
     def handle_ACK_ACK( self, data ):
-        pass
+        data = data[0]
+        logger.debug("Got ACK %s" % data )
 
     #
     # dbus methods
