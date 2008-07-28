@@ -1,3 +1,8 @@
+2008-07-28	Daniel Willmann <daniel@totalueberwachung.de>
+
+	* [ogpsd] Gypsy API is now implemented and applications using
+		Gypsy dbus API should just work.
+
 2008-07-25	Michael Lauer	<mickey@vanille-media.de>
 
 	* [odeviced] Use hierarchical loggers.

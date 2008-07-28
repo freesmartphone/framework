@@ -263,17 +263,13 @@ class UBXDevice( GPSDevice ):
         self.buffer = ""
         self.gpschannel = gpschannel
         self.gpschannel.setCallback( self.parse )
-
         self.configure()
 
     def configure( self ):
-        # Clear volatile fields
-#        self.send("CFG-RST", 4, {"nav_bbr" : 0xffff, "Reset" : 0x01})
-
         # Use high sensitivity mode
-        self.send("CFG-RXM", 2, {"gps_mode" : 2, "lp_mode" : 0})
+        #self.send("CFG-RXM", 2, {"gps_mode" : 2, "lp_mode" : 0})
         # Enable use of SBAS (even in testmode)
-        self.send("CFG-SBAS", 8, {"mode" : 3, "usage" : 7, "maxsbas" : 3, "scanmode" : 0})
+        #self.send("CFG-SBAS", 8, {"mode" : 3, "usage" : 7, "maxsbas" : 3, "scanmode" : 0})
 
         # Send NAV STATUS
         self.send("CFG-MSG", 3, {"Class" : CLIDPAIR["NAV-STATUS"][0] , "MsgID" : CLIDPAIR["NAV-STATUS"][1] , "Rate" : 1 })
@@ -289,6 +285,15 @@ class UBXDevice( GPSDevice ):
         self.send("CFG-MSG", 3, {"Class" : CLIDPAIR["NAV-DOP"][0] , "MsgID" : CLIDPAIR["NAV-DOP"][1] , "Rate" : 1 })
         # Send NAV SVINFO
         self.send("CFG-MSG", 3, {"Class" : CLIDPAIR["NAV-SVINFO"][0] , "MsgID" : CLIDPAIR["NAV-SVINFO"][1] , "Rate" : 5 })
+
+    def deconfigure( self ):
+        # Disable UBX packets
+        self.send("CFG-MSG", 3, {"Class" : CLIDPAIR["NAV-STATUS"][0] , "MsgID" : CLIDPAIR["NAV-STATUS"][1] , "Rate" : 0 })
+        self.send("CFG-MSG", 3, {"Class" : CLIDPAIR["NAV-POSLLH"][0] , "MsgID" : CLIDPAIR["NAV-POSLLH"][1] , "Rate" : 0 })
+        self.send("CFG-MSG", 3, {"Class" : CLIDPAIR["NAV-VELNED"][0] , "MsgID" : CLIDPAIR["NAV-VELNED"][1] , "Rate" : 0 })
+        self.send("CFG-MSG", 3, {"Class" : CLIDPAIR["NAV-TIMEUTC"][0] , "MsgID" : CLIDPAIR["NAV-TIMEUTC"][1] , "Rate" : 0 })
+        self.send("CFG-MSG", 3, {"Class" : CLIDPAIR["NAV-DOP"][0] , "MsgID" : CLIDPAIR["NAV-DOP"][1] , "Rate" : 0 })
+        self.send("CFG-MSG", 3, {"Class" : CLIDPAIR["NAV-SVINFO"][0] , "MsgID" : CLIDPAIR["NAV-SVINFO"][1] , "Rate" : 0 })
 
     def parse( self, data ):
         self.buffer += data

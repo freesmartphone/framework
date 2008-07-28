@@ -71,9 +71,31 @@ class GPSDevice( dbus.service.Object ):
             self.satellites = satellites
             self.SatellitesChanged( self.satellites )
 
+    # Gypsy Server interface
+    # This should be implemented somewhere else once we allow different devices
+    @dbus.service.method( DBUS_INTERFACE_PREFIX + ".Server", "s", "o" )
+    def Create( self, device ):
+        return DBUS_PATH_PREFIX
+
+    @dbus.service.method( DBUS_INTERFACE_PREFIX + ".Server", "o", "" )
+    def Shutdown( self, path ):
+        pass
+
     #
     # dbus methods
     #
+    @dbus.service.method( DBUS_INTERFACE_PREFIX + ".Device", "", "")
+    def Start( self ):
+        pass
+
+    @dbus.service.method( DBUS_INTERFACE_PREFIX + ".Device", "", "")
+    def Stop( self ):
+        pass
+
+    @dbus.service.method( DBUS_INTERFACE_PREFIX + ".Device", "", "b")
+    def GetConnectionStatus( self ):
+        return True
+
     @dbus.service.method( DBUS_INTERFACE_PREFIX + ".Device", "", "i")
     def GetFixStatus( self ):
         return self.fixstatus
@@ -98,6 +120,10 @@ class GPSDevice( dbus.service.Object ):
     #
     # dbus signals
     #
+    @dbus.service.signal( DBUS_INTERFACE_PREFIX + ".Device", "b" )
+    def ConnectionStatusChanged( self, constatus ):
+        pass
+
     @dbus.service.signal( DBUS_INTERFACE_PREFIX + ".Device", "i" )
     def FixStatusChanged( self, fixstatus ):
         pass
