@@ -6,17 +6,27 @@ Accelerometer module for odeviced.
 GPLv2 or later
 """
 from __future__ import with_statement
-import math
-import os
-import struct
+import sys, os, struct, math
 from threading import RLock
 
+import logging
+logger = logging.getLogger( "odeviced.accelerometer" )
+
+#============================================================================#
 class Accelerometer(object):
+#============================================================================#
     def retrieve(self):
         raise NotImplementedError
 
+#============================================================================#
+class MockAccelerometer(Accelerometer):
+#============================================================================#
+    def retrieve(self):
+        return 0, 0, 0
 
+#============================================================================#
 class InputDevAccelerometer(Accelerometer):
+#============================================================================#
     """Read values from kernel input device
     """
 
@@ -145,6 +155,7 @@ class FSOSubsystem(dbus.service.Object):
         self.interface = FSOSubsystem.DBUS_INTERFACE
         self.accelerometer = accelerometer
         dbus.service.Object.__init__(self, bus, self.path)
+        logger.info( "%s initialized. Serving %s at %s", self.__class__.__name__, self.interface, self.path )
         self._value_lock = RLock()
         self._value = (0, 0, 0)
 
@@ -177,9 +188,9 @@ class FSOSubsystem(dbus.service.Object):
 def factory(prefix, controller):
     from threading import Thread
     device_map = {'gta02': Gta02Accelerometer}
-    config = controller.config
+    device = controller.config.get( 'input', 'accelerometer_type' )
     try:
-        device_class = device_map[config.get('input', 'accelerometer_type')]
+        device_class = device_map[ device ]
     except KeyError:
         device_class = MockAccelerometer
     f = FSOSubsystem(device_class(), controller.bus)
