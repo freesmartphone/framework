@@ -187,6 +187,7 @@ class UnsolicitedResponseChannel( CalypsoModemChannel ):
         c.append( "%CSQ=0" )
         c.append( "%CGEREP=0" )
         c.append( "%CGREG=0" )
+        c.append( "%CBHZ=0" ) # home zone cell broadcast: disable
 
         c = self._commands["resume"]
         c.append( "+CTZU=1" )
@@ -199,4 +200,4 @@ class UnsolicitedResponseChannel( CalypsoModemChannel ):
         c.append( "%CNIV=1" )
         c.append( "%CGEREP=1" )
         c.append( "%CGREG=3" )
-
+        c.append( "%CBHZ=1" ) # home zone cell broadcast: enable
