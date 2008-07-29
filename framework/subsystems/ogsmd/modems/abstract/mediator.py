@@ -540,7 +540,7 @@ class SimRetrievePhonebook( SimMediator ):
     def trigger( self ):
         minimum, maximum = self._object.modem.phonebookIndices()
         if minimum is None: # we don't know yet
-            SimGetPhonebookInfo( self._object, self.tryAgain, self.dummy )
+            SimGetPhonebookInfo( self._object, self.tryAgain, self.reportError )
         else:
             self._commchannel.enqueue( '+CPBS="SM";+CPBR=%d,%d' % ( minimum, maximum ), self.responseFromChannel, self.errorFromChannel )
 
@@ -566,8 +566,8 @@ class SimRetrievePhonebook( SimMediator ):
         else:
             self._commchannel.enqueue( '+CPBS="SM";+CPBR=%d,%d' % ( minimum, maximum ), self.responseFromChannel, self.errorFromChannel )
 
-    def dummy( self, *args, **kwargs ):
-        pass
+    def reportError( self, result ):
+        self._error( result )
 
 #=========================================================================#
 class SimDeleteEntry( SimMediator ):
