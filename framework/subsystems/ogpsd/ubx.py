@@ -263,6 +263,8 @@ class UBXDevice( GPSDevice ):
         self.buffer = ""
         self.gpschannel = gpschannel
         self.gpschannel.setCallback( self.parse )
+
+        self.ubx = {}
         self.configure()
 
     def configure( self ):
@@ -271,6 +273,9 @@ class UBXDevice( GPSDevice ):
         # Enable use of SBAS (even in testmode)
         #self.send("CFG-SBAS", 8, {"mode" : 3, "usage" : 7, "maxsbas" : 3, "scanmode" : 0})
 
+        # Disable NMEA for current port
+        self.ubx["CFG-PRT"] = {"In_proto_mask" : 1, "Out_proto_mask" : 1}
+        self.send("CFG-PRT", 0, [])
         # Send NAV STATUS
         self.send("CFG-MSG", 3, {"Class" : CLIDPAIR["NAV-STATUS"][0] , "MsgID" : CLIDPAIR["NAV-STATUS"][1] , "Rate" : 1 })
         # Send NAV POSLLH
@@ -294,12 +299,17 @@ class UBXDevice( GPSDevice ):
         self.send("CFG-MSG", 3, {"Class" : CLIDPAIR["NAV-TIMEUTC"][0] , "MsgID" : CLIDPAIR["NAV-TIMEUTC"][1] , "Rate" : 0 })
         self.send("CFG-MSG", 3, {"Class" : CLIDPAIR["NAV-DOP"][0] , "MsgID" : CLIDPAIR["NAV-DOP"][1] , "Rate" : 0 })
         self.send("CFG-MSG", 3, {"Class" : CLIDPAIR["NAV-SVINFO"][0] , "MsgID" : CLIDPAIR["NAV-SVINFO"][1] , "Rate" : 0 })
+        # Enable NMEA again for current port
+        self.ubx["CFG-PRT"] = {"In_proto_mask" : 3, "Out_proto_mask" : 3}
+        self.send("CFG-PRT", 0, [])
 
     def parse( self, data ):
         self.buffer += data
         while True:
             # Find the beginning of a UBX message
             start = self.buffer.find( chr( SYNC1 ) + chr( SYNC2 ) )
+            if start > 0:
+                logger.debug( "Discarded data not UBX \"%s\"" % self.buffer[:start] )
             self.buffer = self.buffer[start:]
             # Minimum packet length is 8
             if len(self.buffer) < 8:
@@ -310,6 +320,7 @@ class UBXDevice( GPSDevice ):
                 return
 
             if self.checksum(self.buffer[2:length+6]) != struct.unpack("<BB", self.buffer[length+6:length+8]):
+                logger.warning( "UBX packed class 0x%x, id 0x%x, length %i failed checksum" % (cl, id, length) )
                 self.buffer = self.buffer[2:]
                 continue
 
@@ -391,6 +402,17 @@ class UBXDevice( GPSDevice ):
                 method( data )
             except Exception, e:
                 logger.error( "Error in %s method: %s" % ( methodname, e ) )
+
+    def handle_CFG_PRT( self, data ):
+        data = data[1]
+        config = {}
+        for (k,v) in data.items():
+            config[k] = v
+        for (k,v) in self.ubx["CFG-PRT"].items():
+           config[k] = v
+        logger.debug( "Updating CFG-PRT %s with %s" % (data, config) )
+        if config != data:
+            self.send( "CFG-PRT", 20, [{}, config] )
 
     def handle_NAV_STATUS( self, data ):
         data = data[0]
