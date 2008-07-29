@@ -10,13 +10,17 @@ GPLv2 or later
 from ogsmd.modems.abstract.unsolicited import AbstractUnsolicitedResponseDelegate
 from ogsmd.gsm import const
 
+import logging
+logger = logging.getLogger( "ogsmd.modem.unsolicited" )
+
 class UnsolicitedResponseDelegate( AbstractUnsolicitedResponseDelegate ):
 
     def __init__( self, *args, **kwargs ):
         AbstractUnsolicitedResponseDelegate.__init__( self, *args, **kwargs )
         self._mediator.createCallHandler( self._object )
 
-        self.readyness = "unknown"
+        self.fullReadyness = "unknown"
+        self.subsystemReadyness = { "PHB": False, "SMS": False }
 
     # +CRING is only used to trigger a status update
     def plusCRING( self, calltype ):
@@ -144,25 +148,39 @@ class UnsolicitedResponseDelegate( AbstractUnsolicitedResponseDelegate ):
     def percentCSSN( self, righthandside ):
         direction, transPart, ie = righthandside.split( "," )
 
-    # %CSTAT: PHB,1
-    # %CSTAT: SMS,1
+    # %CSTAT: PHB,0
+    # %CSTAT: SMS,0
     # %CSTAT: RDY,1
-    # %CSTAT: EONS,1 ???
+    # %CSTAT: EONS,1
     def percentCSTAT( self, righthandside ):
         """
-        subsystem status report
+        TI Calypso subsystem status report
+
+        PHB is phonebook, SMS is messagebook. RDY is supposed to be sent, after
+        PHB and SMS both being 1, however it's not sent on all devices.
+        EONS is completely undocumented.
+
+        Due to RDY being unreliable, we wait for PHB and SMS sending availability
+        and then synthesize a global SimReady signal.
         """
         subsystem, available = righthandside.split( "," )
-        if not bool(int(available)):
+        if not bool(int(available)): # not ready
             if subsystem in ( "PHB", "SMS" ):
-                if not self.readyness == False:
+                self.subsystemReadyness[subsystem] = False
+                logger.info( "subsystem %s readyness now %s" % ( subsystem, self.subsystemReadyness[subsystem] ) )
+                if not self.fullReadyness == False:
                     self._object.ReadyStatus( False )
-                    self.readyness = False
-        else:
-            if subsystem == "RDY":
-                if not self.readyness == True:
+                    self.fullReadyness = False
+        else: # ready
+            if subsystem in ( "PHB", "SMS" ):
+                self.subsystemReadyness[subsystem] = True
+                logger.info( "subsystem %s readyness now %s" % ( subsystem, self.subsystemReadyness[subsystem] ) )
+                newFullReadyness = self.subsystemReadyness["PHB"] and self.subsystemReadyness["SMS"]
+                if newFullReadyness and ( not self.fullReadyness == True ):
                     self._object.ReadyStatus( True )
-                    self.readyness = True
+                    self.fullReadyness = True
+
+        logger.info( "full readyness now %s" % self.fullReadyness )
 
     # %CSQ:  17, 0, 1
     def percentCSQ( self, righthandside ):
