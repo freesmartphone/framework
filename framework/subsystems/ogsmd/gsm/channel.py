@@ -20,7 +20,7 @@ import parser
 import gobject # pygobject
 
 import serial # pyserial
-import Queue, fcntl, os # stdlib
+import Queue, fcntl, os, time # stdlib
 
 import logging
 logger = logging.getLogger('ogsmd')
