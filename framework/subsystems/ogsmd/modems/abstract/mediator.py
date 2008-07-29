@@ -551,7 +551,7 @@ class SimRetrievePhonebook( SimMediator ):
         else:
             result = []
             for entry in response[:-1]:
-                index, number, ntype, name = self._rightHandSide( entry ).split( ',' )
+                index, number, ntype, name = self._rightHandSide( entry ).split( ',', 3 )
                 index = int( index )
                 number = number.strip( '"' )
                 ntype = int( ntype )
@@ -598,7 +598,7 @@ class SimRetrieveEntry( SimMediator ):
                 self._ok( "", "" )
             else:
                 if response[0].startswith( "+CPBR" ):
-                    index, number, ntype, name = self._rightHandSide( response[0] ).split( ',' )
+                    index, number, ntype, name = self._rightHandSide( response[0] ).split( ',', 3 )
                     index = int( index )
                     number = number.strip( '"' )
                     name = const.textToUnicode( name )
