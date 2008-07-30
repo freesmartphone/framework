@@ -18,10 +18,15 @@ import dbus.mainloop.glib
 import gobject
 
 from schema import Schema, Parameter
-from service import Service
+from service import Service, NoServiceError
 from configuration import Configuration
 
-        
+import logging
+logger = logging.getLogger('opreferencesd')
+
+class DBusNoServiceError(dbus.DBusException):
+    _dbus_error_name = "org.freesmartphone.Preferences.NoServiceError"
+
 class PreferencesManager(dbus.service.Object):
     """This is the class for the main object from wich we access the services configuration
     
@@ -39,18 +44,44 @@ class PreferencesManager(dbus.service.Object):
         self.profile = 'default'
         self.services = {}
         
+        logger.info("initialized, services : %s", self.GetServices()) 
+        
+    @dbus.service.method("org.freesmartphone.Preferences", in_signature='', out_signature='as')
+    def GetServices(self):
+        """Return the list of all available services"""
+        ret = []
+        for f in os.listdir(self.schema_dir):
+            if f.endswith('.yaml'):
+                ret.append(f[:-5])
+        return ret
+        
     @dbus.service.method("org.freesmartphone.Preferences", in_signature='s', out_signature='o')
     def GetService(self, name):
         """Return a given service"""
+        logger.info("GetService %s", name)
+        name = str(name)
         if name in self.services:
             return self.services[name]
-        ret = Service(self, str(name))
+        try:
+            ret = Service(self, name)
+        except NoServiceError:
+            logger.info("service does not exist : %s", name)
+            raise DBusNoServiceError
         self.services[name] = ret
         return ret
+        
+    @dbus.service.method("org.freesmartphone.Preferences", in_signature='', out_signature='s')
+    def GetProfile(self):
+        """Set the current profile"""
+        return self.profile
     
     @dbus.service.method("org.freesmartphone.Preferences", in_signature='s', out_signature='')
     def SetProfile(self, profile):
-        self.profile = str(profile)
+        """Set the current profile"""
+        logger.debug("SetProfile to %s", profile)
+        profile = str(profile)
+        assert profile in self.GetProfiles()
+        self.profile = profile
         for s in self.services.itervalues():
             s.on_profile_changed(profile)
     

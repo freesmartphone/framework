@@ -6,6 +6,9 @@ import dbus.service
 from schema import Schema
 from configuration import Configuration
 
+class NoServiceError(Exception):
+    pass
+
 class Service(dbus.service.Object):
     """ Class that deals with configuration values of a given service
     
@@ -27,10 +30,14 @@ class Service(dbus.service.Object):
         so the applications using the service don't need to know about the current profile.
     """
     def __init__(self, manager, name):
-        super(Service, self).__init__(manager.bus, '%s/%s' % ('/org/freesmartphone/Preferences', name))
         self.manager = manager
-        self.name = name
-        self.schema = Schema.from_file('%s/%s.yaml' % (self.manager.schema_dir, name))
+        self.name = name 
+        try:
+            self.schema = Schema.from_file('%s/%s.yaml' % (self.manager.schema_dir, name))
+        except IOError:
+            raise NoServiceError
+        # Only at this point we can safely register the dbus object 
+        super(Service, self).__init__(manager.bus, '%s/%s' % ('/org/freesmartphone/Preferences', name))
         self.confs = {}     # all the conf files
         
     def __str__(self):
