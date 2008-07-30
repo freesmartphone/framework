@@ -14,14 +14,12 @@ GPLv2
 
 __version__ = "0.0.0"
 
-import os
-import sys
 import math
 import string
 from gpsdevice import GPSDevice
-from syslog import syslog, LOG_ERR, LOG_WARNING, LOG_INFO, LOG_DEBUG
-from helpers import LOG
-from gobject import idle_add
+
+import logging
+logger = logging.getLogger('ogpsd')
 
 class NMEADevice( GPSDevice ):
     def __init__( self, bus, gpschannel ):
@@ -59,7 +57,7 @@ class NMEADevice( GPSDevice ):
             except:
                 break
             else:
-                print self.handle_line( line.strip() )
+                logger.debug( self.handle_line( line.strip() ) )
 
 
     def add_checksum(self,sentence):
@@ -247,7 +245,6 @@ class NMEADevice( GPSDevice ):
         self.ZCHseen = 1;
 
     def handle_line(self, line):
-        print line
         if line[0] == '$':
             line = string.split(line[1:-1], '*')
             if len(line) != 2: return
@@ -263,7 +260,7 @@ class NMEADevice( GPSDevice ):
                 try:
                     method( words[1:] )
                 except Exception, e:
-                    print "Error in %s method: %s" % ( methodname, e )
+                    logger.error( "Error in %s method: %s" % ( methodname, e ) )
         else:
             return "Not NMEA"
 

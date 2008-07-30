@@ -58,6 +58,13 @@ audio = getInterface( \
     "org.freesmartphone.Device.Audio" \
     )
 
+idle = getInterface( \
+    bus,
+    "org.freesmartphone.odeviced",
+    "/org/freesmartphone/Device/IdleNotifier/0",
+    "org.freesmartphone.Device.IdleNotifier" \
+    )
+
 # device
 gsmdevice = getInterface( bus,
     "org.freesmartphone.ogsmd",

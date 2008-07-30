@@ -522,19 +522,27 @@ class SimGetPhonebookInfo( SimMediator ):
             match = const.PAT_PHONEBOOK_INFO.match( self._rightHandSide( response[0] ) )
             result["min_index"] = int(match.groupdict()["lowest"])
             result["max_index"] = int(match.groupdict()["highest"])
+
             try:
                 result["number_length"] = int(match.groupdict()["numlen"])
                 result["name_length"] = int(match.groupdict()["textlen"])
             except KeyError:
                 pass
+
+            # store in modem for later use
+            self._object.modem.setPhonebookIndices( result["min_index"], result["max_index"] )
+
             self._ok( result )
 
 #=========================================================================#
 class SimRetrievePhonebook( SimMediator ):
 #=========================================================================#
     def trigger( self ):
-        # FIXME quick hack. Need to query the phonebook for valid indices prior to doing that :)
-        self._commchannel.enqueue( '+CPBS="SM";+CPBR=1,250', self.responseFromChannel, self.errorFromChannel )
+        minimum, maximum = self._object.modem.phonebookIndices()
+        if minimum is None: # we don't know yet
+            SimGetPhonebookInfo( self._object, self.tryAgain, self.reportError )
+        else:
+            self._commchannel.enqueue( '+CPBS="SM";+CPBR=%d,%d' % ( minimum, maximum ), self.responseFromChannel, self.errorFromChannel )
 
     @logged
     def responseFromChannel( self, request, response ):
@@ -543,13 +551,23 @@ class SimRetrievePhonebook( SimMediator ):
         else:
             result = []
             for entry in response[:-1]:
-                index, number, ntype, name = self._rightHandSide( entry ).split( ',' )
+                index, number, ntype, name = self._rightHandSide( entry ).split( ',', 3 )
                 index = int( index )
                 number = number.strip( '"' )
                 ntype = int( ntype )
                 name = const.textToUnicode( name )
                 result.append( ( index, name, const.phonebookTupleToNumber( number, ntype ) ) )
             self._ok( result )
+
+    def tryAgain( self, result ):
+        minimum, maximum = self._object.modem.phonebookIndices()
+        if minimum is None: # still?
+            raise error.InternalException( "can't get valid phonebook indices from modem" )
+        else:
+            self._commchannel.enqueue( '+CPBS="SM";+CPBR=%d,%d' % ( minimum, maximum ), self.responseFromChannel, self.errorFromChannel )
+
+    def reportError( self, result ):
+        self._error( result )
 
 #=========================================================================#
 class SimDeleteEntry( SimMediator ):
@@ -562,7 +580,8 @@ class SimStoreEntry( SimMediator ):
 #=========================================================================#
     def trigger( self ):
         number, ntype = const.numberToPhonebookTuple( self.number )
-        self._commchannel.enqueue( '+CPBS="SM";+CPBW=%d,"%s",%d,"%s"' % ( self.index, number, ntype, self.name ), self.responseFromChannel, self.errorFromChannel )
+        name = const.unicodeToString( self.name )
+        self._commchannel.enqueue( '+CPBS="SM";+CPBW=%d,"%s",%d,"%s"' % ( self.index, number, ntype, name ), self.responseFromChannel, self.errorFromChannel )
 
 #=========================================================================#
 class SimRetrieveEntry( SimMediator ):
@@ -579,7 +598,7 @@ class SimRetrieveEntry( SimMediator ):
                 self._ok( "", "" )
             else:
                 if response[0].startswith( "+CPBR" ):
-                    index, number, ntype, name = self._rightHandSide( response[0] ).split( ',' )
+                    index, number, ntype, name = self._rightHandSide( response[0] ).split( ',', 3 )
                     index = int( index )
                     number = number.strip( '"' )
                     name = const.textToUnicode( name )
@@ -709,7 +728,7 @@ class SimStoreMessage( SimMediator ):
 #=========================================================================#
     def trigger( self ):
         number, ntype = const.numberToPhonebookTuple( self.number )
-        contents = self.contents.replace( '\n', '\r\n' )
+        contents = const.unicodeToString( self.contents.replace( '\n', '\r\n' ) )
         self._commchannel.enqueue( '+CMGW="%s",%d,"STO UNSENT"\r%s' % ( number, ntype, contents ), self.responseFromChannel, self.errorFromChannel )
 
     @logged

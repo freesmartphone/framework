@@ -7,19 +7,18 @@ Open Device Daemon - A plugin for input device peripherals
 GPLv2 or later
 """
 
-__version__ = "0.1.0"
+__version__ = "0.9.9"
 
+from framework.patterns import asyncworker
+from helpers import DBUS_INTERFACE_PREFIX, DBUS_PATH_PREFIX, readFromFile, writeToFile, cleanObjectName
+
+import gobject
 import dbus.service
-import sys, os, time, struct
-from Queue import Queue
-from syslog import syslog, LOG_ERR, LOG_WARNING, LOG_INFO, LOG_DEBUG
-from gobject import io_add_watch, IO_IN, source_remove, timeout_add, timeout_add_seconds, idle_add
-from itertools import count
-from helpers import LOG, DBUS_INTERFACE_PREFIX, DBUS_PATH_PREFIX, readFromFile, writeToFile, cleanObjectName
 import ConfigParser
+import itertools, sys, os, time, struct
 
 import logging
-logger = logging.getLogger('odeviced')
+logger = logging.getLogger( "odeviced.input" )
 
 """
     struct timeval {
@@ -36,7 +35,7 @@ input_event_struct = "@LLHHi"
 input_event_size = struct.calcsize( input_event_struct )
 
 #----------------------------------------------------------------------------#
-class Input( dbus.service.Object ):
+class Input( dbus.service.Object, asyncworker.AsyncWorker ):
 #----------------------------------------------------------------------------#
     """A Dbus Object implementing org.freesmartphone.Device.Input"""
     DBUS_INTERFACE = DBUS_INTERFACE_PREFIX + ".Input"
@@ -47,8 +46,9 @@ class Input( dbus.service.Object ):
         self.interface = self.DBUS_INTERFACE
         self.path = DBUS_PATH_PREFIX + "/Input"
         dbus.service.Object.__init__( self, bus, self.path )
+        asyncworker.AsyncWorker.__init__( self )
         self.config = config
-        logger.info( "%s initialized. Serving %s at %s", self.__class__.__name__, self.interface, self.path )
+        logger.info( "%s initialized. Serving %s at %s" % ( self.__class__.__name__, self.interface, self.path ) )
 
         try:
             ignoreinput = self.config.get( "input", "ignoreinput" )
@@ -58,21 +58,20 @@ class Input( dbus.service.Object ):
             ignoreinput = [ int(value) for value in ignoreinput.split(',') ]
 
         self.input = {}
-        for i in count():
+        for i in itertools.count():
             if i in ignoreinput:
-                logger.info( "%s skipping input node %d due to configuration", __name__, i)
+                logger.info( "skipping input node %d due to configuration" % ( i ) )
                 continue
             try:
                 f = os.open( "/dev/input/event%d" % i, os.O_NONBLOCK )
             except OSError, e:
-                logger.error( "can't open /dev/input/event%d: %s", i, e )
+                logger.debug( "can't open /dev/input/event%d: %s. Assuming it doesn't exist.", i, e )
                 break
             else:
                 self.input[f] = "event%d" % i
 
-        logger.debug( "opened %d input file descriptors", len( self.input ) )
+        logger.info( "opened %d input file descriptors", len( self.input ) )
 
-        self.q = Queue()
         self.watches = {}
         self.events = {}
         self.reportheld = {}
@@ -102,7 +101,7 @@ class Input( dbus.service.Object ):
 
     def launchStateMachine( self ):
         for i in self.input:
-            io_add_watch( i, IO_IN, self.onInputActivity )
+            gobject.io_add_watch( i, gobject.IO_IN, self.onInputActivity )
 
     def onInputActivity( self, source, condition ):
         data = os.read( source, 512 )
@@ -110,25 +109,16 @@ class Input( dbus.service.Object ):
         for e in events:
             timestamp, microseconds, typ, code, value = struct.unpack( input_event_struct, e )
             if typ != 0x00: # ignore EV_SYN (synchronization event)
-                self.q.put( ( timestamp, typ, code, value ) )
-                logger.debug("%s read %d bytes from fd %d ('%s'): %s",
-                             self.__class__.__name__, len( data ), source, self.input[source], (typ, code, value) )
-
-        idle_add( self.processEvents )
+                self.enqueue( timestamp, typ, code, value )
+                if __debug__: logger.debug( "read %d bytes from fd %d ('%s'): %s" % ( len( data ), source, self.input[source], (typ, code, value) ) )
         return True
 
-    def processEvents( self ):
-        if self.q.empty():
-            return False
-        self.processEvent( self.q.get() )
-        return not self.q.empty() # call me again, if there's more data in the queue
-
-    def processEvent( self, event ):
+    def onProcessElement( self, event ):
         timestamp, typ, code, value = event
         if ( typ, code ) in self.watches:
             if value == 0x01: # pressed
                 if self.reportheld[ typ, code ]:
-                    timeout = timeout_add_seconds( 1, self.callbackKeyHeldTimeout, typ, code )
+                    timeout = gobject.timeout_add_seconds( 1, self.callbackKeyHeldTimeout, typ, code )
                 else:
                     timeout = 0
                 self.events[ ( typ, code ) ] = timestamp, timeout
@@ -138,11 +128,10 @@ class Input( dbus.service.Object ):
                 try:
                     timestamp, timeout = self.events[ ( typ, code ) ]
                 except KeyError:
-                    logger.error( "potential logic problem, key released before pressed. watches are %s events are %s",
-                                    self.watches, self.events )
+                    logger.warning( "potential logic problem, key released before pressed. watches are %s events are %s" % ( self.watches, self.events ) )
                 else:
                     if timeout:
-                        source_remove( timeout )
+                        gobject.source_remove( timeout )
                     del self.events[ ( typ, code ) ]
 
     def callbackKeyHeldTimeout( self, typ, code ):
@@ -154,19 +143,17 @@ class Input( dbus.service.Object ):
     #
     @dbus.service.signal( DBUS_INTERFACE, "ssi" )
     def Event( self, name, action, seconds ):
-        logger.info( "%s name %s %s %s", __name__, name, action, seconds )
+        logger.info( "name %s %s %s" % ( name, action, seconds ) )
 
 #----------------------------------------------------------------------------#
 def factory( prefix, controller ):
 #----------------------------------------------------------------------------#
-    """Scan for available sysfs nodes and instanciate corresponding
-    dbus server objects"""
-
+    """
+    Initialize dbus plugin objects.
+    """
     return [ Input( controller.bus, controller.config, 0, "" ) ]
 
 if __name__ == "__main__":
     import dbus
     bus = dbus.SystemBus()
-
-    #proxy = bus.get_object( DBUS_INTERFACE_PREFIX, Input.DBUS_INTERFACE )
 

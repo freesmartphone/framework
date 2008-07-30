@@ -31,11 +31,13 @@ class AbstractModem( object ):
         assert AbstractModem.instance is None
         AbstractModem.instance = self
 
-        self._channels = {}             # container for channel instances
-        self._object = object           # dbus object
-        self._bus = bus                 # dbus bus
-        self._simPinState = "unknown"   # SIM PIN state
-        self._simReady = "unknown"      # SIM data access state
+        self._channels = {}                     # container for channel instances
+        self._object = object                   # dbus object
+        self._bus = bus                         # dbus bus
+        self._simPinState = "unknown"           # SIM PIN state
+        self._simReady = "unknown"              # SIM data access state
+
+        self._phonebookIndices = None, None      # min. index, max. index
 
     def open( self, callback ):
         """
@@ -100,6 +102,12 @@ class AbstractModem( object ):
             for channel in self._channels.itervalues():
                 channel.modemStateSimReady()
 
+    def setPhonebookIndices( self, first, last ):
+        self._phonebookIndices = first, last
+
+    def phonebookIndices( self ):
+        return self._phonebookIndices
+
     def prepareForSuspend( self, ok_callback, error_callback ):
         """
         Prepares the modem for suspend.
@@ -147,14 +155,14 @@ class AbstractModem( object ):
                         setattr( self, key, value )
 
             def __call__( self, channel ):
-                LOG( LOG_DEBUG, "prepareForSuspend ACK from channel", channel, "received" )
+                LOG( LOG_DEBUG, "recoverForSuspend ACK from channel", channel, "received" )
                 self.__class__.counter -= 1
                 if self.__class__.counter == 0:
                     self.ok()
 
         class MyError(MyOk):
             def __call__( self, channel ):
-                LOG( LOG_DEBUG, "prepareForSuspend NACK from channel", channel, "received" )
+                LOG( LOG_DEBUG, "recoverForSuspend NACK from channel", channel, "received" )
                 self.__class__.counter -= 1
                 if self.__class__.counter == 0:
                     self.error()

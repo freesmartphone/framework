@@ -118,7 +118,7 @@ class Server( dbus.service.Object ):
         self.HomeZoneStatus( status )
 
     def checkInHomezone( self, x, y, zx, zy, zr ):
-        logger.info( "matching %s %s %s %s %s %s %s %s", x, y, "with", zx, zy, "(", zr, ")" )
+        logger.info( "matching whether %s %s is in ( %s, %s, %s )" % ( x, y, zx, zy, zr ) )
         dist = math.sqrt( math.pow( x-zx, 2 ) + math.pow( y-zy, 2 ) ) * 10
         maxdist = math.sqrt( zr ) * 10
         return dist < maxdist
@@ -134,7 +134,7 @@ class Server( dbus.service.Object ):
     @dbus.service.signal( DBUS_INTERFACE_HZ, "s" )
     def HomeZoneStatus( self, zone ):
         self.zone = zone
-        logger.info( "home zone status now %s", zone )
+        logger.info( "home zone status now %s" % zone )
 
     @dbus.service.method( DBUS_INTERFACE_HZ, "", "as",
                           async_callbacks=( "dbus_ok", "dbus_error" ) )

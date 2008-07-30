@@ -1,45 +1,92 @@
 #!/usr/bin/env python
 """
-Open Device Daemon - A plugin for input device peripherals
+Open Device Daemon - A plugin for audio device peripherals
 
 (C) 2008 Michael 'Mickey' Lauer <mlauer@vanille-media.de>
 (C) 2008 Openmoko, Inc.
 GPLv2 or later
 """
 
-__version__ = "0.1.0"
+__version__ = "0.3.0"
 
-from dbus import DBusException
-import dbus.service
-import sys, os, time, struct
-from Queue import Queue
-from syslog import syslog, LOG_ERR, LOG_WARNING, LOG_INFO, LOG_DEBUG
-from gobject import io_add_watch, IO_IN, source_remove, timeout_add, timeout_add_seconds, idle_add
-from itertools import count
-from helpers import LOG, DBUS_INTERFACE_PREFIX, DBUS_PATH_PREFIX, readFromFile, writeToFile, cleanObjectName
-import ConfigParser
+from patterns import asyncworker
+from helpers import DBUS_INTERFACE_PREFIX, DBUS_PATH_PREFIX, readFromFile, writeToFile, cleanObjectName
+
 import gst
 import gobject
+import dbus.service
+import sys, os, time, struct, subprocess
 
 import logging
-logger = logging.getLogger('odeviced')
+logger = logging.getLogger( "odeviced.audio" )
 
-class UnknownFormat( DBusException ):
+#----------------------------------------------------------------------------#
+class UnknownFormat( dbus.DBusException ):
+#----------------------------------------------------------------------------#
     _dbus_error_name = "org.freesmartphone.Audio.UnknownFormat"
 
-class PlayerError( DBusException ):
+#----------------------------------------------------------------------------#
+class PlayerError( dbus.DBusException ):
+#----------------------------------------------------------------------------#
     _dbus_error_name = "org.freesmartphone.Audio.PlayerError"
 
-class NotPlaying( DBusException ):
+#----------------------------------------------------------------------------#
+class NotPlaying( dbus.DBusException ):
+#----------------------------------------------------------------------------#
     _dbus_error_name = "org.freesmartphone.Audio.NotPlaying"
 
-class AlreadyPlaying( DBusException ):
+#----------------------------------------------------------------------------#
+class AlreadyPlaying( dbus.DBusException ):
+#----------------------------------------------------------------------------#
     _dbus_error_name = "org.freesmartphone.Audio.AlreadyPlaying"
 
-class Player( object ):
+#----------------------------------------------------------------------------#
+class InvalidScenario( dbus.DBusException ):
+#----------------------------------------------------------------------------#
+    _dbus_error_name = "org.freesmartphone.Audio.InvalidScenario"
+
+#----------------------------------------------------------------------------#
+class DeviceFailed( dbus.DBusException ):
+#----------------------------------------------------------------------------#
+    _dbus_error_name = "org.freesmartphone.Audio.DeviceFailed"
+
+#----------------------------------------------------------------------------#
+class Player( asyncworker.AsyncWorker ):
+#----------------------------------------------------------------------------#
+    """
+    Base class implementing common logic for all Players.
+    """
+
+    def __init__( self, dbus_object ):
+        asyncworker.AsyncWorker.__init__( self )
+        self._object = dbus_object
+
+    def enqueueTask( self, ok_cb, error_cb, task, *args ):
+        self.enqueue( ok_cb, error_cb, task, args )
+
+    def task_play( self, ok_cb, error_cb, name, repeat ):
+        ok_cb()
+
+    def task_stop( self, ok_cb, error_cb, name ):
+        ok_cb()
+
+    def task_panic( self, ok_cb, error_cb ):
+        ok_cb()
+
+#----------------------------------------------------------------------------#
+class NullPlayer( Player ):
+#----------------------------------------------------------------------------#
+    """
+    A dummy player, useful e.g. if no audio subsystem is available.
+    """
     pass
 
+#----------------------------------------------------------------------------#
 class GStreamerPlayer( Player ):
+#----------------------------------------------------------------------------#
+    """
+    A Gstreamer based Player.
+    """
 
     decoderMap = { \
         "sid": "siddec",
@@ -47,17 +94,16 @@ class GStreamerPlayer( Player ):
         "mp3": "mad" \
         }
 
-    def __init__( self, dbus_object ):
+    def __init__( self, *args, **kwargs ):
+        Player.__init__( self, *args, **kwargs )
         self.pipelines = {}
-        self._object = dbus_object
-        self.q = Queue()
-        self.process_source = None
+
 
     def _onMessage( self, bus, message, name ):
         pipeline, status, repeat, ok_cb, error_cb = self.pipelines[name]
         t = message.type
         if t == gst.MESSAGE_EOS:
-            print "G: EOS"
+            logger.debug( "G: EOS" )
             pipeline.set_state(gst.STATE_NULL)
             del self.pipelines[name]
 
@@ -65,12 +111,12 @@ class GStreamerPlayer( Player ):
             pipeline.set_state(gst.STATE_NULL)
             del self.pipelines[name]
             err, debug = message.parse_error()
-            print "G: ERROR", err, debug
+            logger.debug( "G: ERROR: %s %s" % ( err, debug ) )
             error_cb( PlayerError( err.message ) )
 
         elif t == gst.MESSAGE_STATE_CHANGED:
             previous, current, pending = message.parse_state_changed()
-            print "G: STATE NOW", "(%s) -> %s -> (%s)" % ( previous, current, pending )
+            logger.debug( "G: STATE NOW: (%s) -> %s -> (%s)" % ( previous, current, pending ) )
             if previous == gst.STATE_PAUSED and current == gst.STATE_PLAYING:
                 self._updateSoundStatus( name, "playing" )
                 ok_cb()
@@ -84,7 +130,7 @@ class GStreamerPlayer( Player ):
                 # ok_cb()
 
         else:
-            print "G: UNHANDLED", t
+            logger.debug( "G: UNHANDLED: %s" % t )
 
     def _updateSoundStatus( self, name, newstatus ):
         pipeline, status, repeat, ok_cb, error_cb = self.pipelines[name]
@@ -92,25 +138,17 @@ class GStreamerPlayer( Player ):
             self.pipelines[name] = pipeline, newstatus, repeat, ok_cb, error_cb
             self._object.SoundStatus( name, newstatus, {} )
 
-    def _processTask( self ):
-        if self.q.empty():
-            return False # don't call me again
-        print "getting task from queue...",
-        ok_cb, error_cb, task, args = self.q.get()
-        print "got task", task, args
+    def onProcessElement( self, element ):
+        logger.debug( "getting task from queue..." )
+        ok_cb, error_cb, task, args = element
+        logger.debug( "got task: %s %s" % ( task, args ) )
         try:
             method = getattr( self, "task_%s" % task )
         except AttributeError:
-            print "unhandled task", task, args
+            logger.debug( "unhandled task: %s %s" % ( task, args ) )
         else:
             method( ok_cb, error_cb, *args )
         return True
-
-    def enqueue( self, ok_cb, error_cb, task, *args ):
-        restart = self.q.empty()
-        self.q.put( ( ok_cb, error_cb, task, args ) )
-        if restart:
-            self.process_source = gobject.idle_add( self._processTask )
 
     def task_play( self, ok_cb, error_cb, name, repeat ):
         if name in self.pipelines:
@@ -159,9 +197,66 @@ class GStreamerPlayer( Player ):
             return pipeline
 
 #----------------------------------------------------------------------------#
+class AlsaScenarios( object ):
+#----------------------------------------------------------------------------#
+    """
+    Controls alsa audio scenarios.
+    """
+    def __init__( self, dbus_object, statedir ):
+        self._object = dbus_object
+        self._statedir = statedir
+        self._statenames = None
+        # FIXME set default profile (from configuration)
+        self._current = "unknown"
+
+    def getScenario( self ):
+        return self._current
+
+    def storeScenario( self, scenario ):
+        statename = "%s/%s.state" % ( self._statedir, scenario )
+        result = subprocess.call( [ "alsactl", "-f", statename, "store" ] )
+        if result != 0:
+            logger.error( "can't store alsa scenario to %s" % statename )
+            return False
+        else:
+            # reload scenarios next time
+            self._statenames = None
+            return True
+
+    def getAvailableScenarios( self ):
+        # FIXME might check timestamp or use inotify
+        if self._statenames is None:
+            try:
+                files = os.listdir( self._statedir )
+            except OSError:
+                logger.warning( "no state files in %s found" % self._statedir )
+                self._statenames = []
+            else:
+                self._statenames = [ state[:-6] for state in files if state.endswith( ".state" ) ]
+        return self._statenames
+
+    def setScenario( self, scenario ):
+        if not scenario in self.getAvailableScenarios():
+            return False
+        statename = "%s/%s.state" % ( self._statedir, scenario )
+        result = subprocess.call( [ "alsactl", "-f", statename, "restore" ] )
+        if result == 0:
+            self._current = scenario
+            self._object.Scenario( scenario, "user" )
+            return True
+        else:
+            logger.error( "can't set alsa scenario from %s" % statename )
+            return False
+
+    def hasScenario( self, scenario ):
+        return scenario in self.getAvailableScenarios()
+
+#----------------------------------------------------------------------------#
 class Audio( dbus.service.Object ):
 #----------------------------------------------------------------------------#
-    """A Dbus Object implementing org.freesmartphone.Device.Audio"""
+    """
+    A Dbus Object implementing org.freesmartphone.Device.Audio
+    """
     DBUS_INTERFACE = DBUS_INTERFACE_PREFIX + ".Audio"
 
     def __init__( self, bus, config, index, node ):
@@ -169,45 +264,85 @@ class Audio( dbus.service.Object ):
         self.path = DBUS_PATH_PREFIX + "/Audio"
         dbus.service.Object.__init__( self, bus, self.path )
         self.config = config
-        logger.info( "%s initialized. Serving %s at %s", self.__class__.__name__, self.interface, self.path )
-        # FIXME make it configurable or autodetect
+        logger.info( "%s %s initialized. Serving %s at %s" % ( self.__class__.__name__, __version__, self.interface, self.path ) )
+        # FIXME make it configurable or autodetect which player is to be used
         self.player = GStreamerPlayer( self )
+        # FIXME gather scenario path from configuration
+        self.scenario = AlsaScenarios( self, "/usr/share/openmoko/scenarios" )
 
     #
-    # dbus methods
+    # dbus info methods
     #
+    @dbus.service.method( DBUS_INTERFACE, "", "s",
+                          async_callbacks=( "dbus_ok", "dbus_error" ) )
+    def GetInfo( self, dbus_ok, dbus_error ):
+        dbus_ok( self.player.__class__.__name__ )
 
+    #
+    # dbus sound methods
+    #
     @dbus.service.method( DBUS_INTERFACE, "s", "",
                           async_callbacks=( "dbus_ok", "dbus_error" ) )
     def PlaySound( self, name, dbus_ok, dbus_error ):
-        self.player.enqueue( dbus_ok, dbus_error, "play", name, False )
+        self.player.enqueueTask( dbus_ok, dbus_error, "play", name, False )
 
     @dbus.service.method( DBUS_INTERFACE, "s", "",
                           async_callbacks=( "dbus_ok", "dbus_error" ) )
     def StopSound( self, name, dbus_ok, dbus_error ):
-        self.player.enqueue( dbus_ok, dbus_error, "stop", name )
+        self.player.enqueueTask( dbus_ok, dbus_error, "stop", name )
 
     @dbus.service.method( DBUS_INTERFACE, "", "",
                           async_callbacks=( "dbus_ok", "dbus_error" ) )
     def StopAllSounds( self, dbus_ok, dbus_error ):
-        self.player.enqueue( dbus_ok, dbus_error, "panic" )
+        self.player.enqueueTask( dbus_ok, dbus_error, "panic" )
+
+    #
+    # dbus scenario methods
+    #
+    @dbus.service.method( DBUS_INTERFACE, "", "as",
+                          async_callbacks=( "dbus_ok", "dbus_error" ) )
+    def GetAvailableScenarios( self, dbus_ok, dbus_error ):
+        dbus_ok( self.scenario.getAvailableScenarios() )
+
+    @dbus.service.method( DBUS_INTERFACE, "", "s",
+                          async_callbacks=( "dbus_ok", "dbus_error" ) )
+    def GetScenario( self, dbus_ok, dbus_error ):
+        dbus_ok( self.scenario.getScenario() )
+
+    @dbus.service.method( DBUS_INTERFACE, "s", "",
+                          async_callbacks=( "dbus_ok", "dbus_error" ) )
+    def SetScenario( self, name, dbus_ok, dbus_error ):
+        if not self.scenario.hasScenario( name ):
+            dbus_error( InvalidScenario( "available scenarios are: %s" % self.scenario.getAvailableScenarios() ) )
+        else:
+            if self.scenario.setScenario( name ):
+                dbus_ok()
+            else:
+                dbus_error( DeviceFailed( "unknown error while setting scenario" ) )
+
+    @dbus.service.method( DBUS_INTERFACE, "s", "",
+                          async_callbacks=( "dbus_ok", "dbus_error" ) )
+    def StoreScenario( self, name, dbus_ok, dbus_error ):
+        if self.scenario.storeScenario( name ):
+            dbus_ok()
+        else:
+            dbus_error( DeviceFailed( "unknown error while storing scenario" ) )
 
     #
     # dbus signals
     #
     @dbus.service.signal( DBUS_INTERFACE, "ssa{sv}" )
     def SoundStatus( self, name, status, properties ):
-        logger.info( "%s sound status %s %s %s", __name__, name, status, properties )
+        logger.info( "sound status %s %s %s" % ( name, status, properties ) )
 
     @dbus.service.signal( DBUS_INTERFACE, "ss" )
     def Scenario( self, scenario, reason ):
-        logger.info( "%s scenario %s %s", __name__, scenario, reason )
+        logger.info( "sound scenario %s %s" % ( scenario, reason ) )
 
 #----------------------------------------------------------------------------#
 def factory( prefix, controller ):
 #----------------------------------------------------------------------------#
-    """Scan for available sysfs nodes and instanciate corresponding
-    dbus server objects"""
+    """Instanciate plugins"""
 
     return [ Audio( controller.bus, controller.config, 0, "" ) ]
 

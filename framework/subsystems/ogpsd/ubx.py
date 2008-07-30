@@ -10,16 +10,12 @@ GPLv2
 
 __version__ = "0.0.0"
 
-import os
-import sys
-import math
-import string
 import struct
 import dbus
 from gpsdevice import GPSDevice
-from syslog import syslog, LOG_ERR, LOG_WARNING, LOG_INFO, LOG_DEBUG
-from helpers import LOG
-from gobject import idle_add
+
+import logging
+logger = logging.getLogger('ogpsd')
 
 DBUS_INTERFACE = "org.freesmartphone.GPS"
 
@@ -255,7 +251,7 @@ MSGFMT = {
         ["<" + "I"*26, ["SVID", "HOW", "SF1D0", "SF1D1", "SF1D2", "SF1D3", "SF1D4",
             "SF1D5", "SF1D6", "SF1D7", "SF2D0", "SF2D1", "SF2D2", "SF2D3", "SF2D4",
             "SF2D5", "SF2D6", "SF1D7", "SF3D0", "SF3D1", "SF3D2", "SF3D3", "SF3D4", "SF3D5", "SF3D6", "SF3D7"]]
-# TIM
+# TIM - Timekeeping
 }
 
 MSGFMT_INV = dict( [ [(CLIDPAIR[clid], le),v + [clid]] for (clid, le),v in MSGFMT.items() ] )
@@ -268,17 +264,18 @@ class UBXDevice( GPSDevice ):
         self.gpschannel = gpschannel
         self.gpschannel.setCallback( self.parse )
 
+        self.ubx = {}
         self.configure()
 
     def configure( self ):
-        # Clear volatile fields
-#        self.send("CFG-RST", 4, {"nav_bbr" : 0xffff, "Reset" : 0x01})
-
         # Use high sensitivity mode
-        self.send("CFG-RXM", 2, {"gps_mode" : 2, "lp_mode" : 0})
+        #self.send("CFG-RXM", 2, {"gps_mode" : 2, "lp_mode" : 0})
         # Enable use of SBAS (even in testmode)
-        self.send("CFG-SBAS", 8, {"mode" : 3, "usage" : 7, "maxsbas" : 3, "scanmode" : 0})
+        #self.send("CFG-SBAS", 8, {"mode" : 3, "usage" : 7, "maxsbas" : 3, "scanmode" : 0})
 
+        # Disable NMEA for current port
+        self.ubx["CFG-PRT"] = {"In_proto_mask" : 1, "Out_proto_mask" : 1}
+        self.send("CFG-PRT", 0, [])
         # Send NAV STATUS
         self.send("CFG-MSG", 3, {"Class" : CLIDPAIR["NAV-STATUS"][0] , "MsgID" : CLIDPAIR["NAV-STATUS"][1] , "Rate" : 1 })
         # Send NAV POSLLH
@@ -294,11 +291,25 @@ class UBXDevice( GPSDevice ):
         # Send NAV SVINFO
         self.send("CFG-MSG", 3, {"Class" : CLIDPAIR["NAV-SVINFO"][0] , "MsgID" : CLIDPAIR["NAV-SVINFO"][1] , "Rate" : 5 })
 
+    def deconfigure( self ):
+        # Disable UBX packets
+        self.send("CFG-MSG", 3, {"Class" : CLIDPAIR["NAV-STATUS"][0] , "MsgID" : CLIDPAIR["NAV-STATUS"][1] , "Rate" : 0 })
+        self.send("CFG-MSG", 3, {"Class" : CLIDPAIR["NAV-POSLLH"][0] , "MsgID" : CLIDPAIR["NAV-POSLLH"][1] , "Rate" : 0 })
+        self.send("CFG-MSG", 3, {"Class" : CLIDPAIR["NAV-VELNED"][0] , "MsgID" : CLIDPAIR["NAV-VELNED"][1] , "Rate" : 0 })
+        self.send("CFG-MSG", 3, {"Class" : CLIDPAIR["NAV-TIMEUTC"][0] , "MsgID" : CLIDPAIR["NAV-TIMEUTC"][1] , "Rate" : 0 })
+        self.send("CFG-MSG", 3, {"Class" : CLIDPAIR["NAV-DOP"][0] , "MsgID" : CLIDPAIR["NAV-DOP"][1] , "Rate" : 0 })
+        self.send("CFG-MSG", 3, {"Class" : CLIDPAIR["NAV-SVINFO"][0] , "MsgID" : CLIDPAIR["NAV-SVINFO"][1] , "Rate" : 0 })
+        # Enable NMEA again for current port
+        self.ubx["CFG-PRT"] = {"In_proto_mask" : 3, "Out_proto_mask" : 3}
+        self.send("CFG-PRT", 0, [])
+
     def parse( self, data ):
         self.buffer += data
         while True:
             # Find the beginning of a UBX message
             start = self.buffer.find( chr( SYNC1 ) + chr( SYNC2 ) )
+            if start > 0:
+                logger.debug( "Discarded data not UBX \"%s\"" % self.buffer[:start] )
             self.buffer = self.buffer[start:]
             # Minimum packet length is 8
             if len(self.buffer) < 8:
@@ -309,6 +320,7 @@ class UBXDevice( GPSDevice ):
                 return
 
             if self.checksum(self.buffer[2:length+6]) != struct.unpack("<BB", self.buffer[length+6:length+8]):
+                logger.warning( "UBX packed class 0x%x, id 0x%x, length %i failed checksum" % (cl, id, length) )
                 self.buffer = self.buffer[2:]
                 continue
 
@@ -319,6 +331,8 @@ class UBXDevice( GPSDevice ):
             self.buffer = self.buffer[length+8:]
 
     def send( self, clid, length, payload ):
+        logger.debug( "Sending UBX packet of type %s: %s" % ( clid, payload ) )
+
         stream = struct.pack("<BBBBH", SYNC1, SYNC2, CLIDPAIR[clid][0], CLIDPAIR[clid][1], length)
         if length > 0:
             try:
@@ -332,7 +346,8 @@ class UBXDevice( GPSDevice ):
                 payload_base = payload[0]
                 payload_rep = payload[1:]
                 if (length - fmt_base[0])%fmt_rep[0] != 0:
-                    print "Variable length message Class", cl, "ID", id, "has wrong length", length
+                    logger.error( "Cannot send: Variable length message class \
+                        0x%x, id 0x%x has wrong length %i" % ( cl, id, length ) )
                     return
             stream = stream + struct.pack(fmt_base[1], *[payload_base[i] for i in fmt_base[2]])
             if fmt_rep[0] != 0:
@@ -364,7 +379,8 @@ class UBXDevice( GPSDevice ):
                 fmt_rep = format[3:]
                 # Check if the length matches
                 if (length - fmt_base[0])%fmt_rep[0] != 0:
-                    print "Variable length message Class", cl, "ID", id, "has wrong length", length
+                    logger.error( "Variable length message class 0x%x, id 0x%x \
+                        has wrong length %i" % ( cl, id, length ) )
                     return
                 data.append(dict(zip(fmt_base[2], struct.unpack(fmt_base[1], payload[:fmt_base[0]]))))
                 for i in range(0, (length - fmt_base[0])/fmt_rep[0]):
@@ -372,19 +388,31 @@ class UBXDevice( GPSDevice ):
                     data.append(dict(zip(fmt_rep[2], struct.unpack(fmt_rep[1], payload[offset:offset+fmt_rep[0]]))))
 
             except KeyError:
-                print "Unknown message Class", cl, "ID", id, "Length", length
+                logger.info( "Unknown message class 0x%x, id 0x%x, length %i" % ( cl, id, length ) )
                 return
 
+        logger.debug( "Got UBX packet of type %s: %s" % (format[-1] , data ) )
         methodname = "handle_"+format[-1].replace("-", "_")
         try:
             method = getattr( self, methodname )
         except AttributeError:
-            print "No method to handle", format[-1], data
+            logger.debug( "No method to handle %s: %s" % ( format[-1], data ) )
         else:
             try:
                 method( data )
             except Exception, e:
-                print "Error in %s method: %s" % ( methodname, e )
+                logger.error( "Error in %s method: %s" % ( methodname, e ) )
+
+    def handle_CFG_PRT( self, data ):
+        data = data[1]
+        config = {}
+        for (k,v) in data.items():
+            config[k] = v
+        for (k,v) in self.ubx["CFG-PRT"].items():
+           config[k] = v
+        logger.debug( "Updating CFG-PRT %s with %s" % (data, config) )
+        if config != data:
+            self.send( "CFG-PRT", 20, [{}, config] )
 
     def handle_NAV_STATUS( self, data ):
         data = data[0]
@@ -429,11 +457,16 @@ class UBXDevice( GPSDevice ):
                 satellites.append( (sat["SVID"], in_use, sat["Elev"], sat["Azim"], sat["CNO"]) )
         self._updateSatellites( satellites )
 
-    def handle_NAV_TIMEUTC( self, data):
+    def handle_NAV_TIMEUTC( self, data ):
         data = data[0]
         self.time = ( data["Valid"], data["Year"], data["Month"], data["Day"],
                 data["Hour"], data["Min"], data["Sec"] )
         self.TimeChanged( *self.time )
+
+    # Ignore ACK packets for now
+    def handle_ACK_ACK( self, data ):
+        data = data[0]
+        logger.debug("Got ACK %s" % data )
 
     #
     # dbus methods

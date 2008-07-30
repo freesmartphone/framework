@@ -47,7 +47,7 @@ class CalypsoModemChannel( AbstractModemChannel ):
         we assume that the modem is broken and fail.
         """
         for i in itertools.count():
-            logger.info( "(modem init... try #%d)", i+1 )
+            logger.debug( "(modem init... try #%d)", i+1 )
             select.select( [], [self.serial.fd], [], 0.5 )
             self.serial.write( "\x1a\r\n" )
             r, w, x = select.select( [self.serial.fd], [], [], 0.5 )
@@ -63,12 +63,12 @@ class CalypsoModemChannel( AbstractModemChannel ):
                     self.serial.open()
                     buf = self.serial.inWaiting()
                 ok = self.serial.read(buf).strip()
-                logger.info( "read: %s", ok )
+                logger.debug( "read: %s", ok )
                 if "OK" in ok or "AT" in ok:
                     break
-            logger.info( "(modem not responding)" )
+            logger.debug( "(modem not responding)" )
             if i == 5:
-                logger.info( "(reopening modem)" )
+                logger.debug( "(reopening modem)" )
                 self.serial.close()
                 path = self.pathfactory()
                 if not path: # path is None or ""
@@ -77,7 +77,7 @@ class CalypsoModemChannel( AbstractModemChannel ):
                 self.serial.open()
 
             if i == 10:
-                logger.info( "(giving up)" )
+                logger.warning( "(can't read from modem. giving up)" )
                 self.serial.close()
                 return False
         logger.info( "(modem responding)" )
@@ -100,7 +100,7 @@ class CalypsoModemChannel( AbstractModemChannel ):
         if CalypsoModemChannel.modem_communication_timestamp:
             current_time = time.time()
             if current_time - CalypsoModemChannel.modem_communication_timestamp > 7:
-                logger.info( "(%s: last communication with modem was %d seconds ago. Sending EOF to wakeup)", self, int(current_time - CalypsoModemChannel.modem_communication_timestamp) )
+                logger.debug( "(%s: last communication with modem was %d seconds ago. Sending EOF to wakeup)", self, int(current_time - CalypsoModemChannel.modem_communication_timestamp) )
                 self.serial.write( "\x1a" )
                 time.sleep( 0.2 )
             CalypsoModemChannel.modem_communication_timestamp = current_time
@@ -118,6 +118,11 @@ class CallChannel( CalypsoModemChannel ):
         CalypsoModemChannel.__init__( self, *args, **kwargs )
         self.callback = None
 
+    def _populateCommands( self ):
+        CalypsoModemChannel._populateCommands( self )
+        self._commands["sim"] = []
+        self._commands["antenna"] = []
+
     def setIntermediateResponseCallback( self, callback ):
         assert self.callback is None, "callback already set"
         self.callback = callback
@@ -126,12 +131,15 @@ class CallChannel( CalypsoModemChannel ):
         if self.callback is not None:
             self.callback( response )
         else:
-            logger.info( "CALLCHANNEL: UNHANDLED INTERMEDIATE: %s", response )
+            logger.warning( "CALLCHANNEL: UNHANDLED INTERMEDIATE: %s", response )
 
 #=========================================================================#
 class MiscChannel( CalypsoModemChannel ):
 #=========================================================================#
-    pass
+    def _populateCommands( self ):
+        CalypsoModemChannel._populateCommands( self )
+        self._commands["sim"] = []
+        self._commands["antenna"] = []
 
 #=========================================================================#
 class UnsolicitedResponseChannel( CalypsoModemChannel ):
@@ -169,14 +177,27 @@ class UnsolicitedResponseChannel( CalypsoModemChannel ):
         c = self._commands["sim"]
         c.append( "%CBHZ=1" ) # home zone cell broadcast: activate automatic (send frequently, not just once)
 
-    @logged
-    def suspend( self, ok_callback, error_callback ):
-        self.enqueue( "+CTZU=0;+CTZR=0;+CREG=0;+CNMI=2,1,0,0,0;+CGEREP=0,0;+CGREG=0;%CSQ=0;%CGEREP=0;%CGREG=0",
-                      SimpleCallback( ok_callback, self ),
-                      SimpleCallback( error_callback, self ) )
+        c = self._commands["suspend"]
+        c.append( "+CTZU=0" )
+        c.append( "+CTZR=0" )
+        c.append( "+CREG=0" )
+        c.append( "+CGREG=0" )
+        c.append( "+CGEREP=0,0" )
+        c.append( "+CNMI=2,1,0,0,0" )
+        c.append( "%CSQ=0" )
+        c.append( "%CGEREP=0" )
+        c.append( "%CGREG=0" )
+        c.append( "%CBHZ=0" ) # home zone cell broadcast: disable
 
-    @logged
-    def resume( self, ok_callback, error_callback ):
-        self.enqueue( "+CTZU=1;+CTZR=1;+CREG=2;+CNMI=2,1,2,1,1;+CGEREP=2,1;+CGREG=2;%CSQ=1;%CGEREP=1;%CGREG=3",
-                      SimpleCallback( ok_callback, self ),
-                      SimpleCallback( error_callback, self ) )
+        c = self._commands["resume"]
+        c.append( "+CTZU=1" )
+        c.append( "+CTZR=1" )
+        c.append( "+CREG=2" )
+        c.append( "+CGREG=2" )
+        c.append( "+CGEREP=2,1" )
+        c.append( "+CNMI=2,1,2,1,1" )
+        c.append( "%CSQ=1" ) # signal strength: send unsol. code
+        c.append( "%CNIV=1" )
+        c.append( "%CGEREP=1" )
+        c.append( "%CGREG=3" )
+        c.append( "%CBHZ=1" ) # home zone cell broadcast: enable

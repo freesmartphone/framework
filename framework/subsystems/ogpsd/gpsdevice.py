@@ -15,11 +15,9 @@ DBUS_PATH_PREFIX = "/org/freedesktop/Gypsy"
 
 import dbus
 import dbus.service
-import os
-import sys
-from syslog import syslog, LOG_ERR, LOG_WARNING, LOG_INFO, LOG_DEBUG
-from helpers import LOG
-from gobject import idle_add
+
+import logging
+logger = logging.getLogger('ogpsd')
 
 class GPSDevice( dbus.service.Object ):
     """An Dbus Object implementing org.freedesktop.Gypsy"""
@@ -36,7 +34,7 @@ class GPSDevice( dbus.service.Object ):
         self.path = DBUS_PATH_PREFIX
         self.bus = bus
         dbus.service.Object.__init__( self, bus, self.path )
-        LOG( LOG_INFO, "%s initialized. Serving %s at %s" % ( self.__class__.__name__, self.interface, self.path ) )
+        logger.info("%s initialized. Serving %s at %s" % ( self.__class__.__name__, self.interface, self.path ) )
 
     def _updateFixStatus( self, fixstatus ):
         if self.fixstatus != fixstatus:
@@ -73,9 +71,31 @@ class GPSDevice( dbus.service.Object ):
             self.satellites = satellites
             self.SatellitesChanged( self.satellites )
 
+    # Gypsy Server interface
+    # This should be implemented somewhere else once we allow different devices
+    @dbus.service.method( DBUS_INTERFACE_PREFIX + ".Server", "s", "o" )
+    def Create( self, device ):
+        return DBUS_PATH_PREFIX
+
+    @dbus.service.method( DBUS_INTERFACE_PREFIX + ".Server", "o", "" )
+    def Shutdown( self, path ):
+        pass
+
     #
     # dbus methods
     #
+    @dbus.service.method( DBUS_INTERFACE_PREFIX + ".Device", "", "")
+    def Start( self ):
+        pass
+
+    @dbus.service.method( DBUS_INTERFACE_PREFIX + ".Device", "", "")
+    def Stop( self ):
+        pass
+
+    @dbus.service.method( DBUS_INTERFACE_PREFIX + ".Device", "", "b")
+    def GetConnectionStatus( self ):
+        return True
+
     @dbus.service.method( DBUS_INTERFACE_PREFIX + ".Device", "", "i")
     def GetFixStatus( self ):
         return self.fixstatus
@@ -100,6 +120,10 @@ class GPSDevice( dbus.service.Object ):
     #
     # dbus signals
     #
+    @dbus.service.signal( DBUS_INTERFACE_PREFIX + ".Device", "b" )
+    def ConnectionStatusChanged( self, constatus ):
+        pass
+
     @dbus.service.signal( DBUS_INTERFACE_PREFIX + ".Device", "i" )
     def FixStatusChanged( self, fixstatus ):
         pass

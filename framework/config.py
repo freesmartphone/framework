@@ -13,7 +13,7 @@ import logging
 
 logger = logging.getLogger('')  # The root logger
 
-# This dict map syslog message levels to logging message levels                
+# This dict map syslog message levels to logging message levels
 logging_levels_map = {
     LOG_ERR :       logging.ERROR,
     LOG_WARNING :   logging.WARNING,
@@ -23,13 +23,13 @@ logging_levels_map = {
 
 def LOG(level, *values):
     """log a message
-    
-       this function is deprecated, we should use logging module instead 
+
+       this function is deprecated, we should use logging module instead
     """
     if level == LOG_ERR:
         values = values + (format_exc(),)
     logger.log(logging_levels_map[level], ' '.join(str(i) for i in values))
-    
+
 logging.basicConfig(
     level=logging.INFO,
     format='%(name)-8s %(levelname)-8s %(message)s'

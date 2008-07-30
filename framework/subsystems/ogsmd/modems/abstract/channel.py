@@ -49,14 +49,40 @@ class AbstractModemChannel( AtCommandChannel ):
         Called, when the modem signalizes the SIM data can be read.
         """
         pass
+
+
+    def suspend( self, ok_callback, error_callback ):
+        """
+        Called, when the channel needs to configure the modem for suspending.
+        """
+        def done( request, response, self=self, ok_callback=ok_callback ):
+            ok_callback( self )
+        self._sendCommandsNotifyDone( "suspend", done )
+
+    def resume( self, ok_callback, error_callback ):
+        def done( request, response, self=self, ok_callback=ok_callback ):
+            ok_callback( self )
+        self._sendCommandsNotifyDone( "resume", done )
+
     #
     # internal API
     #
 
     def _sendCommands( self, state ):
         commands = self._commands[state]
-        for command in commands:
-            self.enqueue( command )
+        if commands:
+            for command in commands:
+                self.enqueue( command )
+
+    def _sendCommandsNotifyDone( self, state, done_callback ):
+        # FIXME no error handling, just checking when the results are through
+        commands = self._commands[state]
+        if commands:
+            for command in commands[:-1]:
+                self.enqueue( command )
+            self.enqueue( commands[-1], done_callback, done_callback )
+        else:
+            done_callback( "", "" )
 
     def _populateCommands( self ):
         """
@@ -89,3 +115,10 @@ class AbstractModemChannel( AtCommandChannel ):
 
         c = []
         self._commands["antenna"] = c
+
+        c = []
+        self._commands["suspend"] = c
+
+        c = []
+        self._commands["resume"] = c
+

@@ -7,15 +7,15 @@ Open Device Daemon - A plugin for gathering device information
 GPLv2 or later
 """
 
-__version__ = "0.1.0"
+__version__ = "0.1.1"
+
+from helpers import DBUS_INTERFACE_PREFIX, DBUS_PATH_PREFIX, readFromFile, writeToFile
 
 import dbus.service
-from syslog import syslog, LOG_ERR, LOG_WARNING, LOG_INFO, LOG_DEBUG
-from helpers import LOG, DBUS_INTERFACE_PREFIX, DBUS_PATH_PREFIX, readFromFile, writeToFile, cleanObjectName
 import ConfigParser
 
 import logging
-logger = logging.getLogger('odeviced')
+logger = logging.getLogger( "odeviced.info" )
 
 #----------------------------------------------------------------------------#
 class Info( dbus.service.Object ):
@@ -28,7 +28,7 @@ class Info( dbus.service.Object ):
         self.path = DBUS_PATH_PREFIX + "/Info"
         dbus.service.Object.__init__( self, bus, self.path )
         self.config = config
-        logger.info( "%s initialized. Serving %s at %s", self.__class__.__name__, self.interface, self.path )
+        logger.info( "%s initialized. Serving %s at %s" % ( self.__class__.__name__, self.interface, self.path ) )
 
     #
     # dbus methods

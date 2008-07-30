@@ -1,3 +1,22 @@
+2008-07-28	Daniel Willmann <daniel@totalueberwachung.de>
+
+	* [ogpsd] Gypsy API is now implemented and applications using
+		Gypsy dbus API should just work.
+
+2008-07-25	Michael Lauer	<mickey@vanille-media.de>
+
+	* [odeviced] Use hierarchical loggers.
+	* [odeviced] Commit first bits of pattern library and use asyncworker
+	  for Audio and Input.
+
+2008-07-25  John Lee  <john_lee@openmoko.com>
+
+	* [odeviced] Added accelerometer support for om-gta02.
+
+2008-07-24	Guillaume Chereau	<charlie@openmoko.org>
+
+	* Converted logging to use the Python Logging framework.
+
 2008-07-20	Daniel Willmann <daniel@totalueberwachung.de>
 
 	* [ogpsd] Most of the Gypsy DBus interface is now implemented.

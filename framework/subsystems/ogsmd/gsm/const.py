@@ -799,10 +799,29 @@ def numberToPhonebookTuple( nstring ):
     Returns a phonebook tuple depending on a number.
     """
 
+    if type( nstring ) != types.StringType():
+        nstring = nstring.encode( "iso-8859-1" ) # as set via +CSCS
+
     if nstring[0] == '+':
         return nstring[1:], 145
     else:
         return nstring, 129
+
+#=========================================================================#
+def unicodeToString( uni ):
+#=========================================================================#
+    """
+    Returns an iso-8859-1 string for a text given to the modem.
+    """
+    if type( uni ) == types.StringType():
+        return uni
+    else:
+        try:
+            result = uni.encode( "iso-8859-1" ) # as set via +CSCS
+        except UnicodeEncodeError:
+            result = "<??? unencodable ???>"
+            # log warning
+        return result
 
 #=========================================================================#
 def textToUnicode( text ):
@@ -850,6 +869,7 @@ if __name__ == "__main__":
     assert numberToPhonebookTuple( "+123456789" ) == (  "123456789", 145 )
     print "OK"
     assert textToUnicode( "B\xf6rse" ) != "<??? undecodable ???>"
+    assert unicodeToString( u"\xc3\xa4" ) != "<??? unencodable ???>"
     print "OK"
     assert mccToCountryCode( 262 ) == ( "+49", "Germany" )
     assert mccToCountryCode( 700 ) == ( "+???", "<??? unknown ???>" )
