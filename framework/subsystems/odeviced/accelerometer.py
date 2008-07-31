@@ -6,7 +6,8 @@ Accelerometer module for odeviced.
 GPLv2 or later
 """
 from __future__ import with_statement
-import sys, os, struct, math
+import os, struct
+from ConfigParser import NoOptionError
 from threading import RLock
 
 import logging
@@ -156,21 +157,10 @@ class FSOSubsystem(dbus.service.Object):
         self.accelerometer = accelerometer
         dbus.service.Object.__init__(self, bus, self.path)
         logger.info( "%s initialized. Serving %s at %s", self.__class__.__name__, self.interface, self.path )
-        self._value_lock = RLock()
-        self._value = (0, 0, 0)
-
-    def update_value(self):
-        # this need time so don't hold the lock
-        value = self.accelerometer.retrieve()
-        with self._value_lock:
-            self._value = value
-            self.Event(*value)
-        return True
 
     @dbus.service.method(DBUS_INTERFACE, '', 'iii')
     def Value(self):
-        with self._value_lock:
-            return self._value
+        return self.accelerometer.retrieve()
 
     @dbus.service.method(DBUS_INTERFACE, '', 'i')
     def GetSampleRate(self):
@@ -180,21 +170,17 @@ class FSOSubsystem(dbus.service.Object):
     def SetSampleRate(self, sample_rate):
         self.accelerometer.sample_rate = sample_rate
 
-    @dbus.service.signal(DBUS_INTERFACE, 'iii')
-    def Event(self, x, y, z):
-        pass
-
 
 def factory(prefix, controller):
     from threading import Thread
-    device_map = {'gta02': Gta02Accelerometer}
-    device = controller.config.get( 'input', 'accelerometer_type' )
+    device_map = {'gta02': Gta02Accelerometer,
+                  'mock': MockAccelerometer}
     try:
+        device = controller.config.get( 'input', 'accelerometer_type' )
         device_class = device_map[ device ]
-    except KeyError:
+    except NoOptionError, KeyError:
         device_class = MockAccelerometer
     f = FSOSubsystem(device_class(), controller.bus)
-    idle_add(f.update_value)
     return [f, ]
 
 
