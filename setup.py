@@ -6,8 +6,6 @@ import os
 
 # Get the list of all the packages
 packages = [ x[0] for x in os.walk( "framework" ) ]
-# This one is not a packages, just for testing
-packages.remove('framework/subsystems/opreferencesd/test')
 
 setup(
     name = "The FreeSmartphone Framework Daemon",
