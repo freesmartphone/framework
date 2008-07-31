@@ -20,9 +20,9 @@ setup(
     packages = packages,
     scripts = [ "framework/frameworkd", "tools/cli-framework" ],
     data_files = [
-        ("etc/dbus-1/system.d", ["etc/dbus-1/system.d/frameworkd.conf"] ),
-        ("etc/freesmartphone/opreferences/schema/", ["etc/freesmartphone/opreferences/schema/profiles.yaml"]),
-        ("etc/freesmartphone/opreferences/conf/", ["etc/freesmartphone/opreferences/conf/profiles/default.yaml"]),
+        ("../etc/dbus-1/system.d", ["etc/dbus-1/system.d/frameworkd.conf"] ),
+        ("../etc/freesmartphone/opreferences/schema/", ["etc/freesmartphone/opreferences/schema/profiles.yaml"]),
+        ("../etc/freesmartphone/opreferences/conf/", ["etc/freesmartphone/opreferences/conf/profiles/default.yaml"]),
         ("freesmartphone/examples/", ["examples/gsm-log-data.py"]),
     ]
 )
