@@ -192,7 +192,7 @@ MSGFMT = {
     ("CFG-NMEA", 4) :
         ["<BBBB", ["Filter", "Version", "NumSV", "Flags"]],
     ("CFG-RATE", 6) :
-        ["<HHH", ["Meas", "Rate", "Time"]],
+        ["<HHH", ["Meas", "Nav", "Time"]],
     ("CFG-CFG", 12) :
         ["<III", ["Clear_mask", "Save_mask", "Load_mask"]],
     ("CFG-TP", 20) :
@@ -305,11 +305,11 @@ class UBXDevice( GPSDevice ):
 
     def parse( self, data ):
         self.buffer += data
-        while True:
+        while len(self.buffer) > 0:
             # Find the beginning of a UBX message
             start = self.buffer.find( chr( SYNC1 ) + chr( SYNC2 ) )
-            if start > 0:
-                logger.debug( "Discarded data not UBX \"%s\"" % self.buffer[:start] )
+            if start != 0:
+                logger.debug( "Discarded data not UBX \"%s\"" % repr(self.buffer[:start]) )
             self.buffer = self.buffer[start:]
             # Minimum packet length is 8
             if len(self.buffer) < 8:
