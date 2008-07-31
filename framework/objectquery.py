@@ -40,6 +40,16 @@ class Objects( dbus.service.Object ):
         else:
             return [x for x in self.controller.objects.values() if x.interface == interface]
 
+    @dbus.service.method( DBUS_INTERFACE, "", "as" )
+    def ListSubsystems( self ):
+        return
+        if interface == "*":
+            return [x for x in self.controller.objects.values()]
+        elif interface.endswith( '*' ):
+            return [x for x in self.controller.objects.values() if x.interface.startswith( interface[:-1] )]
+        else:
+            return [x for x in self.controller.objects.values() if x.interface == interface]
+
 #----------------------------------------------------------------------------#
 def factory( prefix, controller ):
 #----------------------------------------------------------------------------#

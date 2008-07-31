@@ -23,7 +23,7 @@ import serial # pyserial
 import Queue, fcntl, os, time # stdlib
 
 import logging
-logger = logging.getLogger('ogsmd')
+logger = logging.getLogger( "ogsmd" )
 
 #=========================================================================#
 class PeekholeQueue( Queue.Queue ):

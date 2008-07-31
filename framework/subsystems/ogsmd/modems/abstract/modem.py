@@ -12,9 +12,11 @@ Module: modem
 """
 
 from ogsmd.gsm.decor import logged
-from framework.config import LOG, LOG_ERR, LOG_INFO, LOG_DEBUG
 
 import gobject
+
+import logging
+logger = logging.getLogger( "ogsmd.modem.abstract" )
 
 #=========================================================================#
 class AbstractModem( object ):
@@ -123,14 +125,14 @@ class AbstractModem( object ):
                         setattr( self, key, value )
 
             def __call__( self, channel ):
-                LOG( LOG_DEBUG, "prepareForSuspend ACK from channel", channel, "received" )
+                logger.debug( "prepareForSuspend ACK from channel %s received" % channel )
                 self.__class__.counter -= 1
                 if self.__class__.counter == 0:
                     self.ok()
 
         class MyError(MyOk):
             def __call__( self, channel ):
-                LOG( LOG_DEBUG, "prepareForSuspend NACK from channel", channel, "received" )
+                logger.debug( "prepareForSuspend NACK from channel %s received" % channel )
                 self.__class__.counter -= 1
                 if self.__class__.counter == 0:
                     self.error()
@@ -155,14 +157,14 @@ class AbstractModem( object ):
                         setattr( self, key, value )
 
             def __call__( self, channel ):
-                LOG( LOG_DEBUG, "recoverForSuspend ACK from channel", channel, "received" )
+                logger.debug( "recoverFromSuspend ACK from channel %s received" % channel )
                 self.__class__.counter -= 1
                 if self.__class__.counter == 0:
                     self.ok()
 
         class MyError(MyOk):
             def __call__( self, channel ):
-                LOG( LOG_DEBUG, "recoverForSuspend NACK from channel", channel, "received" )
+                logger.debug( "recoverFromSuspend NACK from channel %s received" % channel )
                 self.__class__.counter -= 1
                 if self.__class__.counter == 0:
                     self.error()
@@ -178,9 +180,9 @@ class AbstractModem( object ):
     def _initChannels( self, callback ):
         for channel in self._channels:
             if not self._channels[channel].isOpen():
-                LOG( LOG_DEBUG, "trying to open", channel )
+                logger.debug( "trying to open channel %s" % channel )
                 if not self._channels[channel].open():
-                    LOG( LOG_ERR, "could not open channel", channel, "retrying in 2 seconds" )
+                    logger.error( "could not open channel %s, retrying in 2 seconds" % channel )
                     gobject.timeout_add_seconds( 2, self._initChannels, callback )
                 else:
                     self._counter -= 1

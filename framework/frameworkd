@@ -10,12 +10,7 @@ GPLv2 or later
 
 __version__ = "0.2.0"
 
-import sys
-import os
-from syslog import openlog, LOG_PERROR, LOG_DAEMON
-
-if "FRAMEWORK_DEBUG" in os.environ:
-    openlog( "framework", LOG_PERROR, LOG_DAEMON )
+import sys, os
 
 try:
     from framework import controller
