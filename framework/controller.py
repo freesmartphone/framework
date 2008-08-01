@@ -180,19 +180,6 @@ class Controller( object ):
     def _nameOwnerChanged( self, name_owner, *args ):
         pass
 
-    # FIXME remove hard-coded controller knowledge from module, this wasn't supposed to be a public API!
-    def tryClaimBusName( self, name ):
-        """
-        Claim a dbus bus name.
-        """
-        try:
-            self.foo = dbus.service.BusName( "%s.%s" % ( DBUS_BUS_NAME_PREFIX, name ), self.bus )
-            return True
-        except dbus.DBusException:
-            logger.warning( "Can't claim bus name '%s.%s', check configuration in /etc/dbus-1/system.d/frameworkd.conf -- ignoring subsystem." % ( DBUS_BUS_NAME_PREFIX, name ) )
-            return False
-
-
 #----------------------------------------------------------------------------#
 if __name__ == "__main__":
     import dbus
