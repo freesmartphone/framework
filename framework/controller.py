@@ -186,7 +186,7 @@ class Controller( object ):
             self.foo = dbus.service.BusName( "%s.%s" % ( DBUS_BUS_NAME_PREFIX, name ), self.bus )
             return True
         except dbus.DBusException:
-            logger.warning( "Can't claim bus name '%s', check configuration in /etc/dbus-1/system.d/frameworkd.conf -- ignoring subsystem." % name )
+            logger.warning( "Can't claim bus name '%s.%s', check configuration in /etc/dbus-1/system.d/frameworkd.conf -- ignoring subsystem." % ( DBUS_BUS_NAME_PREFIX, name ) )
             return False
 
 
