@@ -18,10 +18,11 @@ from ubx import UBXDevice
 from om import GTA02Device
 from gpschannel import *
 
+NEEDS_BUSNAMES = [ "org.freedesktop.Gypsy" ]
+
 #----------------------------------------------------------------------------#
 def factory( prefix, controller ):
 #----------------------------------------------------------------------------#
-    controller.tryClaimBusName( "org.freedesktop.Gypsy" )
 
     objects = []
 
