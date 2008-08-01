@@ -41,6 +41,9 @@ bus = dbus.SystemBus()
 
 # FIXME use introspection
 
+# framework object
+framework = getObject( bus, "org.freesmartphone.frameworkd", "/org/freesmartphone/Framework" )
+
 # ogsmd device object
 gsm = getObject( bus, "org.freesmartphone.ogsmd", "/org/freesmartphone/GSM/Device" )
 

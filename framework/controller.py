@@ -76,7 +76,7 @@ class Controller( object ):
         DBusGMainLoop( set_as_default=True )
         self.mainloop = MainLoop()
         self.bus = dbus.SystemBus()
-        self.subsystems = {}
+        self._subsystems = {}
         self.busnames = []
         # FIXME remove hardcoded controller knowledge from objects
         self.config = config
@@ -88,8 +88,8 @@ class Controller( object ):
         self._configureLoggers()
         self._handleOverrides()
 
-        self.subsystems["frameworkd"] = subsystem.Framework( self.bus, path, self )
-        self.objects.update( self.subsystems["frameworkd"].objects() )
+        self._subsystems["frameworkd"] = subsystem.Framework( self.bus, path, self )
+        self.objects.update( self._subsystems["frameworkd"].objects() )
 
         # walk subsystems and find 'em
         systemstolaunch = self.options.values.subsystems.split( ',' )
@@ -104,14 +104,14 @@ class Controller( object ):
                     continue
                 else:
                     logger.info( "launching subsystem %s" % s )
-                    self.subsystems[s] = subsystem.Subsystem( s, self.bus, path, self )
+                    self._subsystems[s] = subsystem.Subsystem( s, self.bus, path, self )
             else:
-                self.subsystems[s] = subsystem.Subsystem( s, self.bus, path, self )
-            self.objects.update( self.subsystems[s].objects() )
+                self._subsystems[s] = subsystem.Subsystem( s, self.bus, path, self )
+            self.objects.update( self._subsystems[s].objects() )
 
 
         if not self.options.values.debug:
-            if len( self.subsystems ) == 1: # no additional subsystems could be loaded
+            if len( self._subsystems ) == 1: # no additional subsystems could be loaded
                 logger.error( "can't launch without at least one subsystem. Exiting." )
                 sys.exit( -1 )
 
@@ -120,6 +120,9 @@ class Controller( object ):
         objectnames.sort()
         for obj in objectnames:
             logger.info( "%s [%s]" % ( obj, self.objects[obj].interface ) )
+
+    def subsystems( self ):
+        return self._subsystems
 
     def idle( self ):
         logger.debug( "entered mainloop" )

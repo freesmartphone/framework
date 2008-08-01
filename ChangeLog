@@ -1,4 +1,8 @@
-2008-07-30	Michael Lauer	mickey@vanille-media.de>
+2008-08-01	Michael Lauer	<mickey@vanille-media.de>
+
+	* Add dbus interface to configure debug loggers at runtime
+
+2008-07-30	Michael Lauer	<mickey@vanille-media.de>
 
 	* Released as freesmartphone.org framework milestone 2
 
