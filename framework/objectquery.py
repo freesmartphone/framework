@@ -14,9 +14,9 @@ __version__ = "0.5.1"
 
 from .config import DBUS_INTERFACE_PREFIX
 
-import dbus
+import dbus, dbus.service
 
-import os, sys, logging
+import os, sys, logging, logging.handlers
 
 loggingmap = { \
     "DEBUG": logging.DEBUG,
@@ -25,6 +25,8 @@ loggingmap = { \
     "ERROR": logging.ERROR,
     "CRITICAL": logging.CRITICAL,
     }
+
+formatter = logging.Formatter('%(asctime)s %(name)-12s: %(levelname)-8s %(message)s')
 
 #----------------------------------------------------------------------------#
 class InvalidLogger( dbus.DBusException ):
@@ -72,6 +74,42 @@ class Objects( dbus.service.Object ):
         List available debug loggers.
         """
         return logging.root.manager.loggerDict.keys()
+
+    @dbus.service.method( DBUS_INTERFACE_FRAMEWORK, "", "ss" )
+    def GetDebugDestination( self ):
+        try:
+            handler = logging.root.handlers[0]
+        except IndexError:
+            handler = logging.StreamHandler()
+
+        if isinstance( handler, logging.StreamHandler ):
+            return ( "stderr", "" )
+        elif isinstance( handler, logging.handlers.SysLogHandler ):
+            return ( "syslog", "" )
+        elif isinstance( handler, logging.FileHandler ):
+            return ( "file", handler.stream.name )
+        else:
+            return ( "unknown", "" )
+
+    @dbus.service.method( DBUS_INTERFACE_FRAMEWORK, "ss", "" )
+    def SetDebugDestination( self, category, destination ):
+        """
+        Set the debug destination of logger.
+        """
+        if category == "stderr":
+            handler = logging.StreamHandler()
+        elif category == "syslog":
+            handler = logging.handlers.SysLogHandler( address = "/dev/log" )
+        elif category == "file" and destination != "":
+            handler = logging.FileHandler( destination )
+        else:
+            raise InvalidHandler( "available handlers are: stderr, syslog, file" )
+
+        handler.setFormatter( formatter )
+        # yank existing handlers before adding new one
+        for h in logging.root.handlers:
+            logging.root.removeHandler( h )
+        logging.root.addHandler( handler )
 
     @dbus.service.method( DBUS_INTERFACE_FRAMEWORK, "s", "s" )
     def GetDebugLevel( self, logger ):
