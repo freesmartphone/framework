@@ -30,9 +30,17 @@ class Subsystem( object ):
         self.path = path
         self.controller = controller
         self._objects = {}
+        self.busnames = []
 
-        self.busname = self.tryClaimBusName()
+        self.busnames.append( self.tryClaimBusName() )
         self.registerModulesInSubsystem()
+
+        # Clean out any busnames that couldn't be assigned
+        self.busnames = [ busname for busname in self.busnames if busname != None ]
+        if self.busnames == []:
+            logger.warning( "service %s doesn't have any busnames registered" % self.name )
+        else:
+            logger.debug( "service %s now owning busnames %s" % (self.name, self.busnames) )
 
     def objects( self ):
         return self._objects
@@ -76,20 +84,28 @@ class Subsystem( object ):
             logger.debug( "no plugin: factory function not found in module %s" % module )
         else:
             try:
+                need_busnames = getattr( module, "NEEDS_BUSNAMES" )
+                for busname in need_busnames:
+                    self.busnames.append( self.tryClaimBusName( busname ) )
+            except AttributeError:
+                logger.debug( "module %s doesn't need additional busnames" % module )
+
+            try:
                 for obj in factory( "%s.%s" % ( DBUS_BUS_NAME_PREFIX, self.name ), self.controller ):
                     self._objects[obj.path] = obj
             except Exception, e:
                     logger.exception( "factory method not successfully completed for module %s" % module )
 
-    def tryClaimBusName( self ):
+    def tryClaimBusName( self, name=None ):
         """
         Claim a dbus bus name.
         """
-        name = "%s.%s" % ( DBUS_BUS_NAME_PREFIX, self.name )
+        if not name:
+            name = "%s.%s" % ( DBUS_BUS_NAME_PREFIX, self.name )
         try:
             busname = dbus.service.BusName( name, self.bus )
         except dbus.DBusException:
-            logger.warning( "Can't claim bus name '%s', check configuration in /etc/dbus-1/system.d/frameworkd.conf -- ignoring subsystem." % name )
+            logger.warning( "Can't claim bus name '%s', check configuration in /etc/dbus-1/system.d/frameworkd.conf" % name )
             busname = None
         return busname
 
@@ -102,7 +118,7 @@ class Framework( Subsystem ):
     def __init__( self, bus, path, controller ):
         Subsystem.__init__( self, "frameworkd", bus, path, controller )
 
-        if self.busname is None:
+        if self.busnames is []:
             logger.critical( "can't claim master busname. Exiting" )
             sys.exit( -1 )
 
