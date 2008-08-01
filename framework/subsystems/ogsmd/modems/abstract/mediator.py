@@ -23,6 +23,7 @@ TODO:
 
 from ogsmd.gsm import error, const
 from ogsmd.gsm.decor import logged
+from ogsmd.helpers import safesplit
 
 import gobject
 import re, time
@@ -70,7 +71,7 @@ class AbstractMediator( object ):
             result = line.split( ':', 1 )[1]
         except IndexError:
             result = line
-        return result.strip( '" ' )
+        return result.strip()
 
     # FIXME compute errors based on actual class name to ease generic error parsing. Examples:
     #       1.) CME 3 ("Not allowed") is sent upon trying to
@@ -445,7 +446,7 @@ class SimSendGenericSimCommand( SimMediator ):
         if response[-1] != "OK":
             SimMediator.responseFromChannel( self, request, response )
         else:
-            length, result = self._rightHandSide( response[0] ).split( ',' )
+            length, result = safesplit( self._rightHandSide( response[0] ), ',' )
             self._ok( result )
 
 #=========================================================================#
@@ -460,7 +461,7 @@ class SimSendRestrictedSimCommand( SimMediator ):
         if response[-1] != "OK":
             SimMediator.responseFromChannel( self, request, response )
         else:
-            values = self._rightHandSide( response[0] ).split( ',' )
+            values = safesplit( self._rightHandSide( response[0] ), ',' )
             if len( values ) == 2:
                 result = [ int(values[0]), int(values[1]), "" ]
             elif len( values ) == 3:
@@ -496,7 +497,7 @@ class SimGetHomeZones( SimMediator ): # a(siii)
         if response[-1] != "OK":
             SimMediator.responseFromChannel( self, request, response )
         try:
-            sw1, sw2, payload = self._rightHandSide( response[0] ).split(",")
+            sw1, sw2, payload = safesplit( self._rightHandSide( response[0] ), "," )
         except ValueError: # response did not include a payload
             self._ok( [] )
         else:
@@ -551,7 +552,7 @@ class SimRetrievePhonebook( SimMediator ):
         else:
             result = []
             for entry in response[:-1]:
-                index, number, ntype, name = self._rightHandSide( entry ).split( ',', 3 )
+                index, number, ntype, name = safesplit( self._rightHandSide( entry ), ',' )
                 index = int( index )
                 number = number.strip( '"' )
                 ntype = int( ntype )
@@ -598,7 +599,7 @@ class SimRetrieveEntry( SimMediator ):
                 self._ok( "", "" )
             else:
                 if response[0].startswith( "+CPBR" ):
-                    index, number, ntype, name = self._rightHandSide( response[0] ).split( ',', 3 )
+                    index, number, ntype, name = safesplit( self._rightHandSide( response[0] ), ',' )
                     index = int( index )
                     number = number.strip( '"' )
                     name = const.textToUnicode( name )
@@ -613,7 +614,7 @@ class SimGetServiceCenterNumber( SimMediator ):
     @logged
     def responseFromChannel( self, request, response ):
         if ( response[-1] == "OK" ):
-            result = self._rightHandSide( response[0] ).split( ',' )
+            result = safesplit( self._rightHandSide( response[0] ), ',' )
             if len( result ) == 2:
                 number, ntype = result
             else:
@@ -634,7 +635,7 @@ class SimGetMessagebookInfo( SimMediator ):
         if response[-1] != "OK":
             SimMediator.responseFromChannel( self, request, response )
         else:
-            afirst, alast, bfirst, blast, cfirst, clast = self._rightHandSide( response[0] ).split( ',' )
+            afirst, alast, bfirst, blast, cfirst, clast = safesplit( self._rightHandSide( response[0] ), ',' )
             result = {}
             result["min_index"] = int(afirst)
             result["max_index"] = int(alast)
@@ -778,7 +779,7 @@ class NetworkGetStatus( NetworkMediator ):
             if response[-1] != "OK" or len( response ) == 1:
                 pass
             else:
-                result["strength"] = const.signalQualityToPercentage( int(self._rightHandSide( response[0] ).split( ',' )[0]) ) # +CSQ: 22,99
+                result["strength"] = const.signalQualityToPercentage( int(safesplit( self._rightHandSide( response[0] ), ',' )[0]) ) # +CSQ: 22,99
 
         request, response, error = yield( "+CREG?;+COPS?" )
         if error is not None:
@@ -787,9 +788,9 @@ class NetworkGetStatus( NetworkMediator ):
             if response[-1] != "OK" or len( response ) == 1:
                 pass
             else:
-                result[ "registration"] = const.REGISTER_STATUS[int(self._rightHandSide( response[0] ).split( ',' )[1])] # +CREG: 0,1
+                result[ "registration"] = const.REGISTER_STATUS[int(safesplit( self._rightHandSide( response[0] ), ',' )[1])] # +CREG: 0,1
                 try:
-                    result[ "provider"] = self._rightHandSide( response[1] ).split( ',' )[2].strip( '"') # +COPS: 0,0,"Medion Mobile" or +COPS: 0
+                    result[ "provider"] = safesplit( self._rightHandSide( response[1] ), ',' )[2].strip( '"') # +COPS: 0,0,"Medion Mobile" or +COPS: 0
                 except IndexError:
                     pass
 
@@ -806,7 +807,7 @@ class NetworkGetSignalStrength( NetworkMediator ): # i
         if response[-1] != "OK":
             NetworkMediator.responseFromChannel( self, request, response )
 
-        result = const.signalQualityToPercentage( int(self._rightHandSide( response[0] ).split( ',' )[0]) ) # +CSQ: 22,99
+        result = const.signalQualityToPercentage( int(safesplit( self._rightHandSide( response[0] ), ',' )[0]) ) # +CSQ: 22,99
         self._ok( result )
 
 #=========================================================================#
@@ -833,7 +834,7 @@ class NetworkListProviders( NetworkMediator ): # a{sv}
 
     def _providerTuple( self, provider ):
         provider.replace( '"', "" )
-        values = provider[1:-1].split( ',' )
+        values = safesplit( provider[1:-1], ',' )
         return int(values[3]), const.PROVIDER_STATUS[int(values[0])], values[1], values[2]
 
 #=========================================================================#
@@ -927,7 +928,7 @@ class NetworkGetCallingIdentification( NetworkMediator ): # s
     @logged
     def responseFromChannel( self, request, response ):
         if response[-1] == "OK" and len( response ) > 1:
-            status, adjustment = self._rightHandSide( response[0] ).split( ',' )
+            status, adjustment = safesplit( self._rightHandSide( response[0] ), ',' )
             self._ok( const.CALL_IDENTIFICATION_RESTRICTION.revlookup( int(status) ) )
         else:
             NetworkMediator.responseFromChannel( self, request, response )

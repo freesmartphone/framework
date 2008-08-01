@@ -8,6 +8,7 @@ GPLv2 or later
 
 from ogsmd.modems.abstract.unsolicited import AbstractUnsolicitedResponseDelegate
 from ogsmd.gsm import const
+from ogsmd.helpers import safesplit
 
 #=========================================================================#
 class UnsolicitedResponseDelegate( AbstractUnsolicitedResponseDelegate ):
@@ -35,7 +36,7 @@ class UnsolicitedResponseDelegate( AbstractUnsolicitedResponseDelegate ):
 
     # +CSSU: 2,,"",128
     def plusCSSU( self, righthandside ):
-        code, index, number, type = righthandside.split( ',' )
+        code, index, number, type = safesplit( righthandside, ',' )
 
     def plusCIEV( self, righthandside ):
         """
@@ -54,7 +55,7 @@ class UnsolicitedResponseDelegate( AbstractUnsolicitedResponseDelegate ):
         8: sms storage full (0-1)
         11: ???
         """
-        indicator, value = ( int(x) for x in righthandside.split( ',' ) )
+        indicator, value = ( int(x) for x in safesplit( righthandside, ',' ) )
 
         try:
             method = getattr( self, "CIEV_%d" % indicator )
@@ -95,7 +96,7 @@ class UnsolicitedResponseDelegate( AbstractUnsolicitedResponseDelegate ):
 
     # +EOPER: 5,"262-03"
     def plusEOPER( self, righthandside ):
-        values = righthandside.split( ',' )
+        values = safesplit( righthandside, ',' )
         status = { "registration": const.REGISTER_STATUS[int(values[0])] }
         if len( values ) > 1:
             status["provider"] = values[1]

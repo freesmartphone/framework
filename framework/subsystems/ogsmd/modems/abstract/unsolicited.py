@@ -13,6 +13,7 @@ Module: unsolicited
 
 from ogsmd.gsm.decor import logged
 from ogsmd.gsm import const
+from ogsmd.helpers import safesplit
 
 #=========================================================================#
 class AbstractUnsolicitedResponseDelegate( object ):
@@ -40,7 +41,7 @@ class AbstractUnsolicitedResponseDelegate( object ):
         """
         Cell Broadcast Message
         """
-        values = righthandside.split( ',' )
+        values = safesplit( righthandside, ',' )
         if len( values ) == 1:
             sn = eval( "0x%s" % pdu[0:4] )
             mid = eval( "0x%s" % pdu[4:8] )
@@ -63,7 +64,7 @@ class AbstractUnsolicitedResponseDelegate( object ):
         """
         Connecting Line Identification Presence
         """
-        number, ntype, rest = righthandside.split( ',', 2 )
+        number, ntype, rest = safesplit( righthandside, ',', 2 )
         number = number.replace( '"', '' )
         self._mediator.Call.clip( self._object, const.phonebookTupleToNumber( number, int(ntype ) ) )
 
@@ -73,7 +74,7 @@ class AbstractUnsolicitedResponseDelegate( object ):
         """
         Message Transfer Indication
         """
-        storage, index = righthandside.split( ',' )
+        storage, index = safesplit( righthandside, ',' )
         if storage != '"SM"':
             assert False, "unhandled +CMTI message notification"
         self._object.NewMessage( int(index) )
@@ -84,7 +85,7 @@ class AbstractUnsolicitedResponseDelegate( object ):
         """
         Network Registration
         """
-        values = righthandside.split( ',' )
+        values = safesplit( righthandside, ',' )
         self.register = const.REGISTER_STATUS[int(values[0])]
         if len( values ) == 3:
             self.lac = values[1].strip( '"' )

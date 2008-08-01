@@ -9,6 +9,7 @@ GPLv2 or later
 
 from ogsmd.modems.abstract.unsolicited import AbstractUnsolicitedResponseDelegate
 from ogsmd.gsm import const
+from ogsmd.helpers import safesplit
 
 import logging
 logger = logging.getLogger( "ogsmd.modem.unsolicited" )
@@ -37,7 +38,7 @@ class UnsolicitedResponseDelegate( AbstractUnsolicitedResponseDelegate ):
 
     # +CSSU: 2,,"",128
     def plusCSSU( self, righthandside ):
-        code, index, number, type = righthandside.split( "," )
+        code, index, number, type = safesplit( righthandside, "," )
 
     #
     # TI Calypso proprietary
@@ -45,7 +46,7 @@ class UnsolicitedResponseDelegate( AbstractUnsolicitedResponseDelegate ):
 
     # %CCCN: 0,0,A10E02010402011030068101428F0101
     def percentCCCN( self, righthandside ):
-        direction, callId, ie = righthandside.split( "," )
+        direction, callId, ie = safesplit( righthandside, "," )
         # this is ASN.1 BER, but we don't want a full decoder here
         info = {}
         if ie[0:8]+ie[10:30] == "A10E020102011030068101428F01":
@@ -116,7 +117,7 @@ class UnsolicitedResponseDelegate( AbstractUnsolicitedResponseDelegate ):
         ?
 
         """
-        callId, msgType, ibt, tch, direction, mode, number, ntype, alpha, cause, line = righthandside.split( "," )
+        callId, msgType, ibt, tch, direction, mode, number, ntype, alpha, cause, line = safesplit( righthandside, "," )
 
         #devchannel = self._object.modem.communicationChannel( "DeviceMediator" )
         #devchannel.enqueue( "+CPAS;+CEER" )
@@ -146,7 +147,7 @@ class UnsolicitedResponseDelegate( AbstractUnsolicitedResponseDelegate ):
 
     # %CSSN: 1,0,A11502010802013B300D04010F0408AA510C0683C16423
     def percentCSSN( self, righthandside ):
-        direction, transPart, ie = righthandside.split( "," )
+        direction, transPart, ie = safesplit( righthandside, "," )
 
     # %CSTAT: PHB,0
     # %CSTAT: SMS,0
@@ -163,7 +164,7 @@ class UnsolicitedResponseDelegate( AbstractUnsolicitedResponseDelegate ):
         Due to RDY being unreliable, we wait for PHB and SMS sending availability
         and then synthesize a global SimReady signal.
         """
-        subsystem, available = righthandside.split( "," )
+        subsystem, available = safesplit( righthandside, "," )
         if not bool(int(available)): # not ready
             if subsystem in ( "PHB", "SMS" ):
                 self.subsystemReadyness[subsystem] = False
@@ -187,5 +188,5 @@ class UnsolicitedResponseDelegate( AbstractUnsolicitedResponseDelegate ):
         """
         signal strength report
         """
-        strength, snr, quality = righthandside.split( "," )
+        strength, snr, quality = safesplit( righthandside, "," )
         self._object.SignalStrength( const.signalQualityToPercentage( int(strength) ) ) # send dbus signal

@@ -11,6 +11,7 @@ Module: mediator
 
 from ogsmd.modems.abstract import mediator
 from ogsmd.gsm.decor import logged
+from ogsmd.helpers import safesplit
 
 # Ok, now this is a bit of magic...:
 # We suck everything from the abstract mediator into this and overload on-demand.
@@ -70,7 +71,7 @@ class NetworkGetStatus( NetworkMediator ):
             if response[-1] != "OK" or len( response ) == 1:
                 pass
             else:
-                result["strength"] = const.signalQualityToPercentage( int(self._rightHandSide( response[0] ).split( ',' )[0]) ) # +CSQ: 22,99
+                result["strength"] = const.signalQualityToPercentage( int(safesplit( self._rightHandSide( response[0] ), ',' )[0]) ) # +CSQ: 22,99
 
         request, response, error = yield( "+COPS?" )
         if error is not None:
@@ -79,9 +80,9 @@ class NetworkGetStatus( NetworkMediator ):
             if response[-1] != "OK" or len( response ) == 1:
                 pass
             else:
-                result[ "registration"] = const.REGISTER_STATUS[int(self._rightHandSide( response[0] ).split( ',' )[1])] # +CREG: 0,1
+                result[ "registration"] = const.REGISTER_STATUS[int(safesplit( self._rightHandSide( response[0] ), ',' )[1])] # +CREG: 0,1
                 try:
-                    result[ "provider"] = self._rightHandSide( response[1] ).split( ',' )[2].strip( '"') # +COPS: 0,0,"Medion Mobile" or +COPS: 0
+                    result[ "provider"] = safesplit( self._rightHandSide( response[1] ), ',' )[2].strip( '"') # +COPS: 0,0,"Medion Mobile" or +COPS: 0
                 except IndexError:
                     pass
 

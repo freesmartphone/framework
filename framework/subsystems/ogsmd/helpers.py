@@ -12,6 +12,22 @@ Module: helpers
 
 """
 
+# A split function which is quote sign aware
+def safesplit( string, delim, max=-1 ):
+    items = string.split(delim)
+    safeitems = []
+    safeitem = ""
+    for i in items:
+        safeitem = delim.join( [safeitem, i] )
+        if safeitem.count('"')%2 == 0:
+            safeitems.append( safeitem[1:] )
+            safeitem = ""
+    if max < len(safeitems):
+        return safeitems[:max] + [delim.join(safeitems[max:])]
+    else:
+        return safeitems
+
+
 #=========================================================================#
 class BiDict( object ):
 #=========================================================================#
