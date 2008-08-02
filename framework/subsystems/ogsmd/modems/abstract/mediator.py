@@ -251,14 +251,19 @@ class DeviceGetInfo( DeviceMediator ):
 
     @logged
     def responseFromChannel( self, request, response ):
-        assert response[-1] == "OK"
-        assert len( response ) == 5
-        result = {}
-        result.update( revision=self._rightHandSide( response[0] ),
-                       model=self._rightHandSide( response[1] ),
-                       manufacturer=self._rightHandSide( response[2] ),
-                       imei=self._rightHandSide( response[3] ) )
-        self._ok( result )
+        if response[-1] != "OK":
+            DeviceMediator.responseFromChannel( self, request, response )
+        else:
+            result = {}
+            if len( response ) > 1:
+                result["revision"] = self._rightHandSide( response[0] )
+            if len( response ) > 2:
+                result["model"] = self._rightHandSide( response[1] )
+            if len( response ) > 3:
+                result["manufacturer"] = self._rightHandSide( response[2] )
+            if len( response ) > 4:
+                result["imei"] = self._rightHandSide( response[3] )
+            self._ok( result )
 
 #=========================================================================#
 class DeviceGetAntennaPower( DeviceMediator ):
