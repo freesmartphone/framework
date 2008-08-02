@@ -11,6 +11,8 @@ Package: ogsmd.modems.abstract
 Module: modem
 """
 
+# FIXME: The modem should really be a sigleton
+
 from ogsmd.gsm.decor import logged
 
 import gobject
@@ -38,6 +40,7 @@ class AbstractModem( object ):
         self._bus = bus                         # dbus bus
         self._simPinState = "unknown"           # SIM PIN state
         self._simReady = "unknown"              # SIM data access state
+        self._data = {}                         # misc modem-wide data, set/get from channels
 
         self._phonebookIndices = None, None      # min. index, max. index
 
@@ -48,6 +51,12 @@ class AbstractModem( object ):
         self._counter = len( self._channels )
         if ( self._counter ):
             gobject.idle_add( self._initChannels, callback )
+
+    def data( self, key, defaultValue=None ):
+        return self._data.get( key, defaultValue )
+
+    def setData( self, key, value ):
+        self._data[key] = value
 
     def channel( self, category ):
         """
