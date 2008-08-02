@@ -11,6 +11,7 @@ Module: mediator
 
 from ogsmd.modems.abstract import mediator
 from ogsmd.gsm.decor import logged
+from ogsmd.gsm import const
 from ogsmd.helpers import safesplit
 
 # Ok, now this is a bit of magic...:
@@ -50,7 +51,6 @@ class SimSendAuthCode( SimMediator ):
         else:
             SimMediator.responseFromChannel( self, request, response )
 
-
 #=========================================================================#
 class NetworkGetStatus( NetworkMediator ):
 #=========================================================================#
@@ -80,11 +80,15 @@ class NetworkGetStatus( NetworkMediator ):
             if response[-1] != "OK" or len( response ) == 1:
                 pass
             else:
-                result[ "registration"] = const.REGISTER_STATUS[int(safesplit( self._rightHandSide( response[0] ), ',' )[1])] # +CREG: 0,1
-                try:
-                    result[ "provider"] = safesplit( self._rightHandSide( response[1] ), ',' )[2].strip( '"') # +COPS: 0,0,"Medion Mobile" or +COPS: 0
-                except IndexError:
-                    pass
+                values = safesplit( self._rightHandSide( response[0] ), ',' )
+                if len( values ) < 3:
+                    result["mode"] = const.REGISTER_MODE[int(values[0])]
+                    result["registration"] = "unregistered"
+                else:
+                    result["mode"] = const.REGISTER_MODE[int(values[0])]
+                    roaming = self._object.modem.data( "roaming", False )
+                    result["registration"] = "roaming" if roaming else "home"
+                    result[ "provider"] = values[2].strip( '"' )
 
         self._ok( result )
 

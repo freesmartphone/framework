@@ -67,8 +67,9 @@ class UnsolicitedResponseDelegate( AbstractUnsolicitedResponseDelegate ):
     def CIEV_0( self, chargelevel ):
         print "EZX: CHARGE LEVEL:", chargelevel
 
-    def CIEV_signal( self, signallevel ):
-        self._object.SignalStrength( 25*value )
+    def CIEV_1( self, signallevel ):
+        self._object.SignalStrength( 20*signallevel )
+        print "EZX: SIGNAL: ", signallevel
 
     def CIEV_2( self, service ):
         print "EZX: SERVICE:", bool(service)
@@ -86,6 +87,10 @@ class UnsolicitedResponseDelegate( AbstractUnsolicitedResponseDelegate ):
     def CIEV_6( self, call_progress ):
         print "EZX: CALL PROGRESS:", call_progress
 
+    def CIEV_7( self, roaming ):
+        print "EZX: ROAMING:", roaming
+        self._object.modem.setData( "network:roaming", bool(roaming) )
+
     #
     # Motorola EZX proprietary
     #
@@ -95,10 +100,20 @@ class UnsolicitedResponseDelegate( AbstractUnsolicitedResponseDelegate ):
         self._syncCallStatus( "RING" )
 
     # +EOPER: 5,"262-03"
+    # +EOPER: 7
+    # 5 = home
+    # 7 = unregistered
+
     def plusEOPER( self, righthandside ):
+        print "EOPER:", righthandside
         values = safesplit( righthandside, ',' )
-        status = { "registration": const.REGISTER_STATUS[int(values[0])] }
-        if len( values ) > 1:
+        status = {}
+        if len( values ) == 1:
+            status["registration"] = "unregistered"
+        else:
+            # FIXME: This is not correct. Need to listen for the roaming status as well
+            roaming = self._object.modem.data( "roaming", False )
+            status["registration"] = "roaming" if roaming else "home"
             status["provider"] = values[1]
         self._object.Status( status )
 
