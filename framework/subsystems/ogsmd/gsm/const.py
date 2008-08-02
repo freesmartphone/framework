@@ -626,6 +626,15 @@ REGISTER_STATUS = { \
 }
 
 #=========================================================================#
+REGISTER_MODE = { \
+    0: "automatic",
+    1: "manual",
+    2: "unregister",
+    3: "unknown",
+    4: "manual;automatic",
+}
+
+#=========================================================================#
 SMS_STATUS_OUT = { \
     "REC READ": "read",
     "REC UNREAD": "unread",
