@@ -31,7 +31,23 @@ class GTA02Device( UBXDevice ):
         # Reset the device
         #self.send("CFG-RST", 4, {"nav_bbr" : 0xffff, "Reset" : 0x01})
 
+#        self.send("CFG-NAV2", 0, [])
+#        self.send("CFG-FXN", 36, {"flags" : 2, "t_on" : 1000, "t_off" : 10000,
+#            "t_acq" : 50000, "t_acq_off" : 50000,
+#            "t_reacq" : 200000, "t_reacq_off" : 300000, "base_tow" : 0})
+
         super( GTA02Device, self ).configure()
+
+#    def handle_CFG_NAV2(self, data):
+#        data = data[0]
+#
+#        if data["MinCN0Initial"] != 10:
+#            # 2 - Pedestrian / 3 - Automotive
+#            data["Platform"] = 2
+#            data["MinCN0Initial"] = 10
+#            data["MinCN0After"] = 8
+#
+#            self.send("CFG-NAV2", 40, data)
 
     #
     # dbus methods

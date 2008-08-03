@@ -13,6 +13,7 @@ __version__ = "0.0.0"
 import struct
 import dbus
 from gpsdevice import GPSDevice
+import calendar
 
 import logging
 logger = logging.getLogger('ogpsd')
@@ -264,8 +265,9 @@ class UBXDevice( GPSDevice ):
         self.gpschannel = gpschannel
         self.gpschannel.setCallback( self.parse )
 
+        self.ack = {"CFG-PRT" : 0}
         self.ubx = {}
-        self.configure()
+        #self.configure()
 
     def configure( self ):
         # Use high sensitivity mode
@@ -275,7 +277,9 @@ class UBXDevice( GPSDevice ):
 
         # Disable NMEA for current port
         self.ubx["CFG-PRT"] = {"In_proto_mask" : 1, "Out_proto_mask" : 1}
+        self.ack["CFG-PRT"] = 0
         self.send("CFG-PRT", 0, [])
+        self.send("CFG-RATE", 6, {"Meas" : 1000, "Nav" : 1, "Time" : 0})
         # Send NAV STATUS
         self.send("CFG-MSG", 3, {"Class" : CLIDPAIR["NAV-STATUS"][0] , "MsgID" : CLIDPAIR["NAV-STATUS"][1] , "Rate" : 1 })
         # Send NAV POSLLH
@@ -284,12 +288,12 @@ class UBXDevice( GPSDevice ):
         self.send("CFG-MSG", 3, {"Class" : CLIDPAIR["NAV-VELNED"][0] , "MsgID" : CLIDPAIR["NAV-VELNED"][1] , "Rate" : 1 })
         # Send NAV POSUTM
         #self.send("CFG-MSG", 3, {"Class" : CLIDPAIR["NAV-POSUTM"][0] , "MsgID" : CLIDPAIR["NAV-POSUTM"][1] , "Rate" : 1 })
-        # Disable NAV TIMEUTC
-        self.send("CFG-MSG", 3, {"Class" : CLIDPAIR["NAV-TIMEUTC"][0] , "MsgID" : CLIDPAIR["NAV-TIMEUTC"][1] , "Rate" : 0 })
+        # Send NAV TIMEUTC
+        self.send("CFG-MSG", 3, {"Class" : CLIDPAIR["NAV-TIMEUTC"][0] , "MsgID" : CLIDPAIR["NAV-TIMEUTC"][1] , "Rate" : 1 })
         # Send NAV DOP
         self.send("CFG-MSG", 3, {"Class" : CLIDPAIR["NAV-DOP"][0] , "MsgID" : CLIDPAIR["NAV-DOP"][1] , "Rate" : 1 })
         # Send NAV SVINFO
-        self.send("CFG-MSG", 3, {"Class" : CLIDPAIR["NAV-SVINFO"][0] , "MsgID" : CLIDPAIR["NAV-SVINFO"][1] , "Rate" : 5 })
+        self.send("CFG-MSG", 3, {"Class" : CLIDPAIR["NAV-SVINFO"][0] , "MsgID" : CLIDPAIR["NAV-SVINFO"][1] , "Rate" : 1 })
 
     def deconfigure( self ):
         # Disable UBX packets
@@ -301,6 +305,7 @@ class UBXDevice( GPSDevice ):
         self.send("CFG-MSG", 3, {"Class" : CLIDPAIR["NAV-SVINFO"][0] , "MsgID" : CLIDPAIR["NAV-SVINFO"][1] , "Rate" : 0 })
         # Enable NMEA again for current port
         self.ubx["CFG-PRT"] = {"In_proto_mask" : 3, "Out_proto_mask" : 3}
+        self.ack["CFG-PRT"] = 0
         self.send("CFG-PRT", 0, [])
 
     def parse( self, data ):
@@ -309,7 +314,7 @@ class UBXDevice( GPSDevice ):
             # Find the beginning of a UBX message
             start = self.buffer.find( chr( SYNC1 ) + chr( SYNC2 ) )
             if start != 0:
-                logger.debug( "Discarded data not UBX \"%s\"" % repr(self.buffer[:start]) )
+                logger.info( "Discarded data not UBX \"%s\"" % repr(self.buffer[:start]) )
             self.buffer = self.buffer[start:]
             # Minimum packet length is 8
             if len(self.buffer) < 8:
@@ -411,7 +416,8 @@ class UBXDevice( GPSDevice ):
         for (k,v) in self.ubx["CFG-PRT"].items():
            config[k] = v
         logger.debug( "Updating CFG-PRT %s with %s" % (data, config) )
-        if config != data:
+        if not self.ack["CFG-PRT"]:
+            self.ack["CFG-PRT"] = 0
             self.send( "CFG-PRT", 20, [{}, config] )
 
     def handle_NAV_STATUS( self, data ):
@@ -459,29 +465,21 @@ class UBXDevice( GPSDevice ):
 
     def handle_NAV_TIMEUTC( self, data ):
         data = data[0]
-        self.time = ( data["Valid"], data["Year"], data["Month"], data["Day"],
-                data["Hour"], data["Min"], data["Sec"] )
-        self.TimeChanged( *self.time )
+#        self.time = ( data["Valid"], data["Year"], data["Month"], data["Day"],
+#                data["Hour"], data["Min"], data["Sec"] )
+#        self.TimeChanged( *self.time )
+        epochsecs = calendar.timegm( (data["Year"], data["Month"], data["Day"], data["Hour"], data["Min"], data["Sec"]) )
+        time = [ epochsecs ]
+        # Only update if we have the valid time
+        if data["Valid"] == 7:
+            self.TimeChanged( *time )
 
     # Ignore ACK packets for now
     def handle_ACK_ACK( self, data ):
         data = data[0]
         logger.debug("Got ACK %s" % data )
-
-    #
-    # dbus methods
-    #
-    @dbus.service.method( DBUS_INTERFACE, "", "" )
-    def GetTime( self ):
-        self.send("NAV-TIMEUTC", 0, {})
-
-    #
-    # dbus signals
-    #
-    @dbus.service.signal( DBUS_INTERFACE, "iiiiiii" )
-    def TimeChanged( self, fields, year, month, day, hour, min, sec ):
-        pass
-
+        if (data["ClsID"], data["MsgID"]) == CLIDPAIR["CFG-PRT"]:
+          self.ack["CFG-PRT"] = 1
 
 
 #vim: expandtab

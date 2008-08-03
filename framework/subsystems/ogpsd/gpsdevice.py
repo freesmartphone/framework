@@ -71,6 +71,11 @@ class GPSDevice( dbus.service.Object ):
             self.satellites = satellites
             self.SatellitesChanged( self.satellites )
 
+    def _updateTime( self, time ):
+        if self.time != time:
+            self.time = time
+            self.TimeChanged( self.time )
+
     # Gypsy Server interface
     # This should be implemented somewhere else once we allow different devices
     @dbus.service.method( DBUS_INTERFACE_PREFIX + ".Server", "s", "o" )
@@ -86,11 +91,13 @@ class GPSDevice( dbus.service.Object ):
     #
     @dbus.service.method( DBUS_INTERFACE_PREFIX + ".Device", "", "")
     def Start( self ):
-        pass
+        logger.debug( "Device start" )
+        self.configure()
 
     @dbus.service.method( DBUS_INTERFACE_PREFIX + ".Device", "", "")
     def Stop( self ):
-        pass
+        logger.debug( "Device stop" )
+        self.deconfigure()
 
     @dbus.service.method( DBUS_INTERFACE_PREFIX + ".Device", "", "b")
     def GetConnectionStatus( self ):
@@ -115,6 +122,10 @@ class GPSDevice( dbus.service.Object ):
     @dbus.service.method( DBUS_INTERFACE_PREFIX + ".Satellite", "", "a(ubuuu)" )
     def GetSatellites( self ):
         return self.satellites
+
+    @dbus.service.method( DBUS_INTERFACE_PREFIX + ".Time", "", "i" )
+    def GetTime( self ):
+        return self.time
 
 
     #
@@ -142,6 +153,10 @@ class GPSDevice( dbus.service.Object ):
 
     @dbus.service.signal( DBUS_INTERFACE_PREFIX + ".Satellite", "a(ubuuu)" )
     def SatellitesChanged( self, satellites ):
+        pass
+
+    @dbus.service.signal( DBUS_INTERFACE_PREFIX + ".Time", "i" )
+    def TimeChanged( self, time ):
         pass
 
 #vim: expandtab

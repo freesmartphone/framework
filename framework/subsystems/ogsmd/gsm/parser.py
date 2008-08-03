@@ -151,7 +151,7 @@ class StateBasedLowlevelAtParser( object ):
             return self.state_inline
 
     def state_inline( self, b, s ):
-        if b not in "\r\n":
+        if b not in "\r\n" or curline.count('"')%2:
             self.curline += b
             return self.state_inline
         else:
