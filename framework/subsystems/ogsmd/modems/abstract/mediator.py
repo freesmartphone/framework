@@ -794,11 +794,13 @@ class NetworkGetStatus( NetworkMediator ):
                 pass
             else:
                 result[ "registration"] = const.REGISTER_STATUS[int(safesplit( self._rightHandSide( response[0] ), ',' )[1])] # +CREG: 0,1
-                try:
-                    result[ "provider"] = safesplit( self._rightHandSide( response[1] ), ',' )[2].strip( '"') # +COPS: 0,0,"Medion Mobile" or +COPS: 0
-                except IndexError:
-                    pass
-
+                if len( response ) > 2:
+                    values = safesplit( self._rightHandSide( response[1] ), ',' )
+                    if len( values ) < 3:
+                        result["mode"] = const.REGISTER_MODE[int(values[0])]
+                    else:
+                        result["mode"] = const.REGISTER_MODE[int(values[0])]
+                        result[ "provider"] = values[2].strip( '"' )
         self._ok( result )
 
 #=========================================================================#
