@@ -54,9 +54,10 @@ class CalypsoModemChannel( AbstractModemChannel ):
             if r:
                 try:
                     buf = self.serial.inWaiting()
+                # FIXME remove catchall here
                 except:
                     self.serial.close()
-                    path = self.pathfactory()
+                    path = self.pathfactory( self.name )
                     if not path: # path is None or ""
                         return False
                     self.serial.port = str( path )
@@ -70,7 +71,7 @@ class CalypsoModemChannel( AbstractModemChannel ):
             if i == 5:
                 logger.debug( "(reopening modem)" )
                 self.serial.close()
-                path = self.pathfactory()
+                path = self.pathfactory( self.name )
                 if not path: # path is None or ""
                     return False
                 self.serial.port = str( path )
