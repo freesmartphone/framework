@@ -265,6 +265,7 @@ class UBXDevice( GPSDevice ):
         self.gpschannel = gpschannel
         self.gpschannel.setCallback( self.parse )
 
+        self.ack = {"CFG-PRT" : 0}
         self.ubx = {}
         self.configure()
 
@@ -276,6 +277,7 @@ class UBXDevice( GPSDevice ):
 
         # Disable NMEA for current port
         self.ubx["CFG-PRT"] = {"In_proto_mask" : 1, "Out_proto_mask" : 1}
+        self.ack["CFG-PRT"] = 0
         self.send("CFG-PRT", 0, [])
         # Send NAV STATUS
         self.send("CFG-MSG", 3, {"Class" : CLIDPAIR["NAV-STATUS"][0] , "MsgID" : CLIDPAIR["NAV-STATUS"][1] , "Rate" : 1 })
@@ -302,6 +304,7 @@ class UBXDevice( GPSDevice ):
         self.send("CFG-MSG", 3, {"Class" : CLIDPAIR["NAV-SVINFO"][0] , "MsgID" : CLIDPAIR["NAV-SVINFO"][1] , "Rate" : 0 })
         # Enable NMEA again for current port
         self.ubx["CFG-PRT"] = {"In_proto_mask" : 3, "Out_proto_mask" : 3}
+        self.ack["CFG-PRT"] = 0
         self.send("CFG-PRT", 0, [])
 
     def parse( self, data ):
@@ -412,7 +415,8 @@ class UBXDevice( GPSDevice ):
         for (k,v) in self.ubx["CFG-PRT"].items():
            config[k] = v
         logger.debug( "Updating CFG-PRT %s with %s" % (data, config) )
-        if config != data:
+        if not self.ack["CFG-PRT"]:
+            self.ack["CFG-PRT"] = 0
             self.send( "CFG-PRT", 20, [{}, config] )
 
     def handle_NAV_STATUS( self, data ):
@@ -473,5 +477,8 @@ class UBXDevice( GPSDevice ):
     def handle_ACK_ACK( self, data ):
         data = data[0]
         logger.debug("Got ACK %s" % data )
+        if (data["ClsID"], data["MsgID"]) == CLIDPAIR["CFG-PRT"]:
+          self.ack["CFG-PRT"] = 1
+
 
 #vim: expandtab
