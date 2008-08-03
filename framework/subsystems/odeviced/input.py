@@ -7,18 +7,19 @@ Open Device Daemon - A plugin for input device peripherals
 GPLv2 or later
 """
 
+MODULE_NAME = "odeviced.input"
 __version__ = "0.9.9"
 
 from framework.patterns import asyncworker
 from helpers import DBUS_INTERFACE_PREFIX, DBUS_PATH_PREFIX, readFromFile, writeToFile, cleanObjectName
+from config import config
 
 import gobject
 import dbus.service
-import ConfigParser
 import itertools, sys, os, time, struct
 
 import logging
-logger = logging.getLogger( "odeviced.input" )
+logger = logging.getLogger( MODULE_NAME )
 
 """
     struct timeval {
@@ -47,15 +48,10 @@ class Input( dbus.service.Object, asyncworker.AsyncWorker ):
         self.path = DBUS_PATH_PREFIX + "/Input"
         dbus.service.Object.__init__( self, bus, self.path )
         asyncworker.AsyncWorker.__init__( self )
-        self.config = config
-        logger.info( "%s initialized. Serving %s at %s" % ( self.__class__.__name__, self.interface, self.path ) )
+        logger.info( "%s %s initialized. Serving %s at %s" % ( self.__class__.__name__, __version__, self.interface, self.path ) )
 
-        try:
-            ignoreinput = self.config.get( "input", "ignoreinput" )
-        except ConfigParser.Error:
-            ignoreinput = tuple()
-        else:
-            ignoreinput = [ int(value) for value in ignoreinput.split(',') ]
+        configvalue = config.getValue( MODULE_NAME, "ignoreinput", None )
+        ignoreinput = [ int(value) for value in configvalue.split(',') if value != "" ]
 
         self.input = {}
         for i in itertools.count():
@@ -71,19 +67,22 @@ class Input( dbus.service.Object, asyncworker.AsyncWorker ):
                 self.input[f] = "event%d" % i
 
         logger.info( "opened %d input file descriptors", len( self.input ) )
+        # FIXME what to do if initialization of a module fails?s
 
         self.watches = {}
         self.events = {}
         self.reportheld = {}
 
-        for option in config.getOptions( "input" ):
+        for option in config.getOptions( MODULE_NAME ):
             if option.startswith( "report" ):
                 try:
-                    name, typ, code, reportheld = config.get( "input", option ).split( ',' )
+                    name, typ, code, reportheld = config.getValue( MODULE_NAME, option ).split( ',' )
+                    code = int(code)
+                    reportheld = bool(int(reportheld))
                 except ValueError:
-                    pass
+                    logger.warning( "wrong syntax for switch definition '%s': ignoring." % option )
                 else:
-                    self.watchForEvent( name, typ, int(code), bool( int( reportheld ) ) )
+                    self.watchForEvent( name, typ, code, reportheld )
 
         if len( self.input ):
             self.launchStateMachine()

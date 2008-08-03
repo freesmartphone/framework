@@ -19,17 +19,18 @@ Known states and possible use cases:
 GPLv2 or later
 """
 
+MODULE_NAME = "odeviced.idlenotifier"
 __version__ = "0.9.9"
 
 from helpers import DBUS_INTERFACE_PREFIX, DBUS_PATH_PREFIX, readFromFile, writeToFile
+from config import config
 
 import gobject
 import dbus.service
-import ConfigParser
 import itertools, os, sys
 
 import logging
-logger = logging.getLogger( "odeviced.idlenotifier" )
+logger = logging.getLogger( MODULE_NAME )
 
 #----------------------------------------------------------------------------#
 class InvalidState( dbus.DBusException ):
@@ -46,8 +47,7 @@ class IdleNotifier( dbus.service.Object ):
         self.interface = self.DBUS_INTERFACE
         self.path = DBUS_PATH_PREFIX + "/IdleNotifier/%s" % index
         dbus.service.Object.__init__( self, bus, self.path )
-        self.config = config
-        logger.info( "%s initialized. Serving %s at %s", self.__class__.__name__, self.interface, self.path )
+        logger.info( "%s %s initialized. Serving %s at %s", self.__class__.__name__, __version__, self.interface, self.path )
 
         self.state = "AWAKE"
         self.timeout = None
@@ -70,12 +70,8 @@ class IdleNotifier( dbus.service.Object ):
                             "SUSPEND": 20, \
                             }
 
-        try:
-            ignoreinput = self.config.get( "idlenotifier", "ignoreinput" )
-        except ConfigParser.Error:
-            ignoreinput = tuple()
-        else:
-            ignoreinput = [ int(value) for value in ignoreinput.split(',') ]
+        configvalue = config.getValue( MODULE_NAME, "ignoreinput", None )
+        ignoreinput = [ int(value) for value in configvalue.split(',') if value != "" ]
 
         self.input = {}
         for i in itertools.count():
@@ -92,11 +88,9 @@ class IdleNotifier( dbus.service.Object ):
 
         logger.info( "opened %d input file descriptors" % len( self.input ) )
 
+        # override default timeouts with configuration (if set)
         for key in self.timeouts:
-            try:
-                self.timeouts[key] = self.config.getint( "idlenotifier", key.lower() )
-            except ConfigParser.Error:
-                logger.info( "timeout for %s not configured. using default" % key )
+            self.timeouts[key] = config.getInt( MODULE_NAME, key.lower(), self.timeouts[key] )
 
         # states without timeout
         self.timeouts["BUSY"] = -1

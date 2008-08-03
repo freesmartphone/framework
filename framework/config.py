@@ -43,7 +43,7 @@ def LOG(level, *values):
     logger.log(logging_levels_map[level], ' '.join(str(i) for i in values))
 
 logging.basicConfig(
-    level=logging.INFO,
+    level=logging.DEBUG,
     format='%(name)-8s %(levelname)-8s %(message)s'
 )
 

@@ -7,7 +7,8 @@ Open Device Daemon - A plugin for Neo 1973 and Neo FreeRunner specific power con
 GPLv2 or later
 """
 
-__version__ = "0.5.0"
+MODULE_NAME = "odeviced.powercontrol-neo"
+__version__ = "0.5.1"
 
 from helpers import DBUS_INTERFACE_PREFIX, DBUS_PATH_PREFIX, readFromFile, writeToFile
 
@@ -16,7 +17,7 @@ import dbus.service
 import os, sys
 
 import logging
-logger = logging.getLogger( "odeviced.powercontrol-neo" )
+logger = logging.getLogger( MODULE_NAME )
 
 try:
     import wireless
@@ -35,7 +36,7 @@ class GenericPowerControl( dbus.service.Object ):
         self.interface = self.DBUS_INTERFACE
         self.path = DBUS_PATH_PREFIX + "/PowerControl/%s" % name
         dbus.service.Object.__init__( self, bus, self.path )
-        logger.info( "%s initialized. Serving %s at %s" % ( self.__class__.__name__, self.interface, self.path ) )
+        logger.info( "%s %s initialized. Serving %s at %s" % ( self.__class__.__name__, __version__, self.interface, self.path ) )
         self.node = node
         self.name = name
         self.powernode = None

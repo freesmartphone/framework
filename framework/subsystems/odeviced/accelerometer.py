@@ -6,12 +6,17 @@ Accelerometer module for odeviced.
 GPLv2 or later
 """
 from __future__ import with_statement
+
+MODULE_NAME = "odeviced.accelerometer"
+__version__ = "0.2.0"
+
+from config import config
+
+from threading import RLock, Thread
 import os, struct
-from ConfigParser import NoOptionError
-from threading import RLock
 
 import logging
-logger = logging.getLogger( "odeviced.accelerometer" )
+logger = logging.getLogger( MODULE_NAME )
 
 #============================================================================#
 class Accelerometer(object):
@@ -70,10 +75,10 @@ class InputDevAccelerometer(Accelerometer):
 
     def _unpack(self):
         """struct input_event {
-	struct timeval time; /* (long, long) */
-	__u16 type;
-	__u16 code;
-	__s32 value;
+            struct timeval time; /* (long, long) */
+            __u16 type;
+            __u16 code;
+            __s32 value;
         };
         return (tv_sec, tv_usec, type, code, value)
         """
@@ -82,7 +87,7 @@ class InputDevAccelerometer(Accelerometer):
             try:
                 data = os.read(self.device_fd, InputDevAccelerometer.input_event_size)
             except OSError, e:
-                print e
+                logger.exception( "could not read from accelerometer device node: %s" % e )
                 raise
             else:
                 if len(data) == InputDevAccelerometer.input_event_size:
@@ -156,7 +161,7 @@ class FSOSubsystem(dbus.service.Object):
         self.interface = FSOSubsystem.DBUS_INTERFACE
         self.accelerometer = accelerometer
         dbus.service.Object.__init__(self, bus, self.path)
-        logger.info( "%s initialized. Serving %s at %s", self.__class__.__name__, self.interface, self.path )
+        logger.info( "%s %s initialized. Serving %s at %s", self.__class__.__name__, __version__, self.interface, self.path )
 
     @dbus.service.method(DBUS_INTERFACE, '', 'iii')
     def Value(self):
@@ -172,14 +177,11 @@ class FSOSubsystem(dbus.service.Object):
 
 
 def factory(prefix, controller):
-    from threading import Thread
+    # FIXME I would let the FSOSubsystem object deal with chosing the device type
     device_map = {'gta02': Gta02Accelerometer,
                   'mock': MockAccelerometer}
-    try:
-        device = controller.config.get( 'input', 'accelerometer_type' )
-        device_class = device_map[ device ]
-    except NoOptionError, KeyError:
-        device_class = MockAccelerometer
+    device = config.getValue( MODULE_NAME, "accelerometer_type", "mock" )
+    device_class = device_map[ device ]
     f = FSOSubsystem(device_class(), controller.bus)
     return [f, ]
 

@@ -332,8 +332,9 @@ if __name__ == '__main__':
         print len(gc.get_objects()) - n
 
 #test()
-#    example1()
-#    example2()
+    example1()
+    example2()
     example3()
-#    example4()
-#    example6()
+    example4()
+    example5()
+    example6()

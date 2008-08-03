@@ -1,3 +1,8 @@
+2008-08-03	Michael Lauer	<mickey@vanille-media.de>
+
+	* Unify configuration nodes to use the same name we
+	  are using for logging, i.e. [subsystem.module].
+
 2008-08-01	Michael Lauer	<mickey@vanille-media.de>
 
 	* Add dbus interface to configure debug loggers at runtime
