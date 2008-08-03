@@ -350,7 +350,7 @@ class SimGetAuthStatus( SimMediator ):
 class SimSendAuthCode( SimMediator ):
 #=========================================================================#
     def trigger( self ):
-        self._commchannel.enqueue( '+CPIN="%s"' % self.code, self.responseFromChannel, self.errorFromChannel )
+        self._commchannel.enqueue( '+CPIN="%s"' % self.code, self.responseFromChannel, self.errorFromChannel, timeout=7 )
 
     @logged
     def responseFromChannel( self, request, response ):
