@@ -57,9 +57,9 @@ class Subsystem( object ):
             if filename.endswith( ".py" ): # FIXME: we should look for *.pyc, *.pyo, *.so as well
                 try:
                     modulename = filename[:-3]
-                    disable = config.getBool( modulename, "disable", False )
+                    disable = config.getBool( "%s.%s" % ( self.name, modulename ), "disable", False )
                     if disable:
-                        logger.info( "skipping module '%s' as requested in config." % ( modulename ) )
+                        logger.info( "skipping module %s.%s as requested via config file." % ( self.name, modulename ) )
                         continue
                     module = __import__(
                         name = ".".join( ["framework.subsystems", self.name, modulename] ),

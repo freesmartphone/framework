@@ -100,16 +100,19 @@ class Controller( object ):
         for s in subsystems:
             if systemstolaunch != [""]:
                 if s not in systemstolaunch:
-                    logger.info( "skipping subsystem %s due to command line configuration" % s )
+                    logger.info( "skipping subsystem %s as requested via command line" % s )
                     continue
-                else:
-                    logger.info( "launching subsystem %s" % s )
-                    self._subsystems[s] = subsystem.Subsystem( s, self.bus, path, self )
+                    disable = config.getBool( s, "disable", False )
+                    if disable:
+                        logger.info( "skipping subsystem %s as requested via config file." % s )
+                        continue
+                logger.info( "launching subsystem %s" % s )
+                self._subsystems[s] = subsystem.Subsystem( s, self.bus, path, self )
             else:
                 self._subsystems[s] = subsystem.Subsystem( s, self.bus, path, self )
             self.objects.update( self._subsystems[s].objects() )
 
-
+        # do we have any subsystems left?
         if not self.options.values.debug:
             if len( self._subsystems ) == 1: # no additional subsystems could be loaded
                 logger.error( "can't launch without at least one subsystem. Exiting." )

@@ -14,6 +14,8 @@ DBUS_BUS_NAME_PREFIX = "org.freesmartphone"
 DBUS_INTERFACE_PREFIX = "org.freesmartphone"
 DBUS_PATH_PREFIX = "/org/freesmartphone"
 
+NEEDS_VERSION = 1
+
 __version__ = "1.0.0"
 
 from configparse import SmartConfigParser
@@ -25,7 +27,9 @@ import os
 import logging
 logger = logging.getLogger( "frameworkd" )
 
-# This dict map syslog message levels to logging message levels
+
+# FIXME This dict map syslog message levels to logging message levels
+# FIXME Remove this when we have removed all of the deprecated 'LOG' calls
 logging_levels_map = {
     LOG_ERR :       logging.ERROR,
     LOG_WARNING :   logging.WARNING,
@@ -59,3 +63,10 @@ for p in [
         break
 else:
     config = SmartConfigParser( "~/.frameworkd.conf" )
+
+version = config.getInt( "frameworkd", "version", 0 )
+if version != NEEDS_VERSION:
+    logger.warning( "configuration format too old. Please update and add the following lines to your configuration file:" )
+    logger.warning( "[frameworkd]" )
+    logger.warning( "version = %d" % NEEDS_VERSION )
+
