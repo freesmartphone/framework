@@ -310,7 +310,7 @@ class UBXDevice( GPSDevice ):
             # Find the beginning of a UBX message
             start = self.buffer.find( chr( SYNC1 ) + chr( SYNC2 ) )
             if start != 0:
-                logger.debug( "Discarded data not UBX \"%s\"" % repr(self.buffer[:start]) )
+                logger.info( "Discarded data not UBX \"%s\"" % repr(self.buffer[:start]) )
             self.buffer = self.buffer[start:]
             # Minimum packet length is 8
             if len(self.buffer) < 8:
