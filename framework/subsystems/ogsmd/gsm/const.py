@@ -21,16 +21,26 @@ from ogsmd.helpers import BiDict
 #=========================================================================#
 # +COPS: (2,"MEDION Mobile","","26203"),(3,"T-Mobile D","TMO D","26201"),(3,"Vodafone.de","Vodafone","26202"),(3,"o2 - de","o2 - de","26207")
 PAT_OPERATOR_LIST = re.compile( '\((?P<status>[123]),"(?P<name>[^"]+?)","(?P<shortname>[^"]*?)","(?P<code>\d*?)"\)' )
+
 # +CPBR: (1-250),44,17
 # +CBPR: (1-50)
 PAT_PHONEBOOK_INFO = re.compile( '\((?P<lowest>\d+)-(?P<highest>\d+)\)(?:,(?P<numlen>\d+),(?P<textlen>\d+))?' )
+
 # +CMGL: 1,"REC READ","491770702810",,"08/04/04,01:21:20+08",145,121
 # +CMGL: 2,"REC READ","491770702810","Jim Panse","08/04/04,01:21:20+08",145,121
 # +CMGL: 3,"STO UNSENT","85291234567",,,145,136
 # +CMGL: 2,"REC READ","Alice-Team",,"08/05/13,09:12:15+08",208,133
 # +CMGL: 0,"REC READ","66658369458410197109",,"07/02/19,15:24:26+04",208,156
 # +CMGL: 1,"REC UNREAD","84971141051024573110102111",,"08/02/22,15:28:04+00",208,158
-PAT_SMS_TEXT_HEADER = re.compile( '(?P<index>\d+),"(?P<status>[^"]+)","(?P<number>[^"]+)",(?:"(?P<name>[^"]+)")?,(?:"(?P<timestamp>[^"]+)")?,(?P<ntype>\d+),(?P<textlen>\d+)' )
+# +CMGL: 12,"REC READ","491781809817",,"07/02/22,15:19:06+04",145,137
+# +CMGL: 13,"REC READ","491707759006",,"07/03/07,20:33:06+04",145,82
+# +CMGL: 14,"REC READ","491703880745",,"07/03/08,15:09:29+04",145,53
+# +CMGL: 15,"REC READ","491707759006",,"07/03/09,17:02:34+04",145,60
+# +CMGL: 18,"STO UNSENT","",,,128,21
+# +CMGL: 19,"STO UNSENT","",,,128,48
+# +CMGL: 20,"STO UNSENT","",,,128,10
+PAT_SMS_TEXT_HEADER = re.compile( '(?P<index>\d+),"(?P<status>[^"]+)","(?P<number>[^"]*)",(?:"(?P<name>[^"]+)")?,(?:"(?P<timestamp>[^"]+)")?,(?P<ntype>\d+),(?P<textlen>\d+)' )
+
 # +CMGR: "REC READ","Alice-Team",,"08/05/13,09:12:15+08",208,133
 PAT_SMS_TEXT_HEADER_SINGLE = re.compile( '"(?P<status>[^"]+)","(?P<number>[^"]+)",(?:"(?P<name>[^"]+)")?,(?:"(?P<timestamp>[^"]+)")?,(?P<ntype>\d+),(?P<textlen>\d+)' )
 
