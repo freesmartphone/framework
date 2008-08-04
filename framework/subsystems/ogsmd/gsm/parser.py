@@ -151,6 +151,9 @@ class StateBasedLowlevelAtParser( object ):
             return self.state_inline
 
     def state_inline( self, b, s ):
+        # FIXME checking the number of " in self.curline violates
+        # the state machine layer and slows down the parser.
+        # We better map this to the state machine instead.
         if b not in "\r\n" or self.curline.count('"')%2:
             self.curline += b
             return self.state_inline
