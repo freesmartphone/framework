@@ -471,7 +471,7 @@ class UBXDevice( GPSDevice ):
         time = [ epochsecs ]
         # Only update if we have the valid time
         if data["Valid"] == 7:
-            self.TimeChanged( *time )
+            self._updateTime( time )
 
     # Ignore ACK packets for now
     def handle_ACK_ACK( self, data ):

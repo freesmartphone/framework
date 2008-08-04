@@ -29,6 +29,7 @@ class GPSDevice( dbus.service.Object ):
         self.accuracy = ()
         self.course = ()
         self.satellites = []
+        self.time = []
 
         self.interface = DBUS_INTERFACE_PREFIX
         self.path = DBUS_PATH_PREFIX
@@ -74,7 +75,7 @@ class GPSDevice( dbus.service.Object ):
     def _updateTime( self, time ):
         if self.time != time:
             self.time = time
-            self.TimeChanged( self.time )
+            self.TimeChanged( *self.time )
 
     # Gypsy Server interface
     # This should be implemented somewhere else once we allow different devices
@@ -123,7 +124,7 @@ class GPSDevice( dbus.service.Object ):
 
     @dbus.service.method( DBUS_INTERFACE_PREFIX + ".Time", "", "i" )
     def GetTime( self ):
-        return self.time
+        return self.time[0]
 
 
     #
