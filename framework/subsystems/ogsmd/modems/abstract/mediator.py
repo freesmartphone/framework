@@ -435,7 +435,8 @@ class SimGetSimInfo( SimMediator ):
                 subscriber_numbers = []
                 for line in response[:-1]:
                     alpha, number, ntype = safesplit( self._rightHandSide( line ), "," )
-                    subscriber_numbers.append( alpha.replace( '"', "" ), const.phonebookTupleToNumber( number, int(ntype) ) )
+                    subscriber_numbers.append( ( alpha.replace( '"', "" ), const.phonebookTupleToNumber( number, int(ntype) ) ) )
+
                 result["subscriber_numbers"] = subscriber_numbers
                 self._ok( result )
 
