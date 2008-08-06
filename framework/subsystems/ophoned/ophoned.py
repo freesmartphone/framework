@@ -24,6 +24,7 @@ logger = logging.getLogger('ophoned')
 # from framework.config import LOG, LOG_ERR, LOG_WARNING, LOG_INFO, LOG_DEBUG
 
 class Phone(dbus.service.Object):
+    """The Phone object is used to create Call objects using different protocols"""
     def __init__(self, bus):
         # Those two attributes are needed by the framwork
         self.bus = bus
@@ -54,6 +55,11 @@ class Phone(dbus.service.Object):
         
             If the protocol is not provided, the service will determine the best protocol to use.
             if force is set to true, then we kill the channel if it is already opened
+            
+            parameters:
+            number   -- A string representing the number of the peer
+            protocol -- The name of the protocol as returned by InitProtocols, if None the best protocol will be used. Default to None
+            force    -- If true, we destroy any already present call object to this number. Default to True
         """
         if self.protocols is None:
             self.InitProtocols()
@@ -78,7 +84,6 @@ class Phone(dbus.service.Object):
 
 def factory(prefix, controller):
     """This is the magic function that will be called bye the framework module manager"""
-    logger.info("Logging test")
     try:    # We use a try because the module manager ignores the exceptions in the factory
         phone = Phone(controller.bus)
         return [phone]

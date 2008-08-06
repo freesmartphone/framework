@@ -28,13 +28,15 @@ class DBusNoServiceError(dbus.DBusException):
     _dbus_error_name = "org.freesmartphone.Preferences.NoServiceError"
 
 class PreferencesManager(dbus.service.Object):
-    """This is the class for the main object from wich we access the services configuration
-    
-        @param schema_dir   The directory containing the schema files
-        @param conf_dir     The directory containing the configuration files
+    """This is the class for the main object from wich we access the configuration services
     """
-    
     def __init__(self, bus, schema_dir = './schema', conf_dir = './conf'):
+        """Create a PreferencesManager object
+           
+           arguments:
+              schema_dir -- The directory containing the schema files
+              conf_dir   -- The directory containing the configuration files
+        """
         self.path = "/org/freesmartphone/Preferences"
         super(PreferencesManager, self).__init__(bus, self.path)
         self.interface = "org.freesmartphone.Preferences"
@@ -57,7 +59,11 @@ class PreferencesManager(dbus.service.Object):
         
     @dbus.service.method("org.freesmartphone.Preferences", in_signature='s', out_signature='o')
     def GetService(self, name):
-        """Return a given service"""
+        """Return a given service
+           
+           arguments:
+              name -- the name of the service, as returned by `GetServices`
+        """
         logger.info("GetService %s", name)
         name = str(name)
         if name in self.services:
@@ -72,7 +78,7 @@ class PreferencesManager(dbus.service.Object):
         
     @dbus.service.method("org.freesmartphone.Preferences", in_signature='', out_signature='s')
     def GetProfile(self):
-        """Set the current profile"""
+        """Retrieve the current profile"""
         return self.profile
     
     @dbus.service.method("org.freesmartphone.Preferences", in_signature='s', out_signature='')
@@ -84,16 +90,6 @@ class PreferencesManager(dbus.service.Object):
         self.profile = profile
         for s in self.services.itervalues():
             s.on_profile_changed(profile)
-    
-    @dbus.service.method("org.freesmartphone.Preferences", in_signature='', out_signature='as')    
-    def GetServicesName(self):
-        """Return a list off all the available services names"""
-        # We need to see in the conf directory what are the files
-        ret = []
-        list = os.listdir(self.conf_dir)
-        for file_name in list:
-            ret.append(file_name)
-        return ret
         
     @dbus.service.method("org.freesmartphone.Preferences", in_signature='', out_signature='as')    
     def GetProfiles(self):
@@ -151,25 +147,22 @@ def generate_doc():
             
 def factory(prefix, controller):
     """This is the magic function that will be called bye the framework module manager"""
-    try:    # We use a try because the module manager ignores the exceptions in the factory
-        # Get the root dir containing the schema and conf dirs
-        # We can set a list of possible path in the config file
-        possible_root_dir = controller.config.get("opreferencesd", "rootdir").split(':')
-        for path in possible_root_dir:
-            if os.path.exists(path):
-                root_dir = path
-                break
-        else:
-            raise Exception("can't find the preferences root directory")
-         
-        schema_dir = '%s/schema' % root_dir
-        conf_dir = '%s/conf' % root_dir
-        
-        pref_manager = PreferencesManager(controller.bus, schema_dir, conf_dir)
-        return [pref_manager]
-    except Exception, e:
-        print e # Just so that if an exception is raised, we can at least see the error message
-        raise
+    # Get the root dir containing the schema and conf dirs
+    # We can set a list of possible path in the config file
+    possible_root_dir = controller.config.get("opreferencesd", "rootdir").split(':')
+    for path in possible_root_dir:
+        if os.path.exists(path):
+            root_dir = path
+            break
+    else:
+        raise Exception("can't find the preferences root directory")
+     
+    schema_dir = '%s/schema' % root_dir
+    conf_dir = '%s/conf' % root_dir
+    
+    pref_manager = PreferencesManager(controller.bus, schema_dir, conf_dir)
+    return [pref_manager]
+
 
     
 

@@ -58,7 +58,13 @@ class Protocol(object):
 
         
 class Call(dbus.service.Object):
+    """A Call object represents a communication channel""" 
     def __init__(self, protocol, id):
+        """Create a new Call
+           arguments:
+           protocol -- The protocol object we use for this call
+           id       -- A unique identifiant of the call
+        """
         self.path = "%s/%s" % (protocol.path, id)
         super(Call, self).__init__(protocol.phone.bus, self.path)
         self.protocol = protocol
@@ -72,7 +78,10 @@ class Call(dbus.service.Object):
 
     @dbus.service.method('org.freesmartphone.Phone.Call', in_signature='', out_signature='s')
     def Initiate(self):
-        """Initiate the call"""
+        """Initiate the call
+           
+           The call will be effectively initiated when we receive the 'Activated' Signal
+        """
         self.status = 'Initiating'
         return self.status
         
@@ -95,23 +104,26 @@ class Call(dbus.service.Object):
         
     @dbus.service.method('org.freesmartphone.Phone.Call', in_signature='', out_signature='')
     def Remove(self):
-        """Remove the call object when it is not needed anymore"""
+        """Remove the call object when it is not needed anymore
+        
+           After the call has been removed, its DBus object is released, so we can't receive events from it anymore
+        """
         self.remove_from_connection()
         self.protocol.remove(self)
     
     @dbus.service.signal('org.freesmartphone.Phone.Call', signature='')
     def Outgoing(self):
-        """Emitted when the call is outgoing"""
+        """Emitted when the call status changes to Outgoing"""
         self.status = 'Outgoing'
         
     @dbus.service.signal('org.freesmartphone.Phone.Call', signature='')
     def Released(self):
-        """Emitted when the call is released"""
+        """Emitted when the call status changes to Released"""
         self.status = 'Released'
     
     @dbus.service.signal('org.freesmartphone.Phone.Call', signature='')
     def Activated(self):
-        """Emitted when the call is activated"""
+        """Emitted when the call status changes to Active"""
         self.status = 'Active'
         
     

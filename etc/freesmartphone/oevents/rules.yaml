@@ -1,0 +1,34 @@
+
+# This file is in YAML format (http://www.yaml.org/) 
+# We define a list of rules that will be automatically loaded
+# When we start the oevents module of the framework daemon
+#
+# The attributes of a rule are :
+# - trigger     : trigger object
+# - filters     : filters object or list of filters objects
+# - actions     : action object or list of actions objects
+#
+# We define the following functions :
+# - CallStatus()            : create a trigger object activated on a call status event 
+# - HasAttr(name, value)    : create a filter that accept signal with a given attribute
+# - Not(filter)             : create a neg filter
+# - PlaySound(file)         : Action that starts to play an audio file
+# - StopSound(file)         : Action that stop an audio file
+# - StartVibration
+# - StopVibration
+
+
+-
+    # This rule will play a ring tone when a call is incoming
+    trigger: CallStatus()
+    filters: HasAttr(status, "incoming")
+    actions:
+        - PlaySound("/usr/share/sounds/Arkanoid_PSID.sid")
+        - StartVibration()
+-
+    # This one will stop the ring tone when the call is in an other state
+    trigger: CallStatus()
+    filters: Not(HasAttr(status, "incoming"))
+    actions:
+        - StopSound("/usr/share/sounds/Arkanoid_PSID.sid")
+        - StopVibration()

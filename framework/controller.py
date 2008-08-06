@@ -98,14 +98,14 @@ class Controller( object ):
                        if os.path.isdir( "%s/%s" % ( path, entry ) ) ]
 
         for s in subsystems:
+            disable = config.getBool( s, "disable", False )
+            if disable:
+                logger.info( "skipping subsystem %s as requested via config file." % s )
+                continue
             if systemstolaunch != [""]:
                 if s not in systemstolaunch:
                     logger.info( "skipping subsystem %s as requested via command line" % s )
                     continue
-                    disable = config.getBool( s, "disable", False )
-                    if disable:
-                        logger.info( "skipping subsystem %s as requested via config file." % s )
-                        continue
                 logger.info( "launching subsystem %s" % s )
                 self._subsystems[s] = subsystem.Subsystem( s, self.bus, path, self )
             else:
@@ -161,7 +161,7 @@ class Controller( object ):
         # configure all loggers, default being INFO
         for section in config.sections():
             loglevel = loggingmap.get( config.getValue( section, "log_level", "INFO" ) )
-            logger.info( "setting logger for %s to %s" % ( section, loglevel ) )
+            logger.debug( "setting logger for %s to %s" % ( section, loglevel ) )
             logging.getLogger( section ).setLevel( loglevel )
         # FIXME configure handlers
 

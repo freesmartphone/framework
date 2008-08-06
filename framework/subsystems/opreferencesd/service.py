@@ -57,7 +57,7 @@ class Service(dbus.service.Object):
         
     @dbus.service.method('org.freesmartphone.Preferences.Service', in_signature='', out_signature='as')
     def GetKeys(self):
-        """Return all the keys of the service
+        """Retrieve all the keys of the service
         
             This method should be used only for introspection purpose.
         """
@@ -70,7 +70,11 @@ class Service(dbus.service.Object):
     
     @dbus.service.method('org.freesmartphone.Preferences.Service', in_signature='s', out_signature='v')
     def GetValue(self, key):
-        """get a parameter value"""
+        """get a parameter value
+        
+           arguments:
+           key -- the name of the key
+        """
         key = str(key)
         # logger.debug("Service %s : Getting key %s", self, key)
         parameter = self.schema[key]

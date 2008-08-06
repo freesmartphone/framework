@@ -47,7 +47,7 @@ def LOG(level, *values):
     logger.log(logging_levels_map[level], ' '.join(str(i) for i in values))
 
 logging.basicConfig(
-    level=logging.DEBUG,
+    level=logging.INFO,
     format='%(name)-8s %(levelname)-8s %(message)s'
 )
 
@@ -60,13 +60,14 @@ for p in [
         os.path.expanduser("~/.frameworkd.conf")
     ]:
     if os.path.exists( p ):
+        logger.info( "Using configuration file %s" % p )
         config = SmartConfigParser( p )
         break
 
 if not config:
     logger.error("Can't find a configuration file")
     raise IOError
-logger.info( "Using configuration file %s" % config )
+
 
 version = config.getInt( "frameworkd", "version", 0 )
 if version != NEEDS_VERSION:
