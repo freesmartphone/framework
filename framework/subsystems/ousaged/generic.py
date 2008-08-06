@@ -98,13 +98,13 @@ class ODeviceDResource( AbstractResource ):
         pass
 
     def _enable( self ):
-        proxy = self.bus.get_object( "org.freesmartphone.Device", "/org/freesmartphone/Device/PowerControl/" + self.name )
+        proxy = self.bus.get_object( "org.freesmartphone.odeviced", "/org/freesmartphone/Device/PowerControl/" + self.name )
         iface = dbus.Interface( proxy, "org.freesmartphone.Device.PowerControl" )
         iface.SetPower( True, reply_handler=self._replyCallback, error_handler=self._errorCallback )
         print "Enabled %s" % self.name
 
     def _disable( self ):
-        proxy = self.bus.get_object( "org.freesmartphone.Device", "/org/freesmartphone/Device/PowerControl/" + self.name )
+        proxy = self.bus.get_object( "org.freesmartphone.odeviced", "/org/freesmartphone/Device/PowerControl/" + self.name )
         iface = dbus.Interface( proxy, "org.freesmartphone.Device.PowerControl" )
         iface.SetPower( False, reply_handler=self._replyCallback, error_handler=self._errorCallback )
         print "Disabled %s" % self.name
@@ -209,7 +209,7 @@ def factory( prefix, controller ):
     genericUsageControl = GenericUsageControl( controller.bus )
     genericUsageControl.addResource( DummyResource( genericUsageControl, "GSM" ) )
     genericUsageControl.addResource( OGPSDResource( genericUsageControl, "GPS" ) )
-    genericUsageControl.addResource( DummyResource( genericUsageControl, "Bluetooth" ) )
+    genericUsageControl.addResource( ODeviceDResource( genericUsageControl, "Bluetooth" ) )
     genericUsageControl.addResource( DummyResource( genericUsageControl, "WiFi" ) )
     objects.append( genericUsageControl )
     return objects
