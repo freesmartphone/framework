@@ -416,7 +416,7 @@ class SimGetSimInfo( SimMediator ):
             if response[-1] != "OK":
                 SimMediator.responseFromChannel( self, request, response )
             else:
-                # not using self.rightHandSide() here since some modems
+                # not using self._rightHandSide() here since some modems
                 # do not include the +CIMI: prefix
                 imsi = result["imsi"] = response[0].replace( "+CIMI: ", "" ).strip( '"' )
                 code, name = const.mccToCountryCode( int( imsi[:3] ) )
@@ -434,7 +434,7 @@ class SimGetSimInfo( SimMediator ):
             else:
                 subscriber_numbers = []
                 for line in response[:-1]:
-                    alpha, number, ntype = self.rightHandSide( line )
+                    alpha, number, ntype = safesplit( self._rightHandSide( line ), "," )
                     subscriber_numbers.append( alpha.replace( '"', "" ), const.phonebookTupleToNumber( number, int(ntype) ) )
                 result["subscriber_numbers"] = subscriber_numbers
                 self._ok( result )
