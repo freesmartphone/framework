@@ -52,17 +52,21 @@ logging.basicConfig(
 )
 
 # init configuration
+config = None
 for p in [
         os.path.expanduser( "~/.frameworkd.conf" ),
         "/etc/frameworkd.conf",
-        os.path.join( os.path.dirname( __file__ ), "../conf/frameworkd.conf" )
+        os.path.join( os.path.dirname( __file__ ), "../conf/frameworkd.conf" ),
+        os.path.expanduser("~/.frameworkd.conf")
     ]:
     if os.path.exists( p ):
-        logger.info( "Using configuration file %s" % p )
         config = SmartConfigParser( p )
         break
-else:
-    config = SmartConfigParser( "~/.frameworkd.conf" )
+
+if not config:
+    logger.error("Can't find a configuration file")
+    raise IOError
+logger.info( "Using configuration file %s" % config )
 
 version = config.getInt( "frameworkd", "version", 0 )
 if version != NEEDS_VERSION:
