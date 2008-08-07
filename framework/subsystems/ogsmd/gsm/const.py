@@ -736,6 +736,146 @@ NETWORK_USSD_MODE = { \
 }
 
 #=========================================================================#
+# PDU TP definitions follow here according to the appearance in GSM 03.40
+# chapter 9.2.3
+TP_MTI_INCOMING = { \
+    "sms-deliver" : 0,
+    "sms-submit-report" : 1,
+    "sms-status-report" : 2,
+    "reserved" : 3,
+}
+
+TP_MTI_OUTGOING = { \
+    "sms-deliver-report" : 0,
+    "sms-submit" : 1,
+    "sms-command" : 2,
+    "reserved" : 3,
+}
+
+#=========================================================================#
+TP_VPF = { \
+    "n/a" : 0,
+    "enhanced" : 1,
+    "relative" : 2,
+    "absolute" : 3,
+}
+
+#=========================================================================#
+TP_PID = { \
+    "implicit" : 0,
+    "telex" : 1,
+    "g3-telefax" : 2,
+    "g4-telefax" : 3,
+    "voice-telphone" : 4,
+    "ermes" : 5,
+    "paging" : 6,
+    "videotex" : 7,
+    "teletex" : 8,
+    "teletex-pspdn" : 9,
+    "teletex-cspdn" : 10,
+    "teletex-pstn" : 11,
+    "teletex-isdn" : 12,
+    "uci" : 13,
+    # reserved
+    "message-handling" : 16,
+    "public-x400" : 17,
+    "e-mail" : 18,
+    # reserved
+    "gsm-ms" : 31,
+}
+# FIXME incomplete
+# Missing TP_VPEXT
+#=========================================================================#
+TP_ST = { \
+    # Transaction completed
+    "received" : 0,
+    "forwarded" : 1,
+    "replaced" : 2,
+    # Temporary error, trying again
+    "congestion" : 32,
+    "sme-busy" : 33,
+    "sme-no-response" : 34,
+    "service-rejected" : 35,
+    "qos-na" : 36,
+    "sme-error" : 37,
+    # Permanent error
+    "remote-procedure-error" : 64,
+    "incompatible-destination" : 65,
+    "sme-connection-rejected" : 66,
+    "not-obtainable" : 67,
+    "qos-na" : 68,
+    "internetworking-na" : 69,
+    "vp-expired" : 70,
+    "deleted-by-origin" : 71,
+    "deleted-by-sc" : 72,
+    "nonexistant" : 73,
+    # Temporary error, giving up
+    "congestion" : 96,
+    "sme-busy" : 97,
+    "sme-no-response" : 98,
+    "service-rejected" : 99,
+    "qos-na" : 100,
+    "sme-error" : 101,
+}
+
+#=========================================================================#
+TP_CT = { \
+    "request-status-report" : 0,
+    "cancel-status-report" : 1,
+    "delete-sm" : 2,
+    "enable-status-report" : 3,
+}
+
+#=========================================================================#
+TP_FCS = { \
+    "telematic-unsupported" : 0x80,
+    "sm-type0-unsupported" : 0x81,
+    "replace-sm-failed" : 0x82,
+    "tp-pid-error" : 0x8f,
+
+    "dcs-unsupported" : 0x90,
+    "message-class-unsupported" : 0x91,
+    "tp-dcs-error" : 0x9f,
+
+    "cmd-no-action" : 0xa0,
+    "cmd-unsupported" : 0xa1,
+    "tp-cmd-error" : 0xaf,
+
+    "sc-busy" : 0xc0,
+    "sc-no-subscription" : 0xc1,
+    "sc-failure" : 0xc2,
+    "invalid-address" : 0xc3,
+    "destination-barred" : 0xc4,
+    "rejected-duplicaet" : 0xc5,
+    "tp-vfp-unsupported" : 0xc6,
+    "tp-vf-unsupported" : 0xc7,
+
+    "sim-storage-full" : 0xd0,
+    "no-sim-storage" : 0xd1,
+    "ms-error" : 0xd2,
+    "memory-exceeded" : 0xd3,
+    "stk-busy" : 0xd4,
+    "data-download-error" : 0xd5,
+
+    "error" : 0xff,
+}
+
+#=========================================================================#
+TP_UDH_IEI = { \
+    "csm8" : 0,
+    "special-sms" : 1,
+    "port8" : 4,
+    "port16" : 5,
+    "smsc-control" : 6,
+    "udh-source" : 7,
+    "csm16" : 8,
+    "wcmp" : 9,
+    #stk-security
+    #various specific foo
+}
+
+
+#=========================================================================#
 import types, math
 
 #=========================================================================#
