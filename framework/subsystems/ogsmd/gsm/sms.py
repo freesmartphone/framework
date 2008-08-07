@@ -35,7 +35,7 @@ def decodeSMS( pdu ):
     # SCA - Service Center address
     sca_len = bytes[offset]
     offset += 1
-    sms.sca = parse_number( bytes[offset:offset+sca_len] )
+    sms.sca = PDUNumberToTuple( bytes[offset:offset+sca_len] )
 
     offset += sca_len
     # PDU type
@@ -60,7 +60,7 @@ def decodeSMS( pdu ):
     # WARNING, the length is coded in digits of the number, not in octets occupied!
     oa_len = 1 + (bytes[offset] + 1) / 2
     offset += 1
-    sms.oa = parse_number( bytes[offset:offset+oa_len] )
+    sms.oa = PDUNumberToTuple( bytes[offset:offset+oa_len] )
     sms.da = sms.oa
 
     offset += oa_len
@@ -161,17 +161,6 @@ def parse_time(bs):
   else:
     zone = "+%.2f" % (timezone / 4,)
   return "%04d-%02d-%02d %02d:%02d:%02d GMT%s" % (year, bs[1], bs[2], bs[3], bs[4], bs[5], zone)
-
-def parse_number(bs):
-  num_type = bs[0]
-  bs = bs[1:]
-  if num_type == 0x91:
-    return "+" + bcd_decode(bs)
-  elif num_type == 0xD0:
-    return unpack_sevenbit(bs)
-  else:
-    return "unknown-number-type:%02x:" % (num_type,) + "".join(["%02x" % (n,) for n in bs])
-
 
 if __name__ == "__main__":
     pdus = [
