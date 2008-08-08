@@ -370,7 +370,7 @@ class Device( dbus.service.Object ):
     def StoreMessage( self, number, contents, dbus_ok, dbus_error ):
         mediator.SimStoreMessage( self, dbus_ok, dbus_error, number=number, contents=contents )
 
-    @dbus.service.method( DBUS_INTERFACE_SIM, "i", "",
+    @dbus.service.method( DBUS_INTERFACE_SIM, "i", "i",
                           async_callbacks=( "dbus_ok", "dbus_error" ) )
     def SendStoredMessage( self, index, dbus_ok, dbus_error ):
         mediator.SimSendStoredMessage( self, dbus_ok, dbus_error, index=index )

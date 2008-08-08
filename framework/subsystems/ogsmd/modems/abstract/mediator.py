@@ -738,7 +738,6 @@ class SimStoreMessage( SimMediator ):
         contents = const.unicodeToString( self.contents.replace( '\n', '\r\n' ) )
         self._commchannel.enqueue( '+CMGW="%s",%d,"STO UNSENT"\r%s' % ( number, ntype, contents ), self.responseFromChannel, self.errorFromChannel )
 
-    @logged
     def responseFromChannel( self, request, response ):
         if response[-1] != "OK":
             SimMediator.responseFromChannel( self, request, response )
@@ -750,6 +749,12 @@ class SimSendStoredMessage( SimMediator ):
 #=========================================================================#
     def trigger( self ):
         self._commchannel.enqueue( "+CMSS=%d" % self.index, self.responseFromChannel, self.errorFromChannel )
+
+    def responseFromChannel( self, request, response ):
+        if response[-1] != "OK":
+            SimMediator.responseFromChannel( self, request, response )
+        else:
+            self._ok( int(self._rightHandSide(response[0])) )
 
 #=========================================================================#
 class SimDeleteMessage( SimMediator ):
