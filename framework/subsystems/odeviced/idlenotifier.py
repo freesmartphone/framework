@@ -70,7 +70,7 @@ class IdleNotifier( dbus.service.Object ):
                             "SUSPEND": 20, \
                             }
 
-        configvalue = config.getValue( MODULE_NAME, "ignoreinput", None )
+        configvalue = config.getValue( MODULE_NAME, "ignoreinput", "" )
         ignoreinput = [ int(value) for value in configvalue.split(',') if value != "" ]
 
         self.input = {}

@@ -50,7 +50,7 @@ class Input( dbus.service.Object, asyncworker.AsyncWorker ):
         asyncworker.AsyncWorker.__init__( self )
         logger.info( "%s %s initialized. Serving %s at %s" % ( self.__class__.__name__, __version__, self.interface, self.path ) )
 
-        configvalue = config.getValue( MODULE_NAME, "ignoreinput", None )
+        configvalue = config.getValue( MODULE_NAME, "ignoreinput", "" )
         ignoreinput = [ int(value) for value in configvalue.split(',') if value != "" ]
 
         self.input = {}
