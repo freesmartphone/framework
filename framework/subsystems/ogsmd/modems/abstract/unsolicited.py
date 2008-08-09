@@ -19,7 +19,6 @@ from ogsmd.helpers import safesplit
 class AbstractUnsolicitedResponseDelegate( object ):
 #=========================================================================#
 
-    @logged
     def __init__( self, dbus_object, mediator ):
         self._object = dbus_object
         self._mediator = mediator
@@ -33,7 +32,6 @@ class AbstractUnsolicitedResponseDelegate( object ):
     # unsolicited callbacks (alphabetically sorted, please keep it that way)
     #
 
-    @logged
     # PDU mode: +CBM: 88\r\n001000DD001133DAED46ABD56AB5186CD668341A8D46A3D168341A8D46A3D168341A8D46A3D168341A8D46A3D168341A8D46A3D168341A8D46A3D168341A8D46A3D168341A8D46A3D168341A8D46A3D168341A8D46A3D100
     # or in text mode:
     # +CBM: 16,221,0,1,1\r\n347747555093\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\n"
@@ -58,7 +56,6 @@ class AbstractUnsolicitedResponseDelegate( object ):
             assert False, "unhandled +CBM cell broadcast notification"
         self._object.IncomingCellBroadcast( channel, data )
 
-    @logged
     # +CLIP: "+496912345678",145,,,,0
     def plusCLIP( self, righthandside ):
         """
@@ -68,7 +65,6 @@ class AbstractUnsolicitedResponseDelegate( object ):
         number = number.replace( '"', '' )
         self._mediator.Call.clip( self._object, const.phonebookTupleToNumber( number, int(ntype ) ) )
 
-    @logged
     # +CMTI: "SM",7
     def plusCMTI( self, righthandside ):
         """
@@ -79,7 +75,6 @@ class AbstractUnsolicitedResponseDelegate( object ):
             assert False, "unhandled +CMTI message notification"
         self._object.NewMessage( int(index) )
 
-    @logged
     # +CREG: 1,"000F","032F"
     def plusCREG( self, righthandside ):
         """
@@ -93,7 +88,6 @@ class AbstractUnsolicitedResponseDelegate( object ):
 
         self._mediator.NetworkGetStatus( self._object, self.statusOK, self.statusERR )
 
-    @logged
     # +CRING: VOICE
     def plusCRING( self, calltype ):
         """
@@ -101,9 +95,29 @@ class AbstractUnsolicitedResponseDelegate( object ):
         """
         if calltype == "VOICE":
             self._mediator.Call.ring( self._object, calltype )
+        elif category == "UnsolicitedMediator":
+            return self._channels["UNSOL"]
         else:
             assert False, "unhandled call type"
 
+    # +CUSD: 0," Aktuelles Guthaben: 10.00 EUR.",0'
+    def plusCUSD( self, righthandside ):
+        """
+        Incoming USSD result
+        """
+
+        # FIXME needs to be adjusted for PDU mode
+
+        values = safesplit( righthandside, ',' )
+        if len( values ) == 1:
+            mode = const.NETWORK_USSD_MODE[int(values[0])]
+            self._object.IncomingUssd( mode, "" )
+        elif len( values ) == 3:
+            mode = const.NETWORK_USSD_MODE[int(values[0])]
+            message = values[1].strip( '" ' )
+            self._object.IncomingUssd( mode, message )
+        else:
+            assert False, "unknown format"
     #
     # helpers
     #

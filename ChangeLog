@@ -1,3 +1,7 @@
+2008-08-09	Michael Lauer	<mickey@vanille-media.de>
+
+	* Implement basic USSD support
+
 2008-08-03	Michael Lauer	<mickey@vanille-media.de>
 
 	* Unify configuration nodes to use the same name we

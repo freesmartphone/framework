@@ -44,6 +44,8 @@ class TiCalypso( AbstractModem ):
     def channel( self, category ):
         if category == "CallMediator":
             return self._channels["CALL"]
+        elif category == "UnsolicitedMediator":
+            return self._channels["UNSOL"]
         else:
             return self._channels["MISC"]
 

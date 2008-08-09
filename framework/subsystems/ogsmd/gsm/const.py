@@ -726,6 +726,16 @@ CALL_IDENTIFICATION_RESTRICTION = BiDict( { \
 CALL_VALID_DTMF = "0123456789*#ABCD"
 
 #=========================================================================#
+NETWORK_USSD_MODE = { \
+    0: "completed",
+    1: "useraction",
+    2: "terminated",
+    3: "localclient",
+    4: "unsupported",
+    5: "timeout",
+}
+
+#=========================================================================#
 import types, math
 
 #=========================================================================#

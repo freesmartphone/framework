@@ -958,6 +958,14 @@ class NetworkSetCallingIdentification( NetworkMediator ): # s
 
         self._commchannel.enqueue( "+CLIR=%d" % restriction, self.responseFromChannel, self.errorFromChannel )
 
+#=========================================================================#
+class NetworkSendUssdRequest( NetworkMediator ): # s
+#=========================================================================#
+    def trigger( self ):
+        # FIXME request code validation
+        commchannel = self._object.modem.communicationChannel( "UnsolicitedMediator" ) # exceptional, since CUSD is semi-unsolicited
+        commchannel.enqueue( '+CUSD=1,"%s",15' % self.request, self.responseFromChannel, self.errorFromChannel )
+
 #
 # Call Mediators
 #

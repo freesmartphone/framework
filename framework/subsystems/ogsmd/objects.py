@@ -454,6 +454,15 @@ class Device( dbus.service.Object ):
                           async_callbacks=( "dbus_ok", "dbus_error" ) )
     def SetCallingIdentification( self, status, dbus_ok, dbus_error ):
         mediator.NetworkSetCallingIdentification( self, dbus_ok, dbus_error, status=status )
+
+    @dbus.service.method( DBUS_INTERFACE_NETWORK, "s", "",
+                          async_callbacks=( "dbus_ok", "dbus_error" ) )
+    def SendUssdRequest( self, request, dbus_ok, dbus_error ):
+        mediator.NetworkSendUssdRequest( self, dbus_ok, dbus_error, request=request )
+
+    @dbus.service.signal( DBUS_INTERFACE_CALL, "ss" )
+    def IncomingUssd( self, mode, message ):
+        logger.info( "org.freesmartphone.GSM.Network.IncomingUssd: %s: %s", mode, message )
     #
     # dbus org.freesmartphone.GSM.Call
     #
@@ -538,6 +547,8 @@ class Device( dbus.service.Object ):
                           async_callbacks=( "dbus_ok", "dbus_error" ) )
     def DeactivateContext( self, dbus_ok, dbus_error ):
         mediator.PdpDeactivateContext( self, dbus_ok, dbus_error )
+
+    # FIXME GetContextStatus
 
     @dbus.service.signal( DBUS_INTERFACE_PDP, "isa{sv}" )
     def ContextStatus( self, index, status, properties ):
