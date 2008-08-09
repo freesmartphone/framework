@@ -802,7 +802,7 @@ def phonebookTupleToNumber( nstring, ntype ):
     """
 
     # FIXME figure out how to decode ntype 208
-    assert ntype in ( 129, 145, 208 ), "unknown type %i" % ntype
+    assert ntype in ( 129, 145, 185, 208 ), "unknown type %i" % ntype
     if ntype == 145: # should not include '+', but sometimes it does
         if nstring[0] == '+':
             return nstring
