@@ -608,6 +608,7 @@ class SimRetrieveEntry( SimMediator ):
                     index, number, ntype, name = safesplit( self._rightHandSide( response[0] ), ',' )
                     index = int( index )
                     number = number.strip( '"' )
+                    ntype = int( ntype )
                     name = const.textToUnicode( name )
                     self._ok( name, const.phonebookTupleToNumber( number, ntype ) )
 
