@@ -233,7 +233,9 @@ MSGFMT = {
         ["<IIIIHHHBB", ["TSKRUN", "TSKSCHD", "TSKOVRR", "TSKREG", "STACK", "STACKSIZE", "CPUIDLE", "FLYSLY", "PTLSLY"]],
 # MON - GPS system statistics
     ("AID-INI", 48) :
-        ["<iiiIHHIiIIiII", ["X", "Y", "Z", "POSACC", "TM_CFG", "WM", "TOW", "TOW_NS", "TACC_MS", "TACC_NS", "CLKD", "CLKDACC", "FLAGS"]],
+        ["<iiiIHHIiIIiII", ["X", "Y", "Z", "POSACC", "TM_CFG", "WN", "TOW", "TOW_NS", "TACC_MS", "TACC_NS", "CLKD", "CLKDACC", "FLAGS"]],
+    ("AID-DATA", 0) :
+        ["", []],
     ("AID-HUI", 72) :
         ["<IddiHHHHHHffffffffI", ["HEALTH", "UTC_A1", "UTC_A0", "UTC_TOT", "UTC_WNT",
          "UTC_LS", "UTC_WNF", "UTC_DN", "UTC_LSF", "UTC_SPARE", "KLOB_A0", "KLOB_A1",
@@ -267,7 +269,6 @@ class UBXDevice( GPSDevice ):
 
         self.ack = {"CFG-PRT" : 0}
         self.ubx = {}
-        self.configure()
 
     def configure( self ):
         # Use high sensitivity mode
