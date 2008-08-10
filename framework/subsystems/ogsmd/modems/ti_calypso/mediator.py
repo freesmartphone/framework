@@ -100,7 +100,7 @@ class CallHandler( object ):
 
     def releaseAll( self, commchannel ):
         # not going via state machine, since this is possible at any time
-        commchannel.enqueue( "ATH" )
+        commchannel.enqueue( "H" )
 
     def hold( self, commchannel ):
         return self.feedUserInput( "hold", channel=commchannel )
