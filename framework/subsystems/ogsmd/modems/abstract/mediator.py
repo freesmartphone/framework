@@ -1138,7 +1138,7 @@ class PdpActivateContext( PdpMediator ):
 #=========================================================================#
     def trigger( self ):
         global pdpConnection
-        if not pdpConnection:
+        if pdpConnection is None:
             pdpConnection = Pdp( self._object )
         if pdpConnection.isActive():
             self._ok()
@@ -1158,6 +1158,15 @@ class PdpDeactivateContext( PdpMediator ):
         else:
             self._error( error.PdpNotFound( "there is no active pdp context" ) )
 
+#=========================================================================#
+class PdpGetContextStatus( PdpMediator ):
+#=========================================================================#
+    def trigger( self ):
+        global pdpConnection
+        if pdpConnection is None:
+            self._ok( "release" )
+        else:
+            self._ok( pdpConnection.status() )
 #
 # CB Mediators
 #

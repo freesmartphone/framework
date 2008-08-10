@@ -56,12 +56,14 @@ class Pdp( AbstractMediator ):
     def isActive( self ):
         return self.state == "active"
 
-    @logged
     def activate( self ):
         self._activate()
 
     def deactivate( self ):
         self._deactivate()
+
+    def status( self ):
+        return self.state
 
     #
     # private

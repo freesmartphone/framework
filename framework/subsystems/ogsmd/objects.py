@@ -548,7 +548,10 @@ class Device( dbus.service.Object ):
     def DeactivateContext( self, dbus_ok, dbus_error ):
         mediator.PdpDeactivateContext( self, dbus_ok, dbus_error )
 
-    # FIXME GetContextStatus
+    @dbus.service.method( DBUS_INTERFACE_PDP, "", "s",
+                          async_callbacks=( "dbus_ok", "dbus_error" ) )
+    def GetContextStatus( self, dbus_ok, dbus_error ):
+        mediator.PdpGetContextStatus( self, dbus_ok, dbus_error )
 
     @dbus.service.signal( DBUS_INTERFACE_PDP, "isa{sv}" )
     def ContextStatus( self, index, status, properties ):
