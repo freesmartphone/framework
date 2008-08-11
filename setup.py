@@ -22,7 +22,9 @@ setup(
     data_files = [
         ("../../etc/dbus-1/system.d", ["etc/dbus-1/system.d/frameworkd.conf"] ),
         ("../../etc/freesmartphone/opreferences/schema/", ["etc/freesmartphone/opreferences/schema/profiles.yaml"]),
-        ("../../etc/freesmartphone/opreferences/conf/", ["etc/freesmartphone/opreferences/conf/profiles/default.yaml"]),
+        ("../../etc/freesmartphone/opreferences/conf/profiles/", ["etc/freesmartphone/opreferences/conf/profiles/default.yaml"]),
+        ("../../etc/freesmartphone/opreferences/conf/phone", ["etc/freesmartphone/opreferences/conf/phone/default.yaml"]),
+        ("../../etc/freesmartphone/opreferences/conf/phone", ["etc/freesmartphone/opreferences/conf/phone/silent.yaml"]),
         ("freesmartphone/examples/", ["examples/gsm-log-data.py"]),
     ]
 )
