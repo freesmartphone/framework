@@ -1,0 +1,6 @@
+
+# Those values are just here to test the preferences service,
+# They are not actually used yet
+ring-tone: "music1"
+ring-volume: 10
+

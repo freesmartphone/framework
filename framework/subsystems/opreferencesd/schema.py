@@ -81,6 +81,8 @@ class Parameter(object):
         if self.type == str: return dbus.String(v)
         if self.type == bool: return dbus.Boolean(v)
         if self.type == object: return v
+        if v is None:
+            return ''
         raise TypeError, "can't convert parameter of type %s to dbus object" % self.type
         
 class DictParameter(Parameter):

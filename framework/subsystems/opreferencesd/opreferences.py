@@ -43,9 +43,11 @@ class PreferencesManager(dbus.service.Object):
         self.bus = bus
         self.schema_dir = schema_dir
         self.conf_dir = conf_dir
-        self.profile = 'default'
+        self.profiles = ['default']
         self.services = {}
         
+        logger.info("using schema path : %s", schema_dir)
+        logger.info("using conf path : %s", conf_dir)
         logger.info("initialized, services : %s", self.GetServices()) 
         
     @dbus.service.method("org.freesmartphone.Preferences", in_signature='', out_signature='as')
@@ -72,14 +74,14 @@ class PreferencesManager(dbus.service.Object):
             ret = Service(self, name)
         except NoServiceError:
             logger.info("service does not exist : %s", name)
-            raise DBusNoServiceError
+            raise DBusNoServiceError, name
         self.services[name] = ret
         return ret
         
     @dbus.service.method("org.freesmartphone.Preferences", in_signature='', out_signature='s')
     def GetProfile(self):
-        """Retrieve the current profile"""
-        return self.profile
+        """Retrieve the current top profile"""
+        return self.profiles[0]
     
     @dbus.service.method("org.freesmartphone.Preferences", in_signature='s', out_signature='')
     def SetProfile(self, profile):
@@ -87,7 +89,7 @@ class PreferencesManager(dbus.service.Object):
         logger.debug("SetProfile to %s", profile)
         profile = str(profile)
         assert profile in self.GetProfiles()
-        self.profile = profile
+        self.profiles = [profile, 'default']
         for s in self.services.itervalues():
             s.on_profile_changed(profile)
         

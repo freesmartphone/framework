@@ -6,6 +6,9 @@ import dbus.service
 from schema import Schema
 from configuration import Configuration
 
+import logging
+logger = logging.getLogger('opreferencesd')
+
 class NoServiceError(Exception):
     pass
 
@@ -48,10 +51,11 @@ class Service(dbus.service.Object):
         if profile in self.confs:
             return self.confs[profile]
         try:
-            conf = Configuration('%s/%s/%s.yaml' % (self.manager.conf_dir, self.name, profile))
-        except Exception, e:
-            print "can't parse the conf file : '%s/%s/%s.yaml : %s'" % (self.manager.conf_dir, self.name, profile, e)
-            return None
+            conf_path = '%s/%s/%s.yaml' % (self.manager.conf_dir, self.name, profile)
+            conf = Configuration(conf_path)
+        except IOError:
+            logger.info("no conf file : '%s'", conf_path)
+            conf = None
         self.confs[profile] = conf
         return conf
         
@@ -76,16 +80,21 @@ class Service(dbus.service.Object):
            key -- the name of the key
         """
         key = str(key)
-        # logger.debug("Service %s : Getting key %s", self, key)
+        logger.debug("Service %s : Getting key %s", self, key)
         parameter = self.schema[key]
-        profile = self.manager.profile if parameter.profilable else 'default'
-        try:
-            conf = self.get_conf(profile)
-            ret = conf[key]
-        except:
-            # print "Service %s : can't find key %s, using default" % (self, key) 
+        for profile in self.manager.profiles:
+            try:
+                conf = self.get_conf(profile)
+                if not conf:    # There is no conf file for this profile
+                    continue
+                ret = conf[key]
+                break
+            except KeyError:
+                pass
+        else:
+            logger.info("Service %s : can't find key %s, using default", self, key) 
             ret = parameter.default
-        # print "Service %s : value = %s" % (self, ret) 
+        # We have to call this method to give the proper type to the ret value
         ret = parameter.dbus(ret)
         return ret
     
@@ -94,9 +103,12 @@ class Service(dbus.service.Object):
         """set a parameter value for a service, in the current profile"""
         key = str(key)
         
-        # logger.debug("Service %s : Setting key %s = %s", self, key, value)
+        logger.debug("Service %s : Setting key %s = %s", self, key, value)
         parameter = self.schema[key]
-        profile = self.manager.profile if parameter.profilable else 'default'
+        # XXX:
+        # Here we always set the value into the top profile configuration file
+        # Shouldn't we use the profile that actually defines the value if there is one ?
+        profile = self.manager.profiles[0] if parameter.profilable else 'default'
         try:
             value = parameter.type(value)
         except:

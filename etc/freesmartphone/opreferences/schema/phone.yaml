@@ -1,0 +1,10 @@
+
+
+ring-tone:
+    type: str
+    profilable: yes
+    
+ring-volume:
+    type: int
+    profilable: yes
+    default: 10
