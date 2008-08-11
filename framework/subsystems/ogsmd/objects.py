@@ -381,8 +381,8 @@ class Device( dbus.service.Object ):
         mediator.SimDeleteMessage( self, dbus_ok, dbus_error, index=index )
 
     @dbus.service.signal( DBUS_INTERFACE_SIM, "i" )
-    def NewMessage( self, index ):
-        logger.info( "new message on sim storage index %s", index )
+    def IncomingMessage( self, index ):
+        logger.info( "incoming message on sim storage index %s", index )
 
     #
     # dbus org.freesmartphone.GSM.Network

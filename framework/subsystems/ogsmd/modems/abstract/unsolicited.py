@@ -73,7 +73,7 @@ class AbstractUnsolicitedResponseDelegate( object ):
         storage, index = safesplit( righthandside, ',' )
         if storage != '"SM"':
             assert False, "unhandled +CMTI message notification"
-        self._object.NewMessage( int(index) )
+        self._object.IncomingMessage( int(index) )
 
     # +CREG: 1,"000F","032F"
     def plusCREG( self, righthandside ):
