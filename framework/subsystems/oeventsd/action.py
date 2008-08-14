@@ -62,21 +62,21 @@ class DBusAction(Action):
         return "%s(%s)" % (self.method, self.args)
         
 class AudioAction(DBusAction):
-    def __init__(self, file = None, action = 'Play'):
+    def __init__(self, file = None, action = 'play'):
         bus = dbus.SystemBus()
         service = 'org.freesmartphone.odeviced'
         obj = '/org/freesmartphone/Device/Audio'
         interface = 'org.freesmartphone.Device.Audio'
-        method = '%sSound' % action # could be PlaySound or StopSound
+        method = 'PlaySound' if action == 'play' else 'StopSound'
         super(AudioAction, self).__init__(bus, service, obj, interface, method, file)
         
 class VibratorAction(DBusAction):
-    def __init__(self, target = 'neo1973_vibrator', action = 'Start'):
+    def __init__(self, target = 'neo1973_vibrator', action = 'start'):
         bus = dbus.SystemBus()
         service = 'org.freesmartphone.odeviced'
         obj = '/org/freesmartphone/Device/LED/%s' % target
         interface = 'org.freesmartphone.Device.LED'
-        if action == 'Start':
+        if action == 'start':
             super(VibratorAction, self).__init__(bus, service, obj, interface, 'SetBlinking', 300, 700)
         else:
             super(VibratorAction, self).__init__(bus, service, obj, interface, 'SetBrightness', 0)

@@ -16,19 +16,13 @@
 # - StopSound(file)         : Action that stop an audio file
 # - StartVibration
 # - StopVibration
-
+# - RingTone(cmd)           : cmd can be 'start' or 'stop'
 
 -
-    # This rule will play a ring tone when a call is incoming
     trigger: CallStatus()
     filters: HasAttr(status, "incoming")
-    actions:
-        - PlaySound("/usr/share/sounds/Arkanoid_PSID.sid")
-        - StartVibration()
+    actions: RingTone(play)
 -
-    # This one will stop the ring tone when the call is in an other state
     trigger: CallStatus()
     filters: Not(HasAttr(status, "incoming"))
-    actions:
-        - StopSound("/usr/share/sounds/Arkanoid_PSID.sid")
-        - StopVibration()
+    actions: RingTone(stop)

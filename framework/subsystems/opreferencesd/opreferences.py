@@ -30,6 +30,10 @@ class DBusNoServiceError(dbus.DBusException):
 class PreferencesManager(dbus.service.Object):
     """This is the class for the main object from wich we access the configuration services
     """
+    # I use this value so that I can get the PreferencesManager
+    # from other subsystems without using DBus
+    # TODO: this should be supported by the the framework for any registered objects
+    singleton = None
     def __init__(self, bus, schema_dir = './schema', conf_dir = './conf'):
         """Create a PreferencesManager object
            
@@ -49,6 +53,8 @@ class PreferencesManager(dbus.service.Object):
         logger.info("using schema path : %s", schema_dir)
         logger.info("using conf path : %s", conf_dir)
         logger.info("initialized, services : %s", self.GetServices()) 
+        
+        PreferencesManager.singleton = self
         
     @dbus.service.method("org.freesmartphone.Preferences", in_signature='', out_signature='as')
     def GetServices(self):

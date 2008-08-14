@@ -10,12 +10,16 @@ The freesmartphone Events Module - Python Implementation
 GPLv2 or later
 """
 
+import logging
+logger = logging.getLogger('oeventsd')
+
 import yaml
 import re
 
 from trigger import Trigger, CallStatusTrigger
 from filter import Filter, AttributeFilter
 from action import Action, AudioAction, VibratorAction
+from ring_tone_action import RingToneAction
 from rule import Rule
 
 class FunctionMetaClass(type):
@@ -23,6 +27,7 @@ class FunctionMetaClass(type):
     def __init__(cls, name, bases, dict):
         super(FunctionMetaClass, cls).__init__(name, bases, dict)
         if 'name' in dict:
+            logger.debug("register function %s", dict['name'])
             Function.functions[dict['name']] = cls
 
 class Function(object):
@@ -80,6 +85,11 @@ class StopSound(Function):
     def __call__(self, file):
         return AudioAction(file, 'Stop')
         
+class RingTone(Function):
+    name = 'RingTone'
+    def __call__(self, cmd):
+        return RingToneAction(cmd)
+        
 class StartVibration(Function):
     name = 'StartVibration'
     def __call__(self):
@@ -111,8 +121,13 @@ def as_rule(r):
 class Parser(object):
     def parse_rules(self, src):
         rules = yaml.load(src)
-        rules = [as_rule(r) for r in rules]
-        return rules
+        ret = []
+        for r in rules:
+            try:
+                ret.append(as_rule(r))
+            except Exception, e:
+                logger.Error("can't parse rule : %s", e)
+        return ret
 
 if __name__ == '__main__':
     src = """
