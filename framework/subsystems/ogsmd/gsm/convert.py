@@ -21,7 +21,9 @@ def PDUNumberToTuple(bs):
     num_plan = (bs[0] & 0x0F)
     number = bs[1:]
     if num_type == 5:
-        number = unpack_sevenbit(bs)
+        # FIXME: 8 seems to be right here, how to calculate?
+        pad = 8
+        number = unpack_sevenbit(bs, pad)
     else:
         number = bcd_decode(bs)
     return (num_type, num_plan, number)
