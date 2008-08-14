@@ -27,6 +27,9 @@ class GPSChannel( object ):
     def setCallback( self, callback ):
         self.callback = callback
 
+    def send( self, stream ):
+        raise Exception( "Not implemented" )
+
 class UDPChannel ( GPSChannel ):
     """UDP reader, for gta01, gllin"""
 
@@ -37,7 +40,7 @@ class UDPChannel ( GPSChannel ):
         self.s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.s.bind(('', self.port))
         self.s.setblocking(False)
-        gobject.io_add_watch( self.s.makefile(), gobject.IO_IN, self.readyToRead )
+        self.watchReadyToRead = gobject.io_add_watch( self.s.makefile(), gobject.IO_IN, self.readyToRead )
 
     def readyToRead( self, source, condition ):
         data = self.s.recv(1024)
@@ -46,9 +49,6 @@ class UDPChannel ( GPSChannel ):
 
         return True
 
-    def readyToSend( self, source, condition ):
-        return False
-
 class FileChannel ( GPSChannel ):
     """File reader, for gta01, gllin"""
 
@@ -56,7 +56,7 @@ class FileChannel ( GPSChannel ):
         super(FileChannel, self).__init__()
         logger.debug("FileChannel opens %s" % path)
         self.fd = os.open(path, os.O_NONBLOCK + os.O_RDONLY)
-        gobject.io_add_watch( self.fd, gobject.IO_IN, self.readyToRead )
+        self.watchReadyToRead = gobject.io_add_watch( self.fd, gobject.IO_IN, self.readyToRead )
 
     def readyToRead( self, source, condition ):
         data_array = []
@@ -73,10 +73,6 @@ class FileChannel ( GPSChannel ):
             self.callback(data)
 
         return True
-
-    def readyToSend( self, source, condition ):
-        return False
-
 
 class SerialChannel( GPSChannel ):
     """Serial reader"""
