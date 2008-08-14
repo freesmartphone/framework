@@ -35,7 +35,7 @@ def decodeSMS( pdu ):
     # SCA - Service Center address
     sca_len = bytes[offset]
     offset += 1
-    sms.sca = PDUNumberToTuple( bytes[offset:offset+sca_len] )
+    sms.sca = decodePDUNumber( bytes[offset:offset+sca_len] )
 
     offset += sca_len
     # PDU type
@@ -60,7 +60,7 @@ def decodeSMS( pdu ):
     # WARNING, the length is coded in digits of the number, not in octets occupied!
     oa_len = 1 + (bytes[offset] + 1) / 2
     offset += 1
-    sms.oa = PDUNumberToTuple( bytes[offset:offset+oa_len] )
+    sms.oa = decodePDUNumber( bytes[offset:offset+oa_len] )
     sms.da = sms.oa
 
     offset += oa_len
@@ -74,7 +74,7 @@ def decodeSMS( pdu ):
     offset += 1
     if sms.pdu_mti == 0:
         # SCTS - Service Centre Time Stamp
-        sms.scts = parse_time( bytes[offset:offset+7] )
+        sms.scts = decodePDUTime( bytes[offset:offset+7] )
         offset += 7
     else:
         # VP - Validity Period FIXME
@@ -84,7 +84,7 @@ def decodeSMS( pdu ):
             offset += 1
         elif sms.pdu_vpf == 3:
             # Absolute
-            sms.vp = parse_time( bytes[offset:offset+7] )
+            sms.vp = decodePDUTime( bytes[offset:offset+7] )
             offset += 7
 
     # UD - User Data
@@ -140,27 +140,6 @@ Number: %s
 Headers: %s
 Message: %s
 """ % (self.sca, self.scts, self.pid, self.oa, self.udh, self.ud)
-
-def bcd_decode(bs):
-  s = "".join(["%1x%1x" % (b & 0xF, b >> 4) for b in bs])
-  if s[-1] == "f":
-    s = s[:-1]
-  return s
-
-def parse_time(bs):
-  if len(bs) != 7:
-    return "timestamp-length-not-7"
-  bs = [((n & 0xf) * 10) + (n >> 4) for n in bs]
-  if bs[0] >= 90: # I don't know if this is the right cut-off point...
-    year = 1900 + bs[0]
-  else:
-    year = 2000 + bs[0]
-  timezone = bs[6]
-  if timezone > 0x80:
-    zone = "-%.2f" % ((timezone - 0x80) / 4,)
-  else:
-    zone = "+%.2f" % (timezone / 4,)
-  return "%04d-%02d-%02d %02d:%02d:%02d GMT%s" % (year, bs[1], bs[2], bs[3], bs[4], bs[5], zone)
 
 if __name__ == "__main__":
     pdus = [
