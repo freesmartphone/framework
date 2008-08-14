@@ -13,7 +13,11 @@ GPLv2 or later
 import os
 import sys
 import serial
+import socket
 import gobject
+
+import logging
+logger = logging.getLogger('ogpsd')
 
 class GPSChannel( object ):
     """A GPS Channel :-)"""
@@ -22,6 +26,57 @@ class GPSChannel( object ):
 
     def setCallback( self, callback ):
         self.callback = callback
+
+class UDPChannel ( GPSChannel ):
+    """UDP reader, for gta01, gllin"""
+
+    def __init__(self, path):
+        super(UDPChannel, self).__init__()
+        logger.debug("UDPChannel opens port %s" % path)
+        self.port = int(path)
+        self.s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        self.s.bind(('', self.port))
+        self.s.setblocking(False)
+        gobject.io_add_watch( self.s.makefile(), gobject.IO_IN, self.readyToRead )
+
+    def readyToRead( self, source, condition ):
+        data = self.s.recv(1024)
+        if self.callback:
+            self.callback(data)
+
+        return True
+
+    def readyToSend( self, source, condition ):
+        return False
+
+class FileChannel ( GPSChannel ):
+    """File reader, for gta01, gllin"""
+
+    def __init__(self, path):
+        super(FileChannel, self).__init__()
+        logger.debug("FileChannel opens %s" % path)
+        self.fd = os.open(path, os.O_NONBLOCK + os.O_RDONLY)
+        gobject.io_add_watch( self.fd, gobject.IO_IN, self.readyToRead )
+
+    def readyToRead( self, source, condition ):
+        data_array = []
+        try:
+            while True:
+                data_array.append(os.read(self.fd, 1024))
+        except OSError:
+            pass
+        if len(data_array) == 1:
+            data = data_array[0] # shortcut for common case
+        else:
+            data = ''.join(data_array)
+        if self.callback:
+            self.callback(data)
+
+        return True
+
+    def readyToSend( self, source, condition ):
+        return False
+
 
 class SerialChannel( GPSChannel ):
     """Serial reader"""
