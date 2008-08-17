@@ -1,3 +1,13 @@
+# -*- coding: UTF-8 -*-
+"""
+The freesmartphone Events Module - Python Implementation
+
+(C) 2008 Michael 'Mickey' Lauer <mlauer@vanille-media.de>
+(C) 2008 Jan 'Shoragan' Lübbe <jluebbe@lasnet.de>
+(C) 2008 Guillaume 'Charlie' Chereau
+(C) 2008 Openmoko, Inc.
+GPLv2 or later
+"""
 
 from action import Action, AudioAction, VibratorAction
 import dbus
@@ -13,7 +23,7 @@ class RingToneAction(Action):
         self.cmd = cmd
     def __call__(self, **kargs):
         logger.info("RingToneAction %s", self.cmd)
-        
+
         # First we need to get the ring-tone music :
         # TODO: as soon as we have some sort of global get_object('Preferences')
         #       method we should use it instead of PreferencesManager.singleton
@@ -22,7 +32,7 @@ class RingToneAction(Action):
         ring_tone = phone_prefs.GetValue('ring-tone')
         ring_volume = phone_prefs.GetValue('ring-volume')
         sound_path = os.path.join("/usr/share/sounds/", ring_tone)
-        
+
         if self.cmd == 'play':
             logger.info("Start ringing : tone=%s, volume=%s", ring_tone, ring_volume)
             AudioAction(sound_path, 'play')()

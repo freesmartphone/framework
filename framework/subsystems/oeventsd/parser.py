@@ -1,4 +1,3 @@
-
 # -*- coding: UTF-8 -*-
 """
 The freesmartphone Events Module - Python Implementation
@@ -33,11 +32,11 @@ class FunctionMetaClass(type):
 class Function(object):
     __metaclass__ = FunctionMetaClass
     functions = {}
-    
+
     def __call__(self, *args):
         raise NotImplementedError
-        
-         
+
+
 def split_params(s):
     """ An ugly way to parse function parameters
         I should use a library for that
@@ -53,8 +52,8 @@ def split_params(s):
         if s[i] == ',' and lev == 0:
             return [s[:i]] + split_params(s[i+1:])
     return [s]
-        
-        
+
+
 # The following is used to be able to parse instructions on yaml
 pattern = re.compile(r'^(.+?)\((.*?)\)$')
 
@@ -69,27 +68,27 @@ def function_constructor(loader, node):
 
 yaml.add_constructor(u'!Function', function_constructor)
 yaml.add_implicit_resolver(u'!Function', pattern)
-        
+
 class CallStatus(Function):
     name = 'CallStatus'
     def __call__(self):
         return CallStatusTrigger()
-        
+
 class PlaySound(Function):
     name = 'PlaySound'
     def __call__(self, file):
         return AudioAction(file, 'Play')
-        
+
 class StopSound(Function):
     name = 'StopSound'
     def __call__(self, file):
         return AudioAction(file, 'Stop')
-        
+
 class RingTone(Function):
     name = 'RingTone'
     def __call__(self, cmd):
         return RingToneAction(cmd)
-        
+
 class StartVibration(Function):
     name = 'StartVibration'
     def __call__(self):
@@ -99,12 +98,12 @@ class StopVibration(Function):
     name = 'StopVibration'
     def __call__(self):
         return VibratorAction(action='Stop')
-        
+
 class Not(Function):
     name = 'Not'
     def __call__(self, a):
         return ~a
-        
+
 class HasAttr(Function):
     name = 'HasAttr'
     def __call__(self, name, value):
@@ -117,7 +116,7 @@ def as_rule(r):
     filters = r.get('filters', [])
     actions = r['actions']
     return Rule(trigger, filters, actions)
-    
+
 class Parser(object):
     def parse_rules(self, src):
         rules = yaml.load(src)
