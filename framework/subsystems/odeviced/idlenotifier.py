@@ -20,7 +20,7 @@ GPLv2 or later
 """
 
 MODULE_NAME = "odeviced.idlenotifier"
-__version__ = "0.9.9"
+__version__ = "0.9.9.1"
 
 from helpers import DBUS_INTERFACE_PREFIX, DBUS_PATH_PREFIX, readFromFile, writeToFile
 from config import config
@@ -50,25 +50,14 @@ class IdleNotifier( dbus.service.Object ):
         logger.info( "%s %s initialized. Serving %s at %s", self.__class__.__name__, __version__, self.interface, self.path )
 
         self.state = "AWAKE"
-        self.timeout = None
-
-        if "ODEVICED_DEBUG" in os.environ:
-            self.timeouts = { \
-                            "IDLE": 2,
-                            "IDLE_DIM": 2,
-                            "IDLE_PRELOCK": 2,
-                            "LOCK": 2,
-                            "SUSPEND": 10,
-                            "AWAKE": -1, \
-                            }
-        else:
-            self.timeouts = { \
-                            "IDLE": 10,
-                            "IDLE_DIM": 20,
-                            "IDLE_PRELOCK": 12,
-                            "LOCK": 2,
-                            "SUSPEND": 20, \
-                            }
+        self.timeouts = { \
+                        "IDLE": 10,
+                        "IDLE_DIM": 20,
+                        "IDLE_PRELOCK": 12,
+                        "LOCK": 2,
+                        "SUSPEND": 20, \
+                        }
+        self.states = "AWAKE NONE BUSY IDLE IDLE_DIM IDLE_PRELOCK LOCK SUSPEND".split()
 
         configvalue = config.getValue( MODULE_NAME, "ignoreinput", "" )
         ignoreinput = [ int(value) for value in configvalue.split(',') if value != "" ]
@@ -91,6 +80,7 @@ class IdleNotifier( dbus.service.Object ):
         # override default timeouts with configuration (if set)
         for key in self.timeouts:
             self.timeouts[key] = config.getInt( MODULE_NAME, key.lower(), self.timeouts[key] )
+            logger.debug( "setting %s timeout to %d" % ( key.lower(), self.timeouts[key] ) )
 
         # states without timeout
         self.timeouts["BUSY"] = -1
@@ -103,7 +93,13 @@ class IdleNotifier( dbus.service.Object ):
     def launchStateMachine( self ):
         for i in self.input:
             gobject.io_add_watch( i, gobject.IO_IN, self.onInputActivity )
-        self.timeout = gobject.timeout_add_seconds( 2, self.onIDLE )
+        self.timeout = gobject.timeout_add_seconds( 2, self.onState, "IDLE" )
+
+    def nextState( self, state ):
+        index = self.states.index( state )
+        nextIndex = ( index + 1 ) % len(self.states)
+        return self.states[nextIndex]
+
 
     def onInputActivity( self, source, condition ):
         data = os.read( source, 512 )
@@ -111,37 +107,15 @@ class IdleNotifier( dbus.service.Object ):
         if self.state != "BUSY":
             if self.timeout is not None:
                 gobject.source_remove( self.timeout )
-            self.onBUSY()
+            self.onState( "BUSY" )
         return True
 
-    def onBUSY( self ):
-        self.State( "BUSY" )
-        self.timeout = gobject.timeout_add_seconds( self.timeouts["IDLE"], self.onIDLE )
-        return False
-
-    def onIDLE( self ):
-        self.State( "IDLE" )
-        self.timeout = gobject.timeout_add_seconds( self.timeouts["IDLE_DIM"], self.onIDLE_DIM )
-        return False
-
-    def onIDLE_DIM( self ):
-        self.State( "IDLE_DIM" )
-        self.timeout = gobject.timeout_add_seconds( self.timeouts["IDLE_PRELOCK"], self.onIDLE_PRELOCK )
-        return False
-
-    def onIDLE_PRELOCK( self ):
-        self.State( "IDLE_PRELOCK" )
-        self.timeout = gobject.timeout_add_seconds( self.timeouts["LOCK"], self.onLOCK )
-        return False
-
-    def onLOCK( self ):
-        self.State( "LOCK" )
-        self.timeout = gobject.timeout_add_seconds( self.timeouts["SUSPEND"], self.onSUSPEND )
-        return False
-
-    def onSUSPEND( self ):
-        self.State( "SUSPEND" )
-        return False
+    def onState( self, state ):
+        self.State( state )
+        nextState = self.nextState( state )
+        timeout = self.timeouts[ nextState ]
+        if timeout > 0:
+            self.timeout = gobject.timeout_add_seconds( timeout, self.onState, nextState )
 
     #
     # dbus signals
