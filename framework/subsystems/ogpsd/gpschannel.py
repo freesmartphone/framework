@@ -4,7 +4,7 @@
 Open GPS Daemon - Parse NMEA/UBX data
 
 (C) 2008 Michael 'Mickey' Lauer <mlauer@vanille-media.de>
-(C) 2008 Jan 'Shoragan' Lübbe <jluebbe@lasnet.de
+(C) 2008 Jan 'Shoragan' Lübbe <jluebbe@lasnet.de>
 (C) 2008 Daniel Willmann <daniel@totalueberwachung.de>
 (C) 2008 Openmoko, Inc.
 GPLv2 or later
