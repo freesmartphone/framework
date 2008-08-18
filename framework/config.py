@@ -27,7 +27,6 @@ import os
 import logging
 logger = logging.getLogger( "frameworkd" )
 
-
 # FIXME This dict map syslog message levels to logging message levels
 # FIXME Remove this when we have removed all of the deprecated 'LOG' calls
 logging_levels_map = {
@@ -51,23 +50,25 @@ logging.basicConfig(
     format='%(name)-8s %(levelname)-8s %(message)s'
 )
 
+#
 # init configuration
+#
 config = None
-for p in [
+searchpath = [
         os.path.expanduser( "~/.frameworkd.conf" ),
         "/etc/frameworkd.conf",
         os.path.join( os.path.dirname( __file__ ), "../conf/frameworkd.conf" ),
         os.path.expanduser("~/.frameworkd.conf")
-    ]:
+    ]
+for p in searchpath:
     if os.path.exists( p ):
         logger.info( "Using configuration file %s" % p )
         config = SmartConfigParser( p )
         break
 
-if not config:
-    logger.error("Can't find a configuration file")
-    raise IOError
-
+if config is None:
+    logger.error( "Can't find a configuration file. Looked in %s" % searchpath )
+    raise IOError, "can't find configuration file"
 
 version = config.getInt( "frameworkd", "version", 0 )
 if version != NEEDS_VERSION:
@@ -75,3 +76,15 @@ if version != NEEDS_VERSION:
     logger.warning( "[frameworkd]" )
     logger.warning( "version = %d" % NEEDS_VERSION )
 
+#
+# compute install prefix
+#
+installprefix = "/" # unknown first
+searchpath = "/usr/local /usr /local/pkg/fso /opt".split()
+thisdirname = os.path.dirname( __file__ )
+for p in searchpath:
+    if thisdirname.startswith( p ):
+        installprefix = p
+        break
+
+logger.info( "Installprefix is %s" % installprefix )
