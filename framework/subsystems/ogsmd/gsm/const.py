@@ -41,8 +41,13 @@ PAT_PHONEBOOK_INFO = re.compile( '\((?P<lowest>\d+)-(?P<highest>\d+)\)(?:,(?P<nu
 # +CMGL: 20,"STO UNSENT","",,,128,10
 PAT_SMS_TEXT_HEADER = re.compile( '(?P<index>\d+),"(?P<status>[^"]+)","(?P<number>[^"]*)",(?:"(?P<name>[^"]+)")?,(?:"(?P<timestamp>[^"]+)")?,(?P<ntype>\d+),(?P<textlen>\d+)' )
 
+# +CMGL: 1,1,"",125
+PAT_SMS_PDU_HEADER = re.compile( '(?P<index>\d+),(?P<status>\d+),(?:"(?P<name>[^"]+)")?,(?P<pdulen>\d+)' )
+
 # +CMGR: "REC READ","Alice-Team",,"08/05/13,09:12:15+08",208,133
 PAT_SMS_TEXT_HEADER_SINGLE = re.compile( '"(?P<status>[^"]+)","(?P<number>[^"]+)",(?:"(?P<name>[^"]+)")?,(?:"(?P<timestamp>[^"]+)")?,(?P<ntype>\d+),(?P<textlen>\d+)' )
+
+PAT_SMS_PDU_HEADER_SINGLE = re.compile( '(?P<status>\d+),(?:"(?P<name>[^"]+)"),(?P<pdulen>\d+)' )
 
 PAT_STRING = re.compile( r'''"([^"]+?)"''' )
 
@@ -659,6 +664,23 @@ SMS_STATUS_IN = { \
     "sent": "STO SENT",
     "unsent": "STO UNSENT",
     "all": "ALL",
+}
+
+#=========================================================================#
+SMS_PDU_STATUS_OUT = { \
+    0 : "unread",
+    1: "read",
+    2 : "unsent",
+    3 : "sent",
+}
+
+#=========================================================================#
+SMS_PDU_STATUS_IN = { \
+    "unread": 0,
+    "read": 1,
+    "unsent": 2,
+    "sent": 3,
+    "all": 4,
 }
 
 #=========================================================================#
