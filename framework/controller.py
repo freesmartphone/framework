@@ -68,10 +68,18 @@ class Controller( object ):
     """
     Loading and registering plugins.
     """
+    # We store all the DBUs object in a class attribute
+    objects = {}
+    
+    @classmethod
+    def get_object(cls, name):
+        """Return a DBus object -not proxy- from the list of registered objects.
+            
+           If there is no such object, raise a KeyError exception
+        """
+        return cls.objects[name]
+    
     def __init__( self, path ):
-        # FIXME remove
-        self.objects = {}
-
         # dbus & glib mainloop
         DBusGMainLoop( set_as_default=True )
         self.mainloop = MainLoop()
@@ -89,7 +97,7 @@ class Controller( object ):
         self._handleOverrides()
 
         self._subsystems["frameworkd"] = subsystem.Framework( self.bus, path, self )
-        self.objects.update( self._subsystems["frameworkd"].objects() )
+        Controller.objects.update( self._subsystems["frameworkd"].objects() )
 
         # walk subsystems and find 'em
         systemstolaunch = self.options.values.subsystems.split( ',' )
@@ -110,7 +118,7 @@ class Controller( object ):
                 self._subsystems[s] = subsystem.Subsystem( s, self.bus, path, self )
             else:
                 self._subsystems[s] = subsystem.Subsystem( s, self.bus, path, self )
-            self.objects.update( self._subsystems[s].objects() )
+            Controller.objects.update( self._subsystems[s].objects() )
 
         # do we have any subsystems left?
         if not self.options.values.debug:
@@ -119,10 +127,10 @@ class Controller( object ):
                 sys.exit( -1 )
 
         logger.info( "================== objects registered ===================" )
-        objectnames = self.objects.keys()
+        objectnames = Controller.objects.keys()
         objectnames.sort()
         for obj in objectnames:
-            logger.info( "%s [%s]" % ( obj, self.objects[obj].interface ) )
+            logger.info( "%s [%s]" % ( obj, Controller.objects[obj].interface ) )
 
     def subsystems( self ):
         return self._subsystems

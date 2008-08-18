@@ -16,7 +16,8 @@ import os
 import logging
 logger = logging.getLogger('oeventsd')
 
-from framework.subsystems.opreferencesd import PreferencesManager
+# from framework.subsystems.opreferencesd import PreferencesManager
+from framework.controller import Controller
 
 class RingToneAction(Action):
     def __init__(self, cmd = 'play'):
@@ -24,10 +25,8 @@ class RingToneAction(Action):
     def __call__(self, **kargs):
         logger.info("RingToneAction %s", self.cmd)
 
-        # First we need to get the ring-tone music :
-        # TODO: as soon as we have some sort of global get_object('Preferences')
-        #       method we should use it instead of PreferencesManager.singleton
-        prefs = PreferencesManager.singleton
+        # We use the global Controller class to directly get the object
+        prefs = Controller.get_object('/org/freesmartphone/Preferences')
         phone_prefs = prefs.GetService('phone')
         ring_tone = phone_prefs.GetValue('ring-tone')
         ring_volume = phone_prefs.GetValue('ring-volume')
