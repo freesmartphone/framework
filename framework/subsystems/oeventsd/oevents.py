@@ -42,13 +42,7 @@ class EventsManager(dbus.service.Object):
 
     def add_rule(self, rule):
         self.rules.append(rule)
-
-    @dbus.service.method("org.freesmartphone.Events", in_signature='', out_signature='')
-    def Init(self):
-        """This method need to be called before the rules are actually effectives"""
-        logger.info("init all the rules")
-        for rule in self.rules:
-            rule.init()
+        rule.init()
 
 
 

@@ -66,10 +66,12 @@ class DBusTrigger(Trigger):
 
     def init(self):
         # Connect to the DBus signal
-        object = self.bus.get_object(self.service, self.obj)
-        iface = dbus.Interface(object, dbus_interface=self.interface)
         logger.info("connect trigger to dbus signal %s %s", self.obj, self.signal)
-        iface.connect_to_signal(self.signal, self.on_signal)
+        self.bus.add_signal_receiver(
+            self.on_signal,
+            dbus_interface=self.interface,
+            signal_name=self.signal
+        )
 
     def on_signal(self, *args):
         self(args=args)

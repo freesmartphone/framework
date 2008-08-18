@@ -23,7 +23,7 @@ class Action(object):
 
 
 class DBusAction(Action):
-    """A spetial action that will call a DBus method"""
+    """A special action that will call a DBus method"""
     def __init__(self, bus, service, obj, interface, method, *args):
         super(DBusAction, self).__init__()
         self.bus = bus
