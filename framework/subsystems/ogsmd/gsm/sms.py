@@ -35,7 +35,7 @@ def decodeSMS( pdu ):
     # SCA - Service Center address
     sca_len = bytes[offset]
     offset += 1
-    sms.sca = decodePDUNumber( bytes[offset:offset+sca_len] )
+    sms.sca = PDUAddress( *decodePDUNumber( bytes[offset:offset+sca_len] ) )
 
     offset += sca_len
     # PDU type
@@ -60,7 +60,7 @@ def decodeSMS( pdu ):
     # WARNING, the length is coded in digits of the number, not in octets occupied!
     oa_len = 1 + (bytes[offset] + 1) / 2
     offset += 1
-    sms.oa = decodePDUNumber( bytes[offset:offset+oa_len] )
+    sms.oa = PDUAddress( *decodePDUNumber( bytes[offset:offset+oa_len] ) )
     sms.da = sms.oa
 
     offset += oa_len
@@ -123,6 +123,16 @@ def parse_userdata( sms, ud_len, bytes ):
 def encodeSMS( to, sender, serviceCenter, data ):
     pass
 
+class PDUAddress:
+    def __init__( self, type, dialplan, number ):
+        self.type = type
+        self.dialplan = dialplan
+        self.number = number
+    def __str__( self ):
+        prefix = ""
+        if self.type == 1:
+            prefix = "+"
+        return prefix + str(self.number)
 
 class AbstractSMS:
     def __init__( self ):
