@@ -24,6 +24,7 @@ TODO:
 from ogsmd.gsm import error, const
 from ogsmd.gsm.decor import logged
 from ogsmd.helpers import safesplit
+import ogsmd.gsm.sms
 
 import gobject
 import re, time
@@ -653,11 +654,11 @@ class SimRetrieveMessagebook( SimMediator ):
 #=========================================================================#
     def trigger( self ):
         try:
-            category = const.SMS_STATUS_IN[self.category]
+            category = const.SMS_PDU_STATUS_IN[self.category]
         except KeyError:
-            self._error( error.InvalidParameter( "valid categories are %s" % const.SMS_STATUS_IN.keys() ) )
+            self._error( error.InvalidParameter( "valid categories are %s" % const.SMS_PDU_STATUS_IN.keys() ) )
         else:
-            self._commchannel.enqueue( '+CMGL="%s"' % category, self.responseFromChannel, self.errorFromChannel )
+            self._commchannel.enqueue( '+CMGL=%i' % category, self.responseFromChannel, self.errorFromChannel )
 
     @logged
     def responseFromChannel( self, request, response ):
@@ -666,29 +667,25 @@ class SimRetrieveMessagebook( SimMediator ):
         else:
             result = []
             curmsg = None
-            text = ""
             for line in response[:-1]:
                 #print "parsing line", line
                 if line.startswith( "+CMGL" ):
                     #print "line is header line"
-                    if text:
-                        #print "text=", text, "appending to result"
-                        result.append( ( index, status, number, const.textToUnicode(text) ) )
-                    header = const.PAT_SMS_TEXT_HEADER.match( self._rightHandSide(line) )
+                    header = const.PAT_SMS_PDU_HEADER.match( self._rightHandSide(line) )
                     index = int(header.groupdict()["index"])
-                    status = const.SMS_STATUS_OUT[header.groupdict()["status"]]
-                    number = const.phonebookTupleToNumber( header.groupdict()["number"], int(header.groupdict()["ntype"]) )
-                    # TODO handle optional arrival... time.strptime( '%s,%s'% (d, t, ), '%y/%m/%d,%H:%M:%S') => const module
-                    # TODO handle optional name from phonebook
-                    text = ""
+                    status = const.SMS_PDU_STATUS_OUT[int(header.groupdict()["status"])]
+                    if status <= 1:
+                      dir = "MT"
+                    else:
+                      dir = "MO"
+                    length = int(header.groupdict()["pdulen"])
                 else:
                     #print "line is text line"
-                    if text:
-                        text += "\n%s" % line
-                    else:
-                        text += line
-            if text:
-                result.append( ( index, status, number, const.textToUnicode(text) ) )
+
+                    sms = ogsmd.gsm.sms.decodeSMS( line, dir)
+                    result.append( ( index, status, str(sms.oa), const.textToUnicode(sms.ud.strip("\0")) ) )
+
+            print result
             self._ok( result )
 
 #=========================================================================#
@@ -707,18 +704,17 @@ class SimRetrieveMessage( SimMediator ):
                 #print "parsing line", line
                 if line.startswith( "+CMGR" ):
                     #print "line is header line"
-                    header = const.PAT_SMS_TEXT_HEADER_SINGLE.match( self._rightHandSide(line) )
-                    status = const.SMS_STATUS_OUT[header.groupdict()["status"]]
-                    number = const.phonebookTupleToNumber( header.groupdict()["number"], int(header.groupdict()["ntype"]) )
-                    # TODO handle optional arrival... time.strptime( '%s,%s'% (d, t, ), '%y/%m/%d,%H:%M:%S') => const module
-                    # TODO handle optional name from phonebook
-                    text = ""
+                    header = const.PAT_SMS_PDU_HEADER_SINGLE.match( self._rightHandSide(line) )
+                    status = const.SMS_PDU_STATUS_OUT[header.groupdict()["status"]]
+                    if status <= 1:
+                      dir = "MT"
+                    else:
+                      dir = "MO"
+                    length = int(header.groupdict()["pdulen"])
                 else:
                     #print "line is text line"
-                    if text:
-                        text += "\n%s" % line
-                    else:
-                        text += line
+
+                    sms = ogsmd.gsm.sms.decodeSMS( line, dir )
             if text:
                 result = ( status, number, const.textToUnicode(text) )
             self._ok( result )
@@ -735,9 +731,19 @@ class SimSetServiceCenterNumber( SimMediator ):
 class SimStoreMessage( SimMediator ):
 #=========================================================================#
     def trigger( self ):
-        number, ntype = const.numberToPhonebookTuple( self.number )
-        contents = const.unicodeToString( self.contents.replace( '\n', '\r\n' ) )
-        self._commchannel.enqueue( '+CMGW="%s",%d,"STO UNSENT"\r%s' % ( number, ntype, contents ), self.responseFromChannel, self.errorFromChannel )
+        sms = ogsmd.gsm.sms.AbstractSMS("MO")
+        sms.pdu_mti = 1
+        sms.pid = 0
+        sms.dcs = 0
+        if self.number[0] == "+":
+            number = self.number[1:]
+            ntype = 1
+        else:
+            ntype = 2
+        sms.oa = ogsmd.gsm.sms.PDUAddress( ntype, 1, number )
+        sms.ud = self.contents
+        pdu = sms.pdu()
+        self._commchannel.enqueue( '+CMGW=%i\r%s' % ( len(pdu)/2-1, pdu), self.responseFromChannel, self.errorFromChannel )
 
     def responseFromChannel( self, request, response ):
         if response[-1] != "OK":
@@ -755,7 +761,12 @@ class SimSendStoredMessage( SimMediator ):
         if response[-1] != "OK":
             SimMediator.responseFromChannel( self, request, response )
         else:
-            self._ok( int(self._rightHandSide(response[0])) )
+            result = safesplit( self._rightHandSide(response[0]), ',' )
+            mr = result[0]
+            if len(result) == 2:
+                # TODO: Handle ackpdu
+                pass
+            self._ok( int(mr) )
 
 #=========================================================================#
 class SimDeleteMessage( SimMediator ):

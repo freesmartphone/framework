@@ -100,8 +100,8 @@ class AbstractModemChannel( AtCommandChannel ):
         c.append( '+CSDH=1' )           # show text mode parameters: show values
         c.append( '+CSNS=0' )           # single numbering scheme: voice
         # sms
-        c.append( '+CMGF=1' )           # message format: disable pdu mode, enable text mode
-        c.append( '+CSMS=1' )           # GSM Phase 2+ commands: enable
+        c.append( '+CMGF=0' )           # message format: enable pdu mode, disable text mode
+        c.append( '+CSMS=1' )           # GSM Phase 2+ commands: enable, this seems to fail in PDU mode
         # unsolicited
         c.append( '+CLIP=0' )           # calling line identification presentation: disable
         c.append( '+COLP=0' )           # connected line identification presentation: disable
