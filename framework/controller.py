@@ -7,7 +7,7 @@ freesmartphone.org Framework Daemon
 GPLv2 or later
 """
 
-__version__ = "0.9.1"
+__version__ = "0.9.2"
 
 from framework.config import DBUS_BUS_NAME_PREFIX
 
@@ -70,15 +70,15 @@ class Controller( object ):
     """
     # We store all the DBUs object in a class attribute
     objects = {}
-    
+
     @classmethod
-    def get_object(cls, name):
-        """Return a DBus object -not proxy- from the list of registered objects.
-            
-           If there is no such object, raise a KeyError exception
+    def object( cls, name ):
         """
-        return cls.objects[name]
-    
+        Return a DBus object -not proxy- from the list of registered objects.
+        If there is no such object, return None
+        """
+        return cls.objects.get( name, None )
+
     def __init__( self, path ):
         # dbus & glib mainloop
         DBusGMainLoop( set_as_default=True )
