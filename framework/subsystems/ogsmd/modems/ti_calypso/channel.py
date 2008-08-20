@@ -81,7 +81,7 @@ class CalypsoModemChannel( AbstractModemChannel ):
                 logger.warning( "(can't read from modem. giving up)" )
                 self.serial.close()
                 return False
-        logger.info( "(modem responding)" )
+        logger.info( "%s: responding OK" % self )
         self.serial.flushInput()
 
         # reset global modem communication timestamp

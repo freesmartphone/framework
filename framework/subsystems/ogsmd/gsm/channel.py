@@ -63,6 +63,9 @@ class VirtualChannel( object ):
         if VirtualChannel.DEBUGLOG:
             self.debugFile = open( "/tmp/%s.log" % self.name, "w" )
 
+    def __repr__( self ):
+        return "<%s via %s>" % ( self.__class__.__name__, self.serial.port if self.serial is not None else "unknown" )
+
     @logged
     def open( self, path=None ):
         """
@@ -77,7 +80,7 @@ class VirtualChannel( object ):
             return False
 
         # set up serial port object and open it
-        logger.info( "(%s: using modem path '%s')", self, path )
+        logger.info( "%s: initializing" % self )
         self.serial = serial.Serial()
         self.serial.port = str( path )
         self.serial.baudrate = 115200
