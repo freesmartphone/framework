@@ -1,12 +1,16 @@
 #!/usr/bin/env python
-
 """
 The Preference Deamon - Python Implementation
 
 (C) 2008 Guillaume 'Charlie' Chereau
 (C) 2008 Openmoko, Inc.
 GPLv2 or later
+
+Package: opreferencesd
+Module: opreferences
 """
+
+__version__ = "0.2.0"
 
 import yaml # To parse the yaml files
 import os
@@ -27,12 +31,14 @@ logger = logging.getLogger('opreferencesd')
 class DBusNoServiceError(dbus.DBusException):
     _dbus_error_name = "org.freesmartphone.Preferences.NoServiceError"
 
+#============================================================================#
 class PreferencesManager(dbus.service.Object):
+#============================================================================#
     """This is the class for the main object from wich we access the configuration services
     """
     def __init__(self, bus, schema_dir = './schema', conf_dir = './conf'):
         """Create a PreferencesManager object
-           
+
            arguments:
               schema_dir -- The directory containing the schema files
               conf_dir   -- The directory containing the configuration files
@@ -45,11 +51,11 @@ class PreferencesManager(dbus.service.Object):
         self.conf_dir = conf_dir
         self.profiles = ['default']
         self.services = {}
-        
-        logger.info("using schema path : %s", schema_dir)
-        logger.info("using conf path : %s", conf_dir)
-        logger.info("initialized, services : %s", self.GetServices()) 
-        
+        logger.info( "%s %s initialized. Serving %s at %s", self.__class__.__name__, __version__, self.interface, self.path )
+        logger.info(" ::: using schema path : %s", schema_dir)
+        logger.info(" ::: using conf path : %s", conf_dir)
+        logger.info(" ::: services : %s", self.GetServices())
+
     @dbus.service.method("org.freesmartphone.Preferences", in_signature='', out_signature='as')
     def GetServices(self):
         """Return the list of all available services"""
@@ -58,11 +64,11 @@ class PreferencesManager(dbus.service.Object):
             if f.endswith('.yaml'):
                 ret.append(f[:-5])
         return ret
-        
+
     @dbus.service.method("org.freesmartphone.Preferences", in_signature='s', out_signature='o')
     def GetService(self, name):
         """Return a given service
-           
+
            arguments:
               name -- the name of the service, as returned by `GetServices`
         """
@@ -77,12 +83,12 @@ class PreferencesManager(dbus.service.Object):
             raise DBusNoServiceError, name
         self.services[name] = ret
         return ret
-        
+
     @dbus.service.method("org.freesmartphone.Preferences", in_signature='', out_signature='s')
     def GetProfile(self):
         """Retrieve the current top profile"""
         return self.profiles[0]
-    
+
     @dbus.service.method("org.freesmartphone.Preferences", in_signature='s', out_signature='')
     def SetProfile(self, profile):
         """Set the current profile"""
@@ -92,23 +98,24 @@ class PreferencesManager(dbus.service.Object):
         self.profiles = [profile, 'default']
         for s in self.services.itervalues():
             s.on_profile_changed(profile)
-        
-    @dbus.service.method("org.freesmartphone.Preferences", in_signature='', out_signature='as')    
+
+    @dbus.service.method("org.freesmartphone.Preferences", in_signature='', out_signature='as')
     def GetProfiles(self):
         """Return a list of all the available profiles"""
         profiles_service = self.GetService('profiles')
         return profiles_service.GetValue('profiles')
 
-    
+#============================================================================#
 def generate_doc():
+#============================================================================#
     """This function can be used to generate a wiki style documentation for the DBus API
-    
+
         It should be replaced by doxygen
     """
     objects = [PreferencesManager, Service]
-    
+
     services = {}
-    
+
     for obj in objects:
         for attr_name in dir(obj):
             attr = getattr(obj, attr_name)
@@ -130,7 +137,7 @@ def generate_doc():
                     sig['doc'] = attr.__doc__
                     funcs, sigs = services.setdefault(attr._dbus_interface, [[],[]])
                     sigs.append(sig)
-            
+
     for name, funcs in services.items():
         print '= %s =' % name
         for func in funcs[0]:
@@ -138,16 +145,17 @@ def generate_doc():
 == method %(name)s(%(args)s) ==
 * in: %(in_sig)s
 * out: %(out_sig)s
-* %(doc)s""" % func 
+* %(doc)s""" % func
         for sig in funcs[1]:
             print """
 == signal %(name)s(%(args)s) ==
 * out: %(sig)s
 * %(doc)s""" % sig
         print
-        
-            
+
+#============================================================================#
 def factory(prefix, controller):
+#============================================================================#
     """This is the magic function that will be called bye the framework module manager"""
     # Get the root dir containing the schema and conf dirs
     # We can set a list of possible path in the config file
@@ -158,13 +166,13 @@ def factory(prefix, controller):
             break
     else:
         raise Exception("can't find the preferences root directory")
-     
+
     schema_dir = '%s/schema' % root_dir
     conf_dir = '%s/conf' % root_dir
-    
+
     pref_manager = PreferencesManager(controller.bus, schema_dir, conf_dir)
     return [pref_manager]
 
 
-    
+
 

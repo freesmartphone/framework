@@ -42,7 +42,7 @@ class RingToneAction(Action):
         phone_prefs = prefs.GetService( "phone" )
         ring_tone = phone_prefs.GetValue( "ring-tone" )
         ring_volume = phone_prefs.GetValue( "ring-volume" )
-        sound_path = os.path.join( installprefix, "/usr/share/sounds/", ring_tone )
+        sound_path = os.path.join( installprefix, "share/sounds/", ring_tone )
 
         if self.cmd == "play":
             logger.info( "Start ringing : tone=%s, volume=%s", ring_tone, ring_volume )
