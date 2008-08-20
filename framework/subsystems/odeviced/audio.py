@@ -7,8 +7,10 @@ Open Device Daemon - A plugin for audio device peripherals
 GPLv2 or later
 """
 
-__version__ = "0.4.0"
+MODULE_NAME = "odeviced.audio"
+__version__ = "0.4.1"
 
+from framework.config import config
 from framework.patterns import asyncworker
 from helpers import DBUS_INTERFACE_PREFIX, DBUS_PATH_PREFIX, readFromFile, writeToFile, cleanObjectName
 
@@ -207,14 +209,26 @@ class AlsaScenarios( object ):
     """
     Controls alsa audio scenarios.
     """
-    def __init__( self, dbus_object, statedir ):
+    def __init__( self, dbus_object, statedir, defaultscene ):
         self._object = dbus_object
         self._statedir = statedir
+        self._default = defaultscene
         self._statenames = None
         # FIXME set default profile (from configuration)
         # FIXME should be set when this audio object initializes
         self._current = "unknown"
         self._stack = []
+        gobject.idle_add( self._initScenario )
+        logger.info( " ::: using alsa scenarios in %s, default = %s" % ( statedir, defaultscene ) )
+
+    def _initScenario( self ):
+        # gather default profile from preferences
+        if os.path.exists( "%s/%s.state" % ( self._statedir, self._default ) ):
+            self.setScenario( self._default )
+            logger.info( "default alsa scenario restored" )
+        else:
+            logger.warning( "default alsa scenario '%s' not found in '%s'. device may start uninitialized" % ( self._default, self._statedir ) )
+        return False
 
     def pushScenario( self, scenario ):
         current = self._current
@@ -282,16 +296,17 @@ class Audio( dbus.service.Object ):
     """
     DBUS_INTERFACE = DBUS_INTERFACE_PREFIX + ".Audio"
 
-    def __init__( self, bus, config, index, node ):
+    def __init__( self, bus, index, node ):
         self.interface = self.DBUS_INTERFACE
         self.path = DBUS_PATH_PREFIX + "/Audio"
         dbus.service.Object.__init__( self, bus, self.path )
-        self.config = config
         logger.info( "%s %s initialized. Serving %s at %s" % ( self.__class__.__name__, __version__, self.interface, self.path ) )
         # FIXME make it configurable or autodetect which player is to be used
         self.player = GStreamerPlayer( self )
         # FIXME gather scenario path from configuration
-        self.scenario = AlsaScenarios( self, "/usr/share/openmoko/scenarios" )
+        scenario_dir = config.getValue( MODULE_NAME, "scenario_dir", "/etc/alsa/scenario" )
+        default_scenario = config.getValue( MODULE_NAME, "default_scenario", "default" )
+        self.scenario = AlsaScenarios( self, scenario_dir, default_scenario )
 
     #
     # dbus info methods
@@ -394,7 +409,7 @@ def factory( prefix, controller ):
 #----------------------------------------------------------------------------#
     """Instanciate plugins"""
 
-    return [ Audio( controller.bus, controller.config, 0, "" ) ]
+    return [ Audio( controller.bus, 0, "" ) ]
 
 if __name__ == "__main__":
     import dbus
