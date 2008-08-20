@@ -7,7 +7,7 @@ Open Device Daemon - A plugin for audio device peripherals
 GPLv2 or later
 """
 
-__version__ = "0.3.0"
+__version__ = "0.4.0"
 
 from framework.patterns import asyncworker
 from helpers import DBUS_INTERFACE_PREFIX, DBUS_PATH_PREFIX, readFromFile, writeToFile, cleanObjectName
@@ -41,9 +41,14 @@ class AlreadyPlaying( dbus.DBusException ):
     _dbus_error_name = "org.freesmartphone.Audio.AlreadyPlaying"
 
 #----------------------------------------------------------------------------#
-class InvalidScenario( dbus.DBusException ):
+class ScenarioInvalid( dbus.DBusException ):
 #----------------------------------------------------------------------------#
-    _dbus_error_name = "org.freesmartphone.Audio.InvalidScenario"
+    _dbus_error_name = "org.freesmartphone.Audio.ScenarioInvalid"
+
+#----------------------------------------------------------------------------#
+class ScenarioStackUnderflow( dbus.DBusException ):
+#----------------------------------------------------------------------------#
+    _dbus_error_name = "org.freesmartphone.Audio.ScenarioStackUnderflow"
 
 #----------------------------------------------------------------------------#
 class DeviceFailed( dbus.DBusException ):
@@ -207,7 +212,25 @@ class AlsaScenarios( object ):
         self._statedir = statedir
         self._statenames = None
         # FIXME set default profile (from configuration)
+        # FIXME should be set when this audio object initializes
         self._current = "unknown"
+        self._stack = []
+
+    def pushScenario( self, scenario ):
+        current = self._current
+        if self.setScenario( scenario ):
+            self._stack.append( current )
+            return True
+        else:
+            return False
+
+    def pullScenario( self ):
+        previous = self._stack.pop()
+        result = self.setScenario( previous )
+        if result is False:
+            return result
+        else:
+            return previous
 
     def getScenario( self ):
         return self._current
@@ -299,6 +322,9 @@ class Audio( dbus.service.Object ):
     #
     # dbus scenario methods
     #
+
+    # FIXME ugly. error handling should be done by the scenario itself
+
     @dbus.service.method( DBUS_INTERFACE, "", "as",
                           async_callbacks=( "dbus_ok", "dbus_error" ) )
     def GetAvailableScenarios( self, dbus_ok, dbus_error ):
@@ -313,12 +339,36 @@ class Audio( dbus.service.Object ):
                           async_callbacks=( "dbus_ok", "dbus_error" ) )
     def SetScenario( self, name, dbus_ok, dbus_error ):
         if not self.scenario.hasScenario( name ):
-            dbus_error( InvalidScenario( "available scenarios are: %s" % self.scenario.getAvailableScenarios() ) )
+            dbus_error( ScenarioInvalid( "available scenarios are: %s" % self.scenario.getAvailableScenarios() ) )
         else:
             if self.scenario.setScenario( name ):
                 dbus_ok()
             else:
                 dbus_error( DeviceFailed( "unknown error while setting scenario" ) )
+
+    @dbus.service.method( DBUS_INTERFACE, "s", "",
+                          async_callbacks=( "dbus_ok", "dbus_error" ) )
+    def PushScenario( self, name, dbus_ok, dbus_error ):
+        if not self.scenario.hasScenario( name ):
+            dbus_error( ScenarioInvalid( "available scenarios are: %s" % self.scenario.getAvailableScenarios() ) )
+        else:
+            if self.scenario.pushScenario( name ):
+                dbus_ok()
+            else:
+                dbus_error( DeviceFailed( "unknown error while pushing scenario" ) )
+
+    @dbus.service.method( DBUS_INTERFACE, "", "s",
+                          async_callbacks=( "dbus_ok", "dbus_error" ) )
+    def PullScenario( self, dbus_ok, dbus_error ):
+        try:
+            previousScenario = self.scenario.pullScenario()
+        except IndexError:
+            dbus_error( ScenarioStackUnderflow( "forgot to push a scenario?" ) )
+        else:
+            if previousScenario is False:
+                dbus_error( DeviceFailed( "unknown error while pulling scenario" ) )
+            else:
+                dbus_ok( previousScenario )
 
     @dbus.service.method( DBUS_INTERFACE, "s", "",
                           async_callbacks=( "dbus_ok", "dbus_error" ) )
