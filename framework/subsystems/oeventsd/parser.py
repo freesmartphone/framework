@@ -77,12 +77,12 @@ class CallStatus(Function):
 class PlaySound(Function):
     name = 'PlaySound'
     def __call__(self, file):
-        return AudioAction(file, 'Play')
+        return AudioAction(file, 'play')
 
 class StopSound(Function):
     name = 'StopSound'
     def __call__(self, file):
-        return AudioAction(file, 'Stop')
+        return AudioAction(file, 'stop')
 
 class RingTone(Function):
     name = 'RingTone'
@@ -92,12 +92,12 @@ class RingTone(Function):
 class StartVibration(Function):
     name = 'StartVibration'
     def __call__(self):
-        return VibratorAction(action='Start')
+        return VibratorAction(action='start')
 
 class StopVibration(Function):
     name = 'StopVibration'
     def __call__(self):
-        return VibratorAction(action='Stop')
+        return VibratorAction(action='stop')
 
 class Not(Function):
     name = 'Not'
