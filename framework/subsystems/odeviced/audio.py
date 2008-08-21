@@ -7,9 +7,11 @@ Open Device Daemon - A plugin for audio device peripherals
 GPLv2 or later
 """
 
-__version__ = "0.3.0"
+MODULE_NAME = "odeviced.audio"
+__version__ = "0.4.1"
 
-from patterns import asyncworker
+from framework.config import config
+from framework.patterns import asyncworker
 from helpers import DBUS_INTERFACE_PREFIX, DBUS_PATH_PREFIX, readFromFile, writeToFile, cleanObjectName
 
 import gst
@@ -41,9 +43,14 @@ class AlreadyPlaying( dbus.DBusException ):
     _dbus_error_name = "org.freesmartphone.Audio.AlreadyPlaying"
 
 #----------------------------------------------------------------------------#
-class InvalidScenario( dbus.DBusException ):
+class ScenarioInvalid( dbus.DBusException ):
 #----------------------------------------------------------------------------#
-    _dbus_error_name = "org.freesmartphone.Audio.InvalidScenario"
+    _dbus_error_name = "org.freesmartphone.Audio.ScenarioInvalid"
+
+#----------------------------------------------------------------------------#
+class ScenarioStackUnderflow( dbus.DBusException ):
+#----------------------------------------------------------------------------#
+    _dbus_error_name = "org.freesmartphone.Audio.ScenarioStackUnderflow"
 
 #----------------------------------------------------------------------------#
 class DeviceFailed( dbus.DBusException ):
@@ -202,12 +209,42 @@ class AlsaScenarios( object ):
     """
     Controls alsa audio scenarios.
     """
-    def __init__( self, dbus_object, statedir ):
+    def __init__( self, dbus_object, statedir, defaultscene ):
         self._object = dbus_object
         self._statedir = statedir
+        self._default = defaultscene
         self._statenames = None
         # FIXME set default profile (from configuration)
+        # FIXME should be set when this audio object initializes
         self._current = "unknown"
+        self._stack = []
+        gobject.idle_add( self._initScenario )
+        logger.info( " ::: using alsa scenarios in %s, default = %s" % ( statedir, defaultscene ) )
+
+    def _initScenario( self ):
+        # gather default profile from preferences
+        if os.path.exists( "%s/%s.state" % ( self._statedir, self._default ) ):
+            self.setScenario( self._default )
+            logger.info( "default alsa scenario restored" )
+        else:
+            logger.warning( "default alsa scenario '%s' not found in '%s'. device may start uninitialized" % ( self._default, self._statedir ) )
+        return False
+
+    def pushScenario( self, scenario ):
+        current = self._current
+        if self.setScenario( scenario ):
+            self._stack.append( current )
+            return True
+        else:
+            return False
+
+    def pullScenario( self ):
+        previous = self._stack.pop()
+        result = self.setScenario( previous )
+        if result is False:
+            return result
+        else:
+            return previous
 
     def getScenario( self ):
         return self._current
@@ -259,16 +296,17 @@ class Audio( dbus.service.Object ):
     """
     DBUS_INTERFACE = DBUS_INTERFACE_PREFIX + ".Audio"
 
-    def __init__( self, bus, config, index, node ):
+    def __init__( self, bus, index, node ):
         self.interface = self.DBUS_INTERFACE
         self.path = DBUS_PATH_PREFIX + "/Audio"
         dbus.service.Object.__init__( self, bus, self.path )
-        self.config = config
         logger.info( "%s %s initialized. Serving %s at %s" % ( self.__class__.__name__, __version__, self.interface, self.path ) )
         # FIXME make it configurable or autodetect which player is to be used
         self.player = GStreamerPlayer( self )
         # FIXME gather scenario path from configuration
-        self.scenario = AlsaScenarios( self, "/usr/share/openmoko/scenarios" )
+        scenario_dir = config.getValue( MODULE_NAME, "scenario_dir", "/etc/alsa/scenario" )
+        default_scenario = config.getValue( MODULE_NAME, "default_scenario", "default" )
+        self.scenario = AlsaScenarios( self, scenario_dir, default_scenario )
 
     #
     # dbus info methods
@@ -299,6 +337,9 @@ class Audio( dbus.service.Object ):
     #
     # dbus scenario methods
     #
+
+    # FIXME ugly. error handling should be done by the scenario itself
+
     @dbus.service.method( DBUS_INTERFACE, "", "as",
                           async_callbacks=( "dbus_ok", "dbus_error" ) )
     def GetAvailableScenarios( self, dbus_ok, dbus_error ):
@@ -313,12 +354,36 @@ class Audio( dbus.service.Object ):
                           async_callbacks=( "dbus_ok", "dbus_error" ) )
     def SetScenario( self, name, dbus_ok, dbus_error ):
         if not self.scenario.hasScenario( name ):
-            dbus_error( InvalidScenario( "available scenarios are: %s" % self.scenario.getAvailableScenarios() ) )
+            dbus_error( ScenarioInvalid( "available scenarios are: %s" % self.scenario.getAvailableScenarios() ) )
         else:
             if self.scenario.setScenario( name ):
                 dbus_ok()
             else:
                 dbus_error( DeviceFailed( "unknown error while setting scenario" ) )
+
+    @dbus.service.method( DBUS_INTERFACE, "s", "",
+                          async_callbacks=( "dbus_ok", "dbus_error" ) )
+    def PushScenario( self, name, dbus_ok, dbus_error ):
+        if not self.scenario.hasScenario( name ):
+            dbus_error( ScenarioInvalid( "available scenarios are: %s" % self.scenario.getAvailableScenarios() ) )
+        else:
+            if self.scenario.pushScenario( name ):
+                dbus_ok()
+            else:
+                dbus_error( DeviceFailed( "unknown error while pushing scenario" ) )
+
+    @dbus.service.method( DBUS_INTERFACE, "", "s",
+                          async_callbacks=( "dbus_ok", "dbus_error" ) )
+    def PullScenario( self, dbus_ok, dbus_error ):
+        try:
+            previousScenario = self.scenario.pullScenario()
+        except IndexError:
+            dbus_error( ScenarioStackUnderflow( "forgot to push a scenario?" ) )
+        else:
+            if previousScenario is False:
+                dbus_error( DeviceFailed( "unknown error while pulling scenario" ) )
+            else:
+                dbus_ok( previousScenario )
 
     @dbus.service.method( DBUS_INTERFACE, "s", "",
                           async_callbacks=( "dbus_ok", "dbus_error" ) )
@@ -344,7 +409,7 @@ def factory( prefix, controller ):
 #----------------------------------------------------------------------------#
     """Instanciate plugins"""
 
-    return [ Audio( controller.bus, controller.config, 0, "" ) ]
+    return [ Audio( controller.bus, 0, "" ) ]
 
 if __name__ == "__main__":
     import dbus

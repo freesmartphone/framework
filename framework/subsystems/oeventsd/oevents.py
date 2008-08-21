@@ -7,7 +7,12 @@ The freesmartphone Events Module - Python Implementation
 (C) 2008 Guillaume 'Charlie' Chereau
 (C) 2008 Openmoko, Inc.
 GPLv2 or later
+
+Package: oeventsd
+Module: oevents
 """
+
+__version__ = "0.2.0"
 
 from framework.config import config
 
@@ -27,7 +32,9 @@ logger = logging.getLogger('oeventsd')
 # - Add a way to dynamically remove events
 # - Add a way to add new events when the event conf file is modified
 
+#============================================================================#
 class EventsManager(dbus.service.Object):
+#============================================================================#
     """This is the interface to the event service
 
        In prcatice we shouldn't have to use this too much,
@@ -39,14 +46,15 @@ class EventsManager(dbus.service.Object):
         self.bus = bus
         super(EventsManager, self).__init__(bus, self.path)
         self.rules = []
+        logger.info( "%s %s initialized. Serving %s at %s", self.__class__.__name__, __version__, self.interface, self.path )
 
     def add_rule(self, rule):
         self.rules.append(rule)
         rule.init()
 
-
-
+#============================================================================#
 def factory(prefix, controller):
+#============================================================================#
     """This is the magic function that will be called by the framework module manager"""
     events_manager = EventsManager(controller.bus)
 

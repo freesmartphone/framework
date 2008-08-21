@@ -13,6 +13,40 @@ Module: convert
 
 GSM conversion functions.
 """
+from datetime import datetime
+
+#=========================================================================#
+def decodePDUNumber(bs):
+#=========================================================================#
+    num_type = (bs[0] & 0x70) >> 4
+    num_plan = (bs[0] & 0x0F)
+    number = bs[1:]
+    if num_type == 5:
+        number = unpack_sevenbit(number)
+    else:
+        number = bcd_decode(number)
+    return (num_type, num_plan, number)
+
+#=========================================================================#
+def bcd_decode(bs):
+#=========================================================================#
+  s = "".join(["%1x%1x" % (b & 0xF, b >> 4) for b in bs])
+  if s[-1] == "f":
+    s = s[:-1]
+  return s
+
+#=========================================================================#
+def decodePDUTime(bs):
+#=========================================================================#
+  bs = [((n & 0xf) * 10) + (n >> 4) for n in bs]
+  if bs[0] >= 90: # I don't know if this is the right cut-off point...
+    year = 1900 + bs[0]
+  else:
+    year = 2000 + bs[0]
+  timezone = bs[6]
+  sign = (timezone >> 7) * -2 + 1
+  zone = (timezone & 0x7f) / -4. * sign
+  return ( datetime(year, bs[1], bs[2], bs[3], bs[4], bs[5]), zone )
 
 #=========================================================================#
 def tobinary( n ):
