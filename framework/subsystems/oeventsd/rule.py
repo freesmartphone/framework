@@ -17,7 +17,9 @@ from action import Action
 
 # TODO : add a way to deactivate a rule
 
+#============================================================================#
 class Rule(object):
+#============================================================================#
     """Event Rule object
 
        A Rule consist of :
@@ -34,18 +36,20 @@ class Rule(object):
     def __init__(self, trigger, filters, actions):
         """Create a new rule
 
-           We need to call the init method of the rule before
-           it will actually be actvated
+           We need to add the rule into the EventManager (with the `add_rule`
+           method) before it will actually be activated. 
         """
+        # We accept list OR single value as argument
         if not isinstance(filters, list):
             filters = [filters]
         if not isinstance(actions, list):
             actions = [actions]
 
-        assert all(isinstance(x, Filter) for x in filters)
-        assert all(isinstance(x, Action) for x in actions)
+        assert all(isinstance(x, Filter) for x in filters), "Bad filter argument"
+        assert all(isinstance(x, Action) for x in actions), "Bad action parameter"
 
         self.trigger = trigger
+        # The trigger will call this rule when triggered
         trigger.connect(self)
         self.filters = filters
         self.actions = actions
@@ -56,6 +60,7 @@ class Rule(object):
         return "on %s if %s then %s" % (self.trigger, self.filters, self.actions)
 
     def on_signal(self, **kargs):
+        """Thos method is called by a trigger when it is activated"""
         # First we check that ALL the filters match the signal
         if any(not filter(**kargs) for filter in self.filters):
             return
@@ -64,7 +69,11 @@ class Rule(object):
             c(**kargs)
 
     def init(self):
-        """After we call this method, the rule is active"""
+        """After we call this method, the rule is active
+        
+           This method should only be called by the EventManager when we add
+           the rule 
+        """
         logger.info("init rule : %s", self)
         self.trigger.init()
 

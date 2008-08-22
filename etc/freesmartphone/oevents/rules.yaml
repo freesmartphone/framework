@@ -17,6 +17,8 @@
 # - StartVibration
 # - StopVibration
 # - RingTone(cmd)           : cmd can be 'start' or 'stop'
+# - Time(hour, min)         : create a trigger activated at the given time
+# - Debug(msg)              : Action that prints a debug message (only for debuging)
 
 -
     trigger: CallStatus()
@@ -26,3 +28,7 @@
     trigger: CallStatus()
     filters: Not(HasAttr(status, "incoming"))
     actions: RingTone(stop)
+-
+    trigger: Time(12,29)
+    actions: Debug("A Test")
+

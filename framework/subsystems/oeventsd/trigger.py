@@ -14,7 +14,9 @@ logger = logging.getLogger('oeventsd')
 
 import dbus
 
+#============================================================================#
 class Trigger(object):
+#============================================================================#
     """A trigger is the initial event that will activate a rule.
 
        When a trigger is activated, it call the rule __call__ method,
@@ -49,9 +51,21 @@ class Trigger(object):
         """
         pass
 
+#============================================================================#
 class DBusTrigger(Trigger):
+#============================================================================#
     """A special trigger that wait for a given DBus signal to trigger its rules"""
     def __init__(self, bus, service, obj, interface, signal):
+        """Create the DBus trigger
+        
+        arguments:
+        - bus       the DBus bus name
+        - service   the DBus name of the service
+        - obj       the DBus path of the object
+        - interface the Dbus interface of the signal
+        - signal    the DBus name of the signal
+        
+        """
         super(DBusTrigger, self).__init__()
         # some arguments checking
         assert isinstance(service, str)
@@ -76,7 +90,9 @@ class DBusTrigger(Trigger):
     def on_signal(self, *args):
         self(args=args)
 
+#============================================================================#
 class CallStatusTrigger(DBusTrigger):
+#============================================================================#
     """Just a sugar trigger for a GSM call status change"""
     def __init__(self):
         bus = dbus.SystemBus()
@@ -93,4 +109,26 @@ class CallStatusTrigger(DBusTrigger):
 
     def __repr__(self):
         return "CallStatus"
+        
+#============================================================================#
+class TimeTrigger(DBusTrigger):
+#============================================================================#
+    def __init__(self, hour, minute):
+        self.hour = hour
+        self.minute = minute
+        bus = dbus.SystemBus()
+        super(TimeTrigger, self).__init__(
+            bus,
+            'org.freesmartphone.otimed',
+            '/org/freesmartphone/Time',
+            'org.freesmartphone.Time',
+            'Minute'
+        )
+    def on_signal(self, year, mon, day, hour, min, sec, wday, yday, isdst):
+        if self.hour == hour and self.minute == min:
+            logger.debug("%s triggered", self)
+            self()
+
+    def __repr__(self):
+        return "Time(%d:%d)" % (self.hour, self.minute)
 

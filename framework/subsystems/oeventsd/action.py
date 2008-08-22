@@ -14,15 +14,30 @@ logger = logging.getLogger('oeventsd')
 
 import dbus
 
+#============================================================================#
 class Action(object):
+#============================================================================#
     """An action is a functor object that is called by a rule"""
     def __init__(self):
         pass
     def __call__(self, **kargs):
-        logger.info('%s called', self)
+        logger.info("%s called", self)
+    def __repr__(self):
+        return "unamed action"
+    
+#============================================================================#
+class DebugAction(Action):
+#============================================================================#
+    def __init__(self, msg):
+        self.msg = msg
+    def __call__(self, **kargs):
+        logger.info("DebugAction : %s", self.msg)
+    def __repr__(self):
+        return "Debug(\"%s\")" % self.msg
 
-
+#============================================================================#
 class DBusAction(Action):
+#============================================================================#
     """A special action that will call a DBus method"""
     def __init__(self, bus, service, obj, interface, method, *args):
         super(DBusAction, self).__init__()
@@ -60,7 +75,9 @@ class DBusAction(Action):
     def __repr__(self):
         return "%s(%s)" % (self.method, self.args)
 
+#============================================================================#
 class AudioAction(DBusAction):
+#============================================================================#
     def __init__(self, file = None, action = 'play'):
         bus = dbus.SystemBus()
         service = 'org.freesmartphone.odeviced'
@@ -69,7 +86,9 @@ class AudioAction(DBusAction):
         method = 'PlaySound' if action == 'play' else 'StopSound'
         super(AudioAction, self).__init__(bus, service, obj, interface, method, file)
 
+#============================================================================#
 class VibratorAction(DBusAction):
+#============================================================================#
     def __init__(self, target = 'neo1973_vibrator', action = 'start'):
         bus = dbus.SystemBus()
         service = 'org.freesmartphone.odeviced'

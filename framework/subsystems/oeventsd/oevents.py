@@ -41,14 +41,18 @@ class EventsManager(dbus.service.Object):
        because the events can be defined into a configuration file.
     """
     def __init__(self, bus):
+        # Those attributes are needed by the framework system
         self.path = '/org/freesmartphone/Events'
         self.interface = 'org.freesmartphone.Events'
         self.bus = bus
+
         super(EventsManager, self).__init__(bus, self.path)
+        # The set of rules is empty
         self.rules = []
         logger.info( "%s %s initialized. Serving %s at %s", self.__class__.__name__, __version__, self.interface, self.path )
 
     def add_rule(self, rule):
+        """Add a new rule, and acticate it"""
         self.rules.append(rule)
         rule.init()
 

@@ -15,13 +15,15 @@ logger = logging.getLogger('oeventsd')
 import yaml
 import re
 
-from trigger import Trigger, CallStatusTrigger
+from trigger import Trigger, CallStatusTrigger, TimeTrigger
 from filter import Filter, AttributeFilter
-from action import Action, AudioAction, VibratorAction
+from action import Action, AudioAction, VibratorAction, DebugAction
 from ring_tone_action import RingToneAction
 from rule import Rule
 
+#============================================================================#
 class FunctionMetaClass(type):
+#============================================================================#
     """The meta class for Function class"""
     def __init__(cls, name, bases, dict):
         super(FunctionMetaClass, cls).__init__(name, bases, dict)
@@ -29,7 +31,9 @@ class FunctionMetaClass(type):
             logger.debug("register function %s", dict['name'])
             Function.functions[dict['name']] = cls
 
+#============================================================================#
 class Function(object):
+#============================================================================#
     __metaclass__ = FunctionMetaClass
     functions = {}
 
@@ -109,15 +113,27 @@ class HasAttr(Function):
     def __call__(self, name, value):
         kargs = {name:value}
         return AttributeFilter(**kargs)
+        
+class Debug(Function):
+    name = 'Debug'
+    def __call__(self, msg):
+        return DebugAction(msg)
+        
+class Time(Function):
+    name = 'Time'
+    def __call__(self, hour, minute):
+        return TimeTrigger(hour, minute)
 
 def as_rule(r):
-    assert isinstance(r, dict)
+    assert isinstance(r, dict), type(r)
     trigger = r['trigger']
     filters = r.get('filters', [])
     actions = r['actions']
     return Rule(trigger, filters, actions)
 
+#============================================================================#
 class Parser(object):
+#============================================================================#
     def parse_rules(self, src):
         rules = yaml.load(src)
         ret = []
@@ -125,7 +141,7 @@ class Parser(object):
             try:
                 ret.append(as_rule(r))
             except Exception, e:
-                logger.Error("can't parse rule : %s", e)
+                logger.error("can't parse rule %s : %s", r, e)
         return ret
 
 if __name__ == '__main__':
