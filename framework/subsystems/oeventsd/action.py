@@ -17,17 +17,22 @@ import dbus
 #============================================================================#
 class Action(object):
 #============================================================================#
-    """An action is a functor object that is called by a rule"""
+    """
+    An action is a functor object that is called by a rule
+    """
     def __init__(self):
         pass
     def __call__(self, **kargs):
         logger.info("%s called", self)
     def __repr__(self):
         return "unamed action"
-    
+
 #============================================================================#
 class DebugAction(Action):
 #============================================================================#
+    """
+    A special action for debugging purposes
+    """
     def __init__(self, msg):
         self.msg = msg
     def __call__(self, **kargs):
@@ -38,7 +43,9 @@ class DebugAction(Action):
 #============================================================================#
 class DBusAction(Action):
 #============================================================================#
-    """A special action that will call a DBus method"""
+    """
+    A special action that will call a DBus method
+    """
     def __init__(self, bus, service, obj, interface, method, *args):
         super(DBusAction, self).__init__()
         self.bus = bus
@@ -78,6 +85,9 @@ class DBusAction(Action):
 #============================================================================#
 class AudioAction(DBusAction):
 #============================================================================#
+    """
+    A dbus action on the freesmartphone audio device
+    """
     def __init__(self, file = None, action = 'play'):
         bus = dbus.SystemBus()
         service = 'org.freesmartphone.odeviced'
@@ -87,8 +97,29 @@ class AudioAction(DBusAction):
         super(AudioAction, self).__init__(bus, service, obj, interface, method, file)
 
 #============================================================================#
+class AudioScenarioAction(DBusAction):
+#============================================================================#
+    """
+    A dbus action on the freesmartphone audio device
+    """
+    def __init__(self, file = None, action = 'push' ):
+        bus = dbus.SystemBus()
+        service = 'org.freesmartphone.odeviced'
+        obj = '/org/freesmartphone/Device/Audio'
+        interface = 'org.freesmartphone.Device.Audio'
+        if action == 'push':
+            # FIXME gsmhandset ugly ugly hardcoded
+            super(AudioScenarioAction, self).__init__(bus, service, obj, interface, "PushScenario", "gsmhandset")
+        else:
+            super(AudioScenarioAction, self).__init__(bus, service, obj, interface, "PullScenario" )
+
+#============================================================================#
 class VibratorAction(DBusAction):
 #============================================================================#
+    """
+    A dbus action on the Neo1973 vibrator device
+    """
+    # FIXME device specific, needs to go away from here
     def __init__(self, target = 'neo1973_vibrator', action = 'start'):
         bus = dbus.SystemBus()
         service = 'org.freesmartphone.odeviced'

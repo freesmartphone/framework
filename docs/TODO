@@ -13,6 +13,9 @@
 * get more characteristics from the Display object
 
 == oeventd ==
+* put metadata for parser into actions, triggers, and filters, so
+a) we no longer need to specify the factories in the parser one-by-one, and
+b) they can be treated as plugins (just toss a new one into a directory and it will be found on next startup)
 
 == ousaged ==
 

@@ -16,6 +16,7 @@ __version__ = "0.2.0"
 
 from framework.config import config
 
+# FIXME: treat triggers, actions, and filters as plugins and load them on demand
 from trigger import Trigger, CallStatusTrigger
 from filter import Filter, AttributeFilter
 from action import Action, AudioAction

@@ -24,7 +24,6 @@ import os
 import logging
 logger = logging.getLogger('oeventsd')
 
-
 #=========================================================================#
 class RingToneAction(Action):
 #=========================================================================#

@@ -57,14 +57,14 @@ class DBusTrigger(Trigger):
     """A special trigger that wait for a given DBus signal to trigger its rules"""
     def __init__(self, bus, service, obj, interface, signal):
         """Create the DBus trigger
-        
+
         arguments:
         - bus       the DBus bus name
         - service   the DBus name of the service
         - obj       the DBus path of the object
         - interface the Dbus interface of the signal
         - signal    the DBus name of the signal
-        
+
         """
         super(DBusTrigger, self).__init__()
         # some arguments checking
@@ -109,7 +109,7 @@ class CallStatusTrigger(DBusTrigger):
 
     def __repr__(self):
         return "CallStatus"
-        
+
 #============================================================================#
 class TimeTrigger(DBusTrigger):
 #============================================================================#

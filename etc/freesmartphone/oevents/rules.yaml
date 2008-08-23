@@ -31,4 +31,12 @@
 -
     trigger: Time(12,29)
     actions: Debug("A Test")
-
+-
+    trigger: CallStatus()
+    filters: HasAttr(status, "active")
+    actions: PushScenario()
+-
+    trigger: CallStatus()
+    filters: HasAttr(status, "release"))
+    actions: PullScenario()
+-

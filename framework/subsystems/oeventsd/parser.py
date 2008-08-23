@@ -17,7 +17,7 @@ import re
 
 from trigger import Trigger, CallStatusTrigger, TimeTrigger
 from filter import Filter, AttributeFilter
-from action import Action, AudioAction, VibratorAction, DebugAction
+from action import Action, AudioAction, AudioScenarioAction, VibratorAction, DebugAction
 from ring_tone_action import RingToneAction
 from rule import Rule
 
@@ -73,6 +73,8 @@ def function_constructor(loader, node):
 yaml.add_constructor(u'!Function', function_constructor)
 yaml.add_implicit_resolver(u'!Function', pattern)
 
+# FIXME compute these from the actual triggers and actions
+
 class CallStatus(Function):
     name = 'CallStatus'
     def __call__(self):
@@ -87,6 +89,16 @@ class StopSound(Function):
     name = 'StopSound'
     def __call__(self, file):
         return AudioAction(file, 'stop')
+
+class PushScenario(Function):
+    name = 'PushScenario'
+    def __call__(self):
+        return AudioScenarioAction(file, 'push')
+
+class PullScenario(Function):
+    name = 'PullScenario'
+    def __call__(self):
+        return AudioScenarioAction(file, 'pull')
 
 class RingTone(Function):
     name = 'RingTone'
