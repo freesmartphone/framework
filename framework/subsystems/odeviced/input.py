@@ -8,11 +8,11 @@ GPLv2 or later
 """
 
 MODULE_NAME = "odeviced.input"
-__version__ = "0.9.9"
+__version__ = "0.9.9.1"
 
 from framework.patterns import asyncworker
 from helpers import DBUS_INTERFACE_PREFIX, DBUS_PATH_PREFIX, readFromFile, writeToFile, cleanObjectName
-from config import config
+from framework.config import config
 
 import gobject
 import dbus.service

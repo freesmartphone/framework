@@ -8,9 +8,9 @@ GPLv2 or later
 from __future__ import with_statement
 
 MODULE_NAME = "odeviced.accelerometer"
-__version__ = "0.2.0"
+__version__ = "0.2.1"
 
-from config import config
+from framework.config import config
 
 from threading import RLock, Thread
 import os, struct

@@ -20,10 +20,10 @@ GPLv2 or later
 """
 
 MODULE_NAME = "odeviced.idlenotifier"
-__version__ = "0.9.9.1"
+__version__ = "0.9.9.2"
 
 from helpers import DBUS_INTERFACE_PREFIX, DBUS_PATH_PREFIX, readFromFile, writeToFile
-from config import config
+from framework.config import config
 
 import gobject
 import dbus.service

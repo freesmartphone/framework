@@ -8,10 +8,10 @@ GPLv2 or later
 """
 
 MODULE_NAME = "odeviced.info"
-__version__ = "0.1.2"
+__version__ = "0.1.3"
 
 from helpers import DBUS_INTERFACE_PREFIX, DBUS_PATH_PREFIX, readFromFile, writeToFile
-from config import config
+from framework.config import config
 
 import dbus.service
 
