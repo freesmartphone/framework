@@ -20,7 +20,7 @@ import parser
 import gobject # pygobject
 
 import serial # pyserial
-import Queue, fcntl, os, time # stdlib
+import Queue, fcntl, os, time, types # stdlib
 
 import logging
 logger = logging.getLogger( "ogsmd" )
@@ -45,8 +45,6 @@ class VirtualChannel( object ):
     This class represents a sequential serial transport channel.
     """
 
-    DEBUGLOG = 0
-
     #
     # public API
     #
@@ -59,9 +57,6 @@ class VirtualChannel( object ):
         self.watchReadyToSend = None
         self.watchReadyToRead = None
         self.serial = None
-
-        if VirtualChannel.DEBUGLOG:
-            self.debugFile = open( "/tmp/%s.log" % self.name, "w" )
 
     def __repr__( self ):
         return "<%s via %s>" % ( self.__class__.__name__, self.serial.port if self.serial is not None else "unknown" )
@@ -214,10 +209,9 @@ class VirtualChannel( object ):
             inWaiting = self.serial.inWaiting()
         except IOError:
             inWaiting = 0
+            # should we really continue here?
         data = self.serial.read( inWaiting )
-        logger.debug( "(%s: got %d bytes from %s: %s)", self, len(data), self.serial.port, repr(data) )
-        if VirtualChannel.DEBUGLOG:
-            self.debugFile.write( data )
+        logger.debug( "%s: got %d bytes from: %s", self, len(data), repr(data) )
         self.readyToRead( data )
 
         self._hookPostReading()
@@ -227,7 +221,6 @@ class VirtualChannel( object ):
         """Called, if source is ready to receive data."""
         assert source == self.serial.fd, "ready to write on bogus source"
         assert condition == gobject.IO_OUT, "ready to write on bogus condition"
-
 
         self._hookPreSending()
         self.readyToSend()
@@ -289,7 +282,7 @@ class QueuedVirtualChannel( VirtualChannel ):
         else:
             self.timeout = 5 # default timeout in seconds
 
-        logger.info( "(%s: Creating channel with timeout = %d seconds)", self, self.timeout )
+        logger.info( "%s: Creating channel with timeout = %d seconds", self, self.timeout )
 
     def installParser( self ):
         """
@@ -303,6 +296,9 @@ class QueuedVirtualChannel( VirtualChannel ):
         """
         Enqueue data block for sending over the channel.
         """
+        if type( data ) == types.UnicodeType:
+            logger.warning( "%s: Got unicode input. Trying to convert to plain string..." % self )
+            data = str( data )
         self.q.put( ( data, response_cb, error_cb, timeout or self.timeout ) )
         if not self.connected:
             return
@@ -330,21 +326,18 @@ class QueuedVirtualChannel( VirtualChannel ):
             return
         self._handleCommandCancellation()
 
-    @logged
+    #@logged
     def readyToSend( self ):
         """
         Reimplemented for internal purposes.
         """
-        if __debug__: print "(%s queue is: %s)" % ( repr(self), repr(self.q.queue) )
+        if __debug__: logger.debug( "%s queue is: %s" % ( repr(self), repr(self.q.queue) ) )
         if self.q.empty():
-            if __debug__: print "(%s: nothing in request queue)" % repr(self)
+            if __debug__: logger.debug( "%s: nothing in request queue" % repr(self) )
             self.watchReadyToSend = None
             return False
 
-        logger.debug( "(%s: sending %d bytes to %s: %s)" % ( repr(self), len(self.q.peek()[0]), self.serial.port, repr(self.q.peek()[0]) ) )
-        if VirtualChannel.DEBUGLOG:
-            self.debugFile.write( self.q.peek()[0] ) # channel data
-
+        logger.debug( "%s: sending %d bytes: %s" % ( repr(self), len(self.q.peek()[0]), repr(self.q.peek()[0]) ) )
         self.serial.write( self.q.peek()[0] ) # channel data
         if self.q.peek()[3]: # channel timeout
             self.watchTimeout = gobject.timeout_add_seconds( self.q.peek()[3], self._handleCommandTimeout )
@@ -362,7 +355,7 @@ class QueuedVirtualChannel( VirtualChannel ):
 
         The default implementation does nothing.
         """
-        logger.info( "(%s: unsolicited data incoming: %s)", self, repr(response) )
+        logger.info( "%s: unhandled unsolicited data incoming: %s", self, repr(response) )
 
     def handleResponseToRequest( self, request, response ):
         """
@@ -372,17 +365,20 @@ class QueuedVirtualChannel( VirtualChannel ):
         """
         reqstring, ok_cb, error_cb, timeout = request
         if not ok_cb and not error_cb:
-            logger.debug( "(%s: COMPLETED '%s' => %s)" % ( repr(self), reqstring.strip(), response ) )
+            logger.debug( "%s: COMPLETED '%s' => %s" % ( repr(self), reqstring.strip(), response ) )
         else:
-            logger.debug( "(%s: COMPLETED '%s' => %s)" % ( repr(self), reqstring.strip(), response ) )
+            logger.debug( "%s: COMPLETED '%s' => %s" % ( repr(self), reqstring.strip(), response ) )
 
-            # check whether given callback is a generator
-            # if so, advance and give result, if not
-            # call it as usual
-            if hasattr( ok_cb, "send" ):
-                ok_cb.send( response )
-            else:
-                ok_cb( reqstring.strip(), response )
+            try:
+                # check whether given callback is a generator
+                # if so, advance and give result, if not
+                # call it as usual
+                if hasattr( ok_cb, "send" ):
+                    ok_cb.send( response )
+                else:
+                    ok_cb( reqstring.strip(), response )
+            except Exception, e:
+                logger.exception( "unhandled exception in response callback: %s" % e )
 
     def handleCommandTimeout( self, request ):
         """
@@ -392,16 +388,16 @@ class QueuedVirtualChannel( VirtualChannel ):
         """
         reqstring, ok_cb, error_cb, timeout = request
         if not ok_cb and not error_cb:
-            logger.debug( "(%s: TIMEOUT '%s' => ???)" % ( repr(self), reqstring.strip() ) )
+            logger.debug( "%s: TIMEOUT '%s' => ???" % ( repr(self), reqstring.strip() ) )
         else:
-            logger.debug( "(%s: TIMEOUT '%s' => ???)" % ( repr(self), reqstring.strip() ) )
+            logger.debug( "%s: TIMEOUT '%s' => ???" % ( repr(self), reqstring.strip() ) )
             error_cb( reqstring.strip(), ( "timeout", timeout ) )
 
     #
     # private API
     #
 
-    @logged
+    #@logged
     def _handleCommandCancellation( self ):
         """
         Called, when the current command should be cancelled.
@@ -414,12 +410,12 @@ class QueuedVirtualChannel( VirtualChannel ):
         gobject.source_remove( self.watchTimeout )
         self.watchTimeout = None
         # send EOF to cancel current command
-        logger.debug( "(%s: sending EOF)" % repr(self) )
+        logger.debug( "%s: sending EOF" % repr(self) )
         self.serial.write( "\x1A" )
-        logger.debug( "(%s: EOF sent)" % repr(self) )
+        logger.debug( "%s: EOF sent" % repr(self) )
         # We do _not_ erase the current command and send cancellation ACK,
         # otherwise we would get an "unsolicited" OK as response. If for
-        # whatever reason we want to change the semantics, we could do
+        # whatever reason we would like to change the semantics, we could do
         # with something like:
         #   request = self.q.get()
         #   reqstring, ok_cb, error_cb, timeout = request
@@ -492,7 +488,7 @@ class DelegateChannel( QueuedVirtualChannel ):
         assert self.delegate is None, "delegate already set"
         self.delegate = object
 
-    @logged
+    #@logged
     def _handleUnsolicitedResponse( self, response ):
         """
         Reimplemented for internal purposes.
@@ -522,11 +518,15 @@ class DelegateChannel( QueuedVirtualChannel ):
             # no appropriate handler found, hand over to generic handler
             return self.handleUnsolicitedResponse( data )
         else:
-            if len( response ) == 2:
-                # unsolicited data contains a PDU
-                method( values.strip(), response[1] )
-            else:
-                method( values.strip() )
+            try:
+                if len( response ) == 2:
+                    # unsolicited data contains a PDU
+                    method( values.strip(), response[1] )
+                else:
+                    method( values.strip() )
+            except Exception, e:
+                logger.exception( "unhandled exception in unsolicited response handler: %s" % e )
+                return False
 
         return True # unsolicited response handled OK
 
