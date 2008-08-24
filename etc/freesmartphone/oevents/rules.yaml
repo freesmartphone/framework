@@ -14,6 +14,7 @@
 # - Not(filter)             : create a neg filter
 # - PlaySound(file)         : Action that starts to play an audio file
 # - StopSound(file)         : Action that stop an audio file
+# - SetScenario(name)       : Action that sets an audio scenario
 # - StartVibration
 # - StopVibration
 # - RingTone(cmd)           : cmd can be 'start' or 'stop'
@@ -34,9 +35,10 @@
 -
     trigger: CallStatus()
     filters: HasAttr(status, "active")
-    actions: PushScenario()
+    actions: SetScenario(gsmhandset)
 -
     trigger: CallStatus()
     filters: HasAttr(status, "release"))
-    actions: PullScenario()
+    actions: SetScenario(stereoout)
 -
+

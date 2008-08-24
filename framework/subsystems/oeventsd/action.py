@@ -88,13 +88,13 @@ class AudioAction(DBusAction):
     """
     A dbus action on the freesmartphone audio device
     """
-    def __init__(self, file = None, action = 'play'):
+    def __init__(self, scenario = None, action = 'play'):
         bus = dbus.SystemBus()
         service = 'org.freesmartphone.odeviced'
         obj = '/org/freesmartphone/Device/Audio'
         interface = 'org.freesmartphone.Device.Audio'
         method = 'PlaySound' if action == 'play' else 'StopSound'
-        super(AudioAction, self).__init__(bus, service, obj, interface, method, file)
+        super(AudioAction, self).__init__(bus, service, obj, interface, method, scenario)
 
 #============================================================================#
 class AudioScenarioAction(DBusAction):
@@ -102,16 +102,16 @@ class AudioScenarioAction(DBusAction):
     """
     A dbus action on the freesmartphone audio device
     """
-    def __init__(self, file = None, action = 'push' ):
+    def __init__(self, scenario = None, action = 'set' ):
         bus = dbus.SystemBus()
         service = 'org.freesmartphone.odeviced'
         obj = '/org/freesmartphone/Device/Audio'
         interface = 'org.freesmartphone.Device.Audio'
-        if action == 'push':
+        if action == 'set':
             # FIXME gsmhandset ugly ugly hardcoded
-            super(AudioScenarioAction, self).__init__(bus, service, obj, interface, "PushScenario", "gsmhandset")
+            super(AudioScenarioAction, self).__init__(bus, service, obj, interface, "SetScenario", scenario)
         else:
-            super(AudioScenarioAction, self).__init__(bus, service, obj, interface, "PullScenario" )
+            logger.error( "unhandled action for Audio scenario" )
 
 #============================================================================#
 class VibratorAction(DBusAction):

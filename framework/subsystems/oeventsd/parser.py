@@ -90,15 +90,10 @@ class StopSound(Function):
     def __call__(self, file):
         return AudioAction(file, 'stop')
 
-class PushScenario(Function):
-    name = 'PushScenario'
-    def __call__(self):
-        return AudioScenarioAction(file, 'push')
-
-class PullScenario(Function):
-    name = 'PullScenario'
-    def __call__(self):
-        return AudioScenarioAction(file, 'pull')
+class SetScenario(Function):
+    name = 'SetScenario'
+    def __call__(self, scenario):
+        return AudioScenarioAction(scenario)
 
 class RingTone(Function):
     name = 'RingTone'
@@ -125,12 +120,12 @@ class HasAttr(Function):
     def __call__(self, name, value):
         kargs = {name:value}
         return AttributeFilter(**kargs)
-        
+
 class Debug(Function):
     name = 'Debug'
     def __call__(self, msg):
         return DebugAction(msg)
-        
+
 class Time(Function):
     name = 'Time'
     def __call__(self, hour, minute):
