@@ -68,6 +68,13 @@ devidle = getInterface( \
     "org.freesmartphone.Device.IdleNotifier" \
     )
 
+devpow = getInterface( \
+    bus,
+    "org.freesmartphone.odeviced",
+    "/org/freesmartphone/Device",
+    "org.freesmartphone.Device.PowerManagement" \
+    )
+
 # device
 gsmdevice = getInterface( bus,
     "org.freesmartphone.ogsmd",

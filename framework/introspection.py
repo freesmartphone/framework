@@ -27,14 +27,14 @@ from xml.parsers.expat import ExpatError, ParserCreate
 from dbus.exceptions import IntrospectionParserException
 
 class _Parser(object):
-    __slots__ = ('map', 
-                 'in_iface', 
-                 'in_method', 
+    __slots__ = ('map',
+                 'in_iface',
+                 'in_method',
                  'in_signal',
                  'in_property',
                  'property_access',
                  'in_sig',
-                 'out_sig', 
+                 'out_sig',
                  'node_level',
                  'in_signal')
     def __init__(self):
@@ -44,7 +44,7 @@ class _Parser(object):
         self.in_signal = ''
         self.in_property = ''
         self.property_access = ''
-        self.in_sig = [] 
+        self.in_sig = []
         self.out_sig = []
         self.node_level = 0
 
@@ -107,7 +107,7 @@ class _Parser(object):
                     self.map['interfaces'][self.in_iface]['methods'][self.in_method] = (self.in_sig, self.out_sig)
 
                 self.in_method = ''
-                self.in_sig = [] 
+                self.in_sig = []
                 self.out_sig = []
             elif (self.in_signal and name == 'signal'):
                 if not self.map['interfaces'].has_key(self.in_iface):
@@ -131,13 +131,13 @@ class _Parser(object):
                     self.map['interfaces'][self.in_iface]['properties'][self.in_property] = (self.in_sig, self.property_access)
 
                 self.in_property = ''
-                self.in_sig = [] 
+                self.in_sig = []
                 self.out_sig = []
                 self.property_access = ''
 
 
 def process_introspection_data(data):
-    """Return a structure mapping all of the elements from the introspect data 
+    """Return a structure mapping all of the elements from the introspect data
        to python types TODO: document this structure
 
     :Parameters:
@@ -148,3 +148,4 @@ def process_introspection_data(data):
         return _Parser().parse(data)
     except Exception, e:
         raise IntrospectionParserException('%s: %s' % (e.__class__, e))
+

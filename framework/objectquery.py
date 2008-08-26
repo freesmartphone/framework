@@ -12,11 +12,14 @@ GPLv2 or later
 
 __version__ = "0.5.1"
 
+from .introspection import process_introspection_data
 from .config import DBUS_INTERFACE_PREFIX
+from framework.patterns import tasklet
 
 import dbus, dbus.service
 
 import os, sys, logging, logging.handlers
+logger = logging # is this ok or do we need a formal logger for this module as well?
 
 loggingmap = { \
     "DEBUG": logging.DEBUG,
@@ -50,23 +53,56 @@ class Objects( dbus.service.Object ):
     DBUS_INTERFACE_FRAMEWORK = DBUS_INTERFACE_PREFIX + ".Framework"
     DBUS_INTERFACE_FRAMEWORK_OBJECTS = DBUS_INTERFACE_PREFIX + ".Objects"
 
+    InterfaceCache = {}
+
     def __init__( self, bus, controller ):
         self.interface = self.DBUS_INTERFACE_FRAMEWORK_OBJECTS
         self.path = "/org/freesmartphone/Framework"
+        self.bus = bus
         dbus.service.Object.__init__( self, bus, self.path )
         self.controller = controller
+
+    def _getInterfaceForObject( self, object, interface ):
+        obj = self.bus.get_object( "org.freesmartphone.frameworkd", object )
+        return dbus.Interface( obj, interface )
 
     #
     # dbus methods
     #
-    @dbus.service.method( DBUS_INTERFACE_FRAMEWORK_OBJECTS, "s", "ao" )
-    def ListObjectsByInterface( self, interface ):
-        if interface == "*":
-            return [x for x in self.controller.objects.values()]
-        elif interface.endswith( '*' ):
-            return [x for x in self.controller.objects.values() if x.interface.startswith( interface[:-1] )]
-        else:
-            return [x for x in self.controller.objects.values() if x.interface == interface]
+    @dbus.service.method( DBUS_INTERFACE_FRAMEWORK_OBJECTS, "s", "ao",
+                          async_callbacks=( "dbus_ok", "dbus_error" ) )
+    def ListObjectsByInterface( self, interface, dbus_ok, dbus_error ):
+
+        def task( self=self, interface=interface, dbus_ok=dbus_ok, dbus_error=dbus_error ):
+            if interface == "*":
+                dbus_ok( self.controller.objects.keys() )
+            else:
+                objects = []
+
+                for object in self.controller.objects:
+                    try:
+                        interfaces = Objects.InterfaceCache[object]
+                    except KeyError:
+                        logger.debug( "introspecting object %s..." % object )
+                        introspectionData = yield tasklet.WaitDBus( self._getInterfaceForObject( object, "org.freedesktop.DBus.Introspectable" ).Introspect )
+                        interfaces = process_introspection_data( introspectionData )["interfaces"]
+                        Objects.InterfaceCache[object] = interfaces
+
+                    logger.debug( "interfaces for object are %s" % interfaces )
+                    for iface in interfaces:
+                        if interface.endswith( '*' ):
+                            if iface.startswith( interface[:-1] ):
+                                objects.append( object )
+                                break
+                        else:
+                            if iface == interface:
+                                objects.append( object )
+                                break
+
+                logger.debug( "introspection fully done, result is %s" % objects )
+                dbus_ok( objects )
+
+        tasklet.Tasklet( task(), dbus_ok, dbus_error ).start()
 
     @dbus.service.method( DBUS_INTERFACE_FRAMEWORK, "", "as" )
     def ListDebugLoggers( self ):
