@@ -1,3 +1,7 @@
+2008-08-27	Jan Luebbe      <jluebbe@debian.org>
+
+	* [ousaged] The ResourceChanged signal now contains more information
+
 2008-08-27	Michael Lauer	<mickey@openmoko.org>
 
 	* [odeviced] Implement power status notifications using netlink socket

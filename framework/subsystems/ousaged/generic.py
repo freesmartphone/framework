@@ -53,21 +53,27 @@ class AbstractResource( object ):
             assert policy in ['auto', 'enabled'], "Can't change to policy %s for %s" % ( policy, self.name )
         if self.policy != policy:
             self.policy = policy
-            self.usageControl.ResourceChanged( self.name )
             self._update()
+            self.usageControl.ResourceChanged(
+                self.name, self.isEnabled, {"policy": self.policy, "refcount": len( self.users )}
+            )
 
     def request( self, user ):
         assert self.policy in ['auto', 'enabled'], "Request for %s is not allowed" % ( self.name )
         assert user not in self.users, "User %s already requested %s" % ( user, self.name )
         self.users.append( user )
-        self.usageControl.ResourceChanged( self.name )
         self._update()
+        self.usageControl.ResourceChanged(
+            self.name, self.isEnabled, {"policy": self.policy, "refcount": len( self.users )}
+        )
 
     def release( self, user ):
         assert user in self.users, "User %s did non request %s before releasing it" % ( user, self.name )
         self.users.remove( user )
-        self.usageControl.ResourceChanged( self.name )
         self._update()
+        self.usageControl.ResourceChanged(
+            self.name, self.isEnabled, {"policy": self.policy, "refcount": len( self.users )}
+        )
 
     def cleanup( self, user ):
         if user in self.users:
@@ -198,8 +204,8 @@ class GenericUsageControl( dbus.service.Object ):
     #
     # dbus signals
     #
-    @dbus.service.signal( DBUS_INTERFACE, "s" )
-    def ResourceChanged( self, resourcename ):
+    @dbus.service.signal( DBUS_INTERFACE, "sba{sv}" )
+    def ResourceChanged( self, resourcename, state, attributes ):
         pass
 
 #----------------------------------------------------------------------------#
