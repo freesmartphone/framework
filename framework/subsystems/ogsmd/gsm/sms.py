@@ -25,11 +25,11 @@ from ogsmd.gsm.convert import *
 # * SmsMessage (repraesentiert eine -- moeglicherweise Multipart -- Nachricht)
 # * Weitere, fuer spezifische SMS-Typen (Status Report) eigene Klassen? Ggfs. zu komplex.
 
-def decodeSMS( pdu ):
+def decodeSMS( pdu, direction ):
     # first convert the string into a bytestream
     bytes = [ int( pdu[i:i+2], 16 ) for i in range(0, len(pdu), 2) ]
 
-    sms = AbstractSMS()
+    sms = AbstractSMS( direction )
 
     offset = 0
     # SCA - Service Center address
@@ -47,7 +47,8 @@ def decodeSMS( pdu ):
     sms.pdu_srr = pdu_type & 0x20 != 0
     sms.pdu_sri = sms.pdu_srr
     sms.pdu_vpf =  (pdu_type & 0x18)>>3
-    sms.pdu_rd = pdu_type & 0x4 != 0
+    # FIXME: Is VPF calculated right here?
+    sms.pdu_rd = pdu_type & 0x04 != 0
     sms.pdu_mms = sms.pdu_rd
 
     offset += 1
@@ -112,6 +113,8 @@ def parse_userdata( sms, ud_len, bytes ):
             sms.udh.append( (iei, ie_data) )
 
     # User Data FIXME
+    # We need to look at the DCS in order to be able to decide what
+    # to use here
 
     # We need to lose the padding bits before the start of the
     # seven-bit packed data, which means we need to figure out how
@@ -135,14 +138,15 @@ class PDUAddress:
         return prefix + str(self.number)
 
 class AbstractSMS:
-    def __init__( self ):
-        pass
+    def __init__( self, direction ):
+        self.direction = direction
     def pdu( self ):
         pass
     def serviceCenter( self ):
         pass
     def repr( self ):
-        return """AbstractSMS:
+        if sms.pdu_mti == 0:
+            return """AbstractSMS:
 ServiceCenter: %s
 TimeStamp: %s
 PID: %i
@@ -150,6 +154,15 @@ Number: %s
 Headers: %s
 Message: %s
 """ % (self.sca, self.scts, self.pid, self.oa, self.udh, self.ud)
+        else:
+            return """AbstractSMS:
+ServiceCenter: %s
+Valid: %s
+PID: %i
+Number: %s
+Headers: %s
+Message: %s
+""" % (self.sca, self.pdu_vpf, self.pid, self.oa, self.udh, self.ud)
 
 if __name__ == "__main__":
     pdus = [
@@ -170,9 +183,15 @@ if __name__ == "__main__":
     ]
 
     for pdu in pdus:
-        print "PDU: ", pdu
         print
-        sms = decodeSMS(pdu)
+        sms = decodeSMS(pdu, "MT")
         print sms.repr()
+        print "Orig PDU: ", pdu
+#        genpdu = sms.pdu()
+#        print "ReencPDU: ", genpdu
+#        if pdu != genpdu:
+#            print "ERROR: Reencoded SMS doesn't match"
+#        sms = decodeSMS(genpdu, "MT")
+#        print sms.repr()
 
 # vim: expandtab shiftwidth=4 tabstop=4
