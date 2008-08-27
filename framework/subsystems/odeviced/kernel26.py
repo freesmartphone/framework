@@ -8,7 +8,7 @@ GPLv2 or later
 """
 
 MODULE_NAME = "odeviced.kernel26"
-__version__ = "0.9.3"
+__version__ = "0.9.4"
 
 from helpers import DBUS_INTERFACE_PREFIX, DBUS_PATH_PREFIX, readFromFile, writeToFile, cleanObjectName
 from framework.config import config
@@ -138,7 +138,10 @@ class PowerSupply( dbus.service.Object ):
 
         self.powerStatus = "unknown"
         self.online = False
-        self.capacity = 0
+        self.capacity = -1
+
+    def isPresent( self ):
+        return not ( readFromFile( "%s/present" % self.node ) != '1' )
 
     def onUeventActivity( self, source, condition ):
         data = self.ueventsock.recv( 1024 )
@@ -157,25 +160,40 @@ class PowerSupply( dbus.service.Object ):
         gobject.idle_add( self.handlePropertyChange, dict( [ x.split('=') for x in parts if '=' in x ] ) )
         return False # don't call me again
 
-    def onCapacityCheck( self ):
+    def readCapacity( self ):
+        if not self.isPresent():
+            return -1
         data = readFromFile( "%s/capacity" % self.node )
         try:
             capacity = int( data )
         except ValueError:
-            pass
+            energy_full = readFromFile( "%s/energy_full" % self.node )
+            energy_now = readFromFile( "%s/energy_now" % self.node )
+            if energy_full == "N/A" or energy_now == "N/A":
+                return -1
+            else:
+                return 100 * int(energy_now) / int(energy_full)
         else:
-            self.capacity = capacity # save for later queries
-            if self.online:
-                if capacity > 98:
-                    self.sendPowerStatusIfChanged( "Full" )
-            else: # offline
-                if capacity < 5:
-                    self.sendPowerStatusIfChanged( "Empty" )
-                elif capacity < 10:
-                    self.sendPowerStatusIfChanged( "Critical" )
+            return capacity
+
+    def onCapacityCheck( self ):
+        if not self.isPresent():
+            return True # call me again
+        capacity = self.readCapacity()
+        self.sendCapacityIfChanged( capacity )
+        if self.online:
+            if capacity > 98:
+                self.sendPowerStatusIfChanged( "Full" )
+        else: # offline
+            if capacity <= 5:
+                self.sendPowerStatusIfChanged( "Empty" )
+            elif capacity <= 10:
+                self.sendPowerStatusIfChanged( "Critical" )
         return True # call me again
 
     def handlePropertyChange( self, properties ):
+        if not self.isPresent():
+            return False # don't call me again
         logger.debug( "got property change from uevent socket: %s" % properties )
         try:
             self.online = ( properties["POWER_SUPPLY_ONLINE"] == '1' )
@@ -196,8 +214,12 @@ class PowerSupply( dbus.service.Object ):
         if powerStatus != self.powerStatus:
             self.PowerStatus( powerStatus )
 
+    def sendCapacityIfChanged( self, capacity ):
+        if capacity != self.capacity:
+            self.Capacity( capacity )
+
     #
-    # dbus
+    # dbus methods
     #
     @dbus.service.method( DBUS_INTERFACE, "", "s" )
     def GetName( self ):
@@ -211,27 +233,39 @@ class PowerSupply( dbus.service.Object ):
             dict[key] = readFromFile( "%s/%s" % ( self.node, key ) )
         return dict
 
+    # FIXME deprecated, should be removed
     @dbus.service.method( DBUS_INTERFACE, "", "i" )
     def GetEnergyPercentage( self ):
-        capacity = readFromFile( "%s/capacity" % self.node )
-        if capacity != "N/A":
-            return int(capacity)
+        if self.capacity == -1:
+            self.onCapacityCheck()
+        return self.capacity
 
-        energy_full = readFromFile( "%s/energy_full" % self.node )
-        energy_now = readFromFile( "%s/energy_now" % self.node )
-        if energy_full == "N/A" or energy_now == "N/A":
-            return -1
-        else:
-            return 100 * int(energy_now) / int(energy_full)
+    @dbus.service.method( DBUS_INTERFACE, "", "i" )
+    def GetCapacity( self ):
+        if self.capacity == -1:
+            self.onCapacityCheck()
+        return self.capacity
 
     @dbus.service.method( DBUS_INTERFACE, "", "s" )
     def GetPowerStatus( self ):
         return self.powerStatus
 
+    @dbus.service.method( DBUS_INTERFACE, "", "b" )
+    def IsPresent( self ):
+        return self.isPresent()
+
+    #
+    # dbus signals
+    #
     @dbus.service.signal( DBUS_INTERFACE, "s" )
     def PowerStatus( self, status ):
         self.powerStatus = status
         logger.info( "power status now %s" % status )
+
+    @dbus.service.signal( DBUS_INTERFACE, "i" )
+    def Capacity( self, percent ):
+        self.capacity = percent
+        logger.info( "capacity now %d" % percent )
 
 #----------------------------------------------------------------------------#
 class PowerSupplyApm( dbus.service.Object ):
