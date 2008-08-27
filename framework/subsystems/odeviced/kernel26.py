@@ -8,12 +8,17 @@ GPLv2 or later
 """
 
 MODULE_NAME = "odeviced.kernel26"
-__version__ = "0.9.2"
+__version__ = "0.9.3"
 
 from helpers import DBUS_INTERFACE_PREFIX, DBUS_PATH_PREFIX, readFromFile, writeToFile, cleanObjectName
+from framework.config import config
 
 import dbus.service
-import os, time, sys
+
+import gobject
+
+import os, time, sys, socket
+socket.NETLINK_KOBJECT_UEVENT = 15 # not present in earlier versions
 
 import logging
 logger = logging.getLogger( MODULE_NAME )
@@ -124,6 +129,73 @@ class PowerSupply( dbus.service.Object ):
         logger.info( "%s %s initialized. Serving %s at %s" % ( self.__class__.__name__, __version__, self.interface, self.path ) )
         self.node = node
 
+        self.ueventsock = s = socket.socket( socket.AF_NETLINK, socket.SOCK_DGRAM, socket.NETLINK_KOBJECT_UEVENT )
+        s.bind( ( os.getpid(), 1 ) )
+        self.ueventsockWatch = gobject.io_add_watch( s.fileno(), gobject.IO_IN, self.onUeventActivity )
+        capacityCheckTimeout = config.getInt( MODULE_NAME, "capacity_check_timeout", 60*5 )
+        self.capacityWatch = gobject.timeout_add_seconds( capacityCheckTimeout, self.onCapacityCheck )
+        gobject.idle_add( self.onColdstart )
+
+        self.powerStatus = "unknown"
+        self.online = False
+        self.capacity = 0
+
+    def onUeventActivity( self, source, condition ):
+        data = self.ueventsock.recv( 1024 )
+        logger.debug( "got data from uevent socket: %s" % repr(data) )
+        # split up and check whether this is really for us
+        parts = data.split( '\x00' )
+        name = parts[0]
+        myname = "power_supply/%s" % self.node.split("/")[-1]
+        if name.endswith( myname ):
+            gobject.idle_add( self.handlePropertyChange, dict( [ x.split('=') for x in parts if '=' in x ] ) )
+        return True # call me again
+
+    def onColdstart( self ):
+        data = readFromFile( "%s/uevent" % self.node )
+        parts = data.split( '\n' )
+        gobject.idle_add( self.handlePropertyChange, dict( [ x.split('=') for x in parts if '=' in x ] ) )
+        return False # don't call me again
+
+    def onCapacityCheck( self ):
+        data = readFromFile( "%s/capacity" % self.node )
+        try:
+            capacity = int( data )
+        except ValueError:
+            pass
+        else:
+            self.capacity = capacity # save for later queries
+            if self.online:
+                if capacity > 98:
+                    self.sendPowerStatusIfChanged( "Full" )
+            else: # offline
+                if capacity < 5:
+                    self.sendPowerStatusIfChanged( "Empty" )
+                elif capacity < 10:
+                    self.sendPowerStatusIfChanged( "Critical" )
+        return True # call me again
+
+    def handlePropertyChange( self, properties ):
+        logger.debug( "got property change from uevent socket: %s" % properties )
+        try:
+            self.online = ( properties["POWER_SUPPLY_ONLINE"] == '1' )
+        except KeyError:
+            pass
+        try:
+            powerStatus = properties["POWER_SUPPLY_STATUS"]
+        except KeyError:
+            pass
+        else:
+            # FIXME: what should we do with the "Not Charging" state? It seems to be only a temporary state
+            # occuring during the time the charger has been physically inserted but not been yet enumerated on USB
+            if powerStatus != "Not charging":
+                self.sendPowerStatusIfChanged( powerStatus )
+        return False # don't call me again
+
+    def sendPowerStatusIfChanged( self, powerStatus ):
+        if powerStatus != self.powerStatus:
+            self.PowerStatus( powerStatus )
+
     #
     # dbus
     #
@@ -145,13 +217,21 @@ class PowerSupply( dbus.service.Object ):
         if capacity != "N/A":
             return int(capacity)
 
-
         energy_full = readFromFile( "%s/energy_full" % self.node )
         energy_now = readFromFile( "%s/energy_now" % self.node )
         if energy_full == "N/A" or energy_now == "N/A":
             return -1
         else:
             return 100 * int(energy_now) / int(energy_full)
+
+    @dbus.service.method( DBUS_INTERFACE, "", "s" )
+    def GetPowerStatus( self ):
+        return self.powerStatus
+
+    @dbus.service.signal( DBUS_INTERFACE, "s" )
+    def PowerStatus( self, status ):
+        self.powerStatus = status
+        logger.info( "power status now %s" % status )
 
 #----------------------------------------------------------------------------#
 class PowerSupplyApm( dbus.service.Object ):
