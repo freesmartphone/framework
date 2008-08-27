@@ -10,6 +10,7 @@
 #
 # We define the following functions :
 # - CallStatus()            : create a trigger object activated on a call status event 
+# - PowerStatus()           : create a trigger object activated on a power status event
 # - HasAttr(name, value)    : create a filter that accept signal with a given attribute
 # - Not(filter)             : create a neg filter
 # - PlaySound(file)         : Action that starts to play an audio file
@@ -41,4 +42,22 @@
     filters: HasAttr(status, "release"))
     actions: SetScenario(stereoout)
 -
+    trigger: PowerStatus()
+    filters: HasAttr(status, "Charging"))
+    actions: 
+            - SetLed("gta02_power_blue","light")
+            - SetLed("gta02_power_orange","dark")
+-
+    trigger: PowerStatus()
+    filters: HasAttr(status, "Discharging"))
+    actions:
+            - SetLed("gta02_power_blue","dark")
+            - SetLed("gta02_power_orange","dark")
+-
+    trigger: PowerStatus()
+    filters: HasAttr(status, "Full"))
+    actions: 
+             - SetLed("gta02_power_blue","dark")
+             - SetLed("gta02_power_orange","light")
+
 

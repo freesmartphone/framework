@@ -114,10 +114,27 @@ class AudioScenarioAction(DBusAction):
             logger.error( "unhandled action for Audio scenario" )
 
 #============================================================================#
+class LedAction(DBusAction):
+#============================================================================#
+    """
+    A dbus action on an Openmoko Neo LED device
+    """
+    # FIXME device specific, needs to go away from here
+    def __init__(self, device, action):
+        bus = dbus.SystemBus()
+        service = 'org.freesmartphone.odeviced'
+        obj = '/org/freesmartphone/Device/LED/%s' % device
+        interface = 'org.freesmartphone.Device.LED'
+        if action == 'light':
+            super(LedAction, self).__init__(bus, service, obj, interface, 'SetBrightness', 100)
+        else:
+            super(LedAction, self).__init__(bus, service, obj, interface, 'SetBrightness', 0)
+
+#============================================================================#
 class VibratorAction(DBusAction):
 #============================================================================#
     """
-    A dbus action on the Neo1973 vibrator device
+    A dbus action on the Openmoko Neo Vibrator device
     """
     # FIXME device specific, needs to go away from here
     def __init__(self, target = 'neo1973_vibrator', action = 'start'):

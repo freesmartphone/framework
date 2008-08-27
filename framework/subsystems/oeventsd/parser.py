@@ -15,9 +15,9 @@ logger = logging.getLogger('oeventsd')
 import yaml
 import re
 
-from trigger import Trigger, CallStatusTrigger, TimeTrigger
+from trigger import Trigger, CallStatusTrigger, PowerStatusTrigger, TimeTrigger
 from filter import Filter, AttributeFilter
-from action import Action, AudioAction, AudioScenarioAction, VibratorAction, DebugAction
+from action import Action, AudioAction, AudioScenarioAction, LedAction, VibratorAction, DebugAction
 from ring_tone_action import RingToneAction
 from rule import Rule
 
@@ -80,6 +80,11 @@ class CallStatus(Function):
     def __call__(self):
         return CallStatusTrigger()
 
+class PowerStatus(Function):
+    name = 'PowerStatus'
+    def __call__(self):
+        return PowerStatusTrigger()
+
 class PlaySound(Function):
     name = 'PlaySound'
     def __call__(self, file):
@@ -99,6 +104,11 @@ class RingTone(Function):
     name = 'RingTone'
     def __call__(self, cmd):
         return RingToneAction(cmd)
+
+class SetLed(Function):
+    name = 'SetLed'
+    def __call__(self, led, cmd):
+        return LedAction(led, cmd)
 
 class StartVibration(Function):
     name = 'StartVibration'

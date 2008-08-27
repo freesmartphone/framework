@@ -1,6 +1,7 @@
 2008-08-27	Michael Lauer	<mickey@openmoko.org>
 
 	* [odeviced] Implement power status notifications using netlink socket
+	* [oeventsd] add triggers and rule for power management and LEDs
 
 2008-08-26	Michael Lauer	<mickey@openmoko.org>
 

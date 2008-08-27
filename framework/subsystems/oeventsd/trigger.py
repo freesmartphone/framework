@@ -111,6 +111,26 @@ class CallStatusTrigger(DBusTrigger):
         return "CallStatus"
 
 #============================================================================#
+class PowerStatusTrigger(DBusTrigger):
+#============================================================================#
+    """Just a sugar trigger for a Power management status change"""
+    def __init__(self):
+        bus = dbus.SystemBus()
+        super(PowerStatusTrigger, self).__init__(
+            bus,
+            'org.freesmartphone.odeviced',
+            None,
+            'org.freesmartphone.Device.PowerSupply',
+            'PowerStatus'
+        )
+    def on_signal(self, status):
+        logger.info("Receive PowerStatus, status = %s", status)
+        self(status=status)
+
+    def __repr__(self):
+        return "PowerStatus"
+
+#============================================================================#
 class TimeTrigger(DBusTrigger):
 #============================================================================#
     def __init__(self, hour, minute):
