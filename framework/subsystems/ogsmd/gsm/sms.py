@@ -141,7 +141,66 @@ class AbstractSMS:
     def __init__( self, direction ):
         self.direction = direction
     def pdu( self ):
-        pass
+        pdubytes = []
+        if self.sca:
+            scabcd = bcd_encode( self.sca.number )
+            pdubytes.append( len(scabcd) + 1 )
+            pdubytes.append( 0x80 | (self.sca.type << 4) | self.sca.dialplan )
+            pdubytes.extend( scabcd )
+            # FIXME This won't work with alphanumeric "numbers"
+        else:
+            pdubytes.append( 0 )
+
+        pdu_type = self.pdu_mti
+        if self.pdu_rp:
+            pdu_type += 0x80
+        if self.pdu_udhi:
+            pdu_type += 0x40
+        if self.pdu_srr or self.pdu_sri:
+            pdu_type += 0x20
+
+        pdu_type += self.pdu_vpf << 3
+        # FIXME: Is this right? looks fishy
+
+        if self.pdu_rd or self.pdu_mms:
+            pdu_type += 0x04
+
+        pdubytes.append( pdu_type )
+
+        if self.pdu_mti == 1:
+            pdubytes.append( sms.mr )
+
+        pdubytes.append( len(self.oa.number) )
+        pdubytes.append( 0x80 | self.oa.type << 4 | self.oa.dialplan )
+        pdubytes.extend( bcd_encode(self.oa.number) )
+        # FIXME: alphanumeric issues
+
+        pdubytes.append( self.pid )
+        pdubytes.append( self.dcs )
+
+        if self.pdu_mti == 0:
+            pdubytes.extend( encodePDUTime( self.scts ) )
+        else:
+            # FIXME
+            pdubytes.append( self.pdu_vpf )
+
+        # User data
+        pduud = pack_sevenbit(self.ud )
+
+        if self.pdu_udhi:
+            pduudh = flatten([ (header[0], len(header[1]), header[1]) for header in self.udh ])
+            pdubytes.append( len(pduudh) + len(self.ud) )
+            pdubytes.append( len(pduudh) )
+            pdubytes.extend( pduudh )
+        else:
+            pdubytes.append( len(self.ud) )
+
+        pdubytes.extend( pduud )
+
+
+        return "".join( [ "%02X" % (i) for i in pdubytes ] )
+
+
     def serviceCenter( self ):
         pass
     def repr( self ):
