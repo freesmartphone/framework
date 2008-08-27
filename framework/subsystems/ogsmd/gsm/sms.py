@@ -123,9 +123,6 @@ def parse_userdata( sms, ud_len, bytes ):
     padding_size = ((7 * ud_len) - (8 * (offset))) % 7
     sms.ud = unpack_sevenbit(bytes[offset:], padding_size)
 
-def encodeSMS( to, sender, serviceCenter, data ):
-    pass
-
 class PDUAddress:
     def __init__( self, type, dialplan, number ):
         self.type = type
@@ -246,11 +243,11 @@ if __name__ == "__main__":
         sms = decodeSMS(pdu, "MT")
         print sms.repr()
         print "Orig PDU: ", pdu
-#        genpdu = sms.pdu()
-#        print "ReencPDU: ", genpdu
-#        if pdu != genpdu:
-#            print "ERROR: Reencoded SMS doesn't match"
-#        sms = decodeSMS(genpdu, "MT")
-#        print sms.repr()
+        genpdu = sms.pdu()
+        print "ReencPDU: ", genpdu
+        if pdu != genpdu:
+            print "ERROR: Reencoded SMS doesn't match"
+        sms = decodeSMS(genpdu, "MT")
+        print sms.repr()
 
 # vim: expandtab shiftwidth=4 tabstop=4
