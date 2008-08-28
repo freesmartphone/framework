@@ -1,20 +1,25 @@
-import sys
-from syslog import syslog, LOG_ERR, LOG_WARNING, LOG_INFO, LOG_DEBUG
-from framework.config import LOG
+import logging
+logger = logging.getLogger('odeviced')
 
-# helpers
+#============================================================================#
 def readFromFile( path ):
+#============================================================================#
     try:
         value = open( path, 'r' ).read().strip()
     except IOError, e:
-        LOG( LOG_ERR, "(could not read from '%s': %s)" % ( path, e ) )
+        logger.warning( "(could not read from '%s': %s)" % ( path, e ) )
         return "N/A"
     else:
-        LOG( LOG_DEBUG, "(read '%s' from '%s')" % ( value, path ) )
+        logger.debug( "(read '%s' from '%s')" % ( value, path ) )
         return value
 
+#============================================================================#
 def writeToFile( path, value ):
-    LOG( LOG_DEBUG, "(writing '%s' to '%s')" % ( value, path ) )
-    f = open( path, 'w' )
-    if f:
+#============================================================================#
+    logger.debug( "(writing '%s' to '%s')" % ( value, path ) )
+    try:
+        f = open( path, 'w' )
+    except IOError, e:
+        logger.warning( "(could not write to '%s': %s)" % ( path, e ) )
+    else:
         f.write( "%s\n" % value )

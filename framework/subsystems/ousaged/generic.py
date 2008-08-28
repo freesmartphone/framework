@@ -9,21 +9,24 @@ Open Usage Daemon - Generic usage support
 GPLv2 or later
 """
 
-__version__ = "0.0.0"
+MODULE_NAME = "ousaged"
+__version__ = "0.1.0"
 
 DBUS_INTERFACE_PREFIX = "org.freesmartphone.Usage"
 DBUS_PATH_PREFIX = "/org/freesmartphone/Usage"
 
+from helpers import readFromFile, writeToFile
+
 import dbus
 import dbus.service
-import os
-import sys
-from syslog import syslog, LOG_ERR, LOG_WARNING, LOG_INFO, LOG_DEBUG
-from helpers import LOG, readFromFile, writeToFile
+
 from gobject import idle_add
 
+import os, sys
+import sys
+
 import logging
-logger = logging.getLogger('ousaged')
+logger = logging.getLogger( MODULE_NAME )
 
 class AbstractResource( object ):
     def __init__( self, usageControl ):
@@ -168,7 +171,7 @@ class GenericUsageControl( dbus.service.Object ):
         if old_owner and not new_owner:
             for resource in self.resources.values():
                 resource.cleanup( old_owner )
-                
+
     #
     # dbus methods
     #
