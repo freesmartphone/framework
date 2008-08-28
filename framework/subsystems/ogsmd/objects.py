@@ -16,18 +16,21 @@ Attributes:
     * device = device dbus object singleton
 """
 
-import types
-from framework.config import LOG, LOG_INFO, LOG_ERR, LOG_DEBUG
+MODULE_NAME = "ogsmd.objects"
+__version__ = "0.8.9"
+
 import dbus
 import dbus.service
 from dbus import DBusException
+
 from gobject import timeout_add, idle_add
 import weakref
 import math
 import sys, os
+import types
 
 import logging
-logger = logging.getLogger('ogsmd')
+logger = logging.getLogger( MODULE_NAME )
 
 DBUS_INTERFACE_DEVICE = "org.freesmartphone.GSM.Device"
 DBUS_INTERFACE_SIM = "org.freesmartphone.GSM.SIM"

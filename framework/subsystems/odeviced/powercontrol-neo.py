@@ -5,6 +5,9 @@ Open Device Daemon - A plugin for Neo 1973 and Neo FreeRunner specific power con
 (C) 2008 Michael 'Mickey' Lauer <mlauer@vanille-media.de>
 (C) 2008 Openmoko, Inc.
 GPLv2 or later
+
+Package: odeviced
+Module: powercontrol-neo
 """
 
 MODULE_NAME = "odeviced.powercontrol-neo"
@@ -159,7 +162,6 @@ def factory( prefix, controller ):
     bus = controller.bus
 
     def walk( objects, dirname, fnames ):
-        #LOG( LOG_DEBUG, "scanning in", dirname, "found", fnames )
         if walk.lookForBT and "neo1973-pm-bt.0" in fnames:
             objects.append( NeoBluetoothPowerControl( bus, "%s/%s" % ( dirname, "neo1973-pm-bt.0" ) ) )
             walk.lookForBT = False # only have one BT interface

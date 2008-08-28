@@ -133,10 +133,7 @@ class Pdp( AbstractMediator ):
         os.kill( self.cpid, signal.SIGINT )
 
         # control flow will continue in self._spawnedProcessDone
-
-        #LOG(LOG_INFO, __name__, 'Activate waiting for pppd')
         #p, r = waitpid(self.cpid, 0)
-        #LOG(LOG_INFO, __name__, 'Activate pppd returned', r)
 
     def _spawnedProcessOutput( self, source, condition ):
         """Gets called when ppp outputs anything."""
