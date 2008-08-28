@@ -13,14 +13,16 @@ Module: pdp
 
 """
 
-from ogsmd.gsm.decor import logged
+__version__ = "0.1.0"
+
 from .mediator import AbstractMediator
 from .overlay import OverlayFile
-from framework.config import LOG, LOG_INFO, LOG_ERR, LOG_DEBUG
+
 import gobject
-import os
-import signal
-import copy
+import os, signal, copy
+
+import logging
+logger = logging.getLogger( "ogsmd.pdp" )
 
 #=========================================================================#
 class Pdp( AbstractMediator ):
@@ -68,22 +70,19 @@ class Pdp( AbstractMediator ):
     #
     # private
     #
-    @logged
     def _prepareFiles( self ):
         for filename, overlay in self.pds.iteritems():
-            LOG( LOG_DEBUG, __name__, "preparing file", filename )
+            logger.debug( "preparing file %s" % filename )
             f = OverlayFile( filename, overlay=overlay )
             f.store()
             self.overlays.append( f )
 
-    @logged
     def _recoverFiles( self ):
         for f in self.overlays:
-            LOG( LOG_DEBUG, __name__, "recovering file", f.name )
+            logger.debug( "recovering file %s" % f.name )
             f.restore()
         self.overlays = []
 
-    @logged
     def _activate( self ):
         if self.cpid >= 0:
             raise Exception( "already active" )
@@ -92,9 +91,9 @@ class Pdp( AbstractMediator ):
         if not self.port:
             raise Exception( "no device" )
 
-        LOG( LOG_INFO, __name__, 'activate got port', self.port )
+        logger.debug( "activate got port %s" % self.port )
         ppp_arguments = [ self.__class__.PPP_BINARY, self.port ] + self.ppp_options
-        LOG( LOG_INFO, __name__, "launching ppp commandline", ppp_arguments )
+        logger.info( "launching ppp with commandline %s" % ppp_arguments )
 
         self._prepareFiles()
 
@@ -113,7 +112,7 @@ class Pdp( AbstractMediator ):
         # FIXME bad polling here
         self.timeout_source = gobject.timeout_add_seconds( 2, self._pollInterface )
 
-        LOG( LOG_INFO, __name__, "ppp launched w/pid", self.cpid )
+        logger.info( "pppd launched, pid %d. See logread -f for output." % self.cpid )
 
         # FIXME that's premature. we might adopt the following states:
         # "setup", "active", "shutdown", "release"
@@ -129,7 +128,7 @@ class Pdp( AbstractMediator ):
         if self.cpid < 0:
             raise Exception('already inactive')
 
-        LOG( LOG_INFO, __name__, 'shutting down pppd w/pid', self.cpid )
+        logger.info( "shutting down pppd, pid %d." % self.cpid )
 
         os.kill( self.cpid, signal.SIGINT )
 
@@ -142,7 +141,7 @@ class Pdp( AbstractMediator ):
     def _spawnedProcessOutput( self, source, condition ):
         """Gets called when ppp outputs anything."""
         data = os.read( source, 512 )
-        LOG( LOG_DEBUG, __name__, "got from ppp:", repr(data) )
+        logger.debug( "got output from ppp: %s" % repr(data) )
         return True
 
     def _spawnedProcessDone( self, pid, condition ):
@@ -165,7 +164,7 @@ class Pdp( AbstractMediator ):
 
         exitcode = (condition >> 8) & 0xFF
         exitsignal = condition & 0xFF
-        LOG( LOG_DEBUG, __name__, "ppp exited with code", exitcode, "and signal", exitsignal )
+        logger.info( "pppd exited with code %d and signal %d" % ( exitcode, exitsignal ) )
 
         self._updateState( "release" )
 
@@ -188,8 +187,9 @@ class Pdp( AbstractMediator ):
 
     def _pollInterface( self ):
         """Gets frequently called from mainloop to check the default route."""
+        # FIXME use netlink socket to be notified here!
         route = self._defaultRoute()
-        LOG( LOG_DEBUG, __name__, "route status. old=", self.default_route, "last=", self.route, "current=", route )
+        logger.debug( "route status. old=%s, last=%s, current=%s" % ( self.default_route, self.route, route ) )
         if route != self.route:
             self.route = route
             if route == "ppp0":
