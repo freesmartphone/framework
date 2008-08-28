@@ -5,10 +5,13 @@ Open Device Daemon - A plugin for audio device peripherals
 (C) 2008 Michael 'Mickey' Lauer <mlauer@vanille-media.de>
 (C) 2008 Openmoko, Inc.
 GPLv2 or later
+
+Package: odeviced
+Module: audio
 """
 
 MODULE_NAME = "odeviced.audio"
-__version__ = "0.4.1"
+__version__ = "0.4.2"
 
 from framework.config import config
 from framework.patterns import asyncworker
@@ -98,13 +101,13 @@ class GStreamerPlayer( Player ):
     decoderMap = { \
         "sid": "siddec",
         "mod": "modplug",
-        "mp3": "mad" \
+        "mp3": "mad",
+        "wav": "wavparse",
         }
 
     def __init__( self, *args, **kwargs ):
         Player.__init__( self, *args, **kwargs )
         self.pipelines = {}
-
 
     def _onMessage( self, bus, message, name ):
         pipeline, status, repeat, ok_cb, error_cb = self.pipelines[name]
@@ -186,22 +189,15 @@ class GStreamerPlayer( Player ):
         ok_cb()
 
     def createPipeline( self, name ):
-        extension = name.split( '.' )[-1]
-        pipeline = gst.Pipeline( "name" )
-        filesrc = gst.element_factory_make( "filesrc", "source" )
-        filesrc.set_property( "location", name )
-        pipeline.add( filesrc )
         try:
-            decoder = gst.element_factory_make( self.decoderMap[extension], "decoder" )
+            decoder = GStreamerPlayer.decoderMap[ name.split( '.' )[-1] ]
         except KeyError:
             return None
         else:
-            pipeline.add( decoder )
-            sink = gst.element_factory_make( "alsasink", "sink" )
-            pipeline.add( sink )
-            filesrc.link( decoder )
-            decoder.link( sink )
-            return pipeline
+            # parse_launch may burn a few cycles compared to element_factory_make,
+            # however it should still be faster than creating the pipeline from
+            # individual elements in python, since it's all happening in compiled code
+            return gst.parse_launch( "filesrc location=%s ! %s ! alsasink" % ( name, decoder ) )
 
 #----------------------------------------------------------------------------#
 class AlsaScenarios( object ):
