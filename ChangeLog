@@ -1,3 +1,7 @@
+2008-08-27	Michael Lauer	<mickey@openmoko.org>
+
+	* Remove remaining LOG calls. We are now fully converted to Python logging!
+
 2008-08-27	Jan Luebbe      <jluebbe@debian.org>
 
 	* [ousaged] The ResourceChanged signal now contains more information

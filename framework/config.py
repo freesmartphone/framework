@@ -16,34 +16,14 @@ DBUS_PATH_PREFIX = "/org/freesmartphone"
 
 NEEDS_VERSION = 1
 
-__version__ = "1.0.0"
+__version__ = "1.0.1"
 
 from configparse import SmartConfigParser
-
-from syslog import LOG_ERR, LOG_WARNING, LOG_INFO, LOG_DEBUG
 
 import os
 
 import logging
 logger = logging.getLogger( "frameworkd" )
-
-# FIXME This dict map syslog message levels to logging message levels
-# FIXME Remove this when we have removed all of the deprecated 'LOG' calls
-logging_levels_map = {
-    LOG_ERR :       logging.ERROR,
-    LOG_WARNING :   logging.WARNING,
-    LOG_INFO :      logging.INFO,
-    LOG_DEBUG :     logging.DEBUG,
-}
-
-def LOG(level, *values):
-    """log a message
-
-       this function is deprecated, we should use logging module instead
-    """
-    if level == LOG_ERR:
-        values = values + (format_exc(),)
-    logger.log(logging_levels_map[level], ' '.join(str(i) for i in values))
 
 logging.basicConfig(
     level=logging.INFO,
