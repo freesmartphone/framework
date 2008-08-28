@@ -47,7 +47,7 @@ def timeout_handler():
         log( "SIGNAL NOW %d" % strength )
 
         # here you can add more of your special AT commands
-        result = gsm.Command( "AT%s\r\n" % EM_COMMAND )
+        result = gsm.DebugCommand( "AT%s\r\n" % EM_COMMAND )
         log( "EM RESULT %s" % result[0] )
 
         return True # call me again
