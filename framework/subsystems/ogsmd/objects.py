@@ -463,7 +463,7 @@ class Device( dbus.service.Object ):
     def SendUssdRequest( self, request, dbus_ok, dbus_error ):
         mediator.NetworkSendUssdRequest( self, dbus_ok, dbus_error, request=request )
 
-    @dbus.service.signal( DBUS_INTERFACE_CALL, "ss" )
+    @dbus.service.signal( DBUS_INTERFACE_NETWORK, "ss" )
     def IncomingUssd( self, mode, message ):
         logger.info( "org.freesmartphone.GSM.Network.IncomingUssd: %s: %s", mode, message )
     #
