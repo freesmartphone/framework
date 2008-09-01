@@ -9,7 +9,9 @@ GPLv2 or later
 
 __version__ = "0.9.2"
 
-from framework.config import DBUS_BUS_NAME_PREFIX
+from framework.config import DBUS_BUS_NAME_PREFIX, debug, config, loggingmap
+from optparse import OptionParser
+import subsystem
 
 import dbus, dbus.service
 from dbus.mainloop.glib import DBusGMainLoop
@@ -19,23 +21,11 @@ import os, sys, types
 import logging
 logger = logging.getLogger( "frameworkd.controller" )
 
-loggingmap = { \
-    "DEBUG": logging.DEBUG,
-    "INFO": logging.INFO,
-    "WARNING": logging.WARNING,
-    "ERROR": logging.ERROR,
-    "CRITICAL": logging.CRITICAL,
-    }
-
 try: # not present in older glib versions
     from gobject import timeout_add_seconds
 except ImportError:
     logger.error( "python-gobject >= 2.14.0 required" )
     sys.exit( -1 )
-
-from optparse import OptionParser
-from .config import config
-import subsystem
 
 #----------------------------------------------------------------------------#
 class TheOptionParser( OptionParser ):
@@ -168,7 +158,7 @@ class Controller( object ):
     def _configureLoggers( self ):
         # configure all loggers, default being INFO
         for section in config.sections():
-            loglevel = loggingmap.get( config.getValue( section, "log_level", "INFO" ) )
+            loglevel = loggingmap.get( config.getValue( section, "log_level", debug ) )
             logger.debug( "setting logger for %s to %s" % ( section, loglevel ) )
             logging.getLogger( section ).setLevel( loglevel )
         # FIXME configure handlers

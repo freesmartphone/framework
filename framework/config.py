@@ -25,11 +25,13 @@ import os
 import logging
 logger = logging.getLogger( "frameworkd" )
 
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(name)-8s %(levelname)-8s %(message)s'
-)
-
+loggingmap = { \
+    "DEBUG": logging.DEBUG,
+    "INFO": logging.INFO,
+    "WARNING": logging.WARNING,
+    "ERROR": logging.ERROR,
+    "CRITICAL": logging.CRITICAL,
+}
 #
 # init configuration
 #
@@ -56,6 +58,9 @@ if version != NEEDS_VERSION:
     logger.warning( "[frameworkd]" )
     logger.warning( "version = %d" % NEEDS_VERSION )
 
+debug = config.getValue( "frameworkd", "log_level", "INFO" )
+logging.basicConfig( level=loggingmap.get( debug, logging.INFO ), format="%(name)-8s %(levelname)-8s %(message)s" )
+
 #
 # compute install prefix
 #
@@ -68,3 +73,6 @@ for p in searchpath:
         break
 
 logger.info( "Installprefix is %s" % installprefix )
+
+# remove unused attributes, leaving 'config' and 'debug'
+del SmartConfigParser, os, logging, logger
