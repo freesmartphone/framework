@@ -27,6 +27,8 @@ logger = logging.getLogger('oeventsd')
 #=========================================================================#
 class RingToneAction(Action):
 #=========================================================================#
+    function_name = 'RingTone'
+    
     def __init__( self, cmd = 'play' ):
         self.cmd = cmd
 

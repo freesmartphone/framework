@@ -15,10 +15,8 @@ logger = logging.getLogger('oeventsd')
 import yaml
 import re
 
-from trigger import Trigger, CallStatusTrigger, PowerStatusTrigger, TimeTrigger
 from filter import Filter, AttributeFilter
-from action import Action, AudioAction, AudioScenarioAction, LedAction, VibratorAction, DebugAction
-from ring_tone_action import RingToneAction
+import action
 from rule import Rule
 
 #============================================================================#
@@ -28,14 +26,18 @@ class FunctionMetaClass(type):
     def __init__(cls, name, bases, dict):
         super(FunctionMetaClass, cls).__init__(name, bases, dict)
         if 'name' in dict:
-            logger.debug("register function %s", dict['name'])
-            Function.functions[dict['name']] = cls
+            cls.register(dict['name'], cls())
 
 #============================================================================#
 class Function(object):
 #============================================================================#
     __metaclass__ = FunctionMetaClass
     functions = {}
+    
+    @classmethod
+    def register(cls, name, func):
+        logger.debug("register function %s", name)
+        cls.functions[name] = func
 
     def __call__(self, *args):
         raise NotImplementedError
@@ -67,58 +69,14 @@ def function_constructor(loader, node):
     name = match.group(1)
     params = split_params(match.group(2))
     params = [yaml.load(p) for p in params]
+    if not name in Function.functions:
+        raise Exception("Function %s not registered" % name)
     func = Function.functions[name]
-    return func()(*params)
+    return func(*params)
 
 yaml.add_constructor(u'!Function', function_constructor)
 yaml.add_implicit_resolver(u'!Function', pattern)
 
-# FIXME compute these from the actual triggers and actions
-
-class CallStatus(Function):
-    name = 'CallStatus'
-    def __call__(self):
-        return CallStatusTrigger()
-
-class PowerStatus(Function):
-    name = 'PowerStatus'
-    def __call__(self):
-        return PowerStatusTrigger()
-
-class PlaySound(Function):
-    name = 'PlaySound'
-    def __call__(self, file):
-        return AudioAction(file, 'play')
-
-class StopSound(Function):
-    name = 'StopSound'
-    def __call__(self, file):
-        return AudioAction(file, 'stop')
-
-class SetScenario(Function):
-    name = 'SetScenario'
-    def __call__(self, scenario):
-        return AudioScenarioAction(scenario)
-
-class RingTone(Function):
-    name = 'RingTone'
-    def __call__(self, cmd):
-        return RingToneAction(cmd)
-
-class SetLed(Function):
-    name = 'SetLed'
-    def __call__(self, led, cmd):
-        return LedAction(led, cmd)
-
-class StartVibration(Function):
-    name = 'StartVibration'
-    def __call__(self):
-        return VibratorAction(action='start')
-
-class StopVibration(Function):
-    name = 'StopVibration'
-    def __call__(self):
-        return VibratorAction(action='stop')
 
 class Not(Function):
     name = 'Not'
@@ -130,16 +88,6 @@ class HasAttr(Function):
     def __call__(self, name, value):
         kargs = {name:value}
         return AttributeFilter(**kargs)
-
-class Debug(Function):
-    name = 'Debug'
-    def __call__(self, msg):
-        return DebugAction(msg)
-
-class Time(Function):
-    name = 'Time'
-    def __call__(self, hour, minute):
-        return TimeTrigger(hour, minute)
 
 def as_rule(r):
     assert isinstance(r, dict), type(r)

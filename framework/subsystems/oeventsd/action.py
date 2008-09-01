@@ -15,11 +15,27 @@ logger = logging.getLogger('oeventsd')
 import dbus
 
 #============================================================================#
+class ActionMetaClass(type):
+#============================================================================#
+    """The meta class for Action class"""
+    def __init__(cls, name, bases, dict):
+        # If an action has a class attribute : 'function_name',
+        # Then we create a new function of that name that create this action
+        super(ActionMetaClass, cls).__init__(name, bases, dict)
+        if 'function_name' in dict:
+            def func(*args):
+                return cls(*args)
+            from parser import Function
+            Function.register(dict['function_name'], func)
+
+#============================================================================#
 class Action(object):
 #============================================================================#
     """
     An action is a functor object that is called by a rule
     """
+    __metaclass__ = ActionMetaClass
+    
     def __init__(self):
         pass
     def __call__(self, **kargs):
@@ -33,6 +49,8 @@ class DebugAction(Action):
     """
     A special action for debugging purposes
     """
+    function_name = 'Debug'
+    
     def __init__(self, msg):
         self.msg = msg
     def __call__(self, **kargs):
@@ -95,6 +113,20 @@ class AudioAction(DBusAction):
         interface = 'org.freesmartphone.Device.Audio'
         method = 'PlaySound' if action == 'play' else 'StopSound'
         super(AudioAction, self).__init__(bus, service, obj, interface, method, scenario)
+        
+#============================================================================#
+class PlaySound(AudioAction):
+#============================================================================#
+    function_name = 'PlaySound'
+    def __init__(self, file):
+        super(PlaySound, self).__init__(file, 'play')
+        
+#============================================================================#
+class StopSound(AudioAction):
+#============================================================================#
+    function_name = 'StopSound'
+    def __init__(self, file):
+        super(StopSound, self).__init__(file, 'stop')
 
 #============================================================================#
 class AudioScenarioAction(DBusAction):
@@ -102,6 +134,8 @@ class AudioScenarioAction(DBusAction):
     """
     A dbus action on the freesmartphone audio device
     """
+    function_name = 'SetScenario'
+    
     def __init__(self, scenario = None, action = 'set' ):
         bus = dbus.SystemBus()
         service = 'org.freesmartphone.odeviced'
@@ -119,6 +153,8 @@ class LedAction(DBusAction):
     """
     A dbus action on an Openmoko Neo LED device
     """
+    function_name = 'SetLed'
+    
     # FIXME device specific, needs to go away from here
     def __init__(self, device, action):
         bus = dbus.SystemBus()
@@ -146,4 +182,14 @@ class VibratorAction(DBusAction):
             super(VibratorAction, self).__init__(bus, service, obj, interface, 'SetBlinking', 300, 700)
         else:
             super(VibratorAction, self).__init__(bus, service, obj, interface, 'SetBrightness', 0)
+            
+class StartVibrationAction(VibratorAction):
+    function_name = 'StartVibration'
+    def __init__(self):
+        super(StartVibrationAction, self).__init__(action='start')
+        
+class StopVibrationAction(VibratorAction):
+    function_name = 'StopVibration'
+    def __init__(self):
+        super(StartVibrationAction, self).__init__(action='stop')
 

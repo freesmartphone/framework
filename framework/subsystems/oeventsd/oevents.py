@@ -23,6 +23,8 @@ from action import Action, AudioAction
 from parser import Parser
 from rule import Rule
 
+import ring_tone_action
+
 import dbus
 import os
 

@@ -15,6 +15,20 @@ logger = logging.getLogger('oeventsd')
 import dbus
 
 #============================================================================#
+class TriggerMetaClass(type):
+#============================================================================#
+    """The meta class for Trigger class"""
+    def __init__(cls, name, bases, dict):
+        super(TriggerMetaClass, cls).__init__(name, bases, dict)
+        # If a trigger has a class attribute : 'function_name',
+        # Then we create a new function of that name that create this trigger
+        if 'function_name' in dict:
+            def func(*args):
+                return cls(*args)
+            from parser import Function
+            Function.register(dict['function_name'], func)
+
+#============================================================================#
 class Trigger(object):
 #============================================================================#
     """A trigger is the initial event that will activate a rule.
@@ -23,6 +37,8 @@ class Trigger(object):
        giving a set of keywork arguments (the signal attributes to the method)
        Then the rule can decide to start or not its actions.
     """
+    __metaclass__ = TriggerMetaClass
+    
     def __init__(self):
         """Create a new trigger
 
@@ -94,6 +110,9 @@ class DBusTrigger(Trigger):
 class CallStatusTrigger(DBusTrigger):
 #============================================================================#
     """Just a sugar trigger for a GSM call status change"""
+    
+    function_name = 'CallStatus'
+    
     def __init__(self):
         bus = dbus.SystemBus()
         super(CallStatusTrigger, self).__init__(
@@ -114,6 +133,9 @@ class CallStatusTrigger(DBusTrigger):
 class PowerStatusTrigger(DBusTrigger):
 #============================================================================#
     """Just a sugar trigger for a Power management status change"""
+    
+    function_name = 'PowerStatus'
+    
     def __init__(self):
         bus = dbus.SystemBus()
         super(PowerStatusTrigger, self).__init__(
@@ -133,6 +155,8 @@ class PowerStatusTrigger(DBusTrigger):
 #============================================================================#
 class TimeTrigger(DBusTrigger):
 #============================================================================#
+    function_name = 'Time'
+
     def __init__(self, hour, minute):
         self.hour = hour
         self.minute = minute
