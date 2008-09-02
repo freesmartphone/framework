@@ -35,7 +35,7 @@ class Action(object):
     An action is a functor object that is called by a rule
     """
     __metaclass__ = ActionMetaClass
-    
+
     def __init__(self):
         pass
     def __call__(self, **kargs):
@@ -50,7 +50,7 @@ class DebugAction(Action):
     A special action for debugging purposes
     """
     function_name = 'Debug'
-    
+
     def __init__(self, msg):
         self.msg = msg
     def __call__(self, **kargs):
@@ -113,14 +113,14 @@ class AudioAction(DBusAction):
         interface = 'org.freesmartphone.Device.Audio'
         method = 'PlaySound' if action == 'play' else 'StopSound'
         super(AudioAction, self).__init__(bus, service, obj, interface, method, scenario)
-        
+
 #============================================================================#
 class PlaySound(AudioAction):
 #============================================================================#
     function_name = 'PlaySound'
     def __init__(self, file):
         super(PlaySound, self).__init__(file, 'play')
-        
+
 #============================================================================#
 class StopSound(AudioAction):
 #============================================================================#
@@ -135,7 +135,7 @@ class AudioScenarioAction(DBusAction):
     A dbus action on the freesmartphone audio device
     """
     function_name = 'SetScenario'
-    
+
     def __init__(self, scenario = None, action = 'set' ):
         bus = dbus.SystemBus()
         service = 'org.freesmartphone.odeviced'
@@ -145,7 +145,7 @@ class AudioScenarioAction(DBusAction):
             # FIXME gsmhandset ugly ugly hardcoded
             super(AudioScenarioAction, self).__init__(bus, service, obj, interface, "SetScenario", scenario)
         else:
-            logger.error( "unhandled action for Audio scenario" )
+            logger.error( "unhandled action '%s' for Audio scenario" % action )
 
 #============================================================================#
 class LedAction(DBusAction):
@@ -154,7 +154,7 @@ class LedAction(DBusAction):
     A dbus action on an Openmoko Neo LED device
     """
     function_name = 'SetLed'
-    
+
     # FIXME device specific, needs to go away from here
     def __init__(self, device, action):
         bus = dbus.SystemBus()
@@ -163,8 +163,12 @@ class LedAction(DBusAction):
         interface = 'org.freesmartphone.Device.LED'
         if action == 'light':
             super(LedAction, self).__init__(bus, service, obj, interface, 'SetBrightness', 100)
+        elif action == 'blink':
+            super(LedAction, self).__init__(bus, service, obj, interface, 'SetBlinking', 100, 1500)
+        elif action == 'dark':
+             super(LedAction, self).__init__(bus, service, obj, interface, 'SetBrightness', 0)
         else:
-            super(LedAction, self).__init__(bus, service, obj, interface, 'SetBrightness', 0)
+            logger.error( "unhandled action '%s' for Led" % action )
 
 #============================================================================#
 class VibratorAction(DBusAction):
@@ -182,12 +186,12 @@ class VibratorAction(DBusAction):
             super(VibratorAction, self).__init__(bus, service, obj, interface, 'SetBlinking', 300, 700)
         else:
             super(VibratorAction, self).__init__(bus, service, obj, interface, 'SetBrightness', 0)
-            
+
 class StartVibrationAction(VibratorAction):
     function_name = 'StartVibration'
     def __init__(self):
         super(StartVibrationAction, self).__init__(action='start')
-        
+
 class StopVibrationAction(VibratorAction):
     function_name = 'StopVibration'
     def __init__(self):
