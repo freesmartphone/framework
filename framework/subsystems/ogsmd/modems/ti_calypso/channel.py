@@ -177,6 +177,7 @@ class UnsolicitedResponseChannel( CalypsoModemChannel ):
 
         c = self._commands["sim"]
         c.append( "%CBHZ=1" ) # home zone cell broadcast: activate automatic (send frequently, not just once)
+        c.append( "+CNMI=2,1,2,1,1" ) # SMS handling: store on SIM, then notify. Cell Broadcasts: notify immediately (already sent?)
 
         c = self._commands["suspend"]
         c.append( "+CTZU=0" )

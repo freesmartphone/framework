@@ -14,6 +14,8 @@ Module: fso_actions
 """
 
 from action import Action, DBusAction
+from framework.controller import Controller
+from framework.config import installprefix
 
 import dbus
 import os, subprocess, shlex
@@ -158,6 +160,43 @@ class RingToneAction(Action):
 
     def __repr__(self):
         return "RingToneAction(%s)" % self.cmd
+
+#=========================================================================#
+class MessageToneAction(Action):
+#=========================================================================#
+    function_name = 'MessageTone'
+
+    def __init__( self, cmd = 'play' ):
+        self.cmd = cmd
+
+    def __call__(self, **kargs):
+        logger.info( "MessageToneAction %s", self.cmd )
+
+        # We use the global Controller class to directly get the object
+        prefs = Controller.object( "/org/freesmartphone/Preferences" )
+        if prefs is None:
+            logger.error( "preferences not available and no default values defined." )
+            return
+        phone_prefs = prefs.GetService( "phone" )
+        tone = phone_prefs.GetValue( "message-tone" )
+        volume = phone_prefs.GetValue( "message-volume" )
+        sound_path = os.path.join( installprefix, "share/sounds/", tone )
+
+        if self.cmd == "play":
+            logger.info( "Start ringing : tone=%s, volume=%s", tone, volume )
+            AudioAction(sound_path, "play")()
+            #VibratorAction( action="start" )()
+
+        elif self.cmd == "stop":
+            logger.info( "Stop ringing : tone=%s, volume=%s", tone, volume )
+            AudioAction( sound_path, "stop" )()
+            #VibratorAction( action="stop" )()
+        else:
+            logger.error( "Unknown MessageToneAction!" )
+            assert False, "unknown message tone action"
+
+    def __repr__(self):
+        return "MessageToneAction(%s)" % self.cmd
 
 #=========================================================================#
 class CommandAction(Action):

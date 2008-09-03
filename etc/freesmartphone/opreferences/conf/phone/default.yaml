@@ -3,3 +3,6 @@
 ring-tone: "Arkanoid_PSID.sid"
 ring-volume: 10
 
+message-tone: "notify_message.mp3"
+message-volume: 10
+

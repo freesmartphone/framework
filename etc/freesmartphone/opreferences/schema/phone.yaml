@@ -1,5 +1,3 @@
-
-
 ring-tone:
     type: str
     profilable: yes
@@ -8,3 +6,13 @@ ring-volume:
     type: int
     profilable: yes
     default: 10
+
+message-tone:
+    type: str
+    profilable: yes
+
+message-volume:
+    type: int
+    profilable: yes
+    default: 10
+

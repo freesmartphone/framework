@@ -110,7 +110,6 @@ class AbstractModemChannel( AtCommandChannel ):
 
         c = []
         c.append( "+CNMI=2,1,2,1,1" )   # buffer sms on SIM, report CB directly
-
         self._commands["sim"] = c
 
         c = []

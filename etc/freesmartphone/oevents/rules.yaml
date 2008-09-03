@@ -23,6 +23,9 @@
 # - Debug(msg)              : Action that prints a debug message (only for debuging)
 
 -
+    trigger: IncomingMessage()
+    actions: MessageTone(play)
+-
     trigger: CallStatus()
     filters: HasAttr(status, "incoming")
     actions: RingTone(play)

@@ -43,6 +43,29 @@ class CallStatusTrigger(DBusTrigger):
         return "CallStatus"
 
 #============================================================================#
+class IncomingMessageTrigger(DBusTrigger):
+#============================================================================#
+    """Just a sugar trigger for a GSM call status change"""
+
+    function_name = 'IncomingMessage'
+
+    def __init__(self):
+        bus = dbus.SystemBus()
+        super(IncomingMessageTrigger, self).__init__(
+            bus,
+            'org.freesmartphone.ogsmd',
+            '/org/freesmartphone/GSM/Device',
+            'org.freesmartphone.GSM.SIM',
+            'IncomingMessage'
+        )
+    def on_signal(self, index):
+        logger.info("Receive IncomingMessage on index = %s" % index)
+        self(index=index)
+
+    def __repr__(self):
+        return "IncomingMessage"
+
+#============================================================================#
 class PowerStatusTrigger(DBusTrigger):
 #============================================================================#
     """
