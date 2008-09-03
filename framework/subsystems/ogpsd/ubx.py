@@ -263,6 +263,7 @@ class UBXDevice( GPSDevice ):
     def __init__( self, bus, gpschannel ):
         super( UBXDevice, self ).__init__( bus )
 
+        self.gpsfixstatus = 0
         self.buffer = ""
         self.gpschannel = gpschannel
         self.gpschannel.setCallback( self.parse )
@@ -307,6 +308,7 @@ class UBXDevice( GPSDevice ):
         self.ubx["CFG-PRT"] = {"In_proto_mask" : 3, "Out_proto_mask" : 3}
         self.ack["CFG-PRT"] = 0
         self.send("CFG-PRT", 0, [])
+        self._reset()
 
     def parse( self, data ):
         self.buffer += data
@@ -432,7 +434,7 @@ class UBXDevice( GPSDevice ):
         if self.fixstatus == 3:
             valid += 4
         data = data[0]
-        self._updatePosition( valid , data["ITOW"], data["LAT"]/scaling,
+        self._updatePosition( valid, data["LAT"]/scaling,
                 data["LON"]/scaling, data["HEIGHT"]/1000.0 )
 
     def handle_NAV_DOP( self, data ):
@@ -448,7 +450,7 @@ class UBXDevice( GPSDevice ):
         if self.fixstatus == 3:
             valid += 4
         data = data[0]
-        self._updateCourse( valid, data["ITOW"], data["GSpeed"]*0.036,
+        self._updateCourse( valid, data["GSpeed"]*0.036,
                 data["Heading"]/100000.0, data["VEL_D"]*0.036 )
 
     def handle_NAV_SVINFO( self, data ):
@@ -468,10 +470,9 @@ class UBXDevice( GPSDevice ):
 #        self.time = ( data["Valid"], data["Year"], data["Month"], data["Day"],
 #                data["Hour"], data["Min"], data["Sec"] )
 #        self.TimeChanged( *self.time )
-        epochsecs = calendar.timegm( (data["Year"], data["Month"], data["Day"], data["Hour"], data["Min"], data["Sec"]) )
-        time = [ epochsecs ]
+        time = calendar.timegm( (data["Year"], data["Month"], data["Day"], data["Hour"], data["Min"], data["Sec"]) )
         # Only update if we have the valid time
-        if data["Valid"] == 7:
+        if data["Valid"] > 2:
             self._updateTime( time )
 
     # Ignore ACK packets for now

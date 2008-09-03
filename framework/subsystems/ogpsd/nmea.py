@@ -130,11 +130,12 @@ class NMEADevice( GPSDevice ):
         minutes = string.atoi(self.time[2:4])
         seconds = string.atoi(self.time[4:6])
 	self.timestamp = int(time.mktime((year,month,day,hours,minutes,seconds,-1,-1,-1)))
+        self._updateTime( self.timestamp )
 
         if words[1] == 'V' or words[1] == "A":
             if words[6]: self.speed = string.atof(words[6])
             if words[7]: self.track = string.atof(words[7])
-	    self._updateCourse( 6, self.timestamp, self.speed, self.track, 0 ) 
+	    self._updateCourse( 3, self.speed, self.track, 0 )
 
 #$GPGGA,024933.992,4443.7944,N,07456.7103,W,0,00,50.0,192.5,M,,,,0000*27
 #$GPGGA,024934.991,4443.7944,N,07456.7103,W,0,00,50.0,192.5,M,,,,0000*23
@@ -164,6 +165,7 @@ class NMEADevice( GPSDevice ):
         minutes = string.atoi(self.time[2:4])
         seconds = string.atoi(self.time[4:6])
 	self.timestamp = int(time.mktime((year,month,day,hours,minutes,seconds,-1,-1,-1)))
+        self._updateTime( self.timestamp )
         self.status = string.atoi(words[5])
         self.satellites = string.atoi(words[6])
 	if self.status > 0:
@@ -171,7 +173,7 @@ class NMEADevice( GPSDevice ):
 	    self.altitude = string.atof(words[8])
             # FIXME: Mode
 	    self._updateFixStatus( self.status + 1 )
-            self._updatePosition( 15, self.timestamp, self.lat, self.lon, self.altitude )
+            self._updatePosition( 7, self.lat, self.lon, self.altitude )
 
 #$GPGSA,A,1,,,,,,,,,,,,,50.0,50.0,50.0*05
 #$GPGSA,A,1,,,,,,,,,,,,,50.0,50.0,50.0*05

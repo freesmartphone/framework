@@ -23,13 +23,12 @@ class GPSDevice( dbus.service.Object ):
     """An Dbus Object implementing org.freedesktop.Gypsy"""
 
     def __init__( self, bus ):
-        self.gpsfixstatus = 0
         self.fixstatus = 0
-        self.position = ()
-        self.accuracy = ()
-        self.course = ()
+        self.position = [ 0, 0, 0.0, 0.0, 0.0 ]
+        self.accuracy = [ 0, 0.0, 0.0, 0.0 ]
+        self.course = [ 0, 0, 0.0, 0.0, 0.0 ]
         self.satellites = []
-        self.time = []
+        self.time = 0
 
         self.interface = DBUS_INTERFACE_PREFIX
         self.path = DBUS_PATH_PREFIX
@@ -37,33 +36,85 @@ class GPSDevice( dbus.service.Object ):
         dbus.service.Object.__init__( self, bus, self.path )
         logger.info("%s initialized. Serving %s at %s" % ( self.__class__.__name__, self.interface, self.path ) )
 
+    def _reset( self ):
+        if self.fixstatus:
+            self.fixstatus = 0
+            self.FixStatusChanged( self.fixstatus )
+	if self.position[0]:
+            self.position[0] = 0
+            self.PositionChanged( *self.position )
+        if self.accuracy[0]:
+            self.accuracy[0] = 0
+            self.AccuracyChanged( *self.accuracy )
+        if self.course[0]:
+            self.course[0] = 0
+            self.CourseChanged( *self.course )
+        if self.satellites != []:
+            self.satellites = []
+            self.SatellitesChanged( self.satellites )
+        if self.time:
+            self.time = 0
+            self.TimeChanged( self.time )
+
     def _updateFixStatus( self, fixstatus ):
         if self.fixstatus != fixstatus:
             self.fixstatus = fixstatus
             self.FixStatusChanged( self.fixstatus )
 
-    def _updatePosition( self, fields, tstamp, lat, lon, alt ):
-        if self.position == () or fields != self.position[0] or \
-          lat != self.position[2] or lon != self.position[3] or \
-          alt != self.position[4]:
-            self.position = ( fields, tstamp, lat, lon, alt )
+    def _updatePosition( self, fields, lat, lon, alt ):
+        changed = False
+        if self.position[0] != fields:
+            self.position[0] = fields
+            changed = True
+        if fields:
+            self.position[1] = self.time
+        if fields & (1 << 0) and self.position[2] != lat:
+            self.position[2] = lat
+            changed = True
+        if fields & (1 << 1) and self.position[3] != lon:
+            self.position[3] = lon
+            changed = True
+        if fields & (1 << 2) and self.position[4] != alt:
+            self.position[4] = alt
+            changed = True
+        if changed:
             self.PositionChanged( *self.position )
-        else:
-            # Update tstamp anyway
-            self.position = ( fields, tstamp, lat, lon, alt )
 
     def _updateAccuracy( self, fields, pdop, hdop, vdop ):
-        if ( fields, pdop, hdop, vdop ) != self.accuracy:
-            self.accuracy = ( fields, pdop, hdop, vdop )
+        changed = False
+        if self.accuracy[0] != fields:
+            self.accuracy[0] = fields
+            changed = True
+        if fields & (1 << 0) and self.accuracy[1] != pdop:
+            self.accuracy[1] = pdop
+            changed = True
+        if fields & (1 << 1) and self.accuracy[2] != hdop:
+            self.accuracy[2] = hdop
+            changed = True
+        if fields & (1 << 2) and self.accuracy[3] != vdop:
+            self.accuracy[3] = vdop
+            changed = True
+	if changed:
             self.AccuracyChanged( *self.accuracy )
 
-    def _updateCourse( self, fields, tstamp, speed, heading, climb ):
-        if self.course == () or self.course[2:] != ( speed, heading, climb ):
-            self.course = ( fields, tstamp, speed, heading, climb )
+    def _updateCourse( self, fields, speed, heading, climb ):
+        changed = False
+        if self.course[0] != fields:
+            self.course[0] = fields
+            changed = True
+        if fields:
+            self.course[1] = self.time
+        if fields & (1 << 0) and self.course[2] != speed:
+            self.course[2] = speed
+            changed = True
+        if fields & (1 << 1) and self.course[3] != heading:
+            self.course[3] = heading
+            changed = True
+        if fields & (1 << 2) and self.course[4] != climb:
+            self.course[4] = climb
+            changed = True
+        if changed:
             self.CourseChanged( *self.course )
-        else:
-            # Update tstamp so a GetCourse returns the current one
-            self.course = ( fields, tstamp, speed, heading, climb )
 
     def _updateSatellites( self, satellites ):
         # Is this check sufficient or could some SVs switch channels, but
@@ -75,7 +126,7 @@ class GPSDevice( dbus.service.Object ):
     def _updateTime( self, time ):
         if self.time != time:
             self.time = time
-            self.TimeChanged( *self.time )
+            self.TimeChanged( self.time )
 
     # Gypsy Server interface
     # This should be implemented somewhere else once we allow different devices
@@ -124,7 +175,7 @@ class GPSDevice( dbus.service.Object ):
 
     @dbus.service.method( DBUS_INTERFACE_PREFIX + ".Time", "", "i" )
     def GetTime( self ):
-        return self.time[0]
+        return self.time
 
 
     #
