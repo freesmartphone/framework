@@ -16,7 +16,7 @@ Module: fso_actions
 from action import Action, DBusAction
 
 import dbus
-import os
+import os, subprocess, shlex
 
 import logging
 logger = logging.getLogger('oeventsd')
@@ -108,12 +108,16 @@ class VibratorAction(DBusAction):
         else:
             super(VibratorAction, self).__init__(bus, service, obj, interface, 'SetBrightness', 0)
 
+#============================================================================#
 class StartVibrationAction(VibratorAction):
+#============================================================================#
     function_name = 'StartVibration'
     def __init__(self):
         super(StartVibrationAction, self).__init__(action='start')
 
+#============================================================================#
 class StopVibrationAction(VibratorAction):
+#============================================================================#
     function_name = 'StopVibration'
     def __init__(self):
         super(StartVibrationAction, self).__init__(action='stop')
@@ -154,3 +158,20 @@ class RingToneAction(Action):
 
     def __repr__(self):
         return "RingToneAction(%s)" % self.cmd
+
+#=========================================================================#
+class CommandAction(Action):
+#=========================================================================#
+    function_name = 'Command'
+
+    def __init__( self, cmd = 'true' ):
+        self.cmd = cmd
+
+    def __call__(self, **kargs):
+        logger.info( "CommandAction %s", self.cmd )
+
+        # FIXME check return value
+        result = subprocess.call( shlex.split( self.cmd ) )
+
+    def __repr__(self):
+        return "CommandAction(%s)" % self.cmd

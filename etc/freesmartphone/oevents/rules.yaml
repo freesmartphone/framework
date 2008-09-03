@@ -39,29 +39,41 @@
     actions: SetScenario(gsmhandset)
 -
     trigger: CallStatus()
-    filters: HasAttr(status, "release"))
+    filters: HasAttr(status, "release")
     actions: SetScenario(stereoout)
 -
     trigger: PowerStatus()
-    filters: HasAttr(status, "Charging"))
+    filters: HasAttr(status, "Charging")
     actions: 
             - SetLed("gta02_power_blue", "dark")
             - SetLed("gta02_power_orange", "light")
 -
     trigger: PowerStatus()
-    filters: HasAttr(status, "Discharging"))
+    filters: HasAttr(status, "Discharging")
     actions:
             - SetLed("gta02_power_blue", "dark")
             - SetLed("gta02_power_orange", "dark")
 -
     trigger: PowerStatus()
-    filters: HasAttr(status, "Full"))
+    filters: HasAttr(status, "Full")
     actions: 
              - SetLed("gta02_power_blue", "light")
              - SetLed("gta02_power_orange", "dark")
 -
     trigger: PowerStatus()
-    filters: HasAttr(status, "Critical"))
+    filters: HasAttr(status, "Critical")
     actions:
              - SetLed("gta02_power_blue","dark")
              - SetLed("gta02_power_orange","blink")
+-
+    trigger: InputEvent()
+    filters: 
+             - HasAttr(switch, "HEADSET")
+             - HasAttr(event, "pressed")
+    actions: Command('amixer -d sset "Amp Spk" mute')
+-
+    trigger: InputEvent()
+    filters:
+             - HasAttr(switch, "HEADSET")
+             - HasAttr(event, "released")
+    actions: Command('amixer -d sset "Amp Spk" unmute')

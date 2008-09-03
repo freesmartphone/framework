@@ -95,3 +95,27 @@ class TimeTrigger(DBusTrigger):
     def __repr__(self):
         return "Time(%d:%d)" % (self.hour, self.minute)
 
+#============================================================================#
+class InputTrigger(DBusTrigger):
+#============================================================================#
+    """
+    A dbus trigger for org.freesmartphone.Input.Event
+    """
+
+    function_name = 'InputEvent'
+
+    def __init__(self):
+        bus = dbus.SystemBus()
+        super(InputTrigger, self).__init__(
+            bus,
+            'org.freesmartphone.odeviced',
+            '/org/freesmartphone/Device/Input',
+            'org.freesmartphone.Device.Input',
+            'Event'
+        )
+    def on_signal(self, switch, event, duration):
+        logger.debug("%s triggered", self)
+        self(switch=switch, event=event, duration=duration)
+
+    def __repr__(self):
+        return "InputTrigger"
