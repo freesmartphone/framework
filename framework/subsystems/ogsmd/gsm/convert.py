@@ -52,6 +52,19 @@ def decodePDUNumber(bs):
     return (num_type, num_plan, number)
 
 #=========================================================================#
+def encodePDUNumber(num):
+#=========================================================================#
+    if num.type == 5:
+        enc = pack_sevenbit(num.number)
+        length = len(enc)*2
+        if (len(num.number)*7)%8 <= 4:
+            length -= 1
+    else:
+        enc = bcd_encode(num.number)
+        length = len(num.number)
+    return flatten( [length, 0x80 | num.type << 4 | num.dialplan, enc] )
+
+#=========================================================================#
 def bcd_decode(bs):
 #=========================================================================#
   s = "".join(["%1x%1x" % (b & 0xF, b >> 4) for b in bs])
@@ -63,8 +76,10 @@ def bcd_decode(bs):
 def bcd_encode(number):
 #=========================================================================#
     bcd = []
-    for i in range(0, len(number), 2):
+    for i in range(0, len(number)-1, 2):
         bcd.append( int(number[i]) | int(number[i+1]) << 4 )
+    if len(number)%2 == 1:
+        bcd.append( int(number[-1]) | 0x0f << 4 )
     return bcd
 
 #=========================================================================#
@@ -124,10 +139,9 @@ def unpack_sevenbit( bs, chop = 0 ):
     return "".join(map(chr, chars))
 
 #=========================================================================#
-def pack_sevenbit( text, padding=0 ):
+def pack_sevenbit( text, crop=0 ):
 #=========================================================================#
     """Pack 7-bit characters"""
-    print text
     bytes = map(ord, text)
 
     bytes.reverse()
@@ -142,9 +156,9 @@ def pack_sevenbit( text, padding=0 ):
         bits.reverse()
         msgbits.extend( bits )
 
-    padding += (8 - len(msgbits)%8) % 8
+    msgbits.extend( [0]*crop )
+    padding = (8 - len(msgbits)%8) % 8
     msgbits = ( [0]* padding ) + msgbits
-    print padding
     while len(msgbits) >= 8:
         byte = 0
         length = min( len(msgbits), 8 )
@@ -156,7 +170,6 @@ def pack_sevenbit( text, padding=0 ):
         msgbytes.append( byte )
 
     msgbytes.reverse()
-    print msgbytes
     return msgbytes
 
 #=========================================================================#

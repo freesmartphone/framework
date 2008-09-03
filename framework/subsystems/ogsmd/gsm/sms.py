@@ -12,6 +12,7 @@ Module: pdu
 
 """
 from ogsmd.gsm.convert import *
+import math
 
 #    ** Dekodieren
 #    smsobject = decodeSMS( pdu )
@@ -47,7 +48,6 @@ def decodeSMS( pdu, direction ):
     sms.pdu_srr = pdu_type & 0x20 != 0
     sms.pdu_sri = sms.pdu_srr
     sms.pdu_vpf =  (pdu_type & 0x18)>>3
-    # FIXME: Is VPF calculated right here?
     sms.pdu_rd = pdu_type & 0x04 != 0
     sms.pdu_mms = sms.pdu_rd
 
@@ -157,7 +157,6 @@ class AbstractSMS:
             pdu_type += 0x20
 
         pdu_type += self.pdu_vpf << 3
-        # FIXME: Is this right? looks fishy
 
         if self.pdu_rd or self.pdu_mms:
             pdu_type += 0x04
@@ -167,10 +166,7 @@ class AbstractSMS:
         if self.pdu_mti == 1:
             pdubytes.append( self.mr )
 
-        pdubytes.append( len(self.oa.number) )
-        pdubytes.append( 0x80 | self.oa.type << 4 | self.oa.dialplan )
-        pdubytes.extend( bcd_encode(self.oa.number) )
-        # FIXME: alphanumeric issues
+        pdubytes.extend( encodePDUNumber(self.oa) )
 
         pdubytes.append( self.pid )
         pdubytes.append( self.dcs )
@@ -178,18 +174,23 @@ class AbstractSMS:
         if self.pdu_mti == 0:
             pdubytes.extend( encodePDUTime( self.scts ) )
         else:
-            # FIXME
-            pdubytes.append( self.pdu_vpf )
+            if self.pdu_vpf == 2:
+                pdubytes.append( self.vp )
+            elif self.pdu_vpf == 3:
+                pdubytes.append( encodePDUTime( self.vp ) )
 
         # User data
-        pduud = pack_sevenbit(self.ud )
 
         if self.pdu_udhi:
             pduudh = flatten([ (header[0], len(header[1]), header[1]) for header in self.udh ])
-            pdubytes.append( len(pduudh) + len(self.ud) )
+            udlen = int( math.ceil( (len(pduudh)*8 + 8 + len(self.ud)*7)/7.0 ) )
+            padding = (7 * udlen - (8 + 8 * (len(pduudh)))) % 7
+            pdubytes.append( udlen )
             pdubytes.append( len(pduudh) )
             pdubytes.extend( pduudh )
+            pduud = pack_sevenbit(self.ud, padding )
         else:
+            pduud = pack_sevenbit( self.ud )
             pdubytes.append( len(self.ud) )
 
         pdubytes.extend( pduud )
