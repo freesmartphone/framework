@@ -15,9 +15,7 @@ logger = logging.getLogger('oeventsd')
 import yaml
 import re
 
-from filter import Filter, AttributeFilter
-import action
-from rule import Rule
+from filter import AttributeFilter
 
 #============================================================================#
 class FunctionMetaClass(type):
@@ -33,7 +31,7 @@ class Function(object):
 #============================================================================#
     __metaclass__ = FunctionMetaClass
     functions = {}
-    
+
     @classmethod
     def register(cls, name, func):
         logger.debug("register function %s", name)
@@ -90,6 +88,7 @@ class HasAttr(Function):
         return AttributeFilter(**kargs)
 
 def as_rule(r):
+    from rule import Rule # needs to be here to prevent circular import
     assert isinstance(r, dict), type(r)
     trigger = r['trigger']
     filters = r.get('filters', [])

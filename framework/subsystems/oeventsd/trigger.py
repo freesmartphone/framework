@@ -85,7 +85,7 @@ class DBusTrigger(Trigger):
         super(DBusTrigger, self).__init__()
         # some arguments checking
         assert isinstance(service, str)
-        assert isinstance(obj, str)
+        assert obj is None or isinstance(obj, str)
         assert isinstance(interface, str)
         assert isinstance(signal, str)
         self.bus = bus
