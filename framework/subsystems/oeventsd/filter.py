@@ -2,21 +2,25 @@
 """
 The freesmartphone Events Module - Python Implementation
 
-(C) 2008 Michael 'Mickey' Lauer <mlauer@vanille-media.de>
 (C) 2008 Jan 'Shoragan' Lübbe <jluebbe@lasnet.de>
 (C) 2008 Guillaume 'Charlie' Chereau
 (C) 2008 Openmoko, Inc.
 GPLv2 or later
+
+Package: oeventsd
+Module: filter
+
 """
+
 #============================================================================#
 class Filter(object):
 #============================================================================#
     """Base class for every filter
-       
+
        A filter is used after a rule has been triggered to decide if the actions
        will be called or not. When a rule is triggered, the trigger generate a dict
        of values, that can be later used by the filter.
-       
+
        All the filters need to implement the __call__ method, taking an arbitrary 
        number of keywords argument (**kargs) representing the event generated dict
        of values. The method returns True if the filter accept the event, False otherwise.
@@ -26,7 +30,7 @@ class Filter(object):
 
     def __invert__(self):
         """Return the inverted filter of this filter
-        
+
            The __invert__ method is called by the `~` operator.
         """
         return InvertFilter(self)
@@ -57,5 +61,4 @@ class InvertFilter(Filter):
 
     def __repr__(self):
         return "~(%s)" % self.filter
-
 

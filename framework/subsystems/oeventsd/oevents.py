@@ -12,18 +12,16 @@ Package: oeventsd
 Module: oevents
 """
 
-__version__ = "0.2.0"
+__version__ = "0.3.0"
 
 from framework.config import config
 
-# FIXME: treat triggers, actions, and filters as plugins and load them on demand
-from trigger import Trigger, CallStatusTrigger
-from filter import Filter, AttributeFilter
-from action import Action, AudioAction
+from action import Action
 from parser import Parser
-from rule import Rule
 
-import ring_tone_action
+# FIXME: treat custom triggers, actions, and filters as plugins and load them on demand
+from fso_actions import *
+from fso_triggers import *
 
 import dbus
 import os

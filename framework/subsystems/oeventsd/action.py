@@ -2,17 +2,19 @@
 """
 The freesmartphone Events Module - Python Implementation
 
-(C) 2008 Michael 'Mickey' Lauer <mlauer@vanille-media.de>
 (C) 2008 Jan 'Shoragan' Lübbe <jluebbe@lasnet.de>
 (C) 2008 Guillaume 'Charlie' Chereau
 (C) 2008 Openmoko, Inc.
 GPLv2 or later
+
+Package: oeventsd
+Module: action
 """
+
+import dbus
 
 import logging
 logger = logging.getLogger('oeventsd')
-
-import dbus
 
 #============================================================================#
 class ActionMetaClass(type):
@@ -99,101 +101,3 @@ class DBusAction(Action):
 
     def __repr__(self):
         return "%s(%s)" % (self.method, self.args)
-
-#============================================================================#
-class AudioAction(DBusAction):
-#============================================================================#
-    """
-    A dbus action on the freesmartphone audio device
-    """
-    def __init__(self, scenario = None, action = 'play'):
-        bus = dbus.SystemBus()
-        service = 'org.freesmartphone.odeviced'
-        obj = '/org/freesmartphone/Device/Audio'
-        interface = 'org.freesmartphone.Device.Audio'
-        method = 'PlaySound' if action == 'play' else 'StopSound'
-        super(AudioAction, self).__init__(bus, service, obj, interface, method, scenario)
-
-#============================================================================#
-class PlaySound(AudioAction):
-#============================================================================#
-    function_name = 'PlaySound'
-    def __init__(self, file):
-        super(PlaySound, self).__init__(file, 'play')
-
-#============================================================================#
-class StopSound(AudioAction):
-#============================================================================#
-    function_name = 'StopSound'
-    def __init__(self, file):
-        super(StopSound, self).__init__(file, 'stop')
-
-#============================================================================#
-class AudioScenarioAction(DBusAction):
-#============================================================================#
-    """
-    A dbus action on the freesmartphone audio device
-    """
-    function_name = 'SetScenario'
-
-    def __init__(self, scenario = None, action = 'set' ):
-        bus = dbus.SystemBus()
-        service = 'org.freesmartphone.odeviced'
-        obj = '/org/freesmartphone/Device/Audio'
-        interface = 'org.freesmartphone.Device.Audio'
-        if action == 'set':
-            # FIXME gsmhandset ugly ugly hardcoded
-            super(AudioScenarioAction, self).__init__(bus, service, obj, interface, "SetScenario", scenario)
-        else:
-            logger.error( "unhandled action '%s' for Audio scenario" % action )
-
-#============================================================================#
-class LedAction(DBusAction):
-#============================================================================#
-    """
-    A dbus action on an Openmoko Neo LED device
-    """
-    function_name = 'SetLed'
-
-    # FIXME device specific, needs to go away from here
-    def __init__(self, device, action):
-        bus = dbus.SystemBus()
-        service = 'org.freesmartphone.odeviced'
-        obj = '/org/freesmartphone/Device/LED/%s' % device
-        interface = 'org.freesmartphone.Device.LED'
-        if action == 'light':
-            super(LedAction, self).__init__(bus, service, obj, interface, 'SetBrightness', 100)
-        elif action == 'blink':
-            super(LedAction, self).__init__(bus, service, obj, interface, 'SetBlinking', 100, 1500)
-        elif action == 'dark':
-             super(LedAction, self).__init__(bus, service, obj, interface, 'SetBrightness', 0)
-        else:
-            logger.error( "unhandled action '%s' for Led" % action )
-
-#============================================================================#
-class VibratorAction(DBusAction):
-#============================================================================#
-    """
-    A dbus action on the Openmoko Neo Vibrator device
-    """
-    # FIXME device specific, needs to go away from here
-    def __init__(self, target = 'neo1973_vibrator', action = 'start'):
-        bus = dbus.SystemBus()
-        service = 'org.freesmartphone.odeviced'
-        obj = '/org/freesmartphone/Device/LED/%s' % target
-        interface = 'org.freesmartphone.Device.LED'
-        if action == 'start':
-            super(VibratorAction, self).__init__(bus, service, obj, interface, 'SetBlinking', 300, 700)
-        else:
-            super(VibratorAction, self).__init__(bus, service, obj, interface, 'SetBrightness', 0)
-
-class StartVibrationAction(VibratorAction):
-    function_name = 'StartVibration'
-    def __init__(self):
-        super(StartVibrationAction, self).__init__(action='start')
-
-class StopVibrationAction(VibratorAction):
-    function_name = 'StopVibration'
-    def __init__(self):
-        super(StartVibrationAction, self).__init__(action='stop')
-
