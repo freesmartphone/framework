@@ -165,7 +165,7 @@ class AbstractSMS:
         pdubytes.append( pdu_type )
 
         if self.pdu_mti == 1:
-            pdubytes.append( sms.mr )
+            pdubytes.append( self.mr )
 
         pdubytes.append( len(self.oa.number) )
         pdubytes.append( 0x80 | self.oa.type << 4 | self.oa.dialplan )
@@ -194,14 +194,13 @@ class AbstractSMS:
 
         pdubytes.extend( pduud )
 
-
         return "".join( [ "%02X" % (i) for i in pdubytes ] )
 
 
     def serviceCenter( self ):
         pass
     def repr( self ):
-        if sms.pdu_mti == 0:
+        if self.pdu_mti == 0:
             return """AbstractSMS:
 ServiceCenter: %s
 TimeStamp: %s
@@ -221,7 +220,7 @@ Message: %s
 """ % (self.sca, self.pdu_vpf, self.pid, self.oa, self.udh, self.ud)
 
 if __name__ == "__main__":
-    pdus = [
+    pdus_MT = [
     "0791448720900253040C914497035290960000500151614414400DD4F29C9E769F41E17338ED06",
     "0791448720003023440C91449703529096000050015132532240A00500037A020190E9339A9D3EA3E920FA1B1466B341E472193E079DD3EE73D85DA7EB41E7B41C1407C1CBF43228CC26E3416137390F3AABCFEAB3FAAC3EABCFEAB3FAAC3EABCFEAB3FAAC3EABCFEAB3FADC3EB7CFED73FBDC3EBF5D4416D9457411596457137D87B7E16438194E86BBCF6D16D9055D429548A28BE822BA882E6370196C2A8950E291E822BA88",
     "0791448720003023440C91449703529096000050015132537240310500037A02025C4417D1D52422894EE5B17824BA8EC423F1483C129BC725315464118FCDE011247C4A8B44",
@@ -237,17 +236,24 @@ if __name__ == "__main__":
     "0791447758100650040C9194714373238200008080312160304019D4F29C0E6A97E7F3F0B90CB2A7C3A0791A7E0ED3CB2E",
     "0791447758100650040DD0F334FC1CA6970100008080312170224008D4F29CDE0EA7D9"
     ]
+    pdus_MO = [
+    "07910447946400F011000A9270042079330000AA0161"
+    ]
 
-    for pdu in pdus:
-        print
-        sms = decodeSMS(pdu, "MT")
-        print sms.repr()
-        print "Orig PDU: ", pdu
+    def testpdu(pdu, dir):
+        sms = decodeSMS(pdu, dir)
         genpdu = sms.pdu()
-        print "ReencPDU: ", genpdu
         if pdu != genpdu:
             print "ERROR: Reencoded SMS doesn't match"
-        sms = decodeSMS(genpdu, "MT")
-        print sms.repr()
+            print "Orig PDU: ", pdu
+            print "ReencPDU: ", genpdu
+            print sms.repr()
+            sms = decodeSMS(genpdu, dir)
+            print sms.repr()
+
+    for pdu in pdus_MT:
+        testpdu(pdu, "MT")
+    for pdu in pdus_MO:
+        testpdu(pdu, "MO")
 
 # vim: expandtab shiftwidth=4 tabstop=4
