@@ -173,6 +173,7 @@ class UnsolicitedResponseChannel( CalypsoModemChannel ):
         c.append( "%CGREG=3" )
         c.append( "%CSTAT=1" )
         c.append( '@ST="-26"' ) # audio side tone: set to minimum
+        c.append( "%N0187" ) # echo cancelling: enable, noise reduction: enable
         # FIXME might enable %CPRI later
 
         c = self._commands["sim"]
