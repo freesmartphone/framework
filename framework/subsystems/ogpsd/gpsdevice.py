@@ -209,4 +209,17 @@ class GPSDevice( dbus.service.Object ):
     def TimeChanged( self, time ):
         pass
 
+
+class DummyDevice( GPSDevice ):
+    """A dummy device that reports a static position"""
+    def __init__( self, bus, gpschannel ):
+        super( DummyDevice, self ).__init__( bus )
+
+        self._updateTime( 1 )
+        self._updateFixStatus( 3 )
+        self._updatePosition( 7, 23.54322, -42.65648, 14.4 )
+        self._updateAccuracy( 7, 2.34, 16.4, 1.4 )
+        self._updateCourse( 7, 240.4, 45.4, -4.4 )
+        self._updateSatellites( [(1, False, 13, 164, 0), (13, True, 72, 250, 20), (24, True, 68, 349, 31)] )
+
 #vim: expandtab

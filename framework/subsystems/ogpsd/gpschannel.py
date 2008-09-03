@@ -21,7 +21,7 @@ logger = logging.getLogger('ogpsd')
 
 class GPSChannel( object ):
     """A GPS Channel :-)"""
-    def __init__( self ):
+    def __init__( self, path=None ):
         self.callback = None
 
     def setCallback( self, callback ):

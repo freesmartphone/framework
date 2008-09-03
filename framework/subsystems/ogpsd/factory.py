@@ -13,6 +13,7 @@ GPLv2 or later
 __version__ = "0.0.0"
 
 import dbus
+from gpsdevice import DummyDevice
 from nmea import NMEADevice
 from ubx import UBXDevice
 from om import GTA02Device
@@ -26,9 +27,9 @@ def factory( prefix, controller ):
 
     objects = []
 
-    devname = controller.config.get( "ogpsd", "device" )
-    channame = controller.config.get( "ogpsd", "channel" )
-    pathname = controller.config.get( "ogpsd", "path" )
+    devname = controller.config.getValue( "ogpsd", "device", "DummyDevice")
+    channame = controller.config.getValue( "ogpsd", "channel", "GPSChannel")
+    pathname = controller.config.getValue( "ogpsd", "path", "")
 
     channel = globals()[channame]( pathname )
     gpsdev = globals()[devname]( controller.bus, channel )
