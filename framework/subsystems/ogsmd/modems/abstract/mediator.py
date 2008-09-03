@@ -807,7 +807,13 @@ class NetworkGetStatus( NetworkMediator ):
                         result["mode"] = const.REGISTER_MODE[int(values[0])]
                     else:
                         result["mode"] = const.REGISTER_MODE[int(values[0])]
-                        result[ "provider"] = values[2].strip( '"' )
+                        result["provider"] = values[2].strip( '"' )
+        # UGLY special check for some modems, which return a strength of 0, if you
+        # call +CSQ too early after a (re)registration. In that case, we just
+        # leave the strength out of the result
+        if result["registration"] in "home roaming denied".split() and "strength" in result:
+            if result["strength"] == 0:
+                del result["strength"]
         self._ok( result )
 
 #=========================================================================#

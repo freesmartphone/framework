@@ -56,14 +56,10 @@ DEBUG = False   # TODO: remove this
 class Server( dbus.service.Object ):
 #=========================================================================#
     """
-    High level access to the Open Phone Server.
+    Open Phone Server aggregated functions:
+    - HomeZone
 
-    Idea: Send high level readiness signals for function complexes such as:
-    - PhonebookReady
-    - MessagebookReady
-    - CallReady
-    - SmsReady
-
+    Ideas:
     - watch for clients on bus and send coldplug status
     - monitor device aliveness and restart, if necessary
     """
@@ -89,7 +85,7 @@ class Server( dbus.service.Object ):
         server = None
 
     #
-    # signal handlers
+    # Callbacks
     #
     def onIncomingCellBroadcast( self, channel, data ):
 
