@@ -39,8 +39,8 @@ class NMEADevice( GPSDevice ):
         self.azimuth = range(12)
         self.ss = range(12)
         self.used = range(12)
-	self.date = '000000'
-	self.time = '000000'
+        self.date = '000000'
+        self.time = '000000'
         self.timestamp = 0
         self.mode = 0
         self.lat = 0.0
@@ -60,7 +60,7 @@ class NMEADevice( GPSDevice ):
                 break
             else:
                 result = self.handle_line( line.strip() )
-		if result:
+                if result:
                     logger.debug( result )
 
 
@@ -121,21 +121,21 @@ class NMEADevice( GPSDevice ):
 
     def processGPRMC(self, words):
         self.do_lat_lon(words[2:])
-	self.date = words[8]
+        self.date = words[8]
         day = string.atoi(self.date[0:2])
         month = string.atoi(self.date[2:4])
         year = 2000 + string.atoi(self.date[4:6])
-	self.time = words[0][0:6]
+        self.time = words[0][0:6]
         hours = string.atoi(self.time[0:2])
         minutes = string.atoi(self.time[2:4])
         seconds = string.atoi(self.time[4:6])
-	self.timestamp = int(time.mktime((year,month,day,hours,minutes,seconds,-1,-1,-1)))
+        self.timestamp = int(time.mktime((year,month,day,hours,minutes,seconds,-1,-1,-1)))
         self._updateTime( self.timestamp )
 
         if words[1] == 'V' or words[1] == "A":
             if words[6]: self.speed = string.atof(words[6])
             if words[7]: self.track = string.atof(words[7])
-	    self._updateCourse( 3, self.speed, self.track, 0 )
+            self._updateCourse( 3, self.speed, self.track, 0 )
 
 #$GPGGA,024933.992,4443.7944,N,07456.7103,W,0,00,50.0,192.5,M,,,,0000*27
 #$GPGGA,024934.991,4443.7944,N,07456.7103,W,0,00,50.0,192.5,M,,,,0000*23
@@ -160,19 +160,19 @@ class NMEADevice( GPSDevice ):
         day = string.atoi(self.date[0:2])
         month = string.atoi(self.date[2:4])
         year = 2000 + string.atoi(self.date[4:6])
-	self.time = words[0][0:6]
+        self.time = words[0][0:6]
         hours = string.atoi(self.time[0:2])
         minutes = string.atoi(self.time[2:4])
         seconds = string.atoi(self.time[4:6])
-	self.timestamp = int(time.mktime((year,month,day,hours,minutes,seconds,-1,-1,-1)))
+        self.timestamp = int(time.mktime((year,month,day,hours,minutes,seconds,-1,-1,-1)))
         self._updateTime( self.timestamp )
         self.status = string.atoi(words[5])
         self.satellites = string.atoi(words[6])
-	if self.status > 0:
+        if self.status > 0:
             self.do_lat_lon(words[1:])
-	    self.altitude = string.atof(words[8])
+            self.altitude = string.atof(words[8])
             # FIXME: Mode
-	    self._updateFixStatus( self.status + 1 )
+            self._updateFixStatus( self.status + 1 )
             self._updatePosition( 7, self.lat, self.lon, self.altitude )
 
 #$GPGSA,A,1,,,,,,,,,,,,,50.0,50.0,50.0*05
@@ -191,19 +191,19 @@ class NMEADevice( GPSDevice ):
 
     def processGPGSA(self,words):
         self.mode = string.atof(words[1])
-	for n in range(12):
-	    if words[n+2]:
-		self.used[n] = 1
-	    else:
-		self.used[n] = 0
+        for n in range(12):
+            if words[n+2]:
+                self.used[n] = 1
+            else:
+                self.used[n] = 0
         pdop = string.atof(words[14])
         hdop = string.atof(words[15])
         vdop = string.atof(words[16])
         # FIXME: Mode...
         self._updateAccuracy( 7, pdop, hdop, vdop )
-	self._updateSatellites(
-	    (self.prn[n],self.used[n],self.elevation[n],self.azimuth[n],self.ss[n]) for n in range(12)
-	    )		
+        self._updateSatellites(
+            (self.prn[n],self.used[n],self.elevation[n],self.azimuth[n],self.ss[n]) for n in range(12)
+            )
 
 #$GPGSV,3,1,09,14,77,023,,21,67,178,,29,64,307,,30,42,095,*7E
 #$GPGSV,3,2,09,05,29,057,,11,15,292,,18,08,150,,23,08,143,*7A
@@ -222,14 +222,14 @@ class NMEADevice( GPSDevice ):
 #                There my be up to three GSV sentences in a data packet
 
     def processGPGSV(self,words):
-	num_sentences = string.atoi(words[0])
+        num_sentences = string.atoi(words[0])
         current_sentence = string.atoi(words[1])
         self.in_view = string.atoi(words[2])
 
         f = 3
-	n = (current_sentence - 1) * 4
+        n = (current_sentence - 1) * 4
 
-	# FIXME: Need to clear the rest of the entries up to 12	
+        # FIXME: Need to clear the rest of the entries up to 12
 
         while n < self.in_view and f < len(words):
             if words[f+0]:
@@ -244,8 +244,8 @@ class NMEADevice( GPSDevice ):
             n = n + 1
 
     def processPGLOR(self,words):
-	# FIXME: Do we do anything with this sentence?
-	pass
+        # FIXME: Do we do anything with this sentence?
+        pass
 
     def handle_line(self, line):
         if line[0] == '$':
@@ -258,13 +258,13 @@ class NMEADevice( GPSDevice ):
             try:
                 method = getattr( self, methodname )
             except AttributeError:
-		logger.error( "Line: %s" % line)
+                logger.error( "Line: %s" % line)
                 return "Unknown sentence"
             else:
                 try:
                     method( words[1:] )
                 except Exception, e:
-		    logger.error( "Line: %s" % line)
+                    logger.error( "Line: %s" % line)
                     logger.error( "Error in %s method: %s" % ( methodname, e ) )
         else:
             return "Not NMEA"
