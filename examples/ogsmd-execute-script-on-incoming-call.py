@@ -1,0 +1,34 @@
+import dbus                                                                                                                                                                                                                                    
+import dbus.mainloop                                                                                                                                                                                                                           
+import dbus.mainloop.glib                                                                                                                                                                                                                      
+import gobject                                                                                                                                                                                                                                 
+import subprocess                                                                                                                                                                                                                              
+                                                                                                                                                                                                                                               
+                                                                                                                                                                                                                                               
+actions = { \                                                                                                                                                                                                                                  
+  "+491002":"/usr/bin/foo1",                                                                                                                                                                                                          
+  "+491002":"/usr/bin/foo2",                                                                                                                                                                                                                   
+  "+491003":"/usr/bin/foo3" }                                                                                                                                                                                                                  
+                                                                                                                                                                                                                                               
+def onCallStatus( index, status, properties ):                                                                                                                                                                                                 
+    if status == "incoming":                                                                                                                                                                                                                   
+        try:                                                                                                                                                                                                                                   
+             action = actions[properties["peer"]]                                                                                                                                                                                              
+        except KeyError:                                                                                                                                                                                                                       
+             pass                                                                                                                                                                                                                              
+        else:                                                                                                                                                                                                                                  
+              obj = bus.get_object( "org.freesmartphone.ogsmd", "/org/freesmartphone/GSM/Device" )                                                                                                                                             
+              callInterface = dbus.Interface( obj, "org.freesmartphone.GSM.Call" )                                                                                                                                                             
+              callInterface.Release( index )                                                                                                                                                                                                   
+              subprocess.Popen( action, shell=True )                                                                                                                                                                                           
+                                                                                                                                                                                                                                               
+dbus.mainloop.glib.DBusGMainLoop( set_as_default=True )                                                                                                                                                                                        
+mainloop = gobject.MainLoop()                                                                                                                                                                                                                  
+bus = dbus.SystemBus()                                                                                                                                                                                                                         
+bus.add_signal_receiver( onCallStatus,
+                         "CallStatus",
+                         "org.freesmartphone.GSM.Call",
+                         "org.freesmartphone.ogsmd", 
+                         "/org/freesmartphone/GSM/Device" )                                                                                             
+mainloop.run()                                               
+
