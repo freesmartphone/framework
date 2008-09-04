@@ -46,9 +46,16 @@ class Pdp( AbstractMediator ):
         self.pds = copy.copy( self.__class__.PPP_DAEMON_SETUP )
         self.pds[self.__class__.PPP_CONNECT_CHAT_FILENAME] = self.__class__.PPP_DAEMON_SETUP[self.__class__.PPP_CONNECT_CHAT_FILENAME] % apn
 
-        # FIXME honor user and password
+        apn, user, password = str(apn), str(user), str(password)
 
+        # merge with modem specific options
         self.ppp_options = self.__class__.PPP_OPTIONS_GENERAL + self._object.modem.dataOptions( "ppp" )
+
+        # merge with user and password settings
+        if user:
+            self.ppp_options += [ "user", '"%s"' % user ]
+            self.pds[self.__class__.PPP_PAP_SECRETS_FILENAME] = '%s * %s *\n' % ( user or '*', password or '*' )
+            self.pds[self.__class__.PPP_CHAP_SECRETS_FILENAME] =  '%s * %s *\n'% ( user or '*', password or '*' )
 
         self.timeout_source = None
         self.childwatch_source = None
@@ -103,6 +110,9 @@ class Pdp( AbstractMediator ):
             standard_output = True,
             standard_error = True,
             flags = gobject.SPAWN_DO_NOT_REAP_CHILD )
+
+        # FIXME launch watchdog here -- if the ppp is not getting launched, we have allocated
+        # a virtual channel that never gets freed (need to open and close it)
 
         self.fds = fdin, fdout, fderr
 
@@ -200,6 +210,9 @@ class Pdp( AbstractMediator ):
     PPP_CONNECT_CHAT_FILENAME = "/var/tmp/ogsmd/gprs-connect-chat"
     PPP_DISCONNECT_CHAT_FILENAME = "/var/tmp/ogsmd/gprs-disconnect-chat"
 
+    PPP_PAP_SECRETS_FILENAME = "/etc/ppp/pap-secrets"
+    PPP_CHAP_SECRETS_FILENAME = "/etc/ppp/chap-secrets"
+
     PPP_OPTIONS_GENERAL = [ "connect", PPP_CONNECT_CHAT_FILENAME, "disconnect", PPP_DISCONNECT_CHAT_FILENAME ]
 
     PPP_BINARY = "/usr/sbin/pppd"
@@ -243,10 +256,6 @@ exec /usr/sbin/chat -v\
     '' '\k\k\k\d+++ATH'\
     'NO CARRIER-AT-OK' ''
 """
-
-    PPP_DAEMON_SETUP["/etc/ppp/chap-secrets"] = '* * "%s" *\n' % ''
-
-    PPP_DAEMON_SETUP["/etc/ppp/pap-secrets"] =  '* * "%s" *\n'% ''
 
     PPP_DAEMON_SETUP["/etc/ppp/ip-up.d/08setupdns"] = """#!/bin/sh -e
 cp /var/run/ppp/resolv.conf /etc/resolv.conf
