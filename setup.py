@@ -4,6 +4,9 @@ from Cython.Distutils import build_ext
 
 import os
 
+def getDir( dirname ):
+    return [ dirname+'/'+x for x in os.listdir( dirname ) ]
+
 # Get the list of all the packages
 packages = [ x[0] for x in os.walk( "framework" ) ]
 
@@ -27,6 +30,6 @@ setup(
         ("../../etc/freesmartphone/opreferences/conf/phone", ["etc/freesmartphone/opreferences/conf/phone/default.yaml"]),
         ("../../etc/freesmartphone/opreferences/conf/phone", ["etc/freesmartphone/opreferences/conf/phone/silent.yaml"]),
         ("../../etc/freesmartphone/oevents", ["etc/freesmartphone/oevents/rules.yaml"]),
-        ("freesmartphone/examples/", ["examples/gsm-log-data.py"]),
+        ("freesmartphone/examples/", getDir( "examples" ) ),
     ]
 )
