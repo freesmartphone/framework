@@ -53,9 +53,10 @@ class Pdp( AbstractMediator ):
 
         # merge with user and password settings
         if user:
+            logger.info( "configuring ppp for user '%s' w/ password '%s'" % ( user, password ) )
             self.ppp_options += [ "user", '"%s"' % user ]
-            self.pds[self.__class__.PPP_PAP_SECRETS_FILENAME] = '%s * %s *\n' % ( user or '*', password or '*' )
-            self.pds[self.__class__.PPP_CHAP_SECRETS_FILENAME] =  '%s * %s *\n'% ( user or '*', password or '*' )
+            self.pds[self.__class__.PPP_PAP_SECRETS_FILENAME] = '%s * "%s" *\n' % ( user or '*', password )
+            self.pds[self.__class__.PPP_CHAP_SECRETS_FILENAME] =  '%s * "%s" *\n'% ( user or '*', password )
 
         self.timeout_source = None
         self.childwatch_source = None
@@ -230,6 +231,11 @@ exec /usr/sbin/chat -v\
     'ABORT' 'RINGING'\
     'ABORT' 'VOICE'\
     'TIMEOUT' '3'\
+    '' '+++'\
+    '' 'ATZ'\
+    '' '+++'\
+    '' 'ATZ'\
+    '' '+++'\
     '' 'ATZ'\
     'OK-\k\k\k\d+++ATH-OK' 'ATE0'\
     'OK' 'AT+CMEE=2'\
@@ -264,6 +270,10 @@ cp /var/run/ppp/resolv.conf /etc/resolv.conf
     PPP_DAEMON_SETUP["/etc/ppp/ip-down.d/92removedns"] = """#!/bin/sh -e
 echo nameserver 127.0.0.1 > /etc/resolv.conf
 """
+
+    PPP_DAEMON_SETUP[PPP_PAP_SECRETS_FILENAME] = '* * "%s" *\n' % ''
+
+    PPP_DAEMON_SETUP[PPP_CHAP_SECRETS_FILENAME] =  '* * "%s" *\n'% ''
 
 #=========================================================================#
 if __name__ == "__main__":
