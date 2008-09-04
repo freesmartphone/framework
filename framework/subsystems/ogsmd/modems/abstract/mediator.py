@@ -822,9 +822,11 @@ class NetworkGetStatus( NetworkMediator ):
         # UGLY special check for some modems, which return a strength of 0, if you
         # call +CSQ too early after a (re)registration. In that case, we just
         # leave the strength out of the result
-        if result["registration"] in "home roaming denied".split() and "strength" in result:
-            if result["strength"] == 0:
+        try:
+            if result["registration"] in "home roaming denied".split() and result["strength"] == 0:
                 del result["strength"]
+        except KeyError:
+            pass
         self._ok( result )
 
 #=========================================================================#

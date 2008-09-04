@@ -174,6 +174,8 @@ class Pdp( AbstractMediator ):
         exitsignal = condition & 0xFF
         logger.info( "pppd exited with code %d and signal %d" % ( exitcode, exitsignal ) )
 
+        # FIXME check whether this was a planned exit or not, if not, try to recover
+
         self._updateState( "release" )
 
         self.cpid = -1
@@ -230,13 +232,8 @@ exec /usr/sbin/chat -v\
     'ABORT' 'NO DIALTONE'\
     'ABORT' 'RINGING'\
     'ABORT' 'VOICE'\
-    'TIMEOUT' '3'\
-    '' '+++'\
-    '' 'ATZ'\
-    '' '+++'\
-    '' 'ATZ'\
-    '' '+++'\
-    '' 'ATZ'\
+    'TIMEOUT' '5'\
+    '' '+++ATZ'\
     'OK-\k\k\k\d+++ATH-OK' 'ATE0'\
     'OK' 'AT+CMEE=2'\
     'OK' 'AT+CPIN?'\
