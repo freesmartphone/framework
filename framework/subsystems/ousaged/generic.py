@@ -7,10 +7,13 @@ Open Usage Daemon - Generic usage support
 (C) 2008 Jan 'Shoragan' Lübbe <jluebbe@lasnet.de>
 (C) 2008 Openmoko, Inc.
 GPLv2 or later
+
+Package: ousaged
+Module: generic
 """
 
 MODULE_NAME = "ousaged"
-__version__ = "0.1.0"
+__version__ = "0.1.1"
 
 DBUS_INTERFACE_PREFIX = "org.freesmartphone.Usage"
 DBUS_PATH_PREFIX = "/org/freesmartphone/Usage"
@@ -28,7 +31,9 @@ import sys
 import logging
 logger = logging.getLogger( MODULE_NAME )
 
+#----------------------------------------------------------------------------#
 class AbstractResource( object ):
+#----------------------------------------------------------------------------#
     def __init__( self, usageControl ):
         self.usageControl = usageControl
         self.name = "Abstract"
@@ -83,7 +88,9 @@ class AbstractResource( object ):
             self.release( user )
             logger.info( "Releasing %s for vanished user %s", self.name, user )
 
+#----------------------------------------------------------------------------#
 class DummyResource( AbstractResource ):
+#----------------------------------------------------------------------------#
     def __init__( self, usageControl, name ):
         AbstractResource.__init__( self , usageControl )
         self.name = name
@@ -94,7 +101,9 @@ class DummyResource( AbstractResource ):
     def _disable( self ):
         print "Disabled %s" % self.name
 
+#----------------------------------------------------------------------------#
 class ODeviceDResource( AbstractResource ):
+#----------------------------------------------------------------------------#
     def __init__( self, usageControl, name ):
         AbstractResource.__init__( self , usageControl )
         self.bus = dbus.SystemBus()
@@ -118,7 +127,9 @@ class ODeviceDResource( AbstractResource ):
         iface.SetPower( False, reply_handler=self._replyCallback, error_handler=self._errorCallback )
         print "Disabled %s" % self.name
 
+#----------------------------------------------------------------------------#
 class OGPSDResource( AbstractResource ):
+#----------------------------------------------------------------------------#
     def __init__( self, usageControl, name ):
         AbstractResource.__init__( self , usageControl )
         self.bus = dbus.SystemBus()
@@ -215,11 +226,15 @@ class GenericUsageControl( dbus.service.Object ):
 def factory( prefix, controller ):
 #----------------------------------------------------------------------------#
     objects = []
+    # FIXME remove hardcoding resources here and rather rely on presence of PowerControl interface
+    # Problem: presence of these objects is then depending other subsystems, so need to
+    # postpone this until we have subsystem dependency support in the controller
     genericUsageControl = GenericUsageControl( controller.bus )
     genericUsageControl.addResource( DummyResource( genericUsageControl, "GSM" ) )
     genericUsageControl.addResource( OGPSDResource( genericUsageControl, "GPS" ) )
     genericUsageControl.addResource( ODeviceDResource( genericUsageControl, "Bluetooth" ) )
-    genericUsageControl.addResource( DummyResource( genericUsageControl, "WiFi" ) )
+    genericUsageControl.addResource( ODeviceDResource( genericUsageControl, "WiFi" ) )
+    genericUsageControl.addResource( ODeviceDResource( genericUsageControl, "UsbHost" ) )
     objects.append( genericUsageControl )
     return objects
 
