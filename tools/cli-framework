@@ -28,12 +28,19 @@ def handler( *args, **kwargs ):
         print ">>> ",
         sys.stdout.flush()
 
-def getObject( bus, busname, objectpath ):
+def getObject( busname, objectpath ):
     return bus.get_object( busname, objectpath, follow_name_owner_changes=True )
 
-def getInterface( bus, busname, objectpath, interface ):
-    proxy = getObject( bus, busname, objectpath )
+def getInterface( busname, objectpath, interface ):
+    proxy = getObject( busname, objectpath )
     return dbus.Interface( proxy, interface)
+
+def getObjectsForInterface( interface ):
+    paths = framework.ListObjectsByInterface( interface )
+    result = {}
+    for path in paths:
+        result[str(path)] = getInterface( "org.freesmartphone.frameworkd", path, interface )
+    return result
 
 dbus.mainloop.glib.DBusGMainLoop( set_as_default=True )
 mainloop = MainLoop()
@@ -42,61 +49,58 @@ bus = dbus.SystemBus()
 # FIXME use introspection
 
 # framework object
-framework = getObject( bus, "org.freesmartphone.frameworkd", "/org/freesmartphone/Framework" )
+framework = getObject( "org.freesmartphone.frameworkd", "/org/freesmartphone/Framework" )
 
 # ogsmd device object
-gsm = getObject( bus, "org.freesmartphone.ogsmd", "/org/freesmartphone/GSM/Device" )
+gsm = getObject( "org.freesmartphone.ogsmd", "/org/freesmartphone/GSM/Device" )
 
 # ogsmd server
-hz = getInterface( bus,
+hz = getInterface( \
     "org.freesmartphone.ogsmd",
     "/org/freesmartphone/GSM/Server",
     "org.freesmartphone.GSM.HZ" )
 
 # odeviced objects
 devaudio = getInterface( \
-    bus,
     "org.freesmartphone.odeviced",
     "/org/freesmartphone/Device/Audio",
     "org.freesmartphone.Device.Audio" \
     )
 
 devidle = getInterface( \
-    bus,
     "org.freesmartphone.odeviced",
     "/org/freesmartphone/Device/IdleNotifier/0",
     "org.freesmartphone.Device.IdleNotifier" \
     )
 
 devpow = getInterface( \
-    bus,
     "org.freesmartphone.odeviced",
     "/org/freesmartphone/Device",
     "org.freesmartphone.Device.PowerManagement" \
     )
 
 # device
-gsmdevice = getInterface( bus,
+gsmdevice = getInterface( \
     "org.freesmartphone.ogsmd",
     "/org/freesmartphone/GSM/Device",
     "org.freesmartphone.GSM.Device" )
-gsmsim = getInterface( bus,
+gsmsim = getInterface( \
     "org.freesmartphone.ogsmd",
     "/org/freesmartphone/GSM/Device",
     "org.freesmartphone.GSM.SIM" )
-gsmnetwork = getInterface( bus,
+gsmnetwork = getInterface( \
     "org.freesmartphone.ogsmd",
     "/org/freesmartphone/GSM/Device",
     "org.freesmartphone.GSM.Network" )
-gsmcall = getInterface( bus,
+gsmcall = getInterface( \
     "org.freesmartphone.ogsmd",
     "/org/freesmartphone/GSM/Device",
     "org.freesmartphone.GSM.Call" )
-gsmpdp = getInterface( bus,
+gsmpdp = getInterface( \
     "org.freesmartphone.ogsmd",
     "/org/freesmartphone/GSM/Device",
     "org.freesmartphone.GSM.PDP" )
-gsmtest = getInterface( bus,
+gsmtest = getInterface( \
     "org.freesmartphone.ogsmd",
     "/org/freesmartphone/GSM/Device",
     "org.freesmartphone.GSM.Test" )
