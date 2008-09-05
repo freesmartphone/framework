@@ -36,7 +36,10 @@ def decodeSMS( pdu, direction ):
     # SCA - Service Center address
     sca_len = bytes[offset]
     offset += 1
-    sms.sca = PDUAddress( *decodePDUNumber( bytes[offset:offset+sca_len] ) )
+    if sca_len > 0:
+        sms.sca = PDUAddress( *decodePDUNumber( bytes[offset:offset+sca_len] ) )
+    else:
+        sms.sca = False
 
     offset += sca_len
     # PDU type
@@ -137,6 +140,17 @@ class PDUAddress:
 class AbstractSMS:
     def __init__( self, direction ):
         self.direction = direction
+        self.sca = False
+        self.pdu_udhi = False
+        self.pdu_srr = False
+        self.pdu_sri = False
+        self.pdu_rp = False
+        self.pdu_vpf = 0
+        self.pdu_rd = False
+        self.pdu_mms = False
+        self.mr = 0
+        self.pid = 0
+        self.dcs = 0
     def pdu( self ):
         pdubytes = []
         if self.sca:
