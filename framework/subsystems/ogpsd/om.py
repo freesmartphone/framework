@@ -95,7 +95,7 @@ class GTA02Device( UBXDevice ):
         tacc = 120000 # in ms (2 minutes)
 
         # Feed GPS with position and time
-        self.send("AID-INI", 48, {"X" : pos["x"] , "Y" : pos["y"] , "Z" : pos["z"], "POSACC" : pos["accuracy"], \
+        self.send("AID-INI", 48, {"X" : pos["x"] , "Y" : pos["y"] , "Z" : pos["z"], "POSACC" : pacc, \
                                   "TM_CFG" : 0 , "WN" : wn , "TOW" : tow , "TOW_NS" : 0 , "TACC_MS" : tacc , "TACC_NS" : 0 , \
                                   "CLKD" : 0 , "CLKDACC" : 0 , "FLAGS" : 0x3 })
 
