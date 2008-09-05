@@ -308,6 +308,9 @@ class UBXDevice( GPSDevice ):
         self.ubx["CFG-PRT"] = {"In_proto_mask" : 3, "Out_proto_mask" : 3}
         self.ack["CFG-PRT"] = 0
         self.send("CFG-PRT", 0, [])
+        # Reset
+        self.gpsfixstatus = 0
+        self.buffer = ""
         self._reset()
 
     def parse( self, data ):
