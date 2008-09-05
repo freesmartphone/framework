@@ -5,9 +5,12 @@ freesmartphone.org Framework Daemon
 (C) 2008 Michael 'Mickey' Lauer <mlauer@vanille-media.de>
 (C) 2008 Openmoko, Inc.
 GPLv2 or later
+
+Package: framework
+Module: controller
 """
 
-__version__ = "0.9.2"
+__version__ = "0.9.4"
 
 from framework.config import DBUS_BUS_NAME_PREFIX, debug, config, loggingmap
 from optparse import OptionParser
@@ -74,6 +77,12 @@ class Controller( object ):
         DBusGMainLoop( set_as_default=True )
         self.mainloop = MainLoop()
         self.bus = dbus.SystemBus()
+
+        # check if there's already something owning our bus name org.freesmartphone.frameworkd
+        if "%s.frameworkd" % DBUS_BUS_NAME_PREFIX in self.bus.list_names():
+            logger.error( "dbus bus name org.freesmartphone.frameworkd already claimed. Exiting." )
+            sys.exit( -1 )
+
         self._subsystems = {}
         self.busnames = []
         # FIXME remove hardcoded controller knowledge from objects
