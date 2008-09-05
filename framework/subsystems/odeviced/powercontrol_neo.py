@@ -7,11 +7,11 @@ Open Device Daemon - A plugin for Neo 1973 and Neo FreeRunner specific power con
 GPLv2 or later
 
 Package: odeviced
-Module: powercontrol-neo
+Module: powercontrol_neo
 """
 
-MODULE_NAME = "odeviced.powercontrol-neo"
-__version__ = "0.5.1"
+MODULE_NAME = "odeviced.powercontrol_neo"
+__version__ = "0.6.0"
 
 from helpers import DBUS_INTERFACE_PREFIX, DBUS_PATH_PREFIX, readFromFile, writeToFile
 
@@ -141,6 +141,25 @@ class NeoGsmPowerControl( GenericPowerControl ):
     #
 
 #----------------------------------------------------------------------------#
+class NeoUsbHostPowerControl( GenericPowerControl ):
+#----------------------------------------------------------------------------#
+    DBUS_INTERFACE = DBUS_INTERFACE_PREFIX + ".PowerControl"
+
+    def __init__( self, bus, node ):
+        GenericPowerControl.__init__( self, bus, "UsbHost", node )
+        # node to provide 5V/100mA to USB gadgets, only present on Neo FreeRunner
+        self.powernode = "/sys/devices/platform/neo1973-pm-host.0/hostmode"
+        # mode switching
+        self.modenode = "/sys/devices/platform/s3c2410-ohci/usb_mode"
+
+    def setPower( self, power ):
+        if power:
+            writeToFile( self.modenode, "host" )
+        else:
+            writeToFile( self.modenode, "device" )
+        GenericPowerControl.setPower( self, power )
+
+#----------------------------------------------------------------------------#
 class NeoWifiPowerControl( GenericPowerControl ):
 #----------------------------------------------------------------------------#
     DBUS_INTERFACE = DBUS_INTERFACE_PREFIX + ".PowerControl"
@@ -171,6 +190,9 @@ def factory( prefix, controller ):
         if walk.lookForGSM and "neo1973-pm-gsm.0" in fnames:
             objects.append( NeoGsmPowerControl( bus, "%s/%s" % ( dirname, "neo1973-pm-gsm.0" ) ) )
             walk.lookForGSM = False # only have one GSM modem
+        if walk.lookForUSB and "s3c2410-ohci" in fnames: # works both for 1973 and FreeRunner
+            objects.append( NeoUsbHostPowerControl( bus, "%s/%s" % ( dirname, "neo1973-pm-host.0" ) ) )
+            walk.lookForUSB = False # only have one USB host
 
     objects = []
     # scan for device nodes
@@ -178,11 +200,13 @@ def factory( prefix, controller ):
     walk.lookForBT = True
     walk.lookForGPS = True
     walk.lookForGSM = True
+    walk.lookForUSB = True
     os.path.walk( devicespath, walk, objects )
 
     # check for network interfaces
     if ( wireless is not None ) and "eth0" in os.listdir( "/sys/class/net"):
         objects.append( NeoWifiPowerControl( bus, "/sys/class/net/eth0" ) )
+
     return objects
 
 if __name__ == "__main__":

@@ -1,6 +1,14 @@
+2008-09-05	Michael Lauer	<mickey@openmoko.org>
+
+	* [odeviced] Add PowerControl class for UsbHost
+
+2008-09-05	Daniel Willmann	<daniel@totalueberwachung.de>
+
+	* [ogsmd] Added and activated SMS-PDU mode
+
 2008-08-27	Michael Lauer	<mickey@openmoko.org>
 
-	* Remove remaining LOG calls. We are now fully converted to Python logging!
+	* Removed remaining LOG calls. We are now fully converted to Python logging!
 
 2008-08-27	Jan Luebbe      <jluebbe@debian.org>
 
@@ -8,8 +16,8 @@
 
 2008-08-27	Michael Lauer	<mickey@openmoko.org>
 
-	* [odeviced] Implement power status notifications using netlink socket
-	* [oeventsd] add triggers and rule for power management and LEDs
+	* [odeviced] Implemented power status notifications using netlink socket
+	* [oeventsd] Added triggers and rule for power management and LEDs
 
 2008-08-26	Michael Lauer	<mickey@openmoko.org>
 
@@ -18,20 +26,20 @@
 
 2008-08-15	Guillaume Chereau	<charlie@openmoko.org>
 
-	* [oeventsd] Revamp oevents subsystem to be more flexible using yaml rules
+	* [oeventsd] Revamped oevents subsystem to be more flexible using yaml rules
 
 2008-08-09	Michael Lauer	<mickey@vanille-media.de>
 
-	* [ogsmd] Implement basic USSD support
+	* [ogsmd] Implemented basic USSD support
 
 2008-08-03	Michael Lauer	<mickey@vanille-media.de>
 
-	* Unify configuration nodes to use the same name we
+	* Unified configuration nodes to use the same name we
 	  are using for logging, i.e. [subsystem.module].
 
 2008-08-01	Michael Lauer	<mickey@vanille-media.de>
 
-	* Add dbus interface to configure debug loggers at runtime
+	* Added dbus interface to configure debug loggers at runtime
 
 2008-07-30	Michael Lauer	<mickey@vanille-media.de>
 
