@@ -424,31 +424,42 @@ class UBXDevice( GPSDevice ):
 
     def handle_NAV_STATUS( self, data ):
         data = data[0]
-        self.gpsfixstatus = data["Flags"]&0x01
         fixtranstbl = [ 1, 1, 2, 3, 2, 1 ]
-        self._updateFixStatus( fixtranstbl[ data["GPSfix"] ] )
+        self.gpsfixstatus = fixtranstbl[ data["GPSfix"] ]
+        if data["Flags"]&0x01 == 0:
+            self.gpsfixstatus = 1
+        self._updateFixStatus( self.gpsfixstatus )
 
     def handle_NAV_POSLLH( self, data ):
         scaling = 10000000.0
-        valid = self.gpsfixstatus*3
-        if self.fixstatus == 3:
-            valid += 4
+        if self.gpsfixstatus == 3:
+            valid = 7
+        elif self.gpsfixstatus == 2:
+            valid = 3
+        else:
+            valid = 0
         data = data[0]
         self._updatePosition( valid, data["LAT"]/scaling,
                 data["LON"]/scaling, data["HEIGHT"]/1000.0 )
 
     def handle_NAV_DOP( self, data ):
-        valid = self.gpsfixstatus*2
-        if self.fixstatus == 3:
-            valid += 5
+        if self.gpsfixstatus == 3:
+            valid = 7
+        elif self.gpsfixstatus == 2:
+            valid = 2
+        else:
+            valid = 0
         data = data[0]
         self._updateAccuracy( valid, data["PDOP"]/100.0,
                 data["HDOP"]/100.0, data["VDOP"]/100.0 )
 
     def handle_NAV_VELNED( self, data ):
-        valid = self.gpsfixstatus*3
-        if self.fixstatus == 3:
-            valid += 4
+        if self.gpsfixstatus == 3:
+            valid = 7
+        elif self.gpsfixstatus == 2:
+            valid = 3
+        else:
+            valid = 0
         data = data[0]
         self._updateCourse( valid, data["GSpeed"]*0.036,
                 data["Heading"]/100000.0, data["VEL_D"]*0.036 )
