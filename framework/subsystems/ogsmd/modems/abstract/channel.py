@@ -42,14 +42,14 @@ class AbstractModemChannel( AtCommandChannel ):
         # don't hammer modem too early with the additional commands
         # FIXME it's actually modem specific whether we can send the command directly
         # after +CPIN: READY or not, so we should not have this here
-        gobject.timeout_add_seconds( 2, self._sendCommands, "sim" )
+        gobject.timeout_add_seconds( 10, self._sendCommands, "sim" )
+
 
     def modemStateSimReady( self ):
         """
         Called, when the modem signalizes the SIM data can be read.
         """
-        pass
-
+        gobject.timeout_add_seconds( 1, self._sendCommands, "sim" )
 
     def suspend( self, ok_callback, error_callback ):
         """
