@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-#coding=utf8
+# -*- coding: iso-8859-15 -*-
 """
 The Open Device Daemon - Python Implementation
 
@@ -906,13 +906,15 @@ TP_UDH_IEI = { \
 }
 
 #=========================================================================#
-GSMALPHABET =    u'@£$¥èéùìòÇ\nØø\nÅåΔ_ΦΓΛΩΠΨΣΘΞ�ÆæßÉ !"#¤%&\'()*+,-./'+\
-                 u'0123456789:;<=>?¡ABCDEFGHIJKLMNOPQRSTUVWXYZÄÖÑÜ§¿'+\
-                 u'abcdefghijklmnopqrstuvwxyzäöñà'
+GSMALPHABET =    '@£$¥èéùìòÇ\nØø\nÅåΔ_ΦΓΛΩΠΨΣΘΞ�ÆæßÉ !"#¤%&\'()*+,-./'+\
+                 '0123456789:;<=>?¡ABCDEFGHIJKLMNOPQRSTUVWXYZÄÖÑÜ§¿'+\
+                 'abcdefghijklmnopqrstuvwxyzäöñà'
+GSMALPHABET = unicode( GSMALPHABET, "utf-8" )
 GSMEXTBYTE = 27
-GSMEXTALPHABET = u'          \n         ^                   {}    '+\
-                 u' \\            [~] |                              '+\
-                 u'    €                          '
+GSMEXTALPHABET = '          \n         ^                   {}    '+\
+                 ' \\            [~] |                              '+\
+                 '    €                          '
+GSMEXTALPHABET = unicode( GSMEXTALPHABET, "utf-8" )
 
 
 #=========================================================================#
