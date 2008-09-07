@@ -16,6 +16,9 @@ GSM constants, strings, formats, parse patterns, timeouts, you name it.
 import re
 from ogsmd.helpers import BiDict
 
+import logging
+logger = logging.getLogger( "ogsmd" )
+
 #=========================================================================#
 # format patterns
 #=========================================================================#
@@ -1036,13 +1039,17 @@ def unicodeToString( uni ):
 def textToUnicode( text ):
 #=========================================================================#
     """
-    Returns a unicode text for a text given from the modem.
+    Strip " from a modem text and convert it to unicode. Do nothing, if already unicode.
     """
+    stripped = text.strip( '"' )
+    if type( stripped ) == types.UnicodeType:
+        logger.warning( "textToUnicode called with unicode string, ignoring." )
+        return stripped
     try:
-        result = unicode( text.strip( '"' ), "iso-8859-1" ) # as set via +CSCS
+        result = unicode( stripped, "iso-8859-1" ) # as set via +CSCS
     except UnicodeDecodeError:
         result = "<??? undecodable ???>"
-        # log warning
+        logger.error( "textToUnicode called with unconvertable string" )
     return result
 
 #=========================================================================#
