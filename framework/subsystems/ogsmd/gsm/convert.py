@@ -14,6 +14,7 @@ Module: convert
 GSM conversion functions.
 """
 from datetime import datetime
+from const import GSMALPHABET, GSMEXTBYTE, GSMEXTALPHABET
 
 #=========================================================================#
 def flatten(x):
@@ -112,7 +113,7 @@ def encodePDUTime(timeobj):
     zone |= int(tzone * 4)
     return bcd_encode( [ year/10, year%10, td.month/10, td.month%10,
         td.day/10, td.day%10, td.hour/10, td.hour%10, td.minute/10,
-				td.minute%10, td.second/10, td.second%10, zone/10, zone%10 ] )
+        td.minute%10, td.second/10, td.second%10, zone/10, zone%10 ] )
 
 #=========================================================================#
 def tobinary( n ):
@@ -122,6 +123,35 @@ def tobinary( n ):
         s = ("%1d" % (n & 1)) + s
         n >>= 1
     return s
+
+
+#=========================================================================#
+def gsmtotext( bytes ):
+#=========================================================================#
+    extchar = False
+    text = u''
+    for byte in bytes:
+        if byte == GSMEXTBYTE:
+            extchar = True
+            continue
+        if extchar:
+            extchar = False
+            text += GSMEXTALPHABET[byte]
+        else:
+            text += GSMALPHABET[byte]
+    return text
+
+#=========================================================================#
+def gsmfromtext( text ):
+#=========================================================================#
+    bytes = []
+    for char in text:
+        try:
+            bytes.append( GSMALPHABET.index( char ) )
+        except:
+            bytes.append( GSMEXTBYTE )
+            bytes.append( GSMEXTALPHABET.index( char ) )
+    return bytes
 
 #=========================================================================#
 def unpack_sevenbit( bs, chop = 0 ):
@@ -136,13 +166,13 @@ def unpack_sevenbit( bs, chop = 0 ):
     while len(asbinary) >= 7:
         chars.append(int(asbinary[-7:], 2))
         asbinary = asbinary[:-7]
-    return "".join(map(chr, chars))
+    return "".join( gsmtotext(chars) )
 
 #=========================================================================#
 def pack_sevenbit( text, crop=0 ):
 #=========================================================================#
     """Pack 7-bit characters"""
-    bytes = map(ord, text)
+    bytes = gsmfromtext( text )
 
     bytes.reverse()
 

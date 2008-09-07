@@ -135,7 +135,7 @@ class PDUAddress:
         prefix = ""
         if self.type == 1:
             prefix = "+"
-        return prefix + str(self.number)
+        return prefix + self.number
 
 class AbstractSMS:
     def __init__( self, direction ):
@@ -264,7 +264,7 @@ if __name__ == "__main__":
             print "ReencPDU: ", genpdu
             print sms.repr()
             sms = decodeSMS(genpdu, dir)
-            print sms.repr()
+        print sms.repr()
 
     for pdu in pdus_MT:
         testpdu(pdu, "MT")

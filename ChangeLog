@@ -1,3 +1,7 @@
+2008-09-07	Daniel Willmann	<daniel@totalueberwachung.de>
+
+	* [ogsmd] SMS messages are now de-/encoded according to GSM default alphabet
+
 2008-09-05	Michael Lauer	<mickey@openmoko.org>
 
 	* [odeviced] Add PowerControl class for UsbHost

@@ -905,6 +905,17 @@ TP_UDH_IEI = { \
     #various specific foo
 }
 
+#=========================================================================#
+GSMALPHABET =    '@£$¥èéùìòÇ\nØø\nÅåΔ_ΦΓΛΩΠΨΣΘΞ�ÆæßÉ !"#¤%&\'()*+,-./'+\
+                 '0123456789:;<=>?¡ABCDEFGHIJKLMNOPQRSTUVWXYZÄÖÑÜ§¿'+\
+                 'abcdefghijklmnopqrstuvwxyzäöñà'
+GSMALPHABET = unicode( GSMALPHABET, "utf-8" )
+GSMEXTBYTE = 27
+GSMEXTALPHABET = '          \n         ^                   {}    '+\
+                 ' \\            [~] |                              '+\
+                 '    €                          '
+GSMEXTALPHABET = unicode( GSMEXTALPHABET, "utf-8" )
+
 
 #=========================================================================#
 import types, math
