@@ -136,14 +136,12 @@ class IdleNotifier( dbus.service.Object ):
         if state == self.state:
             logger.debug( "state already active. ignoring request" )
             return
-        try:
-            method = getattr( self, "on%s" % state )
-        except AttributeError:
+        if not state in self.validStates:
             raise InvalidState( "valid states are: %s" % self.validStates )
         else:
             if self.timeout is not None:
                 gobject.source_remove( self.timeout )
-            method()
+            self.onState( state )
 
 #----------------------------------------------------------------------------#
 def factory( prefix, controller ):
