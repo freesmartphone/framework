@@ -38,6 +38,10 @@
     actions: Debug("A Test")
 -
     trigger: CallStatus()
+    filters: HasAttr(status, "outgoing")
+    actions: SetScenario(gsmhandset)
+-
+    trigger: CallStatus()
     filters: HasAttr(status, "active")
     actions: SetScenario(gsmhandset)
 -
