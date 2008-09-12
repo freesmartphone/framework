@@ -28,8 +28,17 @@
 
 * %CBHZ=1 needs to be issued otherwise the Calypso will swallow everything but the first CB
 
+* Cancelling certain commands (ATH for a start) will render a channel unusable. Calypso moves into
+  a Error 512 state in that case. You will have to restart the modem once this happens.
+
+* Shutting down an ongoing GPRS connection can take ages. Need to better interface with pppd here.
+
 === GSM standards violations ===
 
+* None found yet
+
 === Proprietary commands ===
+
+* Too many to list here, please see http://wiki.openmoko.org
 
 
