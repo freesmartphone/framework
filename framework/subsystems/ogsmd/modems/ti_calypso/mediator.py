@@ -126,6 +126,7 @@ class CallHandler( object ):
             state = "state_%s_%s" % ( self._calls[1]["status"], self._calls[2]["status"] )
             method = getattr( self, state )
         except AttributeError:
+            logger.exception( "unhandled state '%s' in state machine. calls are %s" % ( state, repr(self._calls) ) )
             raise error.InternalException( "unhandled state '%s' in state machine. calls are %s" % ( state, repr(self._calls) ) )
         else:
             return method( action, *args, **kwargs )
@@ -206,6 +207,8 @@ class CallHandler( object ):
             self.channel = kwargs["channel"]
             kwargs["channel"].enqueue( "+CHLD=2", self.syncStatus )
             return True
+
+    # FIXME add state_release_active
 
     def state_held_release( self, action, *args, **kwargs ):
         # state not supported by all modems
