@@ -643,10 +643,10 @@ class SimGetMessagebookInfo( SimMediator ):
         if response[-1] != "OK":
             SimMediator.responseFromChannel( self, request, response )
         else:
-            afirst, alast, bfirst, blast, cfirst, clast = safesplit( self._rightHandSide( response[0] ), ',' )
+            afull, amax, bfull, bmax, cfull, cmax = safesplit( self._rightHandSide( response[0] ), ',' )
             result = {}
-            result["min_index"] = int(afirst)
-            result["max_index"] = int(alast)
+            # FIXME Can we safely ignore all but the first tuple always?
+            result.update( first=1, last=int(amax), used=afull )
             self._ok( result )
 
 #=========================================================================#
