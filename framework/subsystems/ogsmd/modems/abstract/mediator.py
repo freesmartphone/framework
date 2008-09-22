@@ -772,7 +772,7 @@ class SimSendStoredMessage( SimMediator ):
 class SimDeleteMessage( SimMediator ):
 #=========================================================================#
     def trigger( self ):
-        self._commchannel.enqueue( "+CMGD=%d" % self.index, self.responseFromChannel, self.errorFromChannel )
+        self._commchannel.enqueue( "+CMGD=%d" % self.index, self.responseFromChannel, self.errorFromChannel, timeout=const.TIMEOUT["CMGD"] )
 
 #
 # Network Mediators
@@ -992,6 +992,18 @@ class NetworkSendUssdRequest( NetworkMediator ): # s
 from .call import Call
 
 #=========================================================================#
+class CallEmergency( CallMediator ):
+#=========================================================================#
+    def trigger( self ):
+        if self.number in const.EMERGENCY_NUMBERS:
+            # FIXME once we have a priority queue, insert these with maximum priority
+            self._commchannel.enqueue( 'H' ) # hang up (just in case)
+            self._commchannel.enqueue( '+CFUN=1;+COPS=0', timeout=const.TIMEOUT["COPS"] ) # turn antenna on and register (just in case)
+            self._commchannel.enqueue( 'D%s;' % self.number ) # dial emergency number
+        else:
+            self._error( error.NetworkUnauthorized( "valid emergency numbers are %s" % const.EMERGENCY_NUMBERS ) )
+
+#=========================================================================#
 class CallTransfer( CallMediator ):
 #=========================================================================#
     def trigger( self ):
@@ -1049,6 +1061,11 @@ class CallSendDtmf( CallMediator ):
                 self._ok()
         else:
             CallMediator.responseFromChannel( self, request, response )
+
+#
+# FIXME following methods are bad, incomplete, and not working at all
+# Need to backport from TI Calypso and substitute %CPI w/ +CCLC synthesizing call events
+#
 
 #=========================================================================#
 class CallInitiate( CallMediator ):

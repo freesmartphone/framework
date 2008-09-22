@@ -465,6 +465,11 @@ class Device( dbus.service.Object ):
     #
     # dbus org.freesmartphone.GSM.Call
     #
+    @dbus.service.method( DBUS_INTERFACE_CALL, "s", "",
+                          async_callbacks=( "dbus_ok", "dbus_error" ) )
+    def Emergency( self, number, dbus_ok, dbus_error ):
+        mediator.CallEmergency( self, dbus_ok, dbus_error, number=number )
+
     @dbus.service.signal( DBUS_INTERFACE_CALL, "isa{sv}" )
     def CallStatus( self, index, status, properties ):
         logger.info( "org.freesmartphone.GSM.Call.CallStatus: %s %s %s", index, status, properties )
