@@ -124,8 +124,14 @@ def parse_userdata( sms, ud_len, bytes ):
     # seven-bit packed data, which means we need to figure out how
     # many there are...
     # See the diagram on page 58 of GSM_03.40_6.0.0.pdf.
-    padding_size = ((7 * ud_len) - (8 * (offset))) % 7
-    sms.ud = unpack_sevenbit(bytes[offset:], padding_size)
+
+    userdata = "".join( map( chr, bytes[offset:] ) )
+    if sms.dcs_alphabet == "gsm_default":
+        padding_size = ((7 * ud_len) - (8 * (offset))) % 7
+        userdata = unpack_sevenbit(bytes[offset:], padding_size)
+
+    if not sms.dcs_alphabet is None:
+        sms.ud = userdata.decode( sms.dcs_alphabet )
 
 class PDUAddress:
     def __init__( self, type, dialplan, number ):
@@ -251,10 +257,17 @@ class AbstractSMS:
             pdubytes.append( udlen )
             pdubytes.append( len(pduudh) )
             pdubytes.extend( pduudh )
-            pduud = pack_sevenbit(self.ud, padding )
         else:
-            pduud = pack_sevenbit( self.ud )
             pdubytes.append( len(self.ud) )
+            padding = 0
+
+
+        userdata = self.ud
+        if not self.dcs_alphabet is None:
+            userdata = self.ud.encode( self.dcs_alphabet )
+
+        if self.dcs_alphabet == "gsm_default":
+            pduud = pack_sevenbit(userdata, padding )
 
         pdubytes.extend( pduud )
 
