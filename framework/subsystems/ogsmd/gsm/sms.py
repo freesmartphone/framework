@@ -172,17 +172,17 @@ class AbstractSMS:
         self.dcs_mwi_indication = None
         self.dcs_mwi_type = None
         self.dcs_mclass = None
-        group = dcs & 0xF0 >> 4
+        group = ( dcs & 0xF0 ) >> 4
         if 0x0 <= group <= 0x3:
             # general data coding indication
             self.dcs_compressed = bool( dcs & ( 1 << 5 ) )
             if dcs & ( 1 << 4 ):
                 # has message class
                 self.dcs_mclass = dcs & 0x3
-            if dcs & 0xC == 0x1:
+            if (dcs >> 2) & 0x3  == 0x1:
                 self.dcs_alphabet = None
-            elif dcs & 0xC == 0x2:
-                self.dcs_alphabet = "utf_16_le" # FIXME may be utf_16_be instead
+            elif (dcs >> 2) & 0x3 == 0x2:
+                self.dcs_alphabet = "utf_16_be"
         elif 0x4 <= group <= 0xB:
             # reserved coding groups
             pass
@@ -199,7 +199,7 @@ class AbstractSMS:
                 pass
             elif group == 0xE:
                 # MWI group: store message (USC2)
-                self.alphabet = "utf_16_le"
+                self.alphabet = "utf_16_be"
         elif group == 0xF:
             # data coding/message class
             # dcs & 0x8 (bit 3) is reserved as 0
