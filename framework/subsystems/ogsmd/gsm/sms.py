@@ -220,19 +220,21 @@ class AbstractSMS:
 ServiceCenter: %s
 TimeStamp: %s
 PID: %i
+DCS: 0x%x
 Number: %s
 Headers: %s
 Message: %s
-""" % (self.sca, self.scts, self.pid, self.oa, self.udh, self.ud)
+""" % (self.sca, self.scts, self.pid, self.dcs, self.oa, self.udh, self.ud)
         else:
             return """AbstractSMS:
 ServiceCenter: %s
 Valid: %s
 PID: %i
+DCS: 0x%x
 Number: %s
 Headers: %s
 Message: %s
-""" % (self.sca, self.pdu_vpf, self.pid, self.oa, self.udh, self.ud)
+""" % (self.sca, self.pdu_vpf, self.pid, self.dcs, self.oa, self.udh, self.ud)
 
 if __name__ == "__main__":
     pdus_MT = [

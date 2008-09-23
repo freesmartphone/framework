@@ -15,6 +15,7 @@ GSM conversion functions.
 """
 from datetime import datetime
 from const import GSMALPHABET, GSMEXTBYTE, GSMEXTALPHABET
+from codecs import register, CodecInfo
 
 #=========================================================================#
 def flatten(x):
@@ -124,34 +125,50 @@ def tobinary( n ):
         n >>= 1
     return s
 
+#=========================================================================#
+def gsm_default_encode( input, errors = 'strict' ):
+#=========================================================================#
+        result = []
+        for char in input:
+            try:
+                result.append( GSMALPHABET.index( char ) )
+            except KeyError:
+                try:
+                    extbyte = GSMEXTALPHABET.index( char )
+                    result.append( GSMEXTBYTE )
+                    result.append( extbyte )
+                except KeyError:
+                    raise UnicodeError
+                    if errors == 'strict': raise UnicodeError,"invalid SMS character"
+                    elif errors == 'replace': result.append(chr(0x3f)) #question mark
+                    elif errors == 'ignore': pass
+                    else: raise UnicodeError, "unknown error handling"
+        return ''.join( map(chr, result) ), len( input )
 
 #=========================================================================#
-def gsmtotext( bytes ):
+def gsm_default_decode( input, error = 'strict' ):
 #=========================================================================#
-    extchar = False
-    text = u''
-    for byte in bytes:
-        if byte == GSMEXTBYTE:
-            extchar = True
-            continue
-        if extchar:
-            extchar = False
-            text += GSMEXTALPHABET[byte]
-        else:
-            text += GSMALPHABET[byte]
-    return text
+        extchar = False
+        result = []
+        for char in input:
+            byte = ord(char)
+            if byte == GSMEXTBYTE:
+                extchar = True
+                continue
+            if extchar:
+                extchar = False
+                result += GSMEXTALPHABET[byte]
+            else:
+                result += GSMALPHABET[byte]
+        return u"".join( result ), len(input)
 
 #=========================================================================#
-def gsmfromtext( text ):
+def gsmcodec(name):
 #=========================================================================#
-    bytes = []
-    for char in text:
-        try:
-            bytes.append( GSMALPHABET.index( char ) )
-        except:
-            bytes.append( GSMEXTBYTE )
-            bytes.append( GSMEXTALPHABET.index( char ) )
-    return bytes
+    if name == "gsm_default":
+        return CodecInfo( gsm_default_encode, gsm_default_decode, name="gsm_default" )
+
+register( gsmcodec )
 
 #=========================================================================#
 def unpack_sevenbit( bs, chop = 0 ):
@@ -166,13 +183,13 @@ def unpack_sevenbit( bs, chop = 0 ):
     while len(asbinary) >= 7:
         chars.append(int(asbinary[-7:], 2))
         asbinary = asbinary[:-7]
-    return "".join( gsmtotext(chars) )
+    return "".join( map(chr, chars) )
 
 #=========================================================================#
 def pack_sevenbit( text, crop=0 ):
 #=========================================================================#
     """Pack 7-bit characters"""
-    bytes = gsmfromtext( text )
+    bytes = map( ord, text )
 
     bytes.reverse()
 
