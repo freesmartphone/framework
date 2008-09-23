@@ -73,7 +73,8 @@ def decodeSMS( pdu, direction ):
 
     offset += 1
     # DCS - Data Coding Scheme FIXME
-    sms.dcs = bytes[offset] #parse_dcs( bytes[offset] )
+    sms.dcs = bytes[offset]
+    sms._parseDCS( sms.dcs )
 
     offset += 1
     if sms.pdu_mti == 0:
@@ -151,6 +152,54 @@ class AbstractSMS:
         self.mr = 0
         self.pid = 0
         self.dcs = 0
+        self.dcs_alphabet = "gsm_default"
+        self.dcs_compressed = None
+        self.dcs_discard = False
+        self.dcs_mwi_indication = None
+        self.dcs_mwi_type = None
+        self.dcs_mclass = None
+
+    def _parseDCS( self, dcs ):
+        self.dcs_alphabet = "gsm_default"
+        self.dcs_compressed = None
+        self.dcs_discard = False
+        self.dcs_mwi_indication = None
+        self.dcs_mwi_type = None
+        self.dcs_mclass = None
+        group = dcs & 0xF0 >> 4
+        if 0x0 <= group <= 0x3:
+            # general data coding indication
+            self.dcs_compressed = bool( dcs & ( 1 << 5 ) )
+            if dcs & ( 1 << 4 ):
+                # has message class
+                self.dcs_mclass = dcs & 0x3
+            if dcs & 0xC == 0x1:
+                self.dcs_alphabet = None
+            elif dcs & 0xC == 0x2:
+                self.dcs_alphabet = "utf_16_le" # FIXME may be utf_16_be instead
+        elif 0x4 <= group <= 0xB:
+            # reserved coding groups
+            pass
+        elif 0xC <= group <= 0xE:
+            # MWI groups
+            self.dcs_mwi_indication = bool( dcs & 0x8 )
+            # dcs & 0x4 (bit 2) is reserved as 0
+            self.dcs_mwi_type = [ "voicemail", "fax", "email", "other" ][ dcs & 0x3 ]
+            if group == 0xC:
+                # discard message
+                self.dcs_discard = True
+            elif group == 0xD:
+                # MWI group: store message (GSM-default)
+                pass
+            elif group == 0xE:
+                # MWI group: store message (USC2)
+                self.alphabet = "utf_16_le"
+        elif group == 0xF:
+            # data coding/message class
+            # dcs & 0x8 (bit 3) is reserved as 0
+            if dcs & 0x4:
+                self.alphabet = None
+            self.dcs_mclass = dcs & 0x3
     def pdu( self ):
         pdubytes = []
         if self.sca:
