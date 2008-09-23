@@ -72,9 +72,8 @@ def decodeSMS( pdu, direction ):
     sms.pid = bytes[offset]
 
     offset += 1
-    # DCS - Data Coding Scheme FIXME
+    # DCS - Data Coding Scheme
     sms.dcs = bytes[offset]
-    sms._parseDCS( sms.dcs )
 
     offset += 1
     if sms.pdu_mti == 0:
@@ -144,7 +143,7 @@ class PDUAddress:
             prefix = "+"
         return prefix + self.number
 
-class AbstractSMS:
+class AbstractSMS(object):
     def __init__( self, direction ):
         self.direction = direction
         self.sca = False
@@ -157,17 +156,43 @@ class AbstractSMS:
         self.pdu_mms = False
         self.mr = 0
         self.pid = 0
-        self.dcs = 0
         self.dcs_alphabet = "gsm_default"
-        self.dcs_compressed = None
+        self.dcs_compressed = False
         self.dcs_discard = False
         self.dcs_mwi_indication = None
         self.dcs_mwi_type = None
         self.dcs_mclass = None
 
-    def _parseDCS( self, dcs ):
+    def _getDCS( self ):
+        # TODO throw exceptions on invalid combinations
+        if self.dcs_mwi_type is None:
+            dcs = 0
+            dcs |= self.dcs_compressed << 5
+            if self.dcs_alphabet is None :
+                dcs |= 0x1 << 2
+            elif self.dcs_alphabet == "utf_16_be":
+                dcs |= 0x2 << 2
+            if not self.dcs_mclass is None:
+                dcs |= 1 << 4
+                dcs |= self.dcs_mclass
+        else: # not self.dcs_mwi_type is None
+            if self.dcs_discard:
+                group = 0xC
+            else:
+                if self.dcs_alphabet == "gsm_default":
+                    group = 0xD
+                elif self.dcs_alphabet == "utf_16_be":
+                    group = 0xE
+                else:
+                    raise "Invalid alphabet"
+            dcs = group << 4
+            dcs |= self.dcs_mwi_indication << 3
+            dcs |= self.dcs_mwi_type
+        return dcs
+
+    def _setDCS( self, dcs ):
         self.dcs_alphabet = "gsm_default"
-        self.dcs_compressed = None
+        self.dcs_compressed = False
         self.dcs_discard = False
         self.dcs_mwi_indication = None
         self.dcs_mwi_type = None
@@ -199,13 +224,16 @@ class AbstractSMS:
                 pass
             elif group == 0xE:
                 # MWI group: store message (USC2)
-                self.alphabet = "utf_16_be"
+                self.dcs_alphabet = "utf_16_be"
         elif group == 0xF:
             # data coding/message class
             # dcs & 0x8 (bit 3) is reserved as 0
             if dcs & 0x4:
                 self.alphabet = None
             self.dcs_mclass = dcs & 0x3
+    
+    dcs = property( _getDCS, _setDCS )
+    
     def pdu( self ):
         pdubytes = []
         if self.sca:
@@ -320,10 +348,16 @@ if __name__ == "__main__":
     "07918167830071F1040BD0C7F7FBCC2E030000808010800120804AD0473BED2697D9F3B20E644CCBDBE136835C6681CCF2B20B147381C2F5B30B04C3E96630500B1483E96030501A34CDB7C5E9B71B847AB2CB2062987D0E87E5E414",
     "07918167830071F1040BD0C7F7FBCC2E0300008080203200748078D0473BED2697D9F3B20E442DCFE9A076793E0F9FCBA07B9A8E0691C3EEF41C0D1AA3C3F2F0985E96CF75A00EE301E22C1C2C109B217781642E50B87E76816433DD0C066A81E60CB70B347381C2F5B30B",
     "0791447758100650040C9194714373238200008080312160304019D4F29C0E6A97E7F3F0B90CB2A7C3A0791A7E0ED3CB2E",
-    "0791447758100650040DD0F334FC1CA6970100008080312170224008D4F29CDE0EA7D9"
+    "0791447758100650040DD0F334FC1CA6970100008080312170224008D4F29CDE0EA7D9",
+    "0791889653704434040C9188969366423600008090017134632302CA34",
+    "0791889663000009040C918896631009910008809061510540238453485B89FF0167094EF681C97D055FC38DF376844E8B548C4F608AAA54E6FF016709500B59735B69525B52A0516590FD6703753759738AAA60F389818A8D8B584F60FF0C624B6A5F5FEB64A500350032003163090033628A63E16A5F67038A8D8B5859793002621664A50035003200316309003251FA73FE611B60C5597D904B5146FF01",
+    "0791889663000019040C918896631030990008809071619483234E60A86709672A63A54F8696FB003A000A00300039002F00310037002000300034003A003400330050004D4F8681EA0030003900380038003500360033003900390036002000280032901A0029000A",
+    "0791889663000009040C918896631009910008809071717374238A7E415FD951B76DE1768457CE5E02FF0C4F609858610F548C6211505A670B53CB55CEFF1F624B6A5F76F464A500350032003163090031518D630900338F3851650033003200320030003000390033621167037B495F854F60771F5FC376844F8696FB007E621664A5003500320031630900328AC75FC3804A59298DA330014EA453CB8D855BB96613007E",
+    "0791889663000009040C91889671342752000080908171153223282073788E4EBFDD2B1CCE96C3E16AB6592E67D32944ECF7780D9A8FE5E5B25BA468B514",
+    "0791889663000019040C918896138188020008809091907405238050B38A0A606F003F767E842C734E91D190017D664F6076846D3B52D590FD958B8DD15169500B67084E86FF0C4F605831540D4E8655CEFF0173FE572853EA898150B34E00500B7A7A767D7C218A0A52300030003900330031002D003100380031003900330030514D8CBB5831540DFF0C6A5F67035C31662F4F6076845594FF01",
     ]
     pdus_MO = [
-    "07910447946400F011000A9270042079330000AA0161"
+    "07910447946400F011000A9270042079330000AA0161",
     ]
 
     def testpdu(pdu, dir):
