@@ -262,12 +262,13 @@ class AbstractSMS:
             padding = 0
 
 
-        userdata = self.ud
         if not self.dcs_alphabet is None:
-            userdata = self.ud.encode( self.dcs_alphabet )
+            pduud = self.ud.encode( self.dcs_alphabet )
+        else:
+            pduud = self.ud
 
         if self.dcs_alphabet == "gsm_default":
-            pduud = pack_sevenbit(userdata, padding )
+            pduud = pack_sevenbit( pduud, padding )
 
         pdubytes.extend( pduud )
 
