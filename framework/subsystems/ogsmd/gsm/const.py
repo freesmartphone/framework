@@ -912,7 +912,7 @@ TP_UDH_IEI = { \
 #=========================================================================#
 GSMALPHABET =    u'@£$¥èéùìòÇ\nØø\nÅåΔ_ΦΓΛΩΠΨΣΘΞ�ÆæßÉ !"#¤%&\'()*+,-./'+\
                  u'0123456789:;<=>?¡ABCDEFGHIJKLMNOPQRSTUVWXYZÄÖÑÜ§¿'+\
-                 u'abcdefghijklmnopqrstuvwxyzäöñà'
+                 u'abcdefghijklmnopqrstuvwxyzäöñüà'
 GSMEXTBYTE = 27
 GSMEXTALPHABET = u'          \n         ^                   {}    '+\
                  u' \\            [~] |                              '+\
