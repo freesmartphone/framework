@@ -1001,7 +1001,7 @@ class CallEmergency( CallMediator ):
             self._commchannel.enqueue( '+CFUN=1;+COPS=0', timeout=const.TIMEOUT["COPS"] ) # turn antenna on and register (just in case)
             self._commchannel.enqueue( 'D%s;' % self.number ) # dial emergency number
         else:
-            self._error( error.NetworkUnauthorized( "valid emergency numbers are %s" % const.EMERGENCY_NUMBERS ) )
+            self._error( error.CallNotAnEmergencyNumber( "valid emergency numbers are %s" % const.EMERGENCY_NUMBERS ) )
 
 #=========================================================================#
 class CallTransfer( CallMediator ):

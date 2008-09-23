@@ -112,6 +112,9 @@ class CallNoCarrier( AbstractCallException ):
 class CallNotFound( AbstractCallException ):
     _dbus_error_name = "org.freesmartphone.Call.NotFound"
 
+class CallNotAnEmergencyNumber( AbstractCallException ):
+    _dbus_error_name = "org.freesmartphone.Call.NotAnEmergencyNumber"
+
 #=========================================================================#
 # PDP exceptions
 #=========================================================================#
