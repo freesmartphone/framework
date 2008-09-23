@@ -252,13 +252,9 @@ class AbstractSMS:
 
         if self.pdu_udhi:
             pduudh = flatten([ (header[0], len(header[1]), header[1]) for header in self.udh ])
-            udlen = int( math.ceil( (len(pduudh)*8 + 8 + len(self.ud)*7)/7.0 ) )
-            padding = (7 * udlen - (8 + 8 * (len(pduudh)))) % 7
-            pdubytes.append( udlen )
-            pdubytes.append( len(pduudh) )
-            pdubytes.extend( pduudh )
+            pduudhlen = len(pduudh)
         else:
-            pdubytes.append( len(self.ud) )
+            pduudhlen = -1
             padding = 0
 
 
@@ -268,8 +264,18 @@ class AbstractSMS:
             pduud = self.ud
 
         if self.dcs_alphabet == "gsm_default":
+            udlen = int( math.ceil( (pduudhlen*8 + 8 + len(self.ud)*7)/7.0 ) )
+            padding = (7 * udlen - (8 + 8 * (pduudhlen))) % 7
             pduud = pack_sevenbit( pduud, padding )
+        else:
+            pduud = map( ord, pduud )
+            udlen = len( pduud ) + 1 + pduudhlen
 
+        pdubytes.append( udlen )
+
+        if self.pdu_udhi:
+            pdubytes.append( pduudhlen )
+            pdubytes.extend( pduudh )
         pdubytes.extend( pduud )
 
         return "".join( [ "%02X" % (i) for i in pdubytes ] )
