@@ -1,3 +1,9 @@
+2008-09-24	Daniel Willmann	<daniel@totalueberwachung.de>
+
+	* [ogsmd] SMS with UCS2 character set are now de-/encoded correctly
+	* [ogsmd] Phonebook entries are now set to UCS2 mode for
+	  internationalization support
+
 2008-09-22	Michael Lauer	<mickey@openmoko.org>
 
 	* [ogsmd] Add Emergency(number) call

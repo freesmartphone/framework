@@ -21,7 +21,7 @@ TODO:
  * refactor parameter validation
 """
 
-from ogsmd.gsm import error, const
+from ogsmd.gsm import error, const, convert
 from ogsmd.gsm.decor import logged
 from ogsmd.helpers import safesplit
 import ogsmd.gsm.sms
@@ -563,7 +563,7 @@ class SimRetrievePhonebook( SimMediator ):
                 index = int( index )
                 number = number.strip( '"' )
                 ntype = int( ntype )
-                name = const.textToUnicode( name )
+                name = convert.ucs2hexToUnicode( name.strip('"') )
                 result.append( ( index, name, const.phonebookTupleToNumber( number, ntype ) ) )
             self._ok( result )
 
@@ -588,7 +588,7 @@ class SimStoreEntry( SimMediator ):
 #=========================================================================#
     def trigger( self ):
         number, ntype = const.numberToPhonebookTuple( self.number )
-        name = const.unicodeToString( self.name )
+        name = convert.UnicodeToucs2hex( self.name.strip('"') )
         self._commchannel.enqueue( '+CPBS="SM";+CPBW=%d,"%s",%d,"%s"' % ( self.index, number, ntype, name ), self.responseFromChannel, self.errorFromChannel )
 
 #=========================================================================#
@@ -610,7 +610,7 @@ class SimRetrieveEntry( SimMediator ):
                     index = int( index )
                     number = number.strip( '"' )
                     ntype = int( ntype )
-                    name = const.textToUnicode( name )
+                    name = convert.ucs2hexToUnicode( name.strip('"') )
                     self._ok( name, const.phonebookTupleToNumber( number, ntype ) )
 
 #=========================================================================#

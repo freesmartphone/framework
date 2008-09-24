@@ -96,7 +96,7 @@ class AbstractModemChannel( AtCommandChannel ):
         # error and result reporting reporting
         c.append( '+CMEE=1' )           # report mobile equipment errors: in numerical format
         c.append( '+CRC=1' )            # cellular result codes: enable extended format
-        c.append( '+CSCS="8859-1"' )    # character set conversion: use 8859-1 (latin 1)
+        c.append( '+CSCS="UCS2"' )      # character set conversion: use UCS2
         c.append( '+CSDH=1' )           # show text mode parameters: show values
         c.append( '+CSNS=0' )           # single numbering scheme: voice
         # sms

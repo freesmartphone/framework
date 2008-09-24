@@ -12,7 +12,7 @@ Module: unsolicited
 """
 
 from ogsmd.gsm.decor import logged
-from ogsmd.gsm import const
+from ogsmd.gsm import const, convert
 from ogsmd.helpers import safesplit
 
 #=========================================================================#
@@ -114,7 +114,7 @@ class AbstractUnsolicitedResponseDelegate( object ):
             self._object.IncomingUssd( mode, "" )
         elif len( values ) == 3:
             mode = const.NETWORK_USSD_MODE[int(values[0])]
-            message = values[1].strip( '" ' )
+            message = convert.ucs2hexToUnicode(values[1].strip( '" ' ) )
             self._object.IncomingUssd( mode, message )
         else:
             assert False, "unknown format"
