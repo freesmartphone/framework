@@ -12,6 +12,8 @@ Package: ousaged
 Module: generic
 """
 
+# XXX: We need to modify this module to use the new resource system
+
 MODULE_NAME = "ousaged"
 __version__ = "0.1.1"
 
@@ -34,9 +36,16 @@ logger = logging.getLogger( MODULE_NAME )
 #----------------------------------------------------------------------------#
 class AbstractResource( object ):
 #----------------------------------------------------------------------------#
-    def __init__( self, usageControl ):
+    """Base class for all resources
+    
+    This is the internal class used by the resource manager to keep track of a resource.
+    Every resource has a name, a list of current users, and a policy.
+    
+    The policy can be 'auto', 'disabled' or 'enabled'
+    """
+    def __init__( self, usageControl, name = "Abstract" ):
         self.usageControl = usageControl
-        self.name = "Abstract"
+        self.name = name
         self.users = []
         self.policy = 'auto'
         self.isEnabled = False
@@ -49,9 +58,11 @@ class AbstractResource( object ):
 
     def _update( self ):
         if not self.isEnabled and (self.users or self.policy == 'enabled'):
+            logger.info( "Enabling %s", self.name )
             self._enable()
             self.isEnabled = True
         elif self.isEnabled and not (self.users or self.policy == 'enabled'):
+            logger.info( "Disabling %s", self.name )
             self._disable()
             self.isEnabled = False
 
@@ -92,8 +103,7 @@ class AbstractResource( object ):
 class DummyResource( AbstractResource ):
 #----------------------------------------------------------------------------#
     def __init__( self, usageControl, name ):
-        AbstractResource.__init__( self , usageControl )
-        self.name = name
+        AbstractResource.__init__( self , usageControl, name )
 
     def _enable( self ):
         print "Enabled %s" % self.name
@@ -105,9 +115,8 @@ class DummyResource( AbstractResource ):
 class ODeviceDResource( AbstractResource ):
 #----------------------------------------------------------------------------#
     def __init__( self, usageControl, name ):
-        AbstractResource.__init__( self , usageControl )
+        AbstractResource.__init__( self , usageControl, name )
         self.bus = dbus.SystemBus()
-        self.name = name
 
     def _replyCallback( self ):
         pass
@@ -131,9 +140,8 @@ class ODeviceDResource( AbstractResource ):
 class OGPSDResource( AbstractResource ):
 #----------------------------------------------------------------------------#
     def __init__( self, usageControl, name ):
-        AbstractResource.__init__( self , usageControl )
+        AbstractResource.__init__( self , usageControl, name )
         self.bus = dbus.SystemBus()
-        self.name = name
 
     def _replyCallback( self ):
         pass
@@ -152,6 +160,43 @@ class OGPSDResource( AbstractResource ):
         iface = dbus.Interface( proxy, "org.freesmartphone.GPS" )
         iface.SetPower( False, reply_handler=self._replyCallback, error_handler=self._errorCallback )
         print "Disabled %s" % self.name
+        
+
+#----------------------------------------------------------------------------#
+class ClientResource( AbstractResource ):
+#----------------------------------------------------------------------------#
+    """A resource that is controled by an external client.
+    
+    The client needs to expose a dbus object implementing org.freesmartphone.Resource.
+    It can register using the RegisterResource of /org/freesmartphone/Usage.
+    If the client is written in python, it can use the framework.Resource class.
+    """
+    def __init__(self, usageControl, name, path, sender):
+        """Create a new ClientResource
+        
+        Only the resource manager should call this method
+        """
+        super(ClientResource, self).__init__(usageControl, name)
+        bus = dbus.SystemBus()
+        self.obj = bus.get_object(sender, path)
+        
+    def _enable( self ):
+        """Simply call the client Enable method"""
+        def on_reply():
+            pass
+        def on_error(err):
+            logger.error("Error while enabling resource : %s", err)
+        self.obj.Enable(reply_handler=on_reply, error_handler=on_error)
+
+    def _disable( self ):
+        """Simply call the client Disable method"""
+        def on_reply():
+            pass
+        def on_error(err):
+            logger.error("Error while disabling resource : %s", err)
+        self.obj.Disable(reply_handler=on_reply, error_handler=on_error)
+        
+    
 
 #----------------------------------------------------------------------------#
 class GenericUsageControl( dbus.service.Object ):
@@ -214,6 +259,17 @@ class GenericUsageControl( dbus.service.Object ):
     @dbus.service.method( DBUS_INTERFACE, "s", "", sender_keyword='sender' )
     def ReleaseResource( self, resourcename, sender ):
         self.resources[resourcename].release( sender )
+        
+    @dbus.service.method( DBUS_INTERFACE, "so", "", sender_keyword='sender' )
+    def RegisterResource( self, resourcename, path, sender ):
+        """Register a new resource from a client
+        
+        The client must provide a name for the resource, and a dbus object
+        path to an object implementing org.freesmartphone.Resource interface
+        """
+        logger.info( "Register new resource %s", resourcename )
+        resource = ClientResource( self, resourcename, path, sender )
+        self.addResource( resource )
 
     #
     # dbus signals
@@ -221,6 +277,7 @@ class GenericUsageControl( dbus.service.Object ):
     @dbus.service.signal( DBUS_INTERFACE, "sba{sv}" )
     def ResourceChanged( self, resourcename, state, attributes ):
         pass
+        
 
 #----------------------------------------------------------------------------#
 def factory( prefix, controller ):
@@ -230,7 +287,7 @@ def factory( prefix, controller ):
     # Problem: presence of these objects is then depending other subsystems, so need to
     # postpone this until we have subsystem dependency support in the controller
     genericUsageControl = GenericUsageControl( controller.bus )
-    genericUsageControl.addResource( DummyResource( genericUsageControl, "GSM" ) )
+#    genericUsageControl.addResource( DummyResource( genericUsageControl, "GSM" ) )
     genericUsageControl.addResource( OGPSDResource( genericUsageControl, "GPS" ) )
     genericUsageControl.addResource( ODeviceDResource( genericUsageControl, "Bluetooth" ) )
     genericUsageControl.addResource( ODeviceDResource( genericUsageControl, "WiFi" ) )

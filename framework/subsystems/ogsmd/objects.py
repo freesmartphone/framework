@@ -32,12 +32,15 @@ import types
 import logging
 logger = logging.getLogger( MODULE_NAME )
 
+import framework
+
 DBUS_INTERFACE_DEVICE = "org.freesmartphone.GSM.Device"
 DBUS_INTERFACE_SIM = "org.freesmartphone.GSM.SIM"
 DBUS_INTERFACE_NETWORK = "org.freesmartphone.GSM.Network"
 DBUS_INTERFACE_CALL = "org.freesmartphone.GSM.Call"
 DBUS_INTERFACE_PDP = "org.freesmartphone.GSM.PDP"
 DBUS_INTERFACE_CB = "org.freesmartphone.GSM.CB"
+DBUS_INTERFACE_RESOURCE = "org.freesmartphone.Resource"
 
 DBUS_INTERFACE_SERVER = "org.freesmartphone.GSM.Server"
 DBUS_INTERFACE_HZ = "org.freesmartphone.GSM.HZ"
@@ -153,7 +156,7 @@ class Server( dbus.service.Object ):
     # Caching strategy
 
 #=========================================================================#
-class Device( dbus.service.Object ):
+class Device( framework.Resource ):
 #=========================================================================#
     """
     This class handles the dbus interface of org.freesmartphone.GSM.*
@@ -163,7 +166,7 @@ class Device( dbus.service.Object ):
         self.bus = bus
         self.interface = DBUS_INTERFACE_DEVICE
         self.path = DBUS_OBJECT_PATH_DEVICE
-        dbus.service.Object.__init__( self, bus, self.path )
+        super(Device, self).__init__(  bus, self.path, name='GSM' )
         logger.info( "%s initialized. Serving %s at %s", self.__class__.__name__, self.interface, self.path )
 
         if modemtype == "singleline":
@@ -577,6 +580,21 @@ class Device( dbus.service.Object ):
     @dbus.service.signal( DBUS_INTERFACE_CB, "is" )
     def IncomingCellBroadcast( self, channel, data ):
         logger.info( "org.freesmartphone.GSM.CB.IncomingCellBroadcast: %s %s", channel, data )
+        
+    #
+    # framework.Resource
+    #
+    def _enable( self ):
+        pass
+        
+    def _disable( self ):
+        pass
+        
+    def _suspend( self ):
+        pass
+        
+    def _resume( self ):
+        pass
 
     #
     # dbus org.freesmartphone.GSM.Debug
