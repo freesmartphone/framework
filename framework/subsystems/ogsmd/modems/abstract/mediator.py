@@ -680,12 +680,11 @@ class SimRetrieveMessagebook( SimMediator ):
                       dir = "MO"
                     length = int(header.groupdict()["pdulen"])
                 else:
-                    #print "line is text line"
+                    # Now we decode the actual PDU
 
                     sms = ogsmd.gsm.sms.decodeSMS( line, dir)
-                    result.append( ( index, status, str(sms.oa), const.textToUnicode(sms.ud.strip("\0")) ) )
+                    result.append( ( index, status, str(sms.oa), sms.ud ) )
 
-            print result
             self._ok( result )
 
 #=========================================================================#
@@ -699,25 +698,23 @@ class SimRetrieveMessage( SimMediator ):
         if response[-1] != "OK":
             SimMediator.responseFromChannel( self, request, response )
         else:
-            text = ""
             for line in response[:-1]:
                 #print "parsing line", line
                 if line.startswith( "+CMGR" ):
                     #print "line is header line"
                     header = const.PAT_SMS_PDU_HEADER_SINGLE.match( self._rightHandSide(line) )
-                    status = const.SMS_PDU_STATUS_OUT[header.groupdict()["status"]]
+                    status = const.SMS_PDU_STATUS_OUT[int(header.groupdict()["status"])]
                     if status <= 1:
                       dir = "MT"
                     else:
                       dir = "MO"
                     length = int(header.groupdict()["pdulen"])
                 else:
-                    #print "line is text line"
-
+                    # Now we decode the actual PDU
                     sms = ogsmd.gsm.sms.decodeSMS( line, dir )
-            if text:
-                result = ( status, number, const.textToUnicode(text) )
-            self._ok( result )
+                    result = ( status, str(sms.oa), sms.ud )
+
+            self._ok( *result )
 
 #=========================================================================#
 class SimSetServiceCenterNumber( SimMediator ):
