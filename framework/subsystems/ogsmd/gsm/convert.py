@@ -47,7 +47,9 @@ def decodePDUNumber(bs):
     num_type = (bs[0] & 0x70) >> 4
     num_plan = (bs[0] & 0x0F)
     number = bs[1:]
-    if num_type == 5:
+    if number == []:
+        number = ""
+    elif num_type == 5:
         number = unpack_sevenbit(number)
     else:
         number = bcd_decode(number)
