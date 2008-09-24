@@ -68,9 +68,8 @@ class Controller( object ):
     def object( cls, name ):
         """
         Return a DBus object -not proxy- from the list of registered objects.
-        If there is no such object, return None
         """
-        return cls.objects.get( name, None )
+        return cls.objects[name]
 
     def __init__( self, path ):
         # dbus & glib mainloop
@@ -116,6 +115,7 @@ class Controller( object ):
                 logger.info( "launching subsystem %s" % s )
                 self._subsystems[s] = subsystem.Subsystem( s, self.bus, path, self )
             else:
+                logger.info( "launching subsystem %s" % s )
                 self._subsystems[s] = subsystem.Subsystem( s, self.bus, path, self )
             Controller.objects.update( self._subsystems[s].objects() )
 
