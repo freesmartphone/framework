@@ -53,6 +53,13 @@ framework = getObject( "org.freesmartphone.frameworkd", "/org/freesmartphone/Fra
 
 # ogsmd device object
 gsm = getObject( "org.freesmartphone.ogsmd", "/org/freesmartphone/GSM/Device" )
+        
+# ogps device object
+gps = getObject( "org.freesmartphone.ogpsd", "/org/freedesktop/Gypsy" )
+
+# usage device object
+usage = getObject( "org.freesmartphone.ousaged", "/org/freesmartphone/Usage" )
+
 
 # ogsmd server
 hz = getInterface( \
@@ -104,6 +111,34 @@ gsmtest = getInterface( \
     "org.freesmartphone.ogsmd",
     "/org/freesmartphone/GSM/Device",
     "org.freesmartphone.GSM.Test" )
+    
+# gps
+gpsaccuracy = getInterface(
+    "org.freesmartphone.ogpsd",
+    "/org/freedesktop/Gypsy",
+    "org.freedesktop.Gypsy.Accuracy" )
+
+gpsposition = getInterface(
+    "org.freesmartphone.ogpsd",
+    "/org/freedesktop/Gypsy",
+    "org.freedesktop.Gypsy.Position" )
+
+gpssatellite = getInterface(
+    "org.freesmartphone.ogpsd",
+    "/org/freedesktop/Gypsy",
+    "org.freedesktop.Gypsy.Satellite" )
+
+gpstime = getInterface(
+    "org.freesmartphone.ogpsd",
+    "/org/freedesktop/Gypsy",
+    "org.freedesktop.Gypsy.Time" )
+
+# usage
+usageiface = getInterface(
+    "org.freesmartphone.ousaged",
+    "/org/freesmartphone/Usage",
+    "org.freesmartphone.Usage" )
+
 
 bus.add_signal_receiver( handler, None, None, None, None,
     sender_keyword = "sender",
