@@ -93,7 +93,7 @@ def decodePDUTime(bs):
   else:
     year = 2000 + bs[0]
   timezone = bs[6]
-  sign = (timezone >> 7) * -2 + 1
+  sign = (timezone >> 7) * 2 - 1
   zone = (timezone & 0x7f) / -4. * sign
   return ( datetime(year, bs[1], bs[2], bs[3], bs[4], bs[5]), zone )
 
@@ -106,9 +106,8 @@ def encodePDUTime(timeobj):
     year = td.year % 100
 
     zone = 0
-    if tzone >= 0:
+    if tzone < 0:
         zone = 0x80
-    else:
         tzone = -tzone
 
     zone |= int(tzone * 4)
