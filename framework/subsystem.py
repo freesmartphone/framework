@@ -66,10 +66,12 @@ class Subsystem( object ):
                         fromlist = ["factory"],
                         level = 0
                     )
-                except ImportError, e:
-                    logger.error( "could not import %s: %s" % ( filename, e ) )
                 except Exception, e:
                     logger.error( "could not import %s: %s" % ( filename, e ) )
+                    # This is a little bit ugly, but we need to see the traceback !
+                    import traceback
+                    import sys
+                    traceback.print_exception(*sys.exc_info())
                 else:
                     self.registerObjectsFromModule( module )
 
