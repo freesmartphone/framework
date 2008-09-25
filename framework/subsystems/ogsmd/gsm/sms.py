@@ -361,7 +361,8 @@ class CellBroadcast(AbstractSMS):
             userdata = unpack_sevenbit(bytes[6:])
 
         if not self.dcs_alphabet is None:
-            self.ud = userdata.decode( self.dcs_alphabet )
+            # \n is the padding character in CB messages so strip it
+            self.ud = userdata.decode( self.dcs_alphabet ).strip("\n")
 
 
     def _getDCS( self ):
@@ -439,6 +440,15 @@ class CellBroadcast(AbstractSMS):
 
     dcs = property( _getDCS, _setDCS )
 
+    def repr(self):
+        return """CellBroadcast
+SN: %i
+MID: %i
+Page: %i
+Alphabet: %s
+Language: %s
+Message: %s""" % (self.sn, self.mid, self.page, self.dcs_alphabet, self.dcs_language, self.ud)
+
 if __name__ == "__main__":
     pdus_MT = [
     "0791448720900253040C914497035290960000500151614414400DD4F29C9E769F41E17338ED06",
@@ -467,6 +477,10 @@ if __name__ == "__main__":
     "079194710716000001310C919491103246570000061B1EBD3CA703",
     ]
 
+    pdus_CB = [
+    "001000DD001133DAED46ABD56AB5186CD668341A8D46A3D168341A8D46A3D168341A8D46A3D168341A8D46A3D168341A8D46A3D168341A8D46A3D168341A8D46A3D168341A8D46A3D168341A8D46A3D168341A8D46A3D100",
+    ]
+
     def testpdu(pdu, dir):
         sms = decodeSMS(pdu, dir)
         genpdu = sms.pdu()
@@ -482,5 +496,9 @@ if __name__ == "__main__":
         testpdu(pdu, "MT")
     for pdu in pdus_MO:
         testpdu(pdu, "MO")
+
+    for pdu in pdus_CB:
+        cb = CellBroadcast(pdu)
+        print cb.repr()
 
 # vim: expandtab shiftwidth=4 tabstop=4
