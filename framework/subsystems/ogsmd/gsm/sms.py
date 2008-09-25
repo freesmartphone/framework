@@ -266,6 +266,18 @@ class AbstractSMS(object):
         pdubytes.extend( encodePDUNumber(self.oa) )
 
         pdubytes.append( self.pid )
+
+        # We need to check whether we can encode the message with the
+        # GSM default charset now, because self.dcs might change
+        if not self.dcs_alphabet is None:
+            try:
+                pduud = self.ud.encode( self.dcs_alphabet )
+            except UnicodeError:
+                self.dcs_alphabet = "utf_16_be"
+                pduud = self.ud.encode( self.dcs_alphabet )
+        else:
+            pduud = self.ud
+
         pdubytes.append( self.dcs )
 
         if self.pdu_mti == 0:
@@ -285,11 +297,6 @@ class AbstractSMS(object):
             pduudhlen = -1
             padding = 0
 
-
-        if not self.dcs_alphabet is None:
-            pduud = self.ud.encode( self.dcs_alphabet )
-        else:
-            pduud = self.ud
 
         if self.dcs_alphabet == "gsm_default":
             udlen = int( math.ceil( (pduudhlen*8 + 8 + len(pduud)*7)/7.0 ) )
