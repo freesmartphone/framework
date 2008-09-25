@@ -95,19 +95,22 @@ class GTA02Device( UBXDevice ):
         tacc = 120000 # in ms (2 minutes)
 
         # Feed GPS with position and time
-        self.send("AID-INI", 48, {"X" : pos["x"] , "Y" : pos["y"] , "Z" : pos["z"], "POSACC" : pacc, \
-                                  "TM_CFG" : 0 , "WN" : wn , "TOW" : tow , "TOW_NS" : 0 , "TACC_MS" : tacc , "TACC_NS" : 0 , \
-                                  "CLKD" : 0 , "CLKDACC" : 0 , "FLAGS" : 0x3 })
+        if pos:
+            self.send("AID-INI", 48, {"X" : pos["x"] , "Y" : pos["y"] , "Z" : pos["z"], "POSACC" : pacc, \
+                      "TM_CFG" : 0 , "WN" : wn , "TOW" : tow , "TOW_NS" : 0 , "TACC_MS" : tacc , "TACC_NS" : 0 , \
+                      "CLKD" : 0 , "CLKDACC" : 0 , "FLAGS" : 0x3 })
 
         # Feed gps with almanac
-        for k, a in self.aidingData["almanac"].iteritems():
-            logger.debug("Loaded almanac for SV %d" % a["SVID"])
-            self.send("AID-ALM", 40, a);
+        if self.aidingData["almanac"]:
+            for k, a in self.aidingData["almanac"].iteritems():
+                logger.debug("Loaded almanac for SV %d" % a["SVID"])
+                self.send("AID-ALM", 40, a);
 
         # Feed gps with ephemeris
-        for k, a in self.aidingData["ephemeris"].iteritems():
-            logger.debug("Loaded ephemeris for SV %d" % a["SVID"])
-            self.send("AID-EPH", 104, a);
+        if self.aidingData["ephemeris"]:
+            for k, a in self.aidingData["ephemeris"].iteritems():
+                logger.debug("Loaded ephemeris for SV %d" % a["SVID"])
+                self.send("AID-EPH", 104, a);
 
     def handle_AID_ALM( self, data ):
         data = data[0]
