@@ -231,9 +231,9 @@ class AbstractSMS(object):
             if dcs & 0x4:
                 self.alphabet = None
             self.dcs_mclass = dcs & 0x3
-    
+
     dcs = property( _getDCS, _setDCS )
-    
+
     def pdu( self ):
         pdubytes = []
         if self.sca:
@@ -292,7 +292,7 @@ class AbstractSMS(object):
             pduud = self.ud
 
         if self.dcs_alphabet == "gsm_default":
-            udlen = int( math.ceil( (pduudhlen*8 + 8 + len(self.ud)*7)/7.0 ) )
+            udlen = int( math.ceil( (pduudhlen*8 + 8 + len(pduud)*7)/7.0 ) )
             padding = (7 * udlen - (8 + 8 * (pduudhlen))) % 7
             pduud = pack_sevenbit( pduud, padding )
         else:
