@@ -133,12 +133,12 @@ def gsm_default_encode( input, errors = 'strict' ):
         for char in input:
             try:
                 result.append( GSMALPHABET.index( char ) )
-            except KeyError:
+            except ValueError:
                 try:
                     extbyte = GSMEXTALPHABET.index( char )
                     result.append( GSMEXTBYTE )
                     result.append( extbyte )
-                except KeyError:
+                except ValueError:
                     raise UnicodeError
                     if errors == 'strict': raise UnicodeError,"invalid SMS character"
                     elif errors == 'replace': result.append(chr(0x3f)) #question mark
