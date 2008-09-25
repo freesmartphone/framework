@@ -44,17 +44,52 @@ class AbstractResource( object ):
     The policy can be 'auto', 'disabled' or 'enabled'
     """
     def __init__( self, usageControl, name = "Abstract" ):
+        """Create a new resource
+        
+        `usageControl` : the resource controler object that will handle this resource
+        `name` : the name of the resource
+        """
         self.usageControl = usageControl
-        self.name = name
+        self.name = str(name)
         self.users = []
         self.policy = 'auto'
         self.isEnabled = False
 
     def _enable( self ):
+        """Enable the resource
+        
+        This method is called when the usage controller decides that at least one
+        client need to use the resource.
+        """
         pass
 
     def _disable( self ):
+        """Disable the resource
+        
+        This method is called when the usage controller decides that no client
+        need to use the resource.
+        """
         pass
+        
+    def _suspend( self, on_ok, on_error ):
+        """Called before the system is going to suspend
+        
+        it is an asynchronous method, it should return imediatly, and :
+        `on_ok` should be called on success, with no argument.
+        `on_error` should be called in case of an error, with one argument.
+        """
+        # By default we do nothing
+        on_ok()
+        
+    def _resume( self, on_ok, on_error ):
+        """Called after a system resume
+        
+        it is an asynchronous method, it should return imediatly, and :
+        `on_ok` should be called on success, with no argument.
+        `on_error` should be called in case of an error, with one argument.
+        """
+        # By default we do nothing
+        on_ok()
 
     def _update( self ):
         if not self.isEnabled and (self.users or self.policy == 'enabled'):
@@ -87,7 +122,7 @@ class AbstractResource( object ):
         )
 
     def release( self, user ):
-        assert user in self.users, "User %s did non request %s before releasing it" % ( user, self.name )
+        assert user in self.users, "User %s did not request %s before releasing it" % ( user, self.name )
         self.users.remove( user )
         self._update()
         self.usageControl.ResourceChanged(
@@ -196,6 +231,14 @@ class ClientResource( AbstractResource ):
             logger.error("Error while disabling resource : %s", err)
         self.obj.Disable(reply_handler=on_reply, error_handler=on_error)
         
+    def _suspend( self, on_ok, on_error ):
+        """Simply call the client Suspend method"""
+        self.obj.Suspend(reply_handler=on_ok, error_handler=on_error)
+        
+    def _resume( self, on_ok, on_error ):
+        """Simply call the client Resume method"""
+        self.obj.Resume(reply_handler=on_ok, error_handler=on_error)
+        
     
 
 #----------------------------------------------------------------------------#
@@ -251,13 +294,24 @@ class GenericUsageControl( dbus.service.Object ):
     def SetResourcePolicy( self, resourcename, policy ):
         self.resources[resourcename].setPolicy( policy )
 
+    # XXX: shouldn't we make this call blocking in case the resource takes time to beeing enabled ?
     @dbus.service.method( DBUS_INTERFACE, "s", "b", sender_keyword='sender' )
     def RequestResource( self, resourcename, sender ):
+        """Called by a client to request a resource
+        
+        This call will return imediatly, even if the resource need to perform
+        some enabling actions.
+        """
         self.resources[resourcename].request( sender )
         return True
 
     @dbus.service.method( DBUS_INTERFACE, "s", "", sender_keyword='sender' )
     def ReleaseResource( self, resourcename, sender ):
+        """Called by a client to release a previously requested resource
+        
+        This call will return imediatly, even if the resource need to perform
+        some disabling actions.
+        """
         self.resources[resourcename].release( sender )
         
     @dbus.service.method( DBUS_INTERFACE, "so", "", sender_keyword='sender' )
@@ -270,7 +324,47 @@ class GenericUsageControl( dbus.service.Object ):
         logger.info( "Register new resource %s", resourcename )
         resource = ClientResource( self, resourcename, path, sender )
         self.addResource( resource )
-
+        
+    # XXX: We should use a tasklet / state machine / whatever
+    #   good solution we can find to make all this code nicer
+    @dbus.service.method( DBUS_INTERFACE, "", "", async_callbacks=( "dbus_ok", "dbus_error" ) )
+    def Suspend( self, dbus_ok, dbus_error ):
+        """Suspend all the resources"""
+        logger.info( "prepare for suspend" )
+        def after_all_suspended():
+            logger.info( "suspending" )
+            os.system( "apm -s" )
+            logger.info( "resuming" )
+            self._for_each( '_resume', dbus_ok, dbus_error )
+        self._for_each( '_suspend', after_all_suspended, dbus_error )
+            
+    def _for_each( self, method, on_ok, on_err ):
+        """Call a given method on all services and wait that they all return
+        
+        `method` : name of the method to call
+        `on_ok`  : method to call after all resources are done
+        """
+        waited_resources = self.resources.keys()
+        
+        def on_done( name ):
+            def ret():
+                logger.debug( "resource %s %s returned ", name, method )
+                waited_resources.remove( name )
+                if not waited_resources: # All the resources are suspended
+                    on_ok()
+            return ret
+                
+        def on_error( name ):
+            def ret( err ):
+                logger.error( "Error while calling resource %s %s : %s", name, method, err )
+                on_done( name)  # We ignore the error, too bad for the resource
+            return ret
+            
+        for resource in self.resources.values():
+            logger.debug( "callind resource %s %s", resource.name, method )
+            getattr( resource, method )( on_done(resource.name), on_error(resource.name) )
+            
+            
     #
     # dbus signals
     #

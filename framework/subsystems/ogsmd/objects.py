@@ -585,16 +585,18 @@ class Device( framework.Resource ):
     # framework.Resource
     #
     def _enable( self ):
-        pass
+        logger.info("enabling")
         
     def _disable( self ):
-        pass
+        logger.info("disabling")
         
-    def _suspend( self ):
-        pass
+    def _suspend( self, on_ok, on_error ):
+        logger.info("suspending")
+        self.PrepareForSuspend( on_ok, on_error )
         
-    def _resume( self ):
-        pass
+    def _resume( self, on_ok, on_error ):
+        logger.info("resuming")
+        self.RecoverFromSuspend( on_ok, on_error )
 
     #
     # dbus org.freesmartphone.GSM.Debug

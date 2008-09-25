@@ -10,6 +10,7 @@ GPLv2 or later
 import gobject
 import threading
 import dbus
+import dbus.service
 from dbus.mainloop.glib import DBusGMainLoop
 DBusGMainLoop(set_as_default=True)
 
@@ -60,23 +61,42 @@ class Test(Tasklet):
             def __init__(self):
                 bus = dbus.SystemBus()
                 dbus.service.Object.__init__( self, bus, '/org/freesmatrphone/Test' )
+                self.enabled = False
             
             @dbus.service.method( 'org.freesmartphone.Resource', "", "" )
             def Enable( self ):
                 print "Enable"
+                assert not self.enabled
+                self.enabled = True
             
             @dbus.service.method( 'org.freesmartphone.Resource', "", "" )
             def Disable( self ):
                 print "Disable"
+                assert self.enabled
+                self.enabled = False
+                
+            @dbus.service.method( 'org.freesmartphone.Resource', "", "" )
+            def Suspend( self ):
+                print "Suspend"
+                
+            @dbus.service.method( 'org.freesmartphone.Resource', "", "" )
+            def Resume( self ):
+                print "Resumed"
                 
         # Create and register the 'test' resource
         resource = ClientResource()
         self.usage.RegisterResource( 'test', resource )
-        # request the resource
+        # request the resource (twice)
         yield WaitDBus( self.usage.RequestResource, 'test' )
-        # release the resource
+        yield WaitDBus( self.usage.RequestResource, 'test' )
+        # release the resource (twice)
+        yield WaitDBus( self.usage.ReleaseResource, 'test' )
         yield WaitDBus( self.usage.ReleaseResource, 'test' )
         
+        # Suspend the system
+        # Warning : if we run this test via ssh over USB,
+        # then we are going to lose the connection
+        yield WaitDBus( self.usage.Suspend )
         
         print "OK"
         yield True

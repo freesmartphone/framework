@@ -77,13 +77,13 @@ class Resource( dbus.service.Object ):
     def Disable( self ):
         self._disable()
         
-    @dbus.service.method( DBUS_INTERFACE, "", "" )
-    def Suspend( self ):
-        self._suspend()
+    @dbus.service.method( DBUS_INTERFACE, "", "", async_callbacks=( "dbus_ok", "dbus_error" ) )
+    def Suspend( self, dbus_ok, dbus_error ):
+        self._suspend( dbus_ok, dbus_error )
         
-    @dbus.service.method( DBUS_INTERFACE, "", "" )
-    def Resume( self ):
-        self._resume()
+    @dbus.service.method( DBUS_INTERFACE, "", "", async_callbacks=( "dbus_ok", "dbus_error" ) )
+    def Resume( self, dbus_ok, dbus_error ):
+        self._resume( dbus_ok, dbus_error )
         
     # Subclass of Service should reimplement those methods
     def _enable( self ):
@@ -92,8 +92,8 @@ class Resource( dbus.service.Object ):
     def _disable( self ):
         pass
         
-    def _suspend( self ):
+    def _suspend( self, on_ok, on_error ):
         pass
         
-    def _resume( self ):
+    def _resume( self, on_ok, on_error ):
         pass
