@@ -37,14 +37,14 @@ class GTA02Device( UBXDevice ):
         # Reset the device
         #self.send("CFG-RST", 4, {"nav_bbr" : 0xffff, "Reset" : 0x01})
 
-        # Load aiding data
-        self.loadAidingData()
-
         super( GTA02Device, self ).configure()
+
+        # Load aiding data and only if that succeeds have the GPS chip ask for it
+        if self.loadAidingData():
+            self.send("CFG-MSG", 3, {"Class" : CLIDPAIR["AID-REQ"][0] , "MsgID" : CLIDPAIR["AID-REQ"][1] , "Rate": 1 })
 
         # Enable NAV-POSECEF, AID-REQ (AID-DATA), AID-ALM, AID-EPH messages
         self.send("CFG-MSG", 3, {"Class" : CLIDPAIR["NAV-POSECEF"][0] , "MsgID" : CLIDPAIR["NAV-POSECEF"][1] , "Rate": 8 })
-        self.send("CFG-MSG", 3, {"Class" : CLIDPAIR["AID-REQ"][0] , "MsgID" : CLIDPAIR["AID-REQ"][1] , "Rate": 1 })
         self.send("CFG-MSG", 3, {"Class" : CLIDPAIR["AID-ALM"][0] , "MsgID" : CLIDPAIR["AID-ALM"][1] , "Rate": 1 })
         self.send("CFG-MSG", 3, {"Class" : CLIDPAIR["AID-EPH"][0] , "MsgID" : CLIDPAIR["AID-EPH"][1] , "Rate": 1 })
 
@@ -64,8 +64,10 @@ class GTA02Device( UBXDevice ):
         logger.info("Loading aiding data")
         try:
             self.aidingData = marshal.load(open(self.aidingFile, "r"))
+            return True
         except:
             self.aidingData = { "almanac": {}, "ephemeris": {}, "position": {} }
+            return False
 
     def saveAidingData( self ):
         logger.info("Saving aiding data")
