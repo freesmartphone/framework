@@ -697,6 +697,12 @@ SMS_PDU_STATUS_IN = { \
 }
 
 #=========================================================================#
+CB_PDU_DCS_LANGUAGE = [ "German", "English", "Italian", "French", "Spanish",
+        "Dutch", "Swedish", "Danish", "Portuguese", "Finnish",
+        "Norwegian", "Greek", "Turkish", "Hungarian", "Polish", None]
+
+
+#=========================================================================#
 CALL_DIRECTION = { \
     0: "outgoing",
     1: "incoming",

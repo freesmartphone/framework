@@ -12,6 +12,7 @@ Module: pdu
 
 """
 from ogsmd.gsm.convert import *
+from ogsmd.gsm.const import CB_PDU_DCS_LANGUAGE
 import math
 
 #    ** Dekodieren
@@ -229,7 +230,7 @@ class AbstractSMS(object):
             # data coding/message class
             # dcs & 0x8 (bit 3) is reserved as 0
             if dcs & 0x4:
-                self.alphabet = None
+                self.dcs_alphabet = None
             self.dcs_mclass = dcs & 0x3
 
     dcs = property( _getDCS, _setDCS )
@@ -339,6 +340,104 @@ Number: %s
 Headers: %s
 Message: %s
 """ % (self.sca, self.pdu_vpf, self.pid, self.dcs, self.oa, self.udh, self.ud)
+
+class CellBroadcast(AbstractSMS):
+    def __init__(self, pdu):
+        self.dcs_alphabet = "gsm_default"
+        self.dcs_language = None
+        self.dcs_language_indication = False
+        self.dcs_compressed = False
+        self.dcs_mclass = None
+        # first convert the string into a bytestream
+        bytes = [ int( pdu[i:i+2], 16 ) for i in range(0, len(pdu), 2) ]
+
+        self.sn = bytes[0] << 8 | bytes[1]
+        self.mid = bytes[2] << 8 | bytes[3]
+        self.dcs = bytes[4]
+        self.page = bytes[5]
+
+        userdata = "".join( map( chr, bytes[6:] ) )
+        if self.dcs_alphabet == "gsm_default":
+            userdata = unpack_sevenbit(bytes[6:])
+
+        if not self.dcs_alphabet is None:
+            self.ud = userdata.decode( self.dcs_alphabet )
+
+
+    def _getDCS( self ):
+        if self.dcs_language_indication is None:
+            group = 0x01
+            dcs = 0x00
+            if self.dcs_language == "utf_16_be":
+                dcs = 0x01
+            dcs = group << 4 | dcs
+        else: # not self.dcs_language_indication is None
+            if self.dcs_mclass is None:
+                if self.dcs_language == "Czech":
+                    group = 0x02
+                    dcs = 0x00
+                else:
+                    group = 0x00
+                    dcs = CB_PDU_DCS_LANGUAGE.index(self.dcs_language)
+            else:
+                # General data coding
+                group = 0x05
+                if self.dcs_compressed:
+                    group |= 0x02
+                if self.dcs_alphabet is None :
+                    dcs |= 0x1 << 2
+                elif self.dcs_alphabet == "utf_16_be":
+                    dcs |= 0x2 << 2
+                dcs |= self.dcs_mclass
+
+            dcs = group << 4 | dcs
+        return dcs
+
+    def _setDCS( self, dcs ):
+        self.dcs_alphabet = "gsm_default"
+        self.dcs_language = None
+        self.dcs_language_indication = False
+        self.dcs_compressed = False
+        self.dcs_mclass = None
+        group = ( dcs & 0xF0 ) >> 4
+        if group == 0x00:
+            # language using the default alphabet
+            self.dcs_language = CB_PDU_DCS_LANGUAGE[dcs & 0x0F]
+        elif group == 0x01:
+            # Message with language indication
+            self.dcs_language_indication = True
+            if (dcs & 0x0F) == 0x01:
+                self.dcs_alphabet = "utf_16_be"
+        elif group == 0x02:
+            if (dcs & 0x0F) == 0x00:
+                self.language = "Czech"
+        elif group == 0x03:
+            # Reserved
+            pass
+        elif 0x04 <= group <= 0x07:
+            # General data coding
+            if (dcs & 0x20):
+                self.dcs_compressed = True
+            if (dcs & 0x10):
+                self.dcs_mclass = (dcs & 0x03)
+            if (dcs & 0x0C) >> 2 == 1:
+                self.dcs_alphabet = None
+            elif (dcs & 0x0C) >> 2 == 2:
+                self.dcs_alphabet = "utf_16_be"
+        elif 0x08 <= group <= 0x0D:
+            # Reserved
+            pass
+        elif group == 0x0E:
+            # WAP specific
+            pass
+        elif group == 0x0F:
+            # data coding/message class
+            # dcs & 0x8 (bit 3) is reserved as 0
+            if dcs & 0x4:
+                self.dcs_alphabet = None
+            self.dcs_mclass = dcs & 0x3
+
+    dcs = property( _getDCS, _setDCS )
 
 if __name__ == "__main__":
     pdus_MT = [

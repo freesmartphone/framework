@@ -14,6 +14,8 @@ Module: unsolicited
 from ogsmd.gsm.decor import logged
 from ogsmd.gsm import const, convert
 from ogsmd.helpers import safesplit
+import ogsmd.gsm.sms
+
 
 #=========================================================================#
 class AbstractUnsolicitedResponseDelegate( object ):
@@ -41,13 +43,12 @@ class AbstractUnsolicitedResponseDelegate( object ):
         """
         values = safesplit( righthandside, ',' )
         if len( values ) == 1:
-            sn = eval( "0x%s" % pdu[0:4] )
-            mid = eval( "0x%s" % pdu[4:8] )
-            dcs = eval( "0x%s" % pdu[8:9] )
-            page = eval( "0x%s" % pdu[9:10] )
-            # FIXME convert PDU to text
-            channel = mid
-            data = pdu[10:]
+            cb = ogsmd.gsm.sms.CellBroadcast(pdu)
+            sn = cb.sn
+            channel = cb.mid
+            dcs = cb.dcs
+            page = cb.page
+            data = cb.ud
         elif len( values ) == 5:
             sn, mid, dcs, page, pages = values
             channel = int(mid)
