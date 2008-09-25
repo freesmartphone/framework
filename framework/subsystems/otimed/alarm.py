@@ -126,7 +126,7 @@ class AlarmController( dbus.service.Object ):
                 self.ClearAlarm( old_owner, old_owner )
 
     def _verifyNameOwner( self, wellkown, connection ):
-        if wellkown == conntection:
+        if wellkown == connection:
             return True
         proxy = self.bus.get_object( dbus.BUS_DAEMON_NAME, dbus.BUS_DAEMON_PATH )
         iface = dbus.Interface( proxy, dbus.BUS_DAEMON_IFACE )
