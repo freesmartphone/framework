@@ -77,9 +77,11 @@ class GTA02Device( UBXDevice ):
 
     def handle_NAV_POSECEF( self, data ):
         data = data[0]
-        self.aidingData["position"]["x"] = data["ECEF_X"]
-        self.aidingData["position"]["y"] = data["ECEF_Y"]
-        self.aidingData["position"]["z"] = data["ECEF_Z"]
+        if data["Pacc"] < 100000:
+            self.aidingData["position"]["accuracy"] = data["Pacc"]
+            self.aidingData["position"]["x"] = data["ECEF_X"]
+            self.aidingData["position"]["y"] = data["ECEF_Y"]
+            self.aidingData["position"]["z"] = data["ECEF_Z"]
 
     def handle_AID_DATA( self, data ):
         pos = self.aidingData["position"]
