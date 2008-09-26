@@ -21,6 +21,7 @@ DBUS_INTERFACE_PREFIX = "org.freesmartphone.Usage"
 DBUS_PATH_PREFIX = "/org/freesmartphone/Usage"
 
 from helpers import readFromFile, writeToFile
+import framework.patterns.tasklet as tasklet
 
 import dbus
 import dbus.service
@@ -55,50 +56,35 @@ class AbstractResource( object ):
         self.policy = 'auto'
         self.isEnabled = False
 
+    @tasklet.tasklet
     def _enable( self ):
-        """Enable the resource
-        
-        This method is called when the usage controller decides that at least one
-        client need to use the resource.
-        """
-        pass
+        """Enable the resource"""
+        yield None
 
+    @tasklet.tasklet
     def _disable( self ):
-        """Disable the resource
+        """Disable the resource"""
+        yield None
+    
+    @tasklet.tasklet
+    def _suspend( self ):
+        """Called before the system is going to suspend"""
+        yield None
         
-        This method is called when the usage controller decides that no client
-        need to use the resource.
-        """
-        pass
-        
-    def _suspend( self, on_ok, on_error ):
-        """Called before the system is going to suspend
-        
-        it is an asynchronous method, it should return imediatly, and :
-        `on_ok` should be called on success, with no argument.
-        `on_error` should be called in case of an error, with one argument.
-        """
-        # By default we do nothing
-        on_ok()
-        
-    def _resume( self, on_ok, on_error ):
-        """Called after a system resume
-        
-        it is an asynchronous method, it should return imediatly, and :
-        `on_ok` should be called on success, with no argument.
-        `on_error` should be called in case of an error, with one argument.
-        """
-        # By default we do nothing
-        on_ok()
+    @tasklet.tasklet
+    def _resume( self ):
+        """Called after a system resume"""
+        yield None
 
+    @tasklet.tasklet
     def _update( self ):
         if not self.isEnabled and (self.users or self.policy == 'enabled'):
             logger.info( "Enabling %s", self.name )
-            self._enable()
+            yield self._enable()
             self.isEnabled = True
         elif self.isEnabled and not (self.users or self.policy == 'enabled'):
             logger.info( "Disabling %s", self.name )
-            self._disable()
+            yield self._disable()
             self.isEnabled = False
 
     def setPolicy( self, policy ):
@@ -112,26 +98,30 @@ class AbstractResource( object ):
                 self.name, self.isEnabled, {"policy": self.policy, "refcount": len( self.users )}
             )
 
+    @tasklet.tasklet
     def request( self, user ):
         assert self.policy in ['auto', 'enabled'], "Request for %s is not allowed" % ( self.name )
         assert user not in self.users, "User %s already requested %s" % ( user, self.name )
         self.users.append( user )
-        self._update()
+        yield self._update()
         self.usageControl.ResourceChanged(
             self.name, self.isEnabled, {"policy": self.policy, "refcount": len( self.users )}
         )
+        yield True
 
+    @tasklet.tasklet
     def release( self, user ):
         assert user in self.users, "User %s did not request %s before releasing it" % ( user, self.name )
         self.users.remove( user )
-        self._update()
+        yield self._update()
         self.usageControl.ResourceChanged(
             self.name, self.isEnabled, {"policy": self.policy, "refcount": len( self.users )}
         )
 
+    @tasklet.tasklet
     def cleanup( self, user ):
         if user in self.users:
-            self.release( user )
+            yield self.release( user )
             logger.info( "Releasing %s for vanished user %s", self.name, user )
 
 #----------------------------------------------------------------------------#
@@ -140,11 +130,15 @@ class DummyResource( AbstractResource ):
     def __init__( self, usageControl, name ):
         AbstractResource.__init__( self , usageControl, name )
 
+    @tasklet.tasklet
     def _enable( self ):
         print "Enabled %s" % self.name
+        yield None
 
+    @tasklet.tasklet
     def _disable( self ):
         print "Disabled %s" % self.name
+        yield None
 
 #----------------------------------------------------------------------------#
 class ODeviceDResource( AbstractResource ):
@@ -153,22 +147,18 @@ class ODeviceDResource( AbstractResource ):
         AbstractResource.__init__( self , usageControl, name )
         self.bus = dbus.SystemBus()
 
-    def _replyCallback( self ):
-        pass
-
-    def _errorCallback( self, e ):
-        pass
-
+    @tasklet.tasklet
     def _enable( self ):
         proxy = self.bus.get_object( "org.freesmartphone.odeviced", "/org/freesmartphone/Device/PowerControl/" + self.name )
         iface = dbus.Interface( proxy, "org.freesmartphone.Device.PowerControl" )
-        iface.SetPower( True, reply_handler=self._replyCallback, error_handler=self._errorCallback )
+        yield tasklet.WaitDBus( iface.SetPower, True)
         print "Enabled %s" % self.name
 
+    @tasklet.tasklet
     def _disable( self ):
         proxy = self.bus.get_object( "org.freesmartphone.odeviced", "/org/freesmartphone/Device/PowerControl/" + self.name )
         iface = dbus.Interface( proxy, "org.freesmartphone.Device.PowerControl" )
-        iface.SetPower( False, reply_handler=self._replyCallback, error_handler=self._errorCallback )
+        yield tasklet.WaitDBus( iface.SetPower, False )
         print "Disabled %s" % self.name
 
 #----------------------------------------------------------------------------#
@@ -178,22 +168,18 @@ class OGPSDResource( AbstractResource ):
         AbstractResource.__init__( self , usageControl, name )
         self.bus = dbus.SystemBus()
 
-    def _replyCallback( self ):
-        pass
-
-    def _errorCallback( self, e ):
-        pass
-
+    @tasklet.tasklet
     def _enable( self ):
         proxy = self.bus.get_object( "org.freesmartphone.ogpsd", "/org/freedesktop/Gypsy" )
         iface = dbus.Interface( proxy, "org.freesmartphone.GPS" )
-        iface.SetPower( True, reply_handler=self._replyCallback, error_handler=self._errorCallback )
+        yield tasklet.WaitDBus( iface.SetPower, True )
         print "Enabled %s" % self.name
 
+    @tasklet.tasklet
     def _disable( self ):
         proxy = self.bus.get_object( "org.freesmartphone.ogpsd", "/org/freedesktop/Gypsy" )
         iface = dbus.Interface( proxy, "org.freesmartphone.GPS" )
-        iface.SetPower( False, reply_handler=self._replyCallback, error_handler=self._errorCallback )
+        yield tasklet.WaitDBus( iface.SetPower, False )
         print "Disabled %s" % self.name
         
 
@@ -215,29 +201,25 @@ class ClientResource( AbstractResource ):
         bus = dbus.SystemBus()
         self.obj = bus.get_object(sender, path)
         
+    @tasklet.tasklet
     def _enable( self ):
         """Simply call the client Enable method"""
-        def on_reply():
-            pass
-        def on_error(err):
-            logger.error("Error while enabling resource : %s", err)
-        self.obj.Enable(reply_handler=on_reply, error_handler=on_error)
+        yield tasklet.WaitDBus( self.obj.Enable )
 
+    @tasklet.tasklet
     def _disable( self ):
         """Simply call the client Disable method"""
-        def on_reply():
-            pass
-        def on_error(err):
-            logger.error("Error while disabling resource : %s", err)
-        self.obj.Disable(reply_handler=on_reply, error_handler=on_error)
+        yield tasklet.WaitDBus( self.obj.Disable )
         
-    def _suspend( self, on_ok, on_error ):
+    @tasklet.tasklet
+    def _suspend( self ):
         """Simply call the client Suspend method"""
-        self.obj.Suspend(reply_handler=on_ok, error_handler=on_error)
+        yield tasklet.WaitDBus( self.obj.Suspend )
         
-    def _resume( self, on_ok, on_error ):
+    @tasklet.tasklet
+    def _resume( self ):
         """Simply call the client Resume method"""
-        self.obj.Resume(reply_handler=on_ok, error_handler=on_error)
+        yield tasklet.WaitDBus( self.obj.Resume )
         
     
 
@@ -294,25 +276,23 @@ class GenericUsageControl( dbus.service.Object ):
     def SetResourcePolicy( self, resourcename, policy ):
         self.resources[resourcename].setPolicy( policy )
 
-    # XXX: shouldn't we make this call blocking in case the resource takes time to beeing enabled ?
-    @dbus.service.method( DBUS_INTERFACE, "s", "b", sender_keyword='sender' )
-    def RequestResource( self, resourcename, sender ):
+    @dbus.service.method( DBUS_INTERFACE, "s", "b", sender_keyword='sender', async_callbacks=( "dbus_ok", "dbus_error" ) )
+    def RequestResource( self, resourcename, sender, dbus_ok, dbus_error ):
         """Called by a client to request a resource
         
         This call will return imediatly, even if the resource need to perform
         some enabling actions.
         """
-        self.resources[resourcename].request( sender )
-        return True
+        self.resources[resourcename].request( sender ).start_dbus( dbus_ok, dbus_error )
 
-    @dbus.service.method( DBUS_INTERFACE, "s", "", sender_keyword='sender' )
-    def ReleaseResource( self, resourcename, sender ):
+    @dbus.service.method( DBUS_INTERFACE, "s", "", sender_keyword='sender', async_callbacks=( "dbus_ok", "dbus_error" ) )
+    def ReleaseResource( self, resourcename, sender, dbus_ok, dbus_error ):
         """Called by a client to release a previously requested resource
         
         This call will return imediatly, even if the resource need to perform
         some disabling actions.
         """
-        self.resources[resourcename].release( sender )
+        self.resources[resourcename].release( sender ).start_dbus( dbus_ok, dbus_error )
         
     @dbus.service.method( DBUS_INTERFACE, "so", "", sender_keyword='sender' )
     def RegisterResource( self, resourcename, path, sender ):
@@ -325,45 +305,26 @@ class GenericUsageControl( dbus.service.Object ):
         resource = ClientResource( self, resourcename, path, sender )
         self.addResource( resource )
         
-    # XXX: We should use a tasklet / state machine / whatever
-    #   good solution we can find to make all this code nicer
     @dbus.service.method( DBUS_INTERFACE, "", "", async_callbacks=( "dbus_ok", "dbus_error" ) )
     def Suspend( self, dbus_ok, dbus_error ):
         """Suspend all the resources"""
-        logger.info( "prepare for suspend" )
-        def after_all_suspended():
-            logger.info( "suspending" )
-            os.system( "apm -s" )
-            logger.info( "resuming" )
-            self._for_each( '_resume', dbus_ok, dbus_error )
-        self._for_each( '_suspend', after_all_suspended, dbus_error )
-            
-    def _for_each( self, method, on_ok, on_err ):
-        """Call a given method on all services and wait that they all return
+        # Call the _suspend task connected to the dbus callbacks
+        self._suspend().start_dbus( dbus_ok, dbus_error )
         
-        `method` : name of the method to call
-        `on_ok`  : method to call after all resources are done
-        """
-        waited_resources = self.resources.keys()
-        
-        def on_done( name ):
-            def ret():
-                logger.debug( "resource %s %s returned ", name, method )
-                waited_resources.remove( name )
-                if not waited_resources: # All the resources are suspended
-                    on_ok()
-            return ret
-                
-        def on_error( name ):
-            def ret( err ):
-                logger.error( "Error while calling resource %s %s : %s", name, method, err )
-                on_done( name)  # We ignore the error, too bad for the resource
-            return ret
-            
+    @tasklet.tasklet
+    def _suspend( self ):
+        """The actual suspending tasklet"""
+        logger.info( "suspending all resources" )
         for resource in self.resources.values():
-            logger.debug( "callind resource %s %s", resource.name, method )
-            getattr( resource, method )( on_done(resource.name), on_error(resource.name) )
+            logger.debug( "suspending %s", resource.name )
+            yield resource._suspend()
             
+        os.system( "apm -s" )
+        
+        logger.info( "resuming all resources" )
+        for resource in self.resources.values():
+            logger.debug( "resuming %s", resource.name )
+            yield resource._resume()
             
     #
     # dbus signals

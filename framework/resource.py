@@ -69,13 +69,13 @@ class Resource( dbus.service.Object ):
         gobject.idle_add(on_idle)
     
     # All the DBus methods will call the python implementation
-    @dbus.service.method( DBUS_INTERFACE, "", "" )
-    def Enable( self ):
-        self._enable()
+    @dbus.service.method( DBUS_INTERFACE, "", "", async_callbacks=( "dbus_ok", "dbus_error" ) )
+    def Enable( self, dbus_ok, dbus_error ):
+        self._enable( dbus_ok, dbus_error )
         
-    @dbus.service.method( DBUS_INTERFACE, "", "" )
-    def Disable( self ):
-        self._disable()
+    @dbus.service.method( DBUS_INTERFACE, "", "", async_callbacks=( "dbus_ok", "dbus_error" ) )
+    def Disable( self, dbus_ok, dbus_error ):
+        self._disable( dbus_ok, dbus_error )
         
     @dbus.service.method( DBUS_INTERFACE, "", "", async_callbacks=( "dbus_ok", "dbus_error" ) )
     def Suspend( self, dbus_ok, dbus_error ):
@@ -83,17 +83,17 @@ class Resource( dbus.service.Object ):
         
     @dbus.service.method( DBUS_INTERFACE, "", "", async_callbacks=( "dbus_ok", "dbus_error" ) )
     def Resume( self, dbus_ok, dbus_error ):
-        self._resume( dbus_ok, dbus_error )
+        self._resume( dbus_ok, dbus_error ) 
         
     # Subclass of Service should reimplement those methods
-    def _enable( self ):
-        pass
+    def _enable( self, on_ok, on_error ):
+        on_ok()
         
-    def _disable( self ):
-        pass
+    def _disable( self, on_ok, on_error ):
+        on_ok()
         
     def _suspend( self, on_ok, on_error ):
-        pass
+        on_ok()
         
     def _resume( self, on_ok, on_error ):
-        pass
+        on_ok()

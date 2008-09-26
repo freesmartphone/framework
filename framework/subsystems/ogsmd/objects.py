@@ -33,6 +33,7 @@ import logging
 logger = logging.getLogger( MODULE_NAME )
 
 import framework
+import framework.patterns.tasklet as tasklet
 
 DBUS_INTERFACE_DEVICE = "org.freesmartphone.GSM.Device"
 DBUS_INTERFACE_SIM = "org.freesmartphone.GSM.SIM"
@@ -584,19 +585,20 @@ class Device( framework.Resource ):
     #
     # framework.Resource
     #
-    def _enable( self ):
-        logger.info("enabling")
+    def _enable( self, on_ok, on_error ):
+        logger.info( "enabling" )
+        on_ok()
         
-    def _disable( self ):
-        logger.info("disabling")
+    def _disable( self, on_ok, on_error ):
+        on_ok()
         
     def _suspend( self, on_ok, on_error ):
-        logger.info("suspending")
+        logger.info( "suspending" )
         self.PrepareForSuspend( on_ok, on_error )
         
     def _resume( self, on_ok, on_error ):
         logger.info("resuming")
-        self.RecoverFromSuspend( on_ok, on_error )
+        self.RecoverFromSuspend( on_ok, on_error ) 
 
     #
     # dbus org.freesmartphone.GSM.Debug
