@@ -73,9 +73,10 @@ class Objects( dbus.service.Object ):
                           async_callbacks=( "dbus_ok", "dbus_error" ) )
     def ListObjectsByInterface( self, interface, dbus_ok, dbus_error ):
 
-        def task( self=self, interface=interface, dbus_ok=dbus_ok, dbus_error=dbus_error ):
+        @tasklet.tasklet
+        def task( self=self, interface=interface ):
             if interface == "*":
-                dbus_ok( self.controller.objects.keys() )
+                yield self.controller.objects.keys()
             else:
                 objects = []
 
@@ -100,9 +101,9 @@ class Objects( dbus.service.Object ):
                                 break
 
                 logger.debug( "introspection fully done, result is %s" % objects )
-                dbus_ok( objects )
+                yield objects
 
-        tasklet.Tasklet( task(), dbus_ok, dbus_error ).start()
+        task().start_dbus( dbus_ok, dbus_error )
 
     @dbus.service.method( DBUS_INTERFACE_FRAMEWORK, "", "as" )
     def ListDebugLoggers( self ):
