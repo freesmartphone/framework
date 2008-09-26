@@ -17,7 +17,7 @@ DBusGMainLoop(set_as_default=True)
 import time
 import framework
 
-from tasklet import Tasklet, WaitDBusSignal, WaitDBus
+from framework.patterns.tasklet import Tasklet, WaitDBusSignal, WaitDBus, Sleep
 
 verbose = True
 
@@ -40,6 +40,33 @@ def vprint(msg, *args):
     """Only print if we are in verbose mode"""
     if verbose:
         print msg % args
+        
+class ClientResource( dbus.service.Object ):
+    """This is our test client resource object"""
+    def __init__(self):
+        bus = dbus.SystemBus()
+        dbus.service.Object.__init__( self, bus, '/org/freesmatrphone/Test' )
+        self.enabled = False
+    
+    @dbus.service.method( 'org.freesmartphone.Resource', "", "" )
+    def Enable( self ):
+        print "Enable"
+        assert not self.enabled
+        self.enabled = True
+    
+    @dbus.service.method( 'org.freesmartphone.Resource', "", "" )
+    def Disable( self ):
+        print "Disable"
+        assert self.enabled
+        self.enabled = False
+        
+    @dbus.service.method( 'org.freesmartphone.Resource', "", "" )
+    def Suspend( self ):
+        print "Suspend"
+        
+    @dbus.service.method( 'org.freesmartphone.Resource', "", "" )
+    def Resume( self ):
+        print "Resumed"
 
 class Test(Tasklet):
     def run(self):
@@ -52,54 +79,48 @@ class Test(Tasklet):
         print "OK"
 
         yield self.test_client_resource()
+        yield self.test_gsm()
+        yield self.test_suspend()
 
 
     def test_client_resource(self):
         print "== Test client resource =="
-        class ClientResource( dbus.service.Object ):
-            ## This is our test client resource object
-            def __init__(self):
-                bus = dbus.SystemBus()
-                dbus.service.Object.__init__( self, bus, '/org/freesmatrphone/Test' )
-                self.enabled = False
-            
-            @dbus.service.method( 'org.freesmartphone.Resource', "", "" )
-            def Enable( self ):
-                print "Enable"
-                assert not self.enabled
-                self.enabled = True
-            
-            @dbus.service.method( 'org.freesmartphone.Resource', "", "" )
-            def Disable( self ):
-                print "Disable"
-                assert self.enabled
-                self.enabled = False
-                
-            @dbus.service.method( 'org.freesmartphone.Resource', "", "" )
-            def Suspend( self ):
-                print "Suspend"
-                
-            @dbus.service.method( 'org.freesmartphone.Resource', "", "" )
-            def Resume( self ):
-                print "Resumed"
                 
         # Create and register the 'test' resource
         resource = ClientResource()
         self.usage.RegisterResource( 'test', resource )
-        # request the resource (twice)
+        # request the resource
         yield WaitDBus( self.usage.RequestResource, 'test' )
-        yield WaitDBus( self.usage.RequestResource, 'test' )
-        # release the resource (twice)
-        yield WaitDBus( self.usage.ReleaseResource, 'test' )
+        # release the resource
         yield WaitDBus( self.usage.ReleaseResource, 'test' )
         
+        print "OK"
+        yield True
+        
+    def test_suspend( self ):
+        print "== Test client resource =="
         # Suspend the system
         # Warning : if we run this test via ssh over USB,
         # then we are going to lose the connection
         yield WaitDBus( self.usage.Suspend )
         
-        print "OK"
-        yield True
+    def test_errors( self ):
+        print "== Test some errors cases =="
+        # We request an unknown resource
+        try:
+            yield WaitDBus( self.usage.RequestResource, 'LKHLKJL' )
+        except: # TODO: filter on the proper exception
+            pass
+        else:
+            assert False, "We should have received a dbus exception"
+        
+    def test_gsm( self ):
+        print "== Test gsm resource =="
+        yield WaitDBus( self.usage.RequestResource, 'GSM' )
+        print "sleep 10 seconds"
+        yield Sleep(10)
+        yield WaitDBus( self.usage.ReleaseResource, 'GSM' )
+        
 
         
 if __name__ == '__main__':
