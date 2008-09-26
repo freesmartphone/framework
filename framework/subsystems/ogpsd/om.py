@@ -11,14 +11,17 @@ GPLv2 or later
 
 DBUS_INTERFACE = "org.freesmartphone.GPS"
 
+from ubx import UBXDevice
+from ubx import CLIDPAIR
+
+from framework.persist import persist
+
 import dbus
 import dbus.service
 import os
 import sys
 import marshal
 import time
-from ubx import UBXDevice
-from ubx import CLIDPAIR
 
 import logging
 logger = logging.getLogger('ogpsd')
@@ -28,8 +31,9 @@ class GTA02Device( UBXDevice ):
 
     def __init__( self, bus, gpschannel ):
         self.power = False
-        self.aidingFile = "aiding.dat"
-        self.aidingData = {}
+        self.aidingData = persist.get( "ogpsd", "aidingdata" )
+        if self.aidingData is None:
+            self.aidingData = { "almanac": {}, "ephemeris": {}, "position": {} }
 
         super( GTA02Device, self ).__init__( bus, gpschannel )
 
@@ -40,7 +44,7 @@ class GTA02Device( UBXDevice ):
         super( GTA02Device, self ).configure()
 
         # Load aiding data and only if that succeeds have the GPS chip ask for it
-        if self.loadAidingData():
+        if self.aidingData["almanac"] or self.aidingData["ephemeris"] or self.aidingData["position"]:
             self.send("CFG-MSG", 3, {"Class" : CLIDPAIR["AID-REQ"][0] , "MsgID" : CLIDPAIR["AID-REQ"][1] , "Rate": 1 })
 
         # Enable NAV-POSECEF, AID-REQ (AID-DATA), AID-ALM, AID-EPH messages
@@ -50,7 +54,8 @@ class GTA02Device( UBXDevice ):
 
     def deconfigure(self):
         # Save collected aiding data
-        self.saveAidingData()
+        persist.set( "ogpsd", "aidingdata", self.aidingData )
+        persist.sync( "ogpsd" )
 
         super( GTA02Device, self ).deconfigure()
 
@@ -59,21 +64,6 @@ class GTA02Device( UBXDevice ):
         self.send("CFG-MSG", 3, {"Class" : CLIDPAIR["AID-REQ"][0] , "MsgID" : CLIDPAIR["AID-REQ"][1] , "Rate" : 0 })
         self.send("CFG-MSG", 3, {"Class" : CLIDPAIR["AID-ALM"][0] , "MsgID" : CLIDPAIR["AID-ALM"][1] , "Rate" : 0 })
         self.send("CFG-MSG", 3, {"Class" : CLIDPAIR["AID-EPH"][0] , "MsgID" : CLIDPAIR["AID-EPH"][1] , "Rate" : 0 })
-
-    def loadAidingData( self ):
-        logger.info("Loading aiding data")
-        try:
-            self.aidingData = marshal.load(open(self.aidingFile, "r"))
-            return True
-        except:
-            self.aidingData = { "almanac": {}, "ephemeris": {}, "position": {} }
-            return False
-
-    def saveAidingData( self ):
-        logger.info("Saving aiding data")
-        FILE = open(self.aidingFile, 'w+')
-        marshal.dump(self.aidingData, FILE)
-        FILE.close()
 
     def handle_NAV_POSECEF( self, data ):
         data = data[0]
