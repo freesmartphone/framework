@@ -20,7 +20,6 @@ __version__ = "0.1.1"
 DBUS_INTERFACE_PREFIX = "org.freesmartphone.Usage"
 DBUS_PATH_PREFIX = "/org/freesmartphone/Usage"
 
-from helpers import readFromFile, writeToFile
 import framework.patterns.tasklet as tasklet
 
 import dbus
@@ -28,8 +27,7 @@ import dbus.service
 
 from gobject import idle_add
 
-import os, sys
-import sys
+import os, sys, time
 
 import logging
 logger = logging.getLogger( MODULE_NAME )
