@@ -77,12 +77,16 @@ class AbstractResource( object ):
     @tasklet.tasklet
     def _update( self ):
         if not self.isEnabled and (self.users or self.policy == 'enabled'):
-            logger.info( "Enabling %s", self.name )
+            logger.debug( "Enabling %s", self.name )
+            ts = time.now()
             yield self._enable()
+            logger.info( "Enabled %s in %.1f seconds", self.name, time.now()-ts )
             self.isEnabled = True
         elif self.isEnabled and not (self.users or self.policy == 'enabled'):
-            logger.info( "Disabling %s", self.name )
+            logger.debug( "Disabling %s", self.name )
+            ts = time.now()
             yield self._disable()
+            logger.info( "Disabled %s in %.1f seconds", self.name, time.now()-ts )
             self.isEnabled = False
 
     def setPolicy( self, policy ):
