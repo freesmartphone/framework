@@ -30,6 +30,7 @@ setup(
         ("../../etc/freesmartphone/opreferences/conf/phone", ["etc/freesmartphone/opreferences/conf/phone/default.yaml"]),
         ("../../etc/freesmartphone/opreferences/conf/phone", ["etc/freesmartphone/opreferences/conf/phone/silent.yaml"]),
         ("../../etc/freesmartphone/oevents", ["etc/freesmartphone/oevents/rules.yaml"]),
+        ("../../etc/freesmartphone/persist", ["etc/freesmartphone/persist/README"]),
         ("freesmartphone/examples/", getDir( "examples" ) ),
     ]
 )
