@@ -16,13 +16,22 @@ DBUS_PATH_PREFIX = "/org/freesmartphone"
 
 NEEDS_VERSION = 1
 
-__version__ = "1.0.1"
+__version__ = "1.1.0"
+__all__ = ( \
+    "DBUS_BUS_NAME_PREFIX",
+    "DBUS_INTERFACE_PREFIX",
+    "DBUS_PATH_PREFIX",
+    "debug",
+    "debugto",
+    "debugdest",
+    "installprefix",
+)
 
 from configparse import SmartConfigParser
 
 import os
 
-import logging
+import logging, logging.handlers
 logger = logging.getLogger( "frameworkd" )
 
 loggingmap = { \
@@ -59,7 +68,20 @@ if version != NEEDS_VERSION:
     logger.warning( "version = %d" % NEEDS_VERSION )
 
 debug = config.getValue( "frameworkd", "log_level", "INFO" )
-logging.basicConfig( level=loggingmap.get( debug, logging.INFO ), format="%(name)-8s %(levelname)-8s %(message)s" )
+debugto = config.getValue( "frameworkd", "log_to", "stderr" )
+debugdest = config.getValue( "frameworkd", "log_destination", "/tmp/frameworkd.log" )
+
+if debugto == "stderr":
+    logging.basicConfig( level=loggingmap.get( debug, logging.INFO ), format="%(asctime)s %(name)-8s %(levelname)-8s %(message)s", datefmt="%Y.%m.%d %H:%M:%S" )
+elif debugto == "file":
+    logging.basicConfig( filename=debugdest, level=loggingmap.get( debug, logging.INFO ), format="%(asctime)s %(name)-8s %(levelname)-8s %(message)s", datefmt="%Y.%m.%d %H:%M:%S" )
+elif debugto == "syslog":
+    # full config necessary for root logger
+    rootlogger = logging.getLogger( "" )
+    rootlogger.setLevel( loggingmap.get( debug, logging.INFO ) )
+    sysloghandler = logging.handlers.SysLogHandler( address = "/dev/log" )
+    sysloghandler.setFormatter( logging.Formatter( "%(asctime)s %(name)-8s %(levelname)-8s %(message)s", datefmt="%Y.%m.%d %H:%M:%S" ) )
+    rootlogger.addHandler( sysloghandler )
 
 #
 # compute install prefix
@@ -73,6 +95,3 @@ for p in searchpath:
         break
 
 logger.info( "Installprefix is %s" % installprefix )
-
-# remove unused attributes, leaving 'config' and 'debug'
-del SmartConfigParser, os, logging, logger

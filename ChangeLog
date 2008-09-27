@@ -1,3 +1,9 @@
+2008-09-27  Michael Lauer	<mickey@openmoko.org>
+
+	* Added configuring initial logging destination in config file. Use:
+	  log_to = syslog | file | stderr. If you log to a file, also add
+	  log_destination = /where/the/logs/go
+
 2008-09-24	Daniel Willmann	<daniel@totalueberwachung.de>
 
 	* [ogsmd] SMS with UCS2 character set are now de-/encoded correctly
