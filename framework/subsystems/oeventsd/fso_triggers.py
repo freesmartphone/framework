@@ -45,7 +45,9 @@ class CallStatusTrigger(DBusTrigger):
 #============================================================================#
 class IncomingMessageTrigger(DBusTrigger):
 #============================================================================#
-    """Just a sugar trigger for a GSM call status change"""
+    """
+    A custom dbus trigger for org.freesmartphone.GSM.Call.CallStatus
+    """
 
     function_name = 'IncomingMessage'
 
@@ -89,6 +91,31 @@ class PowerStatusTrigger(DBusTrigger):
 
     def __repr__(self):
         return "PowerStatus"
+
+#============================================================================#
+class IdleStateTrigger(DBusTrigger):
+#============================================================================#
+    """
+    A dbus trigger for org.freesmartphone.Device.IdleNotifier.State
+    """
+
+    function_name = 'IdleState'
+
+    def __init__(self):
+        bus = dbus.SystemBus()
+        super(IdleStateTrigger, self).__init__(
+            bus,
+            'org.freesmartphone.odeviced',
+            None,
+            'org.freesmartphone.Device.IdleNotifier',
+            'State'
+        )
+    def on_signal(self, status):
+        logger.info("Receive IdleState, status = %s", status)
+        self(status=status)
+
+    def __repr__(self):
+        return "IdleState"
 
 #============================================================================#
 class TimeTrigger(DBusTrigger):

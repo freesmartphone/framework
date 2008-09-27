@@ -21,8 +21,13 @@
 # - RingTone(cmd)           : cmd can be 'start' or 'stop'
 # - Time(hour, min)         : create a trigger activated at the given time
 # - Debug(msg)              : Action that prints a debug message (only for debuging)
-
 -
+    trigger: Time(12,29)
+    actions: Debug("A Test")
+-
+    #
+    # Call -> Audio Scenario Handling
+    #
     trigger: IncomingMessage()
     actions: MessageTone(play)
 -
@@ -33,9 +38,6 @@
     trigger: CallStatus()
     filters: Not(HasAttr(status, "incoming"))
     actions: RingTone(stop)
--
-    trigger: Time(12,29)
-    actions: Debug("A Test")
 -
     trigger: CallStatus()
     filters: HasAttr(status, "outgoing")
@@ -49,6 +51,9 @@
     filters: HasAttr(status, "release")
     actions: SetScenario(stereoout)
 -
+    #
+    # Charging LED Spec
+    #
     trigger: PowerStatus()
     filters: HasAttr(status, "Charging")
     actions: 
@@ -63,18 +68,21 @@
 -
     trigger: PowerStatus()
     filters: HasAttr(status, "Full")
-    actions: 
+    actions:
              - SetLed("gta02_power_blue", "light")
              - SetLed("gta02_power_orange", "dark")
 -
     trigger: PowerStatus()
     filters: HasAttr(status, "Critical")
     actions:
-             - SetLed("gta02_power_blue","dark")
-             - SetLed("gta02_power_orange","blink")
+             - SetLed("gta02_power_blue", "dark")
+             - SetLed("gta02_power_orange", "blink")
 -
+    #
+    # Headset Audio Scenario Support
+    #
     trigger: InputEvent()
-    filters: 
+    filters:
              - HasAttr(switch, "HEADSET")
              - HasAttr(event, "pressed")
     actions: Command('amixer -d sset "Amp Spk" mute')
@@ -84,3 +92,18 @@
              - HasAttr(switch, "HEADSET")
              - HasAttr(event, "released")
     actions: Command('amixer -d sset "Amp Spk" unmute')
+-
+    #
+    # Idleness Brightness Handling
+    #
+    trigger: IdleState()
+    filters: HasAttr(status, "BUSY")
+    actions: SetDisplayBrightness("pcf50633_bl", 90)
+-
+    trigger: IdleState()
+    filters: HasAttr(status, "IDLE_DIM")
+    actions: SetDisplayBrightness("pcf50633_bl", 20)
+-
+    trigger: IdleState()
+    filters: HasAttr(status, "IDLE_PRELOCK")
+    actions: SetDisplayBrightness("pcf50633_bl", 0)

@@ -74,11 +74,10 @@ class AudioScenarioAction(DBusAction):
 class LedAction(DBusAction):
 #============================================================================#
     """
-    A dbus action on an Openmoko Neo LED device
+    A dbus action on a LED device
     """
     function_name = 'SetLed'
 
-    # FIXME device specific, needs to go away from here
     def __init__(self, device, action):
         bus = dbus.SystemBus()
         service = 'org.freesmartphone.odeviced'
@@ -94,12 +93,28 @@ class LedAction(DBusAction):
             logger.error( "unhandled action '%s' for Led" % action )
 
 #============================================================================#
+class DisplayBrightnessAction(DBusAction):
+#============================================================================#
+    """
+    A dbus action on a Display device
+    """
+    # FIXME device specific, needs to go away from here / made generic (parametric? just take the first?)
+    function_name = 'SetDisplayBrightness'
+
+    def __init__(self, target, brightness):
+        bus = dbus.SystemBus()
+        service = 'org.freesmartphone.odeviced'
+        obj = '/org/freesmartphone/Device/Display/%s' % target
+        interface = 'org.freesmartphone.Device.Display'
+        super(DisplayBrightnessAction, self).__init__(bus, service, obj, interface, 'SetBrightness', brightness)
+
+#============================================================================#
 class VibratorAction(DBusAction):
 #============================================================================#
     """
     A dbus action on the Openmoko Neo Vibrator device
     """
-    # FIXME device specific, needs to go away from here
+    # FIXME device specific, needs to go away from here / made generic (parametric? just take the first?)
     def __init__(self, target = 'neo1973_vibrator', action = 'start'):
         bus = dbus.SystemBus()
         service = 'org.freesmartphone.odeviced'
