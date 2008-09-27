@@ -53,6 +53,9 @@ class AbstractResource( object ):
         self.users = []
         self.policy = 'auto'
         self.isEnabled = False
+        self.usageControl.ResourceChanged(
+            self.name, self.isEnabled, {"policy": self.policy, "refcount": len( self.users )}
+        )
 
     @tasklet.tasklet
     def _enable( self ):
