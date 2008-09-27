@@ -464,8 +464,8 @@ class UBXDevice( GPSDevice ):
         else:
             valid = 0
         data = data[0]
-        self._updateCourse( valid, data["GSpeed"]*0.036,
-                data["Heading"]/100000.0, data["VEL_D"]*0.036 )
+        self._updateCourse( valid, data["GSpeed"]*0.019438445,
+                data["Heading"]/100000.0, data["VEL_D"]*0.019438445 )
 
     def handle_NAV_SVINFO( self, data ):
         satellites = []
