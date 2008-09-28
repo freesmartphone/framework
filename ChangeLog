@@ -1,3 +1,8 @@
+2008-09-29	Daniel Willmann	<daniel@totalueberwachung.de>
+
+	* [ogpsd] org.freedesktop.Gypsy.Device.{Start,Stop} are now properly
+	  implemented.
+
 2008-08-27	Jan Luebbe      <jluebbe@debian.org>
 
 	* [ousaged] RequestResource no longer returns a boolean. An exception is

@@ -31,12 +31,28 @@ class GPSDevice( Resource ):
         self._course = [ 0, 0, 0.0, 0.0, 0.0 ]
         self._satellites = []
         self._time = 0
+        self._users = []
 
         self.interface = DBUS_INTERFACE_PREFIX
         self.path = DBUS_PATH_PREFIX
         self.bus = bus
+        self.usageiface = None
+        bus.add_signal_receiver(
+            self.nameOwnerChangedHandler,
+            "NameOwnerChanged",
+            dbus.BUS_DAEMON_IFACE,
+            dbus.BUS_DAEMON_NAME,
+            dbus.BUS_DAEMON_PATH
+        )
+
         super( GPSDevice, self ).__init__( bus, self.path, name='GPS' )
         logger.info("%s initialized. Serving %s at %s" % ( self.__class__.__name__, self.interface, self.path ) )
+
+    def nameOwnerChangedHandler( self, name, old_owner, new_owner ):
+        if old_owner and not new_owner:
+            if old_owner in self._users:
+                self.Stop( old_owner, lambda :None, lambda x:None)
+
 
     #
     # framework.Resource
@@ -181,15 +197,33 @@ class GPSDevice( Resource ):
     #
     # dbus methods
     #
-    @dbus.service.method( DBUS_INTERFACE_PREFIX + ".Device", "", "")
-    def Start( self ):
-        # FIXME name owner changed tracking and request/release resource goes here
-        pass
+    @dbus.service.method( DBUS_INTERFACE_PREFIX + ".Device", "", "", sender_keyword="sender", async_callbacks=( "dbus_ok", "dbus_error" ) )
+    def Start( self, sender, dbus_ok, dbus_error ):
+        if not sender in self._users:
+            self._users.append( sender )
+            if len(self._users) == 1:
+                if not self.usageiface:
+                    usage = self.bus.get_object( "org.freesmartphone.ousaged", "/org/freesmartphone/Usage", follow_name_owner_changes=True )
+                    self.usageiface = dbus.Interface( usage, "org.freesmartphone.Usage" )
+                self.usageiface.RequestResource("GPS", reply_handler=dbus_ok, error_handler=dbus_error )
+            else:
+                dbus_ok()
+        else:
+            dbus_ok()
 
-    @dbus.service.method( DBUS_INTERFACE_PREFIX + ".Device", "", "")
-    def Stop( self ):
-        # FIXME name owner changed tracking and request/release resource goes here
-        pass
+    @dbus.service.method( DBUS_INTERFACE_PREFIX + ".Device", "", "", sender_keyword="sender", async_callbacks=( "dbus_ok", "dbus_error" ) )
+    def Stop( self, sender, dbus_ok, dbus_error ):
+        if sender in self._users:
+            self._users.remove( sender )
+            if self._users == []:
+                if not self.usageiface:
+                    usage = self.bus.get_object( "org.freesmartphone.ousaged", "/org/freesmartphone/Usage", follow_name_owner_changes=True )
+                    self.usageiface = dbus.Interface( usage, "org.freesmartphone.Usage" )
+                self.usageiface.ReleaseResource("GPS", reply_handler=dbus_ok, error_handler=dbus_error )
+            else:
+                dbus_ok()
+        else:
+            dbus_ok()
 
     @dbus.service.method( DBUS_INTERFACE_PREFIX + ".Device", "", "b")
     def GetConnectionStatus( self ):
