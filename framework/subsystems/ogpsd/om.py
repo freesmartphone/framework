@@ -29,7 +29,10 @@ class GTA02Device( UBXDevice ):
     """GTA02 specific GPS device"""
 
     def __init__( self, bus, gpschannel ):
-        self.power = False
+
+        # Make sure the GPS is off
+        helpers.writeToFile( DEVICE_POWER_PATH, "0" )
+
         self.aidingData = persist.get( "ogpsd", "aidingdata" )
         if self.aidingData is None:
             self.aidingData = { "almanac": {}, "ephemeris": {}, "position": {} }
@@ -58,13 +61,13 @@ class GTA02Device( UBXDevice ):
         persist.set( "ogpsd", "aidingdata", self.aidingData )
         persist.sync( "ogpsd" )
 
-        super( GTA02Device, self ).shutdownDevice()
-
         # Disable NAV-POSECEF, AID-REQ (AID-DATA), AID-ALM, AID-EPH messages
         self.send("CFG-MSG", 3, {"Class" : CLIDPAIR["NAV-POSECEF"][0] , "MsgID" : CLIDPAIR["NAV-POSECEF"][1] , "Rate" : 0 })
         self.send("CFG-MSG", 3, {"Class" : CLIDPAIR["AID-REQ"][0] , "MsgID" : CLIDPAIR["AID-REQ"][1] , "Rate" : 0 })
         self.send("CFG-MSG", 3, {"Class" : CLIDPAIR["AID-ALM"][0] , "MsgID" : CLIDPAIR["AID-ALM"][1] , "Rate" : 0 })
         self.send("CFG-MSG", 3, {"Class" : CLIDPAIR["AID-EPH"][0] , "MsgID" : CLIDPAIR["AID-EPH"][1] , "Rate" : 0 })
+
+        super( GTA02Device, self ).shutdownDevice()
 
         helpers.writeToFile( DEVICE_POWER_PATH, "0" )
 
