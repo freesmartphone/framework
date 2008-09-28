@@ -186,7 +186,7 @@ class OGPSDResource( AbstractResource ):
         iface = dbus.Interface( proxy, "org.freesmartphone.GPS" )
         yield tasklet.WaitDBus( iface.SetPower, False )
         print "Disabled %s" % self.name
-        
+
 
 #----------------------------------------------------------------------------#
 class ClientResource( AbstractResource ):
@@ -254,7 +254,7 @@ class GenericUsageControl( dbus.service.Object ):
     def nameOwnerChangedHandler( self, name, old_owner, new_owner ):
         if old_owner and not new_owner:
             for resource in self.resources.values():
-                resource.cleanup( old_owner )
+                resource.cleanup( old_owner ).start()
 
     #
     # dbus methods
@@ -347,7 +347,7 @@ def factory( prefix, controller ):
     # postpone this until we have subsystem dependency support in the controller
     genericUsageControl = GenericUsageControl( controller.bus )
 #    genericUsageControl.addResource( DummyResource( genericUsageControl, "GSM" ) )
-    genericUsageControl.addResource( OGPSDResource( genericUsageControl, "GPS" ) )
+#    genericUsageControl.addResource( OGPSDResource( genericUsageControl, "GPS" ) )
     genericUsageControl.addResource( ODeviceDResource( genericUsageControl, "Bluetooth" ) )
     genericUsageControl.addResource( ODeviceDResource( genericUsageControl, "WiFi" ) )
     genericUsageControl.addResource( ODeviceDResource( genericUsageControl, "UsbHost" ) )
