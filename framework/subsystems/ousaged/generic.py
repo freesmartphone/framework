@@ -190,14 +190,14 @@ class ClientResource( AbstractResource ):
     It can register using the RegisterResource of /org/freesmartphone/Usage.
     If the client is written in python, it can use the framework.Resource class.
     """
-    def __init__(self, usageControl, name, path, sender):
+    def __init__( self, usageControl, name, path, sender ):
         """Create a new ClientResource
 
         Only the resource manager should call this method
         """
-        super(ClientResource, self).__init__(usageControl, name)
+        super( ClientResource, self ).__init__( usageControl, name )
         bus = dbus.SystemBus()
-        self.obj = bus.get_object(sender, path)
+        self.obj = bus.get_object( sender, path )
 
     @tasklet.tasklet
     def _enable( self ):
@@ -240,9 +240,16 @@ class GenericUsageControl( dbus.service.Object ):
         )
         logger.info( "%s initialized. Serving %s at %s", self.__class__.__name__, self.interface, self.path )
 
-    def addResource( self, resource ):
-        # FIXME check for existing resource with the same name
+    def _addResource( self, resource ):
+        if not self.resources.get(resource.name, None) is None:
+            raise dbus.DBusException( "Resource %s already registered" % resource.name )
         self.resources[resource.name] = resource
+    
+    def _getResource( self, resourcename ):
+        r = self.resources.get(resourcename, None)
+        if r is None:
+            raise dbus.DBusException( "Unknown resource %s" % resourcename )
+        return r
 
     def nameOwnerChangedHandler( self, name, old_owner, new_owner ):
         if old_owner and not new_owner:
@@ -258,19 +265,19 @@ class GenericUsageControl( dbus.service.Object ):
 
     @dbus.service.method( DBUS_INTERFACE, "s", "as" )
     def GetResourceUsers( self, resourcename ):
-        return self.resources[resourcename].users
+        return self._getResource( resourcename ).users
 
     @dbus.service.method( DBUS_INTERFACE, "s", "b" )
     def GetResourceState( self, resourcename ):
-        return self.resources[resourcename].isEnabled
+        return self._getResource( resourcename ).isEnabled
 
     @dbus.service.method( DBUS_INTERFACE, "s", "s" )
     def GetResourcePolicy( self, resourcename ):
-        return self.resources[resourcename].policy
+        return self._getResource( resourcename ).policy
 
     @dbus.service.method( DBUS_INTERFACE, "ss", "" )
     def SetResourcePolicy( self, resourcename, policy ):
-        self.resources[resourcename].setPolicy( policy )
+        self._getResource( resourcename ).setPolicy( policy )
 
     @dbus.service.method( DBUS_INTERFACE, "s", "b", sender_keyword='sender', async_callbacks=( "dbus_ok", "dbus_error" ) )
     def RequestResource( self, resourcename, sender, dbus_ok, dbus_error ):
@@ -295,11 +302,11 @@ class GenericUsageControl( dbus.service.Object ):
         """Register a new resource from a client
 
         The client must provide a name for the resource, and a dbus object
-        path to an object implementing org.freesmartphone.Resource interface
+        path to an object implementing org.freesmartphone.Resource interface.
         """
         logger.info( "Register new resource %s", resourcename )
         resource = ClientResource( self, resourcename, path, sender )
-        self.addResource( resource )
+        self._addResource( resource )
 
     @dbus.service.method( DBUS_INTERFACE, "", "", async_callbacks=( "dbus_ok", "dbus_error" ) )
     def Suspend( self, dbus_ok, dbus_error ):
