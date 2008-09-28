@@ -17,7 +17,7 @@ Attributes:
 """
 
 MODULE_NAME = "ogsmd.objects"
-__version__ = "0.8.9"
+__version__ = "0.9.0"
 
 from framework.resource import Resource
 
@@ -214,16 +214,22 @@ class Device( Resource ):
         self.modem.open( on_ok, on_error )
 
     def _disable( self, on_ok, on_error ):
-        logger.info( "disabling" )
+        """
+        Disable (inherited from Resource)
+        """
         on_ok()
 
     def _suspend( self, on_ok, on_error ):
-        logger.info( "suspending" )
-        self.PrepareForSuspend( on_ok, on_error )
+        """
+        Suspend (inherited from Resource)
+        """
+        self.modem.prepareForSuspend( on_ok, on_error )
 
     def _resume( self, on_ok, on_error ):
-        logger.info( "resuming" )
-        self.RecoverFromSuspend( on_ok, on_error ) 
+        """
+        Resume (inherited from Resource)
+        """
+        self.modem.recoverFromSuspend( on_ok, on_error )
 
     #
     # dbus org.freesmartphone.GSM.Device
@@ -252,18 +258,6 @@ class Device( Resource ):
                           async_callbacks=( "dbus_ok", "dbus_error" ) )
     def SetAntennaPower( self, power, dbus_ok, dbus_error ):
         mediator.DeviceSetAntennaPower( self, dbus_ok, dbus_error, power=power )
-
-    @dbus.service.method( DBUS_INTERFACE_DEVICE, "", "",
-                          async_callbacks=( "dbus_ok", "dbus_error" ) )
-    def PrepareForSuspend( self, dbus_ok, dbus_error ):
-        # FIXME no error handling yet!
-        self.modem.prepareForSuspend( dbus_ok, dbus_error )
-
-    @dbus.service.method( DBUS_INTERFACE_DEVICE, "", "",
-                          async_callbacks=( "dbus_ok", "dbus_error" ) )
-    def RecoverFromSuspend( self, dbus_ok, dbus_error ):
-        # FIXME no error handling yet!
-        self.modem.recoverFromSuspend( dbus_ok, dbus_error )
 
     #
     # dbus org.freesmartphone.GSM.SIM

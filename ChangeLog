@@ -1,7 +1,8 @@
 2008-09-28	Michael Lauer	<mickey@openmoko.org>
 
-	* [rules] Add IdleState DBus trigger and SetDisplayBrightness action
+	* [rules] Added IdleState DBus trigger and SetDisplayBrightness action
 	  We are handling the display dimming through the rules only now.
+	* ogsmd: Added new Resource handling support (except 'disable')
 
 2008-09-27  Michael Lauer	<mickey@openmoko.org>
 
