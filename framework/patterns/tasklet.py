@@ -24,9 +24,12 @@ callback.
 
 __docformat__ = "restructuredtext en"
 
-import sys
+import sys, traceback
 from types import GeneratorType
 import gobject  # Only used for the Sleep tasklet
+
+import logging
+logger = logging.getLogger( "tasklet" )
 
 class Tasklet(object):
     """
@@ -45,8 +48,16 @@ class Tasklet(object):
         self.generator = kargs.get('generator', None) or self.do_run(*args, **kargs)
         assert isinstance(self.generator, GeneratorType), type(self.generator)
         # The tasklet we are waiting for...
+        self.stack = traceback.extract_stack()[:-2]
         self.waiting = None
         self.closed = False
+
+    def __del__(self):
+        if not self.closed and self.generator:
+            logger.error(
+                "Tasklet deleted without being executed\nTraceback to instantiation (most recent call last):\n%s",
+                ''.join(traceback.format_list(self.stack)).rstrip()
+            )
         
     def do_run(self, *args, **kargs):
         return self.run(*args, **kargs)
