@@ -351,7 +351,7 @@ class SimGetAuthStatus( SimMediator ):
 class SimSendAuthCode( SimMediator ):
 #=========================================================================#
     def trigger( self ):
-        self._commchannel.enqueue( '+CPIN="%s"' % self.code, self.responseFromChannel, self.errorFromChannel, timeout=7 )
+        self._commchannel.enqueue( '+CPIN="%s"' % self.code, self.responseFromChannel, self.errorFromChannel, timeout=const.TIMEOUT["CPIN"] )
 
     @logged
     def responseFromChannel( self, request, response ):
@@ -752,7 +752,7 @@ class SimStoreMessage( SimMediator ):
 class SimSendStoredMessage( SimMediator ):
 #=========================================================================#
     def trigger( self ):
-        self._commchannel.enqueue( "+CMSS=%d" % self.index, self.responseFromChannel, self.errorFromChannel )
+        self._commchannel.enqueue( "+CMSS=%d" % self.index, self.responseFromChannel, self.errorFromChannel, timeout=const.TIMEOUT["CMSS"] )
 
     def responseFromChannel( self, request, response ):
         if response[-1] != "OK":
