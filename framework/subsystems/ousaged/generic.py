@@ -347,11 +347,11 @@ def factory( prefix, controller ):
     # Problem: presence of these objects is then depending other subsystems, so need to
     # postpone this until we have subsystem dependency support in the controller
     genericUsageControl = GenericUsageControl( controller.bus )
-#    genericUsageControl.addResource( DummyResource( genericUsageControl, "GSM" ) )
-#    genericUsageControl.addResource( OGPSDResource( genericUsageControl, "GPS" ) )
-    genericUsageControl.addResource( ODeviceDResource( genericUsageControl, "Bluetooth" ) )
-    genericUsageControl.addResource( ODeviceDResource( genericUsageControl, "WiFi" ) )
-    genericUsageControl.addResource( ODeviceDResource( genericUsageControl, "UsbHost" ) )
+#    genericUsageControl._addResource( DummyResource( genericUsageControl, "GSM" ) )
+#    genericUsageControl._addResource( OGPSDResource( genericUsageControl, "GPS" ) )
+    genericUsageControl._addResource( ODeviceDResource( genericUsageControl, "Bluetooth" ) )
+    genericUsageControl._addResource( ODeviceDResource( genericUsageControl, "WiFi" ) )
+    genericUsageControl._addResource( ODeviceDResource( genericUsageControl, "UsbHost" ) )
     objects.append( genericUsageControl )
     return objects
 
