@@ -12,8 +12,6 @@ Package: ousaged
 Module: generic
 """
 
-# XXX: We need to modify this module to use the new resource system
-
 MODULE_NAME = "ousaged"
 __version__ = "0.1.1"
 
@@ -31,6 +29,24 @@ import os, sys, time
 
 import logging
 logger = logging.getLogger( MODULE_NAME )
+
+class NotAllowedError( dbus.DBusException ):
+    _dbus_error_name = "org.freesmartphone.Resource.NotAllowed"
+
+class PolicyUnknownError( dbus.DBusException ):
+    _dbus_error_name = "org.freesmartphone.Resource.PolicyUnknown"
+
+class ResourceUnknownError( dbus.DBusException ):
+    _dbus_error_name = "org.freesmartphone.Resource.Unknown"
+
+class ResourceExistsError( dbus.DBusException ):
+    _dbus_error_name = "org.freesmartphone.Resource.Exists"
+
+class UserExistsError( dbus.DBusException ):
+    _dbus_error_name = "org.freesmartphone.Resource.UserExists"
+
+class UserUnknownError( dbus.DBusException ):
+    _dbus_error_name = "org.freesmartphone.Resource.UserUnknown"
 
 #----------------------------------------------------------------------------#
 class AbstractResource( object ):
@@ -93,9 +109,11 @@ class AbstractResource( object ):
             self.isEnabled = False
 
     def setPolicy( self, policy ):
-        assert policy in ['disabled', 'auto', 'enabled'], "Unknown policy %s" % ( policy )
+        if not policy in ['disabled', 'auto', 'enabled']:
+            raise PolicyUnknownError( "Unknown policy %s" % ( policy ) )
         if self.users:
-            assert policy in ['auto', 'enabled'], "Can't change to policy %s for %s" % ( policy, self.name )
+            if not policy in ['auto', 'enabled']:
+                raise NotAllowedError( "Can't change to policy %s for %s" % ( policy, self.name ) )
         if self.policy != policy:
             self.policy = policy
             self._update()
@@ -105,8 +123,10 @@ class AbstractResource( object ):
 
     @tasklet.tasklet
     def request( self, user ):
-        assert self.policy in ['auto', 'enabled'], "Request for %s is not allowed" % ( self.name )
-        assert user not in self.users, "User %s already requested %s" % ( user, self.name )
+        if not self.policy in ['auto', 'enabled']:
+            raise NotAllowedError( "Request for %s is not allowed" % ( self.name ) )
+        if user in self.users:
+            raise UserExistsError( "User %s already requested %s" % ( user, self.name ) )
         self.users.append( user )
         yield self._update()
         self.usageControl.ResourceChanged(
@@ -116,7 +136,8 @@ class AbstractResource( object ):
 
     @tasklet.tasklet
     def release( self, user ):
-        assert user in self.users, "User %s did not request %s before releasing it" % ( user, self.name )
+        if not user in self.users:
+            raise UserUnknownError( "User %s did not request %s before releasing it" % ( user, self.name ) )
         self.users.remove( user )
         yield self._update()
         self.usageControl.ResourceChanged(
@@ -243,13 +264,13 @@ class GenericUsageControl( dbus.service.Object ):
 
     def _addResource( self, resource ):
         if not self.resources.get(resource.name, None) is None:
-            raise dbus.DBusException( "Resource %s already registered" % resource.name )
+            raise ResourceExistsError( "Resource %s already registered" % resource.name )
         self.resources[resource.name] = resource
-    
+
     def _getResource( self, resourcename ):
         r = self.resources.get(resourcename, None)
         if r is None:
-            raise dbus.DBusException( "Unknown resource %s" % resourcename )
+            raise ResourceUnknownError( "Unknown resource %s" % resourcename )
         return r
 
     def nameOwnerChangedHandler( self, name, old_owner, new_owner ):
