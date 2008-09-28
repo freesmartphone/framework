@@ -83,38 +83,38 @@ class Resource( dbus.service.Object ):
         self._resourceStatus = nextStatus
 
     # callback factory
-    def cbFactory( self, next, dbus_callback ):
-        def status_callback( self=self, next=next, dbus_callback=dbus_callback ):
+    def cbFactory( self, next, dbus_callback, *args ):
+        def status_callback( self=self, next=next, dbus_callback=dbus_callback, *args ):
             self._updateResourceStatus( next )
-            dbus_callback()
+            dbus_callback( *args )
         return status_callback
 
     # The DBus methods update the resource status and call the python implementation
     @dbus.service.method( DBUS_INTERFACE, "", "", async_callbacks=( "dbus_ok", "dbus_error" ) )
     def Enable( self, dbus_ok, dbus_error ):
         ok_callback = self.cbFactory( "enabled", dbus_ok )
-        err_callback = self.cbFactory( self._resourceStatus, dbus_error )
+        err_callback = self.cbFactory( self._resourceStatus, dbus_error, "could not enable resource" )
         self._updateResourceStatus( "enabling" )
         self._enable( ok_callback, err_callback )
 
     @dbus.service.method( DBUS_INTERFACE, "", "", async_callbacks=( "dbus_ok", "dbus_error" ) )
     def Disable( self, dbus_ok, dbus_error ):
         ok_callback = self.cbFactory( "disabled", dbus_ok )
-        err_callback = self.cbFactory( self._resourceStatus, dbus_error )
+        err_callback = self.cbFactory( self._resourceStatus, dbus_error, "could not disable resource" )
         self._updateResourceStatus( "disabling" )
         self._disable( ok_callback, err_callback )
 
     @dbus.service.method( DBUS_INTERFACE, "", "", async_callbacks=( "dbus_ok", "dbus_error" ) )
     def Suspend( self, dbus_ok, dbus_error ):
         ok_callback = self.cbFactory( "suspended", dbus_ok )
-        err_callback = self.cbFactory( self._resourceStatus, dbus_error )
+        err_callback = self.cbFactory( self._resourceStatus, dbus_error, "could not suspend resource" )
         self._updateResourceStatus( "suspending" )
         self._suspend( ok_callback, err_callback )
 
     @dbus.service.method( DBUS_INTERFACE, "", "", async_callbacks=( "dbus_ok", "dbus_error" ) )
     def Resume( self, dbus_ok, dbus_error ):
         ok_callback = self.cbFactory( "enabled", dbus_ok )
-        err_callback = self.cbFactory( self._resourceStatus, dbus_error )
+        err_callback = self.cbFactory( self._resourceStatus, dbus_error, "could not resume resource" )
         self._updateResourceStatus( "resuming" )
         self._resume( ok_callback, err_callback )
 
