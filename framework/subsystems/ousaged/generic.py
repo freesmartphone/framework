@@ -197,27 +197,28 @@ class ClientResource( AbstractResource ):
         """
         super( ClientResource, self ).__init__( usageControl, name )
         bus = dbus.SystemBus()
-        self.obj = bus.get_object( sender, path )
+        proxy = bus.get_object( sender, path )
+        self.iface = dbus.Interface( proxy, "org.freesmartphone.Resource" )
 
     @tasklet.tasklet
     def _enable( self ):
         """Simply call the client Enable method"""
-        yield tasklet.WaitDBus( self.obj.Enable )
+        yield tasklet.WaitDBus( self.iface.Enable )
 
     @tasklet.tasklet
     def _disable( self ):
         """Simply call the client Disable method"""
-        yield tasklet.WaitDBus( self.obj.Disable )
+        yield tasklet.WaitDBus( self.iface.Disable )
 
     @tasklet.tasklet
     def _suspend( self ):
         """Simply call the client Suspend method"""
-        yield tasklet.WaitDBus( self.obj.Suspend )
+        yield tasklet.WaitDBus( self.iface.Suspend )
 
     @tasklet.tasklet
     def _resume( self ):
         """Simply call the client Resume method"""
-        yield tasklet.WaitDBus( self.obj.Resume )
+        yield tasklet.WaitDBus( self.iface.Resume )
 
 #----------------------------------------------------------------------------#
 class GenericUsageControl( dbus.service.Object ):
