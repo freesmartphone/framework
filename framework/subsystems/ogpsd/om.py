@@ -9,15 +9,14 @@ Open GPS Daemon
 GPLv2 or later
 """
 
-DBUS_INTERFACE = "org.freesmartphone.GPS"
+DEVICE_POWER_PATH = "/sys/devices/platform/s3c2440-i2c/i2c-adapter/i2c-0/0-0073/neo1973-pm-gps.0/pwron"
 
 from ubx import UBXDevice
 from ubx import CLIDPAIR
 
 from framework.persist import persist
 
-import dbus
-import dbus.service
+import helpers
 import os
 import sys
 import marshal
@@ -37,11 +36,13 @@ class GTA02Device( UBXDevice ):
 
         super( GTA02Device, self ).__init__( bus, gpschannel )
 
-    def configure(self):
+    def initializeDevice( self ):
+        helpers.writeToFile( DEVICE_POWER_PATH, "1" )
+
         # Reset the device
         #self.send("CFG-RST", 4, {"nav_bbr" : 0xffff, "Reset" : 0x01})
 
-        super( GTA02Device, self ).configure()
+        super( GTA02Device, self ).initializeDevice()
 
         # Load aiding data and only if that succeeds have the GPS chip ask for it
         if self.aidingData["almanac"] or self.aidingData["ephemeris"] or self.aidingData["position"]:
@@ -52,18 +53,20 @@ class GTA02Device( UBXDevice ):
         self.send("CFG-MSG", 3, {"Class" : CLIDPAIR["AID-ALM"][0] , "MsgID" : CLIDPAIR["AID-ALM"][1] , "Rate": 1 })
         self.send("CFG-MSG", 3, {"Class" : CLIDPAIR["AID-EPH"][0] , "MsgID" : CLIDPAIR["AID-EPH"][1] , "Rate": 1 })
 
-    def deconfigure(self):
+    def shutdownDevice(self):
         # Save collected aiding data
         persist.set( "ogpsd", "aidingdata", self.aidingData )
         persist.sync( "ogpsd" )
 
-        super( GTA02Device, self ).deconfigure()
+        super( GTA02Device, self ).shutdownDevice()
 
         # Disable NAV-POSECEF, AID-REQ (AID-DATA), AID-ALM, AID-EPH messages
         self.send("CFG-MSG", 3, {"Class" : CLIDPAIR["NAV-POSECEF"][0] , "MsgID" : CLIDPAIR["NAV-POSECEF"][1] , "Rate" : 0 })
         self.send("CFG-MSG", 3, {"Class" : CLIDPAIR["AID-REQ"][0] , "MsgID" : CLIDPAIR["AID-REQ"][1] , "Rate" : 0 })
         self.send("CFG-MSG", 3, {"Class" : CLIDPAIR["AID-ALM"][0] , "MsgID" : CLIDPAIR["AID-ALM"][1] , "Rate" : 0 })
         self.send("CFG-MSG", 3, {"Class" : CLIDPAIR["AID-EPH"][0] , "MsgID" : CLIDPAIR["AID-EPH"][1] , "Rate" : 0 })
+
+        helpers.writeToFile( DEVICE_POWER_PATH, "0" )
 
     def handle_NAV_POSECEF( self, data ):
         data = data[0]
@@ -117,31 +120,5 @@ class GTA02Device( UBXDevice ):
         # Save only, if there are values
         if "SF1D0" in data:
             self.aidingData["ephemeris"][ data["SVID"] ] = data
-
-    #
-    # dbus methods
-    #
-    @dbus.service.method( DBUS_INTERFACE, "b", "" )
-    def SetPower( self, power ):
-        if self.power == power:
-            return
-
-        logger.debug( "Setting GPS Power to %s" % power )
-        if not power:
-            self.deconfigure()
-
-        proxy = self.bus.get_object( "org.freesmartphone.odeviced" , "/org/freesmartphone/Device/PowerControl/GPS" )
-        gps = dbus.Interface( proxy, "org.freesmartphone.Device.PowerControl" )
-        gps.SetPower( power, reply_handler=self._replyCallback, error_handler=self._errorCallback )
-
-    def _replyCallback( self ):
-        self.power = not self.power
-
-        if self.power:
-            self.configure()
-
-    def _errorCallback( self, e ):
-        pass
-
 
 #vim: expandtab

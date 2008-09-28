@@ -13,13 +13,15 @@ GPLv2 or later
 DBUS_INTERFACE_PREFIX = "org.freedesktop.Gypsy"
 DBUS_PATH_PREFIX = "/org/freedesktop/Gypsy"
 
+from framework.resource import Resource
+import framework.patterns.tasklet as tasklet
 import dbus
 import dbus.service
 
 import logging
 logger = logging.getLogger('ogpsd')
 
-class GPSDevice( dbus.service.Object ):
+class GPSDevice( Resource ):
     """An Dbus Object implementing org.freedesktop.Gypsy"""
 
     def __init__( self, bus ):
@@ -33,8 +35,43 @@ class GPSDevice( dbus.service.Object ):
         self.interface = DBUS_INTERFACE_PREFIX
         self.path = DBUS_PATH_PREFIX
         self.bus = bus
-        dbus.service.Object.__init__( self, bus, self.path )
+        super( GPSDevice, self ).__init__( bus, self.path, name='GPS' )
         logger.info("%s initialized. Serving %s at %s" % ( self.__class__.__name__, self.interface, self.path ) )
+
+    #
+    # framework.Resource
+    #
+    def _enable( self, on_ok, on_error ):
+        logger.info( "enabling" )
+        self.initializeDevice()
+        on_ok()
+
+    def _disable( self, on_ok, on_error ):
+        logger.info( "disabling" )
+        self.shutdownDevice()
+        on_ok()
+
+    def _suspend( self, on_ok, on_error ):
+        logger.info( "suspending" )
+        self.suspendDevice()
+        on_ok()
+
+    def _resume( self, on_ok, on_error ):
+        logger.info("resuming")
+        self.resumeDevice()
+        on_ok()
+
+    def initializeDevice( self ):
+        pass
+
+    def shutdownDevice( self ):
+        self._reset()
+
+    def suspendDevice( self ):
+        self.shutdownDevice()
+
+    def resumeDevice( self ):
+        self.initializeDevice()
 
     def _reset( self ):
         if self._fixstatus:
@@ -56,6 +93,9 @@ class GPSDevice( dbus.service.Object ):
             self._time = 0
             self.TimeChanged( self._time )
 
+    #
+    # update functions
+    #
     def _updateFixStatus( self, fixstatus ):
         if self._fixstatus != fixstatus:
             self._fixstatus = fixstatus
@@ -143,15 +183,17 @@ class GPSDevice( dbus.service.Object ):
     #
     @dbus.service.method( DBUS_INTERFACE_PREFIX + ".Device", "", "")
     def Start( self ):
+        # FIXME name owner changed tracking and request/release resource goes here
         pass
 
     @dbus.service.method( DBUS_INTERFACE_PREFIX + ".Device", "", "")
     def Stop( self ):
+        # FIXME name owner changed tracking and request/release resource goes here
         pass
 
     @dbus.service.method( DBUS_INTERFACE_PREFIX + ".Device", "", "b")
     def GetConnectionStatus( self ):
-        return True
+        return self._resourceStatus == "enabled"
 
     @dbus.service.method( DBUS_INTERFACE_PREFIX + ".Device", "", "i")
     def GetFixStatus( self ):
@@ -215,6 +257,7 @@ class DummyDevice( GPSDevice ):
     def __init__( self, bus, gpschannel ):
         super( DummyDevice, self ).__init__( bus )
 
+    def initializeDevice( self ):
         self._updateTime( 1 )
         self._updateFixStatus( 3 )
         self._updatePosition( 7, 23.54322, -42.65648, 14.4 )
