@@ -1,3 +1,8 @@
+2008-08-27	Jan Luebbe      <jluebbe@debian.org>
+
+	* [ousaged] RequestResource no longer returns a boolean. An exception is
+	  returned if the resource can't be requested.
+
 2008-09-28	Michael Lauer	<mickey@openmoko.org>
 
 	* [rules] Added IdleState DBus trigger and SetDisplayBrightness action

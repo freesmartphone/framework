@@ -132,7 +132,6 @@ class AbstractResource( object ):
         self.usageControl.ResourceChanged(
             self.name, self.isEnabled, {"policy": self.policy, "refcount": len( self.users )}
         )
-        yield True
 
     @tasklet.tasklet
     def release( self, user ):
@@ -301,7 +300,7 @@ class GenericUsageControl( dbus.service.Object ):
     def SetResourcePolicy( self, resourcename, policy ):
         self._getResource( resourcename ).setPolicy( policy )
 
-    @dbus.service.method( DBUS_INTERFACE, "s", "b", sender_keyword='sender', async_callbacks=( "dbus_ok", "dbus_error" ) )
+    @dbus.service.method( DBUS_INTERFACE, "s", "", sender_keyword='sender', async_callbacks=( "dbus_ok", "dbus_error" ) )
     def RequestResource( self, resourcename, sender, dbus_ok, dbus_error ):
         """Called by a client to request a resource
 
