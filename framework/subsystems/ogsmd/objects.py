@@ -361,12 +361,12 @@ class Device( Resource ):
     def GetMessagebookInfo( self, dbus_ok, dbus_error ):
         mediator.SimGetMessagebookInfo( self, dbus_ok, dbus_error )
 
-    @dbus.service.method( DBUS_INTERFACE_SIM, "s", "a(isss)",
+    @dbus.service.method( DBUS_INTERFACE_SIM, "s", "a(isssa{sv})",
                           async_callbacks=( "dbus_ok", "dbus_error" ) )
     def RetrieveMessagebook( self, category, dbus_ok, dbus_error ):
         mediator.SimRetrieveMessagebook( self, dbus_ok, dbus_error, category=category )
 
-    @dbus.service.method( DBUS_INTERFACE_SIM, "i", "sss",
+    @dbus.service.method( DBUS_INTERFACE_SIM, "i", "sssa{sv}",
                           async_callbacks=( "dbus_ok", "dbus_error" ) )
     def RetrieveMessage( self, index, dbus_ok, dbus_error ):
         mediator.SimRetrieveMessage( self, dbus_ok, dbus_error, index=index )
@@ -381,10 +381,10 @@ class Device( Resource ):
     def SetServiceCenterNumber( self, number, dbus_ok, dbus_error ):
         mediator.SimSetServiceCenterNumber( self, dbus_ok, dbus_error, number=number )
 
-    @dbus.service.method( DBUS_INTERFACE_SIM, "ss", "i",
+    @dbus.service.method( DBUS_INTERFACE_SIM, "ssa{sv}", "i",
                           async_callbacks=( "dbus_ok", "dbus_error" ) )
-    def StoreMessage( self, number, contents, dbus_ok, dbus_error ):
-        mediator.SimStoreMessage( self, dbus_ok, dbus_error, number=number, contents=contents )
+    def StoreMessage( self, number, contents, featuremap, dbus_ok, dbus_error ):
+        mediator.SimStoreMessage( self, dbus_ok, dbus_error, number=number, contents=contents, featuremap=featuremap )
 
     @dbus.service.method( DBUS_INTERFACE_SIM, "i", "i",
                           async_callbacks=( "dbus_ok", "dbus_error" ) )

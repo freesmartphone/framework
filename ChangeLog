@@ -1,5 +1,11 @@
 2008-09-29	Daniel Willmann	<daniel@totalueberwachung.de>
 
+	* [ogsmd] Added support for advanced message features. This changes the DBus
+	  method signatures for RetrieveMessage{,book} and StoreMessage and will
+		also affect the .SMS interface once it is implemented.
+
+2008-09-29	Daniel Willmann	<daniel@totalueberwachung.de>
+
 	* [ogpsd] org.freedesktop.Gypsy.Device.{Start,Stop} are now properly
 	  implemented.
 

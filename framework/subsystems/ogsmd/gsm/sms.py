@@ -100,7 +100,7 @@ def decodeSMS( pdu, direction ):
 
 def parse_userdata( sms, ud_len, bytes ):
     offset = 0
-    sms.udh = []
+    sms.udh = {}
     if sms.pdu_udhi:
         # Decode the headers
         udh_len =  bytes[offset]
@@ -114,7 +114,7 @@ def parse_userdata( sms, ud_len, bytes ):
             ie_data = bytes[offset:offset+ie_len]
             offset += ie_len
             # FIXME
-            sms.udh.append( (iei, ie_data) )
+            sms.udh[iei] = ie_data
 
     # User Data FIXME
     # We need to look at the DCS in order to be able to decide what
@@ -155,6 +155,7 @@ class AbstractSMS(object):
         self.pdu_vpf = 0
         self.pdu_rd = False
         self.pdu_mms = False
+        self.udh = {}
         self.mr = 0
         self.pid = 0
         self.dcs_alphabet = "gsm_default"
@@ -235,6 +236,35 @@ class AbstractSMS(object):
 
     dcs = property( _getDCS, _setDCS )
 
+    def _getFeatureMap( self ):
+        map = {}
+        map["direction"] = self.direction
+        if self.direction == "MT":
+            map["timestamp"] = self.scts[0].ctime(), self.scts[1]
+        if 0 in self.udh:
+            map["csm"] = self.udh[0]
+        if 4 in self.udh:
+            map["port"] = self.udh[4]
+
+        return map
+
+    def _setFeatureMap( self, featureMap ):
+        for k,v in featureMap.items():
+            if k == "csm":
+                self.udh[0] = v
+            if k == "port":
+                self.udh[4] = v
+
+    featureMap = property( _getFeatureMap, _setFeatureMap )
+
+    def _getUdhi( self ):
+        return self.udh
+
+    def _setUdhi( self, value ):
+        raise "UDHI is readonly"
+
+    udhi = property( _getUdhi, _setUdhi )
+
     def pdu( self ):
         pdubytes = []
         if self.sca:
@@ -249,7 +279,7 @@ class AbstractSMS(object):
         pdu_type = self.pdu_mti
         if self.pdu_rp:
             pdu_type += 0x80
-        if self.pdu_udhi:
+        if self.udhi:
             pdu_type += 0x40
         if self.pdu_srr or self.pdu_sri:
             pdu_type += 0x20
@@ -291,8 +321,8 @@ class AbstractSMS(object):
 
         # User data
 
-        if self.pdu_udhi:
-            pduudh = flatten([ (header[0], len(header[1]), header[1]) for header in self.udh ])
+        if self.udhi:
+            pduudh = flatten([ (k, len(v), v) for k,v in self.udh.items() ])
             pduudhlen = len(pduudh)
         else:
             pduudhlen = -1
@@ -309,7 +339,7 @@ class AbstractSMS(object):
 
         pdubytes.append( udlen )
 
-        if self.pdu_udhi:
+        if self.udhi:
             pdubytes.append( pduudhlen )
             pdubytes.extend( pduudh )
         pdubytes.extend( pduud )
@@ -320,6 +350,7 @@ class AbstractSMS(object):
     def serviceCenter( self ):
         pass
     def repr( self ):
+        return self.featureMap
         if self.pdu_mti == 0:
             return """AbstractSMS:
 ServiceCenter: %s
