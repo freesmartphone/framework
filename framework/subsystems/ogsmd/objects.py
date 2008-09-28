@@ -169,6 +169,7 @@ class Device( Resource ):
         self.bus = bus
         self.interface = DBUS_INTERFACE_DEVICE
         self.path = DBUS_OBJECT_PATH_DEVICE
+        self.modemtype = modemtype
         super( Device, self ).__init__( bus, self.path, name='GSM' )
         logger.info( "%s initialized. Serving %s at %s", self.__class__.__name__, self.interface, self.path )
 
@@ -178,36 +179,51 @@ class Device( Resource ):
         """
         device = None
 
+    #
+    # dbus org.freesmartphone.Resource [inherited from framework.Resource]
+    #
     def _enable( self, on_ok, on_error ):
         """
         Enable (inherited from Resource)
         """
-        if modemtype == "singleline":
+        if self.modemtype == "singleline":
             from modems.singleline.modem import SingleLine as Modem
             global mediator
             import modems.singleline.mediator as mediator
-        elif modemtype == "muxed4line":
+        elif self.modemtype == "muxed4line":
             from modems.muxed4line.modem import Muxed4Line as Modem
             global mediator
             import modems.muxed4line.mediator as mediator
-        elif modemtype == "ti_calypso":
+        elif self.modemtype == "ti_calypso":
             from modems.ti_calypso.modem import TiCalypso as Modem
             global mediator
             import modems.ti_calypso.mediator as mediator
-        elif modemtype == "freescale_neptune":
+        elif self.modemtype == "freescale_neptune":
             from modems.freescale_neptune.modem import FreescaleNeptune as Modem
             global mediator
             import modems.freescale_neptune.mediator as mediator
-        elif modemtype == "sierra":
+        elif self.modemtype == "sierra":
             from modems.sierra.modem import Sierra as Modem
             global mediator
             import modems.sierra.mediator as mediator
         else:
-            logger.error( "Unsupported modem type %s", modemtype )
+            logger.error( "Unsupported modem type %s", self.modemtype )
             return
 
-        self.modem = Modem( self, bus )
-        self.modem.open( self.on_ok, self.on_error )
+        self.modem = Modem( self, self.bus )
+        self.modem.open( on_ok, on_error )
+
+    def _disable( self, on_ok, on_error ):
+        logger.info( "disabling" )
+        on_ok()
+
+    def _suspend( self, on_ok, on_error ):
+        logger.info( "suspending" )
+        self.PrepareForSuspend( on_ok, on_error )
+
+    def _resume( self, on_ok, on_error ):
+        logger.info( "resuming" )
+        self.RecoverFromSuspend( on_ok, on_error ) 
 
     #
     # dbus org.freesmartphone.GSM.Device
@@ -584,25 +600,6 @@ class Device( Resource ):
     @dbus.service.signal( DBUS_INTERFACE_CB, "is" )
     def IncomingCellBroadcast( self, channel, data ):
         logger.info( "org.freesmartphone.GSM.CB.IncomingCellBroadcast: %s %s", channel, data )
-
-    #
-    # dbus org.freesmartphone.Resource [inherited from framework.Resource]
-    #
-    def _enable( self, on_ok, on_error ):
-        logger.info( "enabling" )
-        on_ok()
-
-    def _disable( self, on_ok, on_error ):
-        logger.info( "disabling" )
-        on_ok()
-
-    def _suspend( self, on_ok, on_error ):
-        logger.info( "suspending" )
-        self.PrepareForSuspend( on_ok, on_error )
-
-    def _resume( self, on_ok, on_error ):
-        logger.info( "resuming" )
-        self.RecoverFromSuspend( on_ok, on_error ) 
 
     #
     # dbus org.freesmartphone.GSM.Debug
