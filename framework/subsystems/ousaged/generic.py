@@ -137,12 +137,10 @@ class DummyResource( AbstractResource ):
 
     @tasklet.tasklet
     def _enable( self ):
-        print "Enabled %s" % self.name
         yield None
 
     @tasklet.tasklet
     def _disable( self ):
-        print "Disabled %s" % self.name
         yield None
 
 #----------------------------------------------------------------------------#
@@ -157,14 +155,12 @@ class ODeviceDResource( AbstractResource ):
         proxy = self.bus.get_object( "org.freesmartphone.odeviced", "/org/freesmartphone/Device/PowerControl/" + self.name )
         iface = dbus.Interface( proxy, "org.freesmartphone.Device.PowerControl" )
         yield tasklet.WaitDBus( iface.SetPower, True)
-        print "Enabled %s" % self.name
 
     @tasklet.tasklet
     def _disable( self ):
         proxy = self.bus.get_object( "org.freesmartphone.odeviced", "/org/freesmartphone/Device/PowerControl/" + self.name )
         iface = dbus.Interface( proxy, "org.freesmartphone.Device.PowerControl" )
         yield tasklet.WaitDBus( iface.SetPower, False )
-        print "Disabled %s" % self.name
 
 #----------------------------------------------------------------------------#
 class OGPSDResource( AbstractResource ):
@@ -178,15 +174,12 @@ class OGPSDResource( AbstractResource ):
         proxy = self.bus.get_object( "org.freesmartphone.ogpsd", "/org/freedesktop/Gypsy" )
         iface = dbus.Interface( proxy, "org.freesmartphone.GPS" )
         yield tasklet.WaitDBus( iface.SetPower, True )
-        print "Enabled %s" % self.name
 
     @tasklet.tasklet
     def _disable( self ):
         proxy = self.bus.get_object( "org.freesmartphone.ogpsd", "/org/freedesktop/Gypsy" )
         iface = dbus.Interface( proxy, "org.freesmartphone.GPS" )
         yield tasklet.WaitDBus( iface.SetPower, False )
-        print "Disabled %s" % self.name
-
 
 #----------------------------------------------------------------------------#
 class ClientResource( AbstractResource ):

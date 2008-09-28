@@ -13,7 +13,7 @@ Module: pdp
 
 """
 
-__version__ = "0.1.0"
+__version__ = "0.1.1"
 
 from .mediator import AbstractMediator
 from .overlay import OverlayFile
@@ -54,7 +54,7 @@ class Pdp( AbstractMediator ):
         # merge with user and password settings
         if user:
             logger.info( "configuring ppp for user '%s' w/ password '%s'" % ( user, password ) )
-            self.ppp_options += [ "user", '"%s"' % user ]
+            self.ppp_options += [ "user", user ]
             self.pds[self.__class__.PPP_PAP_SECRETS_FILENAME] = '%s * "%s" *\n' % ( user or '*', password )
             self.pds[self.__class__.PPP_CHAP_SECRETS_FILENAME] =  '%s * "%s" *\n'% ( user or '*', password )
 
