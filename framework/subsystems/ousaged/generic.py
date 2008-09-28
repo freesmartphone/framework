@@ -36,15 +36,15 @@ logger = logging.getLogger( MODULE_NAME )
 class AbstractResource( object ):
 #----------------------------------------------------------------------------#
     """Base class for all resources
-    
+
     This is the internal class used by the resource manager to keep track of a resource.
     Every resource has a name, a list of current users, and a policy.
-    
+
     The policy can be 'auto', 'disabled' or 'enabled'
     """
     def __init__( self, usageControl, name = "Abstract" ):
         """Create a new resource
-        
+
         `usageControl` : the resource controler object that will handle this resource
         `name` : the name of the resource
         """
@@ -66,12 +66,12 @@ class AbstractResource( object ):
     def _disable( self ):
         """Disable the resource"""
         yield None
-    
+
     @tasklet.tasklet
     def _suspend( self ):
         """Called before the system is going to suspend"""
         yield None
-        
+
     @tasklet.tasklet
     def _resume( self ):
         """Called after a system resume"""
@@ -81,15 +81,15 @@ class AbstractResource( object ):
     def _update( self ):
         if not self.isEnabled and (self.users or self.policy == 'enabled'):
             logger.debug( "Enabling %s", self.name )
-            ts = time.now()
+            ts = time.time()
             yield self._enable()
-            logger.info( "Enabled %s in %.1f seconds", self.name, time.now()-ts )
+            logger.info( "Enabled %s in %.1f seconds", self.name, time.time()-ts )
             self.isEnabled = True
         elif self.isEnabled and not (self.users or self.policy == 'enabled'):
             logger.debug( "Disabling %s", self.name )
-            ts = time.now()
+            ts = time.time()
             yield self._disable()
-            logger.info( "Disabled %s in %.1f seconds", self.name, time.now()-ts )
+            logger.info( "Disabled %s in %.1f seconds", self.name, time.time()-ts )
             self.isEnabled = False
 
     def setPolicy( self, policy ):
@@ -192,20 +192,20 @@ class OGPSDResource( AbstractResource ):
 class ClientResource( AbstractResource ):
 #----------------------------------------------------------------------------#
     """A resource that is controled by an external client.
-    
+
     The client needs to expose a dbus object implementing org.freesmartphone.Resource.
     It can register using the RegisterResource of /org/freesmartphone/Usage.
     If the client is written in python, it can use the framework.Resource class.
     """
     def __init__(self, usageControl, name, path, sender):
         """Create a new ClientResource
-        
+
         Only the resource manager should call this method
         """
         super(ClientResource, self).__init__(usageControl, name)
         bus = dbus.SystemBus()
         self.obj = bus.get_object(sender, path)
-        
+
     @tasklet.tasklet
     def _enable( self ):
         """Simply call the client Enable method"""
@@ -215,18 +215,16 @@ class ClientResource( AbstractResource ):
     def _disable( self ):
         """Simply call the client Disable method"""
         yield tasklet.WaitDBus( self.obj.Disable )
-        
+
     @tasklet.tasklet
     def _suspend( self ):
         """Simply call the client Suspend method"""
         yield tasklet.WaitDBus( self.obj.Suspend )
-        
+
     @tasklet.tasklet
     def _resume( self ):
         """Simply call the client Resume method"""
         yield tasklet.WaitDBus( self.obj.Resume )
-        
-    
 
 #----------------------------------------------------------------------------#
 class GenericUsageControl( dbus.service.Object ):
@@ -284,7 +282,7 @@ class GenericUsageControl( dbus.service.Object ):
     @dbus.service.method( DBUS_INTERFACE, "s", "b", sender_keyword='sender', async_callbacks=( "dbus_ok", "dbus_error" ) )
     def RequestResource( self, resourcename, sender, dbus_ok, dbus_error ):
         """Called by a client to request a resource
-        
+
         This call will return imediatly, even if the resource need to perform
         some enabling actions.
         """
@@ -293,29 +291,29 @@ class GenericUsageControl( dbus.service.Object ):
     @dbus.service.method( DBUS_INTERFACE, "s", "", sender_keyword='sender', async_callbacks=( "dbus_ok", "dbus_error" ) )
     def ReleaseResource( self, resourcename, sender, dbus_ok, dbus_error ):
         """Called by a client to release a previously requested resource
-        
+
         This call will return imediatly, even if the resource need to perform
         some disabling actions.
         """
         self.resources[resourcename].release( sender ).start_dbus( dbus_ok, dbus_error )
-        
+
     @dbus.service.method( DBUS_INTERFACE, "so", "", sender_keyword='sender' )
     def RegisterResource( self, resourcename, path, sender ):
         """Register a new resource from a client
-        
+
         The client must provide a name for the resource, and a dbus object
         path to an object implementing org.freesmartphone.Resource interface
         """
         logger.info( "Register new resource %s", resourcename )
         resource = ClientResource( self, resourcename, path, sender )
         self.addResource( resource )
-        
+
     @dbus.service.method( DBUS_INTERFACE, "", "", async_callbacks=( "dbus_ok", "dbus_error" ) )
     def Suspend( self, dbus_ok, dbus_error ):
         """Suspend all the resources"""
         # Call the _suspend task connected to the dbus callbacks
         self._suspend().start_dbus( dbus_ok, dbus_error )
-        
+
     @tasklet.tasklet
     def _suspend( self ):
         """The actual suspending tasklet"""
@@ -323,21 +321,22 @@ class GenericUsageControl( dbus.service.Object ):
         for resource in self.resources.values():
             logger.debug( "suspending %s", resource.name )
             yield resource._suspend()
-            
+
+        # FIXME Play apmd and then use the sysfs interface
         os.system( "apm -s" )
-        
+
         logger.info( "resuming all resources" )
         for resource in self.resources.values():
             logger.debug( "resuming %s", resource.name )
             yield resource._resume()
-            
+
     #
     # dbus signals
     #
     @dbus.service.signal( DBUS_INTERFACE, "sba{sv}" )
     def ResourceChanged( self, resourcename, state, attributes ):
         pass
-        
+
 
 #----------------------------------------------------------------------------#
 def factory( prefix, controller ):

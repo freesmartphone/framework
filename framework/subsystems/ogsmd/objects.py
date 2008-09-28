@@ -19,6 +19,8 @@ Attributes:
 MODULE_NAME = "ogsmd.objects"
 __version__ = "0.8.9"
 
+from framework.resource import Resource
+
 import dbus
 import dbus.service
 from dbus import DBusException
@@ -31,9 +33,6 @@ import types
 
 import logging
 logger = logging.getLogger( MODULE_NAME )
-
-import framework
-import framework.patterns.tasklet as tasklet
 
 DBUS_INTERFACE_DEVICE = "org.freesmartphone.GSM.Device"
 DBUS_INTERFACE_SIM = "org.freesmartphone.GSM.SIM"
@@ -54,7 +53,7 @@ DBUS_BUS_NAME_SERVER = "org.freesmartphone.ogsmd"
 DBUS_OBJECT_PATH_DEVICE = "/org/freesmartphone/GSM/Device"
 DBUS_OBJECT_PATH_SERVER = "/org/freesmartphone/GSM/Server"
 
-DEBUG = False   # TODO: remove this
+HOMEZONE_DEBUG = False
 
 #=========================================================================#
 class Server( dbus.service.Object ):
@@ -98,7 +97,7 @@ class Server( dbus.service.Object ):
             self.homezones = homezones
             # debug code, if you have no homezones on your SIM. To test, use:
             # gsm.DebugInjectString("UNSOL","+CBM: 16,221,0,1,1\r\n347747555093\r\r\r\n")
-            if DEBUG: self.homezones = [ ( "city", 347747, 555093, 1000 ), ( "home", 400000, 500000, 1000 ) ]
+            if HOMEZONE_DEBUG: self.homezones = [ ( "city", 347747, 555093, 1000 ), ( "home", 400000, 500000, 1000 ) ]
             self.checkInHomezones()
 
         if channel == 221: # home zone cell broadcast
@@ -148,7 +147,7 @@ class Server( dbus.service.Object ):
             self.homezones = homezones
             # debug code, if you have no homezones on your SIM. To test, use:
             # gsm.DebugInjectString("UNSOL","+CBM: 16,221,0,1,1\r\n347747555093\r\r\r\n")
-            if DEBUG: self.homezones = [ ( "city", 347747, 555093, 1000 ), ( "home", 400000, 500000, 1000 ) ]
+            if HOMEZONE_DEBUG: self.homezones = [ ( "city", 347747, 555093, 1000 ), ( "home", 400000, 500000, 1000 ) ]
             dbus_ok( [ zone[0] for zone in self.homezones ] )
 
         self.fso_sim.GetHomeZones( reply_handler=gotHomezones, error_handler=lambda error:None )
@@ -157,19 +156,32 @@ class Server( dbus.service.Object ):
     # Caching strategy
 
 #=========================================================================#
-class Device( framework.Resource ):
+class Device( Resource ):
 #=========================================================================#
     """
     This class handles the dbus interface of org.freesmartphone.GSM.*
     """
 
     def __init__( self, bus, modemtype ):
+        """
+        Init.
+        """
         self.bus = bus
         self.interface = DBUS_INTERFACE_DEVICE
         self.path = DBUS_OBJECT_PATH_DEVICE
-        super(Device, self).__init__(  bus, self.path, name='GSM' )
+        super( Device, self ).__init__( bus, self.path, name='GSM' )
         logger.info( "%s initialized. Serving %s at %s", self.__class__.__name__, self.interface, self.path )
 
+    def __del__( self ):
+        """
+        Destruct.
+        """
+        device = None
+
+    def _enable( self, on_ok, on_error ):
+        """
+        Enable (inherited from Resource)
+        """
         if modemtype == "singleline":
             from modems.singleline.modem import SingleLine as Modem
             global mediator
@@ -195,16 +207,7 @@ class Device( framework.Resource ):
             return
 
         self.modem = Modem( self, bus )
-        self.modem.open( self._channelsOK )
-
-    def __del__( self ):
-        """Destruct."""
-        device = None
-
-    def _channelsOK( self ):
-        """Called when idle and all channels have been successfully opened."""
-        logger.info( "NOTIFY SERVER: ALL CHANNELS OK, START TRAFFICING :)" )
-        return False # don't call again
+        self.modem.open( self.on_ok, self.on_error )
 
     #
     # dbus org.freesmartphone.GSM.Device
@@ -581,28 +584,29 @@ class Device( framework.Resource ):
     @dbus.service.signal( DBUS_INTERFACE_CB, "is" )
     def IncomingCellBroadcast( self, channel, data ):
         logger.info( "org.freesmartphone.GSM.CB.IncomingCellBroadcast: %s %s", channel, data )
-        
+
     #
-    # framework.Resource
+    # dbus org.freesmartphone.Resource [inherited from framework.Resource]
     #
     def _enable( self, on_ok, on_error ):
         logger.info( "enabling" )
         on_ok()
-        
+
     def _disable( self, on_ok, on_error ):
+        logger.info( "disabling" )
         on_ok()
-        
+
     def _suspend( self, on_ok, on_error ):
         logger.info( "suspending" )
         self.PrepareForSuspend( on_ok, on_error )
-        
+
     def _resume( self, on_ok, on_error ):
-        logger.info("resuming")
+        logger.info( "resuming" )
         self.RecoverFromSuspend( on_ok, on_error ) 
 
     #
     # dbus org.freesmartphone.GSM.Debug
-    # WARNING: DO NOT USE THIS! :)
+    # WARNING: Do not rely on that, it might vanish any time
     #
     @dbus.service.method( DBUS_INTERFACE_DEBUG, "s", "as",
                           async_callbacks=( "dbus_ok", "dbus_error" ) )

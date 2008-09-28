@@ -9,13 +9,16 @@ GPLv2 or later
 Module: subsystem
 """
 
+MODULE_NAME = "frameworkd.subsystem"
+__version__ = "1.0.0"
+
 from .config import config, DBUS_BUS_NAME_PREFIX
 
 import dbus
 import os, sys
 
 import logging
-logger = logging.getLogger( "frameworkd.subsystem" )
+logger = logging.getLogger( MODULE_NAME )
 
 #----------------------------------------------------------------------------#
 class Subsystem( object ):

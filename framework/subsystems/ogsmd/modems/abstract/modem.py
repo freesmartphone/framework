@@ -44,13 +44,13 @@ class AbstractModem( object ):
 
         self._phonebookIndices = None, None      # min. index, max. index
 
-    def open( self, callback ):
+    def open( self, on_ok, on_error ):
         """
         Trigger opening channels from inside mainloop.
         """
         self._counter = len( self._channels )
         if ( self._counter ):
-            gobject.idle_add( self._initChannels, callback )
+            gobject.idle_add( self._initChannels, on_ok, on_error )
 
     def data( self, key, defaultValue=None ):
         return self._data.get( key, defaultValue )
@@ -186,17 +186,21 @@ class AbstractModem( object ):
     #
     # internal API
     #
-    def _initChannels( self, callback ):
+    def _initChannels( self, on_ok, on_error, iteration=1 ):
+        if iteration == 5:
+            # we did try to open the modem 5 times -- giving up now
+            on_error()
+        # try to open all channels
         for channel in self._channels:
             if not self._channels[channel].isOpen():
                 logger.debug( "trying to open channel %s" % channel )
                 if not self._channels[channel].open():
                     logger.error( "could not open channel %s, retrying in 2 seconds" % channel )
-                    gobject.timeout_add_seconds( 2, self._initChannels, callback )
+                    gobject.timeout_add_seconds( 2, self._initChannels, on_ok, on_error, iteration+1 )
                 else:
                     self._counter -= 1
                     if not self._counter:
-                        gobject.idle_add( callback )
+                        on_ok()
         return False # don't call me again
 
     @classmethod
