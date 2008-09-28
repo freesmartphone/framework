@@ -240,7 +240,8 @@ class AbstractSMS(object):
         map = {}
         map["direction"] = self.direction
         if self.direction == "MT":
-            map["timestamp"] = self.scts[0].ctime(), self.scts[1]
+            # FIXME Return correct time with timezoneinfo
+            map["timestamp"] = self.scts[0].ctime() + " %+05i" % (self.scts[1]*100)
         if 0 in self.udh:
             map["csm"] = self.udh[0]
         if 4 in self.udh:
