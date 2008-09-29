@@ -243,18 +243,23 @@ class AbstractSMS(object):
             # FIXME Return correct time with timezoneinfo
             map["timestamp"] = self.scts[0].ctime() + " %+05i" % (self.scts[1]*100)
         if 0 in self.udh:
-            map["csm"] = self.udh[0]
+            # UDH for concatenated short messages is a list of ID,
+            # total number of messages, position of message in csm
+            map["csm_id"] = self.udh[0][0]
+            map["csm_num"] = self.udh[0][1]
+            map["csm_seq"] = self.udh[0][2]
         if 4 in self.udh:
-            map["port"] = self.udh[4]
+            map["port"] = self.udh[4][0]
 
         return map
 
     def _setFeatureMap( self, featureMap ):
         for k,v in featureMap.items():
-            if k == "csm":
-                self.udh[0] = v
+            if k == "csm_id":
+                if "csm_num" in featureMap and "csm_seq" in featureMap:
+                    self.udh[0] = [ v, featureMap["csm_num"], featureMap["csm_seq"] ]
             if k == "port":
-                self.udh[4] = v
+                self.udh[4] = [v]
 
     featureMap = property( _getFeatureMap, _setFeatureMap )
 
