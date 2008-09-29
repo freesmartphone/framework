@@ -17,9 +17,9 @@ Attributes:
 """
 
 MODULE_NAME = "ogsmd.objects"
-__version__ = "0.9.0"
+__version__ = "0.9.1"
 
-from framework.resource import Resource
+from framework import resource
 
 import dbus
 import dbus.service
@@ -156,7 +156,7 @@ class Server( dbus.service.Object ):
     # Caching strategy
 
 #=========================================================================#
-class Device( Resource ):
+class Device( resource.Resource ):
 #=========================================================================#
     """
     This class handles the dbus interface of org.freesmartphone.GSM.*
@@ -236,26 +236,31 @@ class Device( Resource ):
     #
     @dbus.service.method( DBUS_INTERFACE_DEVICE, "", "",
                           async_callbacks=( "dbus_ok", "dbus_error" ) )
+    @resource.checkedmethod
     def CancelCommand( self, dbus_ok, dbus_error ):
         mediator.CancelCommand( self, dbus_ok, dbus_error )
 
     @dbus.service.method( DBUS_INTERFACE_DEVICE, "", "a{sv}",
                           async_callbacks=( "dbus_ok", "dbus_error" ) )
+    @resource.checkedmethod
     def GetInfo( self, dbus_ok, dbus_error ):
         mediator.DeviceGetInfo( self, dbus_ok, dbus_error )
 
     @dbus.service.method( DBUS_INTERFACE_DEVICE, "", "a{sv}",
                           async_callbacks=( "dbus_ok", "dbus_error" ) )
+    @resource.checkedmethod
     def GetFeatures( self, dbus_ok, dbus_error ):
         mediator.DeviceGetFeatures( self, dbus_ok, dbus_error )
 
     @dbus.service.method( DBUS_INTERFACE_DEVICE, "", "b",
                           async_callbacks=( "dbus_ok", "dbus_error" ) )
+    @resource.checkedmethod
     def GetAntennaPower( self, dbus_ok, dbus_error ):
         mediator.DeviceGetAntennaPower( self, dbus_ok, dbus_error )
 
     @dbus.service.method( DBUS_INTERFACE_DEVICE, "b", "",
                           async_callbacks=( "dbus_ok", "dbus_error" ) )
+    @resource.checkedmethod
     def SetAntennaPower( self, power, dbus_ok, dbus_error ):
         mediator.DeviceSetAntennaPower( self, dbus_ok, dbus_error, power=power )
 
@@ -265,138 +270,165 @@ class Device( Resource ):
     ### SIM auth
     @dbus.service.method( DBUS_INTERFACE_SIM, "", "s",
                           async_callbacks=( "dbus_ok", "dbus_error" ) )
+    @resource.checkedmethod
     def GetAuthStatus( self, dbus_ok, dbus_error ):
         mediator.SimGetAuthStatus( self, dbus_ok, dbus_error )
 
     @dbus.service.signal( DBUS_INTERFACE_SIM, "s" )
+    @resource.checkedmethod
     def AuthStatus( self, status ):
         logger.info( "auth status changed to %s", status )
         self.modem.setSimPinState( status )
 
     @dbus.service.method( DBUS_INTERFACE_SIM, "s", "",
                           async_callbacks=( "dbus_ok", "dbus_error" ) )
+    @resource.checkedmethod
     def SendAuthCode( self, code, dbus_ok, dbus_error ):
         mediator.SimSendAuthCode( self, dbus_ok, dbus_error, code=code )
 
     @dbus.service.method( DBUS_INTERFACE_SIM, "ss", "",
                           async_callbacks=( "dbus_ok", "dbus_error" ) )
+    @resource.checkedmethod
     def Unlock( self, puk, new_pin, dbus_ok, dbus_error ):
         mediator.SimUnlock( self, dbus_ok, dbus_error, puk=puk, new_pin=new_pin )
 
     @dbus.service.method( DBUS_INTERFACE_SIM, "ss", "",
                           async_callbacks=( "dbus_ok", "dbus_error" ) )
+    @resource.checkedmethod
     def ChangeAuthCode( self, old_pin, new_pin, dbus_ok, dbus_error ):
         mediator.SimChangeAuthCode( self, dbus_ok, dbus_error, old_pin=old_pin, new_pin=new_pin )
 
     @dbus.service.method( DBUS_INTERFACE_SIM, "bs", "",
                           async_callbacks=( "dbus_ok", "dbus_error" ) )
+    @resource.checkedmethod
     def SetAuthCodeRequired( self, required, pin, dbus_ok, dbus_error ):
         mediator.SimSetAuthCodeRequired( self, dbus_ok, dbus_error, required=required, pin=pin )
 
     @dbus.service.method( DBUS_INTERFACE_SIM, "", "b",
                           async_callbacks=( "dbus_ok", "dbus_error" ) )
+    @resource.checkedmethod
     def GetAuthCodeRequired( self, dbus_ok, dbus_error ):
         mediator.SimGetAuthCodeRequired( self, dbus_ok, dbus_error )
 
     ### SIM info and low-level access
     @dbus.service.method( DBUS_INTERFACE_SIM, "", "b",
                           async_callbacks=( "dbus_ok", "dbus_error" ) )
+    @resource.checkedmethod
     def GetSimReady( self, dbus_ok, dbus_error ):
         dbus_ok( self.modem.simReady() == True )
 
     @dbus.service.signal( DBUS_INTERFACE_SIM, "b" )
+    @resource.checkedmethod
     def ReadyStatus( self, status ):
         logger.info( "sim ready status %s", status )
         self.modem.setSimReady( status )
 
     @dbus.service.method( DBUS_INTERFACE_SIM, "", "a{sv}",
                           async_callbacks=( "dbus_ok", "dbus_error" ) )
+    @resource.checkedmethod
     def GetSimInfo( self, dbus_ok, dbus_error ):
         mediator.SimGetSimInfo( self, dbus_ok, dbus_error )
 
     @dbus.service.method( DBUS_INTERFACE_SIM, "s", "s",
                           async_callbacks=( "dbus_ok", "dbus_error" ) )
+    @resource.checkedmethod
     def SendGenericSimCommand( self, command, dbus_ok, dbus_error ):
         mediator.SimSendGenericSimCommand( self, dbus_ok, dbus_error, command=command )
 
     @dbus.service.method( DBUS_INTERFACE_SIM, "iiiiis", "iis",
                           async_callbacks=( "dbus_ok", "dbus_error" ) )
+    @resource.checkedmethod
     def SendRestrictedSimCommand( self, command, fileid, p1, p2, p3, data, dbus_ok, dbus_error ):
         mediator.SimSendRestrictedSimCommand( self, dbus_ok, dbus_error, command=command, fileid=fileid, p1=p1, p2=p2, p3=p3, data=data )
 
     @dbus.service.method( DBUS_INTERFACE_SIM, "", "a(siii)",
                           async_callbacks=( "dbus_ok", "dbus_error" ) )
+    @resource.checkedmethod
     def GetHomeZones( self, dbus_ok, dbus_error ):
         mediator.SimGetHomeZones( self, dbus_ok, dbus_error )
 
     ### SIM phonebook
     @dbus.service.method( DBUS_INTERFACE_SIM, "", "a{sv}",
                           async_callbacks=( "dbus_ok", "dbus_error" ) )
+    @resource.checkedmethod
     def GetPhonebookInfo( self, dbus_ok, dbus_error ):
         mediator.SimGetPhonebookInfo( self, dbus_ok, dbus_error )
 
     @dbus.service.method( DBUS_INTERFACE_SIM, "", "a(iss)",
                           async_callbacks=( "dbus_ok", "dbus_error" ) )
+    @resource.checkedmethod
     def RetrievePhonebook( self, dbus_ok, dbus_error ):
         mediator.SimRetrievePhonebook( self, dbus_ok, dbus_error )
 
     @dbus.service.method( DBUS_INTERFACE_SIM, "i", "",
                           async_callbacks=( "dbus_ok", "dbus_error" ) )
+    @resource.checkedmethod
     def DeleteEntry( self, index, dbus_ok, dbus_error ):
         mediator.SimDeleteEntry( self, dbus_ok, dbus_error, index=index )
 
     @dbus.service.method( DBUS_INTERFACE_SIM, "iss", "",
                           async_callbacks=( "dbus_ok", "dbus_error" ) )
+    @resource.checkedmethod
     def StoreEntry( self, index, name, number, dbus_ok, dbus_error ):
         mediator.SimStoreEntry( self, dbus_ok, dbus_error, index=index, name=name, number=number )
 
     @dbus.service.method( DBUS_INTERFACE_SIM, "i", "ss",
                           async_callbacks=( "dbus_ok", "dbus_error" ) )
+    @resource.checkedmethod
     def RetrieveEntry( self, index, dbus_ok, dbus_error ):
         mediator.SimRetrieveEntry( self, dbus_ok, dbus_error, index=index )
 
     ### SIM messagebook
     @dbus.service.method( DBUS_INTERFACE_SIM, "", "a{sv}",
                           async_callbacks=( "dbus_ok", "dbus_error" ) )
+    @resource.checkedmethod
     def GetMessagebookInfo( self, dbus_ok, dbus_error ):
         mediator.SimGetMessagebookInfo( self, dbus_ok, dbus_error )
 
     @dbus.service.method( DBUS_INTERFACE_SIM, "s", "a(isssa{sv})",
                           async_callbacks=( "dbus_ok", "dbus_error" ) )
+    @resource.checkedmethod
     def RetrieveMessagebook( self, category, dbus_ok, dbus_error ):
         mediator.SimRetrieveMessagebook( self, dbus_ok, dbus_error, category=category )
 
     @dbus.service.method( DBUS_INTERFACE_SIM, "i", "sssa{sv}",
                           async_callbacks=( "dbus_ok", "dbus_error" ) )
+    @resource.checkedmethod
     def RetrieveMessage( self, index, dbus_ok, dbus_error ):
         mediator.SimRetrieveMessage( self, dbus_ok, dbus_error, index=index )
 
     @dbus.service.method( DBUS_INTERFACE_SIM, "", "s",
                           async_callbacks=( "dbus_ok", "dbus_error" ) )
+    @resource.checkedmethod
     def GetServiceCenterNumber( self, dbus_ok, dbus_error ):
         mediator.SimGetServiceCenterNumber( self, dbus_ok, dbus_error )
 
     @dbus.service.method( DBUS_INTERFACE_SIM, "s", "",
                           async_callbacks=( "dbus_ok", "dbus_error" ) )
+    @resource.checkedmethod
     def SetServiceCenterNumber( self, number, dbus_ok, dbus_error ):
         mediator.SimSetServiceCenterNumber( self, dbus_ok, dbus_error, number=number )
 
     @dbus.service.method( DBUS_INTERFACE_SIM, "ssa{sv}", "i",
                           async_callbacks=( "dbus_ok", "dbus_error" ) )
+    @resource.checkedmethod
     def StoreMessage( self, number, contents, featuremap, dbus_ok, dbus_error ):
         mediator.SimStoreMessage( self, dbus_ok, dbus_error, number=number, contents=contents, featuremap=featuremap )
 
     @dbus.service.method( DBUS_INTERFACE_SIM, "i", "i",
                           async_callbacks=( "dbus_ok", "dbus_error" ) )
+    @resource.checkedmethod
     def SendStoredMessage( self, index, dbus_ok, dbus_error ):
         mediator.SimSendStoredMessage( self, dbus_ok, dbus_error, index=index )
 
     @dbus.service.method( DBUS_INTERFACE_SIM, "i", "",
                           async_callbacks=( "dbus_ok", "dbus_error" ) )
+    @resource.checkedmethod
     def DeleteMessage( self, index, dbus_ok, dbus_error ):
         mediator.SimDeleteMessage( self, dbus_ok, dbus_error, index=index )
 
     @dbus.service.signal( DBUS_INTERFACE_SIM, "i" )
+    @resource.checkedmethod
     def IncomingMessage( self, index ):
         logger.info( "incoming message on sim storage index %s", index )
 
@@ -405,78 +437,94 @@ class Device( Resource ):
     #
     @dbus.service.method( DBUS_INTERFACE_NETWORK, "", "",
                           async_callbacks=( "dbus_ok", "dbus_error" ) )
+    @resource.checkedmethod
     def Register( self, dbus_ok, dbus_error ):
         mediator.NetworkRegister( self, dbus_ok, dbus_error )
 
     @dbus.service.method( DBUS_INTERFACE_NETWORK, "", "",
                           async_callbacks=( "dbus_ok", "dbus_error" ) )
+    @resource.checkedmethod
     def Unregister( self, dbus_ok, dbus_error ):
         mediator.NetworkUnregister( self, dbus_ok, dbus_error )
 
     @dbus.service.method( DBUS_INTERFACE_NETWORK, "", "a{sv}",
                           async_callbacks=( "dbus_ok", "dbus_error" ) )
+    @resource.checkedmethod
     def GetStatus( self, dbus_ok, dbus_error ):
         mediator.NetworkGetStatus( self, dbus_ok, dbus_error )
 
     @dbus.service.signal( DBUS_INTERFACE_NETWORK, "a{sv}" )
+    @resource.checkedmethod
     def Status( self, status ):
         logger.info( "org.freesmartphone.GSM.Network.Status: %s", status )
 
     @dbus.service.method( DBUS_INTERFACE_NETWORK, "", "i",
                           async_callbacks=( "dbus_ok", "dbus_error" ) )
+    @resource.checkedmethod
     def GetSignalStrength( self, dbus_ok, dbus_error ):
         mediator.NetworkGetSignalStrength( self, dbus_ok, dbus_error )
 
     @dbus.service.signal( DBUS_INTERFACE_NETWORK, "i" )
+    @resource.checkedmethod
     def SignalStrength( self, strength ):
         logger.info( "org.freesmartphone.GSM.Network.SignalStrength: %s", strength )
 
     @dbus.service.method( DBUS_INTERFACE_NETWORK, "", "a(isss)",
                           async_callbacks=( "dbus_ok", "dbus_error" ) )
+    @resource.checkedmethod
     def ListProviders( self, dbus_ok, dbus_error ):
         mediator.NetworkListProviders( self, dbus_ok, dbus_error )
 
     @dbus.service.method( DBUS_INTERFACE_NETWORK, "i", "",
                           async_callbacks=( "dbus_ok", "dbus_error" ) )
+    @resource.checkedmethod
     def RegisterWithProvider( self, operator_code, dbus_ok, dbus_error ):
         mediator.NetworkRegisterWithProvider( self, dbus_ok, dbus_error, operator_code=operator_code )
 
     @dbus.service.method( DBUS_INTERFACE_NETWORK, "", "s",
                           async_callbacks=( "dbus_ok", "dbus_error" ) )
+    @resource.checkedmethod
     def GetNetworkCountryCode( self, dbus_ok, dbus_error ):
         mediator.NetworkGetCountryCode( self, dbus_ok, dbus_error )
 
     @dbus.service.method( DBUS_INTERFACE_NETWORK, "s", "a{sv}",
                           async_callbacks=( "dbus_ok", "dbus_error" ) )
+    @resource.checkedmethod
     def GetCallForwarding( self, reason, dbus_ok, dbus_error ):
         mediator.NetworkGetCallForwarding( self, dbus_ok, dbus_error, reason=reason )
 
     @dbus.service.method( DBUS_INTERFACE_NETWORK, "sssi", "",
                           async_callbacks=( "dbus_ok", "dbus_error" ) )
+    @resource.checkedmethod
     def EnableCallForwarding( self, reason, class_, number, timeout, dbus_ok, dbus_error ):
         mediator.NetworkEnableCallForwarding( self, dbus_ok, dbus_error, reason=reason, class_=class_, number=number, timeout=timeout )
 
     @dbus.service.method( DBUS_INTERFACE_NETWORK, "ss", "",
                           async_callbacks=( "dbus_ok", "dbus_error" ) )
+    @resource.checkedmethod
     def DisableCallForwarding( self, reason, class_, dbus_ok, dbus_error ):
         mediator.NetworkDisableCallForwarding( self, dbus_ok, dbus_error, reason=reason, class_=class_ )
 
     @dbus.service.method( DBUS_INTERFACE_NETWORK, "", "s",
                           async_callbacks=( "dbus_ok", "dbus_error" ) )
+    @resource.checkedmethod
     def GetCallingIdentification( self, dbus_ok, dbus_error ):
         mediator.NetworkGetCallingIdentification( self, dbus_ok, dbus_error )
 
     @dbus.service.method( DBUS_INTERFACE_NETWORK, "s", "",
                           async_callbacks=( "dbus_ok", "dbus_error" ) )
+    @resource.checkedmethod
     def SetCallingIdentification( self, status, dbus_ok, dbus_error ):
         mediator.NetworkSetCallingIdentification( self, dbus_ok, dbus_error, status=status )
 
     @dbus.service.method( DBUS_INTERFACE_NETWORK, "s", "",
                           async_callbacks=( "dbus_ok", "dbus_error" ) )
+    @resource.checkedmethod
     def SendUssdRequest( self, request, dbus_ok, dbus_error ):
         mediator.NetworkSendUssdRequest( self, dbus_ok, dbus_error, request=request )
 
     @dbus.service.signal( DBUS_INTERFACE_NETWORK, "ss" )
+    @resource.checkedmethod
     def IncomingUssd( self, mode, message ):
         logger.info( "org.freesmartphone.GSM.Network.IncomingUssd: %s: %s", mode, message )
     #
@@ -484,60 +532,72 @@ class Device( Resource ):
     #
     @dbus.service.method( DBUS_INTERFACE_CALL, "s", "",
                           async_callbacks=( "dbus_ok", "dbus_error" ) )
+    @resource.checkedmethod
     def Emergency( self, number, dbus_ok, dbus_error ):
         mediator.CallEmergency( self, dbus_ok, dbus_error, number=number )
 
     @dbus.service.signal( DBUS_INTERFACE_CALL, "isa{sv}" )
+    @resource.checkedmethod
     def CallStatus( self, index, status, properties ):
         logger.info( "org.freesmartphone.GSM.Call.CallStatus: %s %s %s", index, status, properties )
 
     @dbus.service.method( DBUS_INTERFACE_CALL, "i", "",
                           async_callbacks=( "dbus_ok", "dbus_error" ) )
+    @resource.checkedmethod
     def Activate( self, index, dbus_ok, dbus_error ):
         mediator.CallActivate( self, dbus_ok, dbus_error, index=index )
 
     @dbus.service.method( DBUS_INTERFACE_CALL, "i", "",
                           async_callbacks=( "dbus_ok", "dbus_error" ) )
+    @resource.checkedmethod
     def ActivateConference( self, index, dbus_ok, dbus_error ):
         mediator.CallActivateConference( self, dbus_ok, dbus_error, index=index )
 
     @dbus.service.method( DBUS_INTERFACE_CALL, "i", "",
                           async_callbacks=( "dbus_ok", "dbus_error" ) )
+    @resource.checkedmethod
     def Release( self, index, dbus_ok, dbus_error ):
         mediator.CallRelease( self, dbus_ok, dbus_error, index=index )
 
     @dbus.service.method( DBUS_INTERFACE_CALL, "", "",
                           async_callbacks=( "dbus_ok", "dbus_error" ) )
+    @resource.checkedmethod
     def ReleaseHeld( self, dbus_ok, dbus_error ):
         mediator.CallReleaseHeld( self, dbus_ok, dbus_error )
 
     @dbus.service.method( DBUS_INTERFACE_CALL, "", "",
                           async_callbacks=( "dbus_ok", "dbus_error" ) )
+    @resource.checkedmethod
     def ReleaseAll( self, dbus_ok, dbus_error ):
         mediator.CallReleaseAll( self, dbus_ok, dbus_error )
 
     @dbus.service.method( DBUS_INTERFACE_CALL, "ss", "i",
                           async_callbacks=( "dbus_ok", "dbus_error" ) )
+    @resource.checkedmethod
     def Initiate( self, number, type_, dbus_ok, dbus_error ):
         mediator.CallInitiate( self, dbus_ok, dbus_error, number=number, calltype=type_ )
 
     @dbus.service.method( DBUS_INTERFACE_CALL, "", "",
                           async_callbacks=( "dbus_ok", "dbus_error" ) )
+    @resource.checkedmethod
     def HoldActive( self, dbus_ok, dbus_error ):
         mediator.CallHoldActive( self, dbus_ok, dbus_error )
 
     @dbus.service.method( DBUS_INTERFACE_CALL, "s", "",
                           async_callbacks=( "dbus_ok", "dbus_error" ) )
+    @resource.checkedmethod
     def Transfer( self, number, dbus_ok, dbus_error ):
         mediator.CallTransfer( self, dbus_ok, dbus_error, number=number )
 
     @dbus.service.method( DBUS_INTERFACE_CALL, "", "a(isa{sv})",
                           async_callbacks=( "dbus_ok", "dbus_error" ) )
+    @resource.checkedmethod
     def ListCalls( self, dbus_ok, dbus_error ):
         mediator.CallListCalls( self, dbus_ok, dbus_error )
 
     @dbus.service.method( DBUS_INTERFACE_CALL, "s", "",
                           async_callbacks=( "dbus_ok", "dbus_error" ) )
+    @resource.checkedmethod
     def SendDtmf( self, tones, dbus_ok, dbus_error ):
         mediator.CallSendDtmf( self, dbus_ok, dbus_error, tones=tones )
 
@@ -546,35 +606,42 @@ class Device( Resource ):
     #
     @dbus.service.method( DBUS_INTERFACE_PDP, "", "as",
                           async_callbacks=( "dbus_ok", "dbus_error" ) )
+    @resource.checkedmethod
     def ListAvailableGprsClasses( self, dbus_ok, dbus_error ):
         mediator.PdpListAvailableGprsClasses( self, dbus_ok, dbus_error )
 
     @dbus.service.method( DBUS_INTERFACE_PDP, "", "s",
                           async_callbacks=( "dbus_ok", "dbus_error" ) )
+    @resource.checkedmethod
     def GetCurrentGprsClass( self, dbus_ok, dbus_error ):
         mediator.PdpGetCurrentGprsClass( self, dbus_ok, dbus_error )
 
     @dbus.service.method( DBUS_INTERFACE_PDP, "s", "",
                           async_callbacks=( "dbus_ok", "dbus_error" ) )
+    @resource.checkedmethod
     def SetCurrentGprsClass( self, class_, dbus_ok, dbus_error ):
         mediator.PdpSetCurrentGprsClass( self, dbus_ok, dbus_error, class_=class_ )
 
     @dbus.service.method( DBUS_INTERFACE_PDP, "sss", "",
                           async_callbacks=( "dbus_ok", "dbus_error" ) )
+    @resource.checkedmethod
     def ActivateContext( self, apn, user, password, dbus_ok, dbus_error ):
         mediator.PdpActivateContext( self, dbus_ok, dbus_error, apn=apn, user=user, password=password )
 
     @dbus.service.method( DBUS_INTERFACE_PDP, "", "",
                           async_callbacks=( "dbus_ok", "dbus_error" ) )
+    @resource.checkedmethod
     def DeactivateContext( self, dbus_ok, dbus_error ):
         mediator.PdpDeactivateContext( self, dbus_ok, dbus_error )
 
     @dbus.service.method( DBUS_INTERFACE_PDP, "", "s",
                           async_callbacks=( "dbus_ok", "dbus_error" ) )
+    @resource.checkedmethod
     def GetContextStatus( self, dbus_ok, dbus_error ):
         mediator.PdpGetContextStatus( self, dbus_ok, dbus_error )
 
     @dbus.service.signal( DBUS_INTERFACE_PDP, "isa{sv}" )
+    @resource.checkedmethod
     def ContextStatus( self, index, status, properties ):
         logger.info( "org.freesmartphone.GSM.PDP.ContextStatus: %s %s %s", index, status, properties )
 
@@ -583,15 +650,18 @@ class Device( Resource ):
     #
     @dbus.service.method( DBUS_INTERFACE_CB, "", "s",
                           async_callbacks=( "dbus_ok", "dbus_error" ) )
+    @resource.checkedmethod
     def GetCellBroadcastSubscriptions( self, dbus_ok, dbus_error ):
         mediator.CbGetCellBroadcastSubscriptions( self, dbus_ok, dbus_error )
 
     @dbus.service.method( DBUS_INTERFACE_CB, "s", "",
                           async_callbacks=( "dbus_ok", "dbus_error" ) )
+    @resource.checkedmethod
     def SetCellBroadcastSubscriptions( self, channels, dbus_ok, dbus_error ):
         mediator.CbSetCellBroadcastSubscriptions( self, dbus_ok, dbus_error, channels=channels )
 
     @dbus.service.signal( DBUS_INTERFACE_CB, "is" )
+    @resource.checkedmethod
     def IncomingCellBroadcast( self, channel, data ):
         logger.info( "org.freesmartphone.GSM.CB.IncomingCellBroadcast: %s %s", channel, data )
 
@@ -601,22 +671,26 @@ class Device( Resource ):
     #
     @dbus.service.method( DBUS_INTERFACE_DEBUG, "s", "as",
                           async_callbacks=( "dbus_ok", "dbus_error" ) )
+    @resource.checkedmethod
     def DebugCommand( self, command, dbus_ok, dbus_error ):
         mediator.DebugCommand( self, dbus_ok, dbus_error, command=command )
 
     @dbus.service.method( DBUS_INTERFACE_DEBUG, "", "as",
                           async_callbacks=( "dbus_ok", "dbus_error" ) )
+    @resource.checkedmethod
     def DebugListChannels( self, dbus_ok, dbus_error ):
         dbus_ok( self.modem.channels() )
 
     @dbus.service.method( DBUS_INTERFACE_DEBUG, "ss", "",
                           async_callbacks=( "dbus_ok", "dbus_error" ) )
+    @resource.checkedmethod
     def DebugInjectString( self, channel, string, dbus_ok, dbus_error ):
         self.modem.inject( channel, str(string) )
         dbus_ok()
 
     @dbus.service.method( DBUS_INTERFACE_DEBUG, "s", "s",
                           async_callbacks=( "dbus_ok", "dbus_error" ) )
+    @resource.checkedmethod
     def DebugEcho( self, echo, dbus_ok, dbus_error ):
         import time
         time.sleep( 2 )
