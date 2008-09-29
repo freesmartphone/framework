@@ -69,9 +69,6 @@ class AbstractResource( object ):
         self.users = []
         self.policy = 'auto'
         self.isEnabled = False
-        self.usageControl.ResourceChanged(
-            self.name, self.isEnabled, {"policy": self.policy, "refcount": len( self.users )}
-        )
 
     @tasklet.tasklet
     def _enable( self ):
@@ -265,6 +262,7 @@ class GenericUsageControl( dbus.service.Object ):
         if not self.resources.get(resource.name, None) is None:
             raise ResourceExistsError( "Resource %s already registered" % resource.name )
         self.resources[resource.name] = resource
+        self.ResourceAvailable( resource.name, True )
 
     def _getResource( self, resourcename ):
         r = self.resources.get(resourcename, None)
@@ -358,6 +356,9 @@ class GenericUsageControl( dbus.service.Object ):
     def ResourceChanged( self, resourcename, state, attributes ):
         pass
 
+    @dbus.service.signal( DBUS_INTERFACE, "sb" )
+    def ResourceAvailable( self, resourcename, state ):
+        pass
 
 #----------------------------------------------------------------------------#
 def factory( prefix, controller ):
