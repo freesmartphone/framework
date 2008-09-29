@@ -32,7 +32,7 @@ class AbstractModem( object ):
         Initialize
         """
         assert self.__class__.__name__ != "AbstractModem", "can't instanciate pure virtual class"
-        assert AbstractModem.instance is None
+        # FIXME make sure only one modem exists
         AbstractModem.instance = self
 
         self._channels = {}                     # container for channel instances
