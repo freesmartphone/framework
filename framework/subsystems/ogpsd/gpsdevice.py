@@ -13,7 +13,7 @@ GPLv2 or later
 DBUS_INTERFACE_PREFIX = "org.freedesktop.Gypsy"
 DBUS_PATH_PREFIX = "/org/freedesktop/Gypsy"
 
-from framework.resource import Resource
+from framework import resource
 import framework.patterns.tasklet as tasklet
 import dbus
 import dbus.service
@@ -21,7 +21,7 @@ import dbus.service
 import logging
 logger = logging.getLogger('ogpsd')
 
-class GPSDevice( Resource ):
+class GPSDevice( resource.Resource ):
     """An Dbus Object implementing org.freedesktop.Gypsy"""
 
     def __init__( self, bus ):
@@ -187,10 +187,12 @@ class GPSDevice( Resource ):
     # Gypsy Server interface
     # This should be implemented somewhere else once we allow different devices
     @dbus.service.method( DBUS_INTERFACE_PREFIX + ".Server", "s", "o" )
+    @resource.checkedsyncmethod
     def Create( self, device ):
         return DBUS_PATH_PREFIX
 
     @dbus.service.method( DBUS_INTERFACE_PREFIX + ".Server", "o", "" )
+    @resource.checkedsyncmethod
     def Shutdown( self, path ):
         pass
 
@@ -226,30 +228,37 @@ class GPSDevice( Resource ):
             dbus_ok()
 
     @dbus.service.method( DBUS_INTERFACE_PREFIX + ".Device", "", "b")
+    @resource.checkedsyncmethod
     def GetConnectionStatus( self ):
         return self._resourceStatus == "enabled"
 
     @dbus.service.method( DBUS_INTERFACE_PREFIX + ".Device", "", "i")
+    @resource.checkedsyncmethod
     def GetFixStatus( self ):
         return self._fixstatus
 
     @dbus.service.method( DBUS_INTERFACE_PREFIX + ".Position", "", "iiddd" )
+    @resource.checkedsyncmethod
     def GetPosition( self ):
         return self._position
 
     @dbus.service.method( DBUS_INTERFACE_PREFIX + ".Accuracy", "", "iddd" )
+    @resource.checkedsyncmethod
     def GetAccuracy( self ):
         return self._accuracy
 
     @dbus.service.method( DBUS_INTERFACE_PREFIX + ".Course", "", "iiddd" )
+    @resource.checkedsyncmethod
     def GetCourse( self ):
         return self._course
 
     @dbus.service.method( DBUS_INTERFACE_PREFIX + ".Satellite", "", "a(ubuuu)" )
+    @resource.checkedsyncmethod
     def GetSatellites( self ):
         return self._satellites
 
     @dbus.service.method( DBUS_INTERFACE_PREFIX + ".Time", "", "i" )
+    @resource.checkedsyncmethod
     def GetTime( self ):
         return self._time
 
