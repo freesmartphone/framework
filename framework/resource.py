@@ -13,7 +13,7 @@ Module: resource
 """
 
 MODULE_NAME = "frameworkd.resource"
-__version__ = "0.2.0"
+__version__ = "0.2.1"
 
 from framework.patterns import decorator
 
@@ -32,6 +32,16 @@ def checkedmethod(f, *args, **kw):
     dbus_error = args[-1]
     if self._resourceStatus != "enabled":
         dbus_error( ResourceNotEnabled )
+    else:
+        return f(*args, **kw)
+
+#----------------------------------------------------------------------------#
+@decorator.decorator
+def checkedsyncmethod(f, *args, **kw):
+    #print "calling %s with args %s, %s" % (f.func_name, args, kw)
+    self = args[0]
+    if self._resourceStatus != "enabled":
+        raise ResourceNotEnabled()
     else:
         return f(*args, **kw)
 
