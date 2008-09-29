@@ -317,15 +317,14 @@ class UBXDevice( GPSDevice ):
 
     def parse( self, data ):
         self.buffer += data
-        while len(self.buffer) > 0:
+        # Minimum packet length is 8
+        while len(self.buffer) >= 8:
             # Find the beginning of a UBX message
             start = self.buffer.find( chr( SYNC1 ) + chr( SYNC2 ) )
-            if start != 0:
-                logger.info( "Discarded data not UBX \"%s\"" % repr(self.buffer[:start]) )
-            self.buffer = self.buffer[start:]
-            # Minimum packet length is 8
-            if len(self.buffer) < 8:
-                return
+            if start > 0 or (start == -1 and len(self.buffer) > 1):
+                logger.info( "Discarded data not UBX %s" % repr(self.buffer[:start]) )
+                self.buffer = self.buffer[start:]
+                continue
 
             (cl, id, length) = struct.unpack("<xxBBH", self.buffer[:6])
             if len(self.buffer) < length + 8:
