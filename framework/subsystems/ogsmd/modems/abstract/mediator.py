@@ -739,7 +739,7 @@ class SimStoreMessage( SimMediator ):
             ntype = 2
         sms.oa = ogsmd.gsm.sms.PDUAddress( ntype, 1, number )
         sms.ud = self.contents
-        sms.featureMap = featuremap
+        sms.featureMap = self.featuremap
         pdu = sms.pdu()
         self._commchannel.enqueue( '+CMGW=%i\r%s' % ( len(pdu)/2-1, pdu), self.responseFromChannel, self.errorFromChannel )
 
