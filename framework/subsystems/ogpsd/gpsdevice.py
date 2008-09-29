@@ -60,21 +60,25 @@ class GPSDevice( resource.Resource ):
     def _enable( self, on_ok, on_error ):
         logger.info( "enabling" )
         self.initializeDevice()
+        self.ConnectionStatusChanged( True )
         on_ok()
 
     def _disable( self, on_ok, on_error ):
         logger.info( "disabling" )
+        self.ConnectionStatusChanged( False )
         self.shutdownDevice()
         on_ok()
 
     def _suspend( self, on_ok, on_error ):
         logger.info( "suspending" )
+        self.ConnectionStatusChanged( False )
         self.suspendDevice()
         on_ok()
 
     def _resume( self, on_ok, on_error ):
         logger.info("resuming")
         self.resumeDevice()
+        self.ConnectionStatusChanged( True )
         on_ok()
 
     def initializeDevice( self ):
