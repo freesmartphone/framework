@@ -13,14 +13,32 @@ Module: resource
 """
 
 MODULE_NAME = "frameworkd.resource"
-__version__ = "0.1.2"
+__version__ = "0.2.0"
 
-import dbus, dbus.service
+from framework.patterns import decorator
 
 import gobject
+import dbus, dbus.service
+from dbus import validate_interface_name, Signature, validate_member_name
 
 import logging
 logger = logging.getLogger( MODULE_NAME )
+
+#----------------------------------------------------------------------------#
+@decorator.decorator
+def checkedmethod(f, *args, **kw):
+    #print "calling %s with args %s, %s" % (f.func_name, args, kw)
+    self = args[0]
+    dbus_error = args[-1]
+    if self._resourceStatus != "enabled":
+        dbus_error( ResourceNotEnabled )
+    else:
+        return f(*args, **kw)
+
+#----------------------------------------------------------------------------#
+class ResourceNotEnabled( dbus.DBusException ):
+#----------------------------------------------------------------------------#
+    _dbus_error_name = "org.freesmartphone.Resource.NotEnabled"
 
 #----------------------------------------------------------------------------#
 class Resource( dbus.service.Object ):
