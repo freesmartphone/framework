@@ -510,7 +510,11 @@ class DelegateChannel( QueuedVirtualChannel ):
             return False
         command, values = data.split( ':', 1 )
 
-        methodname = "%s%s" % ( self.prefixmap[command[0]], command[1:] )
+        # convert unsolicited command to a method name
+        # FIXME this actually quite assumes certain structure for unsolicited responses,
+        # might think about making this more generic and/or override in AtCommandChannel
+        command = command.replace( ' ', '_' ) # no spaces in Python identifiers
+        methodname = "%s%s" % ( self.prefixmap[command[0]], command[1:] ) # no special characters
 
         try:
             method = getattr( self.delegate, methodname )
@@ -552,7 +556,7 @@ class AtCommandChannel( DelegateChannel ):
         else:
             assert False, "your python interpreter is broken"
 
-    # you should not need to call this
+    # you should not need to call this anymore
     enqueueRaw = QueuedVirtualChannel.enqueue
 
 #=========================================================================#

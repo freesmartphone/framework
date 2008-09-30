@@ -101,6 +101,18 @@ class AbstractUnsolicitedResponseDelegate( object ):
         else:
             assert False, "unhandled call type"
 
+    # +CMS ERROR: 322
+    def plusCMS_ERROR( self, righthandside ):
+        """
+        Incoming unsolicited error
+
+        This is pretty rare in general, I've only seen 322 so far
+        when we are using SMS in SIM-buffered mode.
+        """
+        errornumber = int( righthandside )
+        if errornumber == 322:
+            self._object.MemoryFull()
+
     # +CUSD: 0," Aktuelles Guthaben: 10.00 EUR.",0'
     def plusCUSD( self, righthandside ):
         """

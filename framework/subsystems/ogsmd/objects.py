@@ -17,7 +17,7 @@ Attributes:
 """
 
 MODULE_NAME = "ogsmd.objects"
-__version__ = "0.9.1"
+__version__ = "0.9.2"
 
 from framework import resource
 
@@ -279,7 +279,6 @@ class Device( resource.Resource ):
         mediator.SimGetAuthStatus( self, dbus_ok, dbus_error )
 
     @dbus.service.signal( DBUS_INTERFACE_SIM, "s" )
-    @resource.checkedmethod
     def AuthStatus( self, status ):
         logger.info( "auth status changed to %s", status )
         self.modem.setSimPinState( status )
@@ -322,7 +321,6 @@ class Device( resource.Resource ):
         dbus_ok( self.modem.simReady() == True )
 
     @dbus.service.signal( DBUS_INTERFACE_SIM, "b" )
-    @resource.checkedmethod
     def ReadyStatus( self, status ):
         logger.info( "sim ready status %s", status )
         self.modem.setSimReady( status )
@@ -432,10 +430,12 @@ class Device( resource.Resource ):
         mediator.SimDeleteMessage( self, dbus_ok, dbus_error, index=index )
 
     @dbus.service.signal( DBUS_INTERFACE_SIM, "i" )
-    @resource.checkedmethod
     def IncomingMessage( self, index ):
         logger.info( "incoming message on sim storage index %s", index )
 
+    @dbus.service.signal( DBUS_INTERFACE_SIM, "" )
+    def MemoryFull( self ):
+        logger.info( "sim memory full" )
     #
     # dbus org.freesmartphone.GSM.Network
     #
@@ -458,7 +458,6 @@ class Device( resource.Resource ):
         mediator.NetworkGetStatus( self, dbus_ok, dbus_error )
 
     @dbus.service.signal( DBUS_INTERFACE_NETWORK, "a{sv}" )
-    @resource.checkedmethod
     def Status( self, status ):
         logger.info( "org.freesmartphone.GSM.Network.Status: %s", status )
 
@@ -469,7 +468,6 @@ class Device( resource.Resource ):
         mediator.NetworkGetSignalStrength( self, dbus_ok, dbus_error )
 
     @dbus.service.signal( DBUS_INTERFACE_NETWORK, "i" )
-    @resource.checkedmethod
     def SignalStrength( self, strength ):
         logger.info( "org.freesmartphone.GSM.Network.SignalStrength: %s", strength )
 
@@ -528,7 +526,6 @@ class Device( resource.Resource ):
         mediator.NetworkSendUssdRequest( self, dbus_ok, dbus_error, request=request )
 
     @dbus.service.signal( DBUS_INTERFACE_NETWORK, "ss" )
-    @resource.checkedmethod
     def IncomingUssd( self, mode, message ):
         logger.info( "org.freesmartphone.GSM.Network.IncomingUssd: %s: %s", mode, message )
     #
@@ -541,7 +538,6 @@ class Device( resource.Resource ):
         mediator.CallEmergency( self, dbus_ok, dbus_error, number=number )
 
     @dbus.service.signal( DBUS_INTERFACE_CALL, "isa{sv}" )
-    @resource.checkedmethod
     def CallStatus( self, index, status, properties ):
         logger.info( "org.freesmartphone.GSM.Call.CallStatus: %s %s %s", index, status, properties )
 
@@ -645,7 +641,6 @@ class Device( resource.Resource ):
         mediator.PdpGetContextStatus( self, dbus_ok, dbus_error )
 
     @dbus.service.signal( DBUS_INTERFACE_PDP, "isa{sv}" )
-    @resource.checkedmethod
     def ContextStatus( self, index, status, properties ):
         logger.info( "org.freesmartphone.GSM.PDP.ContextStatus: %s %s %s", index, status, properties )
 
@@ -665,7 +660,6 @@ class Device( resource.Resource ):
         mediator.CbSetCellBroadcastSubscriptions( self, dbus_ok, dbus_error, channels=channels )
 
     @dbus.service.signal( DBUS_INTERFACE_CB, "is" )
-    @resource.checkedmethod
     def IncomingCellBroadcast( self, channel, data ):
         logger.info( "org.freesmartphone.GSM.CB.IncomingCellBroadcast: %s %s", channel, data )
 
