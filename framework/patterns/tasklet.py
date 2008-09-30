@@ -390,6 +390,26 @@ class Sleep(Tasklet):
     def close(self):
         # We cancel the event
         gobject.source_remove(self.event_id)
+        
+class WaitFileReady(Tasklet):
+    """This special Tasklet will block until a file descriptor is ready for reading or sending""" 
+    def __init__(self, fd, cond):
+        self.fd = fd
+        self.cond = cond
+        self.event_id = None
+    def _callback(self, *args):
+        self.event_id = None
+        self.callback(*args)
+        return False
+    def start(self, callback, err_callback, *args):
+        self.callback = callback
+        self.event_id = gobject.io_add_watch(self.fd, self.cond, self._callback, *args)
+    def close(self):
+        if self.event_id:
+            gobject.source_remove(self.event_id)
+            self.event_id = None
+        
+
             
 if __name__ == '__main__':
     # And here is a simple example application using our tasklet class
