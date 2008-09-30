@@ -34,6 +34,15 @@ logger = logging.getLogger( "tasklet" )
 # TODO:
 # - better stack printing in case of error
 
+def tasklet(func):
+    """Decorator that turns a generator function into a tasklet instance"""
+    def ret(*args, **kargs):
+        return Tasklet( generator=func(*args, **kargs) )
+    ret.__dict__ = func.__dict__
+    ret.__name__ = func.__name__
+    ret.__doc__ = func.__doc__
+    return ret
+
 class Tasklet(object):
     """
     This class can be used to write easy callback style functions using the 'yield'
@@ -46,6 +55,11 @@ class Tasklet(object):
     http://www.python.org/dev/peps/pep-0342/
         
     See the examples below to understand how to use it.
+    
+    There is a very simple comunication mechanisme between tasklets :
+    A tasklet can wait for an incoming message using `yield WaitMessage()`,
+    an other tasklet can then send a message to this tasklet using the send_message method.
+    See the example 8 to see how to use this.
     """
     def __init__(self, *args, **kargs):
         self.generator = kargs.get('generator', None) or self.do_run(*args, **kargs)
@@ -55,6 +69,10 @@ class Tasklet(object):
         # The tasklet we are waiting for...
         self.waiting = None
         self.closed = False
+        
+        # The two lists used for messages passing between tasklets
+        self.waiting_to_send_message = []
+        self.waiting_for_message = []
 
     def __del__(self):
         if not self.closed and self.generator:
@@ -88,6 +106,7 @@ class Tasklet(object):
         self.send(None)     # And now we can initiate the task
         
     def start_from(self, tasklet):
+        """Start the tasklet from an other tasklet"""
         self.start(tasklet.send, tasklet.throw)
         
     def start_dbus(self, on_ok, on_err, *args, **kargs):
@@ -184,16 +203,55 @@ class Tasklet(object):
             assert self.callback, "%s has no callback !" % self
             self.callback(value, *self.args, **self.kargs)
             self.close()
-
-# TODO: I think there is a python library to do this thing automaticaly ?
-def tasklet(func):
-    """Decorator that turns a generator function into a tasklet instance"""
-    def ret(*args, **kargs):
-        return Tasklet( generator=func(*args, **kargs) )
-    ret.__dict__ = func.__dict__
-    ret.__name__ = func.__name__
-    ret.__doc__ = func.__doc__
-    return ret
+    
+    @tasklet
+    def send_message(self, value = None):
+        """Block until the tasklet accepts the incoming message"""
+        if self.waiting_for_message:
+            listener = self.waiting_for_message.pop(0)
+            listener.trigger(value)
+        else:
+            sender = WaitTrigger()
+            self.waiting_to_send_message.append((sender, value))
+            yield sender
+            
+    @tasklet
+    def wait_message(self):
+        """Block until the tasklet receive an incoming message
+        
+        Since we usually don't have access to the tasklet `self` argument (when using generators based tasklets)
+        it is easier to use the WaitMessage class for this.
+        """
+        if self.waiting_to_send_message:
+            sender, value = self.waiting_to_send_message.pop(0)
+            sender.trigger(value)
+            yield value
+        else:
+            waiter = WaitTrigger()
+            self.waiting_for_message.append(waiter)
+            ret = yield waiter
+            yield ret
+            
+class WaitTrigger(Tasklet):
+    """Special tasklet that will block until its `trigger` method is called
+    
+    This is mostly used by the send_message and WaitMessage tasklet.
+    """
+    def start(self, callback = None, err_callback = None, *args, **kargs):
+        self.callback = callback
+    def trigger(self, v = None):
+        if self.callback:
+            self.callback(v)
+            self.close()
+    def close(self):
+        self.callback = None
+    
+class WaitMessage(Tasklet):
+    """Special tasklet that will block until the caller tasklet receive a message."""
+    def start_from(self, tasklet):
+        tasklet.wait_message().start(tasklet.send)
+    def close(self):
+        pass
             
 class Wait(Tasklet):
     """
@@ -576,8 +634,35 @@ if __name__ == '__main__':
         print "We can do other things in the meanwhile"
         
         loop.run()
-
         
+    def example8():
+        print "== Using messages to comunicate between tasklets =="
+        loop = gobject.MainLoop()
+        
+        @tasklet
+        def task1():
+            while True:
+                msg = yield WaitMessage()
+                if msg == 'end':
+                    break
+                print "got message %s" % msg
+            print "end task1"
+            loop.quit()
+        
+        @tasklet
+        def task2(task):
+            for i in range(4):
+                print "sending message %d" % i
+                yield task.send_message(i)
+                yield Sleep(1)
+            yield task.send_message('end')
+            print "end task2"
+                
+        task1 = task1()
+        task1.start()
+        task2(task1).start()
+        loop.run()
+
     def test():
         print "== Checking memory usage =="
         def task1():
@@ -596,10 +681,11 @@ if __name__ == '__main__':
         print len(gc.get_objects()) - n
 
 #    test()
-    example1()
-    example2()
-    example3()
-    example4()
-    example6()
-    example7()
+#    example1()
+#    example2()
+#    example3()
+#    example4()
+#    example6()
+#    example7()
+    example8()
 
