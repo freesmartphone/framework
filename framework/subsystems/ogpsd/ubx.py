@@ -322,7 +322,7 @@ class UBXDevice( GPSDevice ):
             # Find the beginning of a UBX message
             start = self.buffer.find( chr( SYNC1 ) + chr( SYNC2 ) )
             if start > 0 or (start == -1 and len(self.buffer) > 1):
-                logger.info( "Discarded data not UBX %s" % repr(self.buffer[:start]) )
+                logger.debug( "Discarded data not UBX %s" % repr(self.buffer[:start]) )
                 self.buffer = self.buffer[start:]
                 continue
 

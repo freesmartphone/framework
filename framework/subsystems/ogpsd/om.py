@@ -42,6 +42,9 @@ class GTA02Device( UBXDevice ):
     def initializeDevice( self ):
         helpers.writeToFile( DEVICE_POWER_PATH, "1" )
 
+        # Wait for the device to be powered up
+        time.sleep(0.2)
+
         # Reset the device
         #self.send("CFG-RST", 4, {"nav_bbr" : 0xffff, "Reset" : 0x01})
 
