@@ -170,6 +170,7 @@ class Device( resource.Resource ):
         self.interface = DBUS_INTERFACE_DEVICE
         self.path = DBUS_OBJECT_PATH_DEVICE
         self.modemtype = modemtype
+        self.modem = None
         super( Device, self ).__init__( bus, self.path, name='GSM' )
         logger.info( "%s initialized. Serving %s at %s", self.__class__.__name__, self.interface, self.path )
 
@@ -217,6 +218,9 @@ class Device( resource.Resource ):
         """
         Disable (inherited from Resource)
         """
+        if self.modem is not None:
+            self.modem.close()
+            self.modem = None
         on_ok()
 
     def _suspend( self, on_ok, on_error ):

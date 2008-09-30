@@ -46,11 +46,23 @@ class AbstractModem( object ):
 
     def open( self, on_ok, on_error ):
         """
-        Trigger opening channels from inside mainloop.
+        Triggers opening the channels on this modem.
+
+        The actual opening will happen from inside mainloop.
         """
         self._counter = len( self._channels )
         if ( self._counter ):
             gobject.idle_add( self._initChannels, on_ok, on_error )
+
+    def close( self ): # SYNC
+        """
+        Closes the communication channels.
+        """
+        # FIXME: A really good way would be to stop accepting new commands,
+        # giving it time to drain the queues, and then closing all channels.
+        for channel in self._channels.values():
+            # FIXME: We're throwing away the result here :/
+            channel.close()
 
     def data( self, key, defaultValue=None ):
         return self._data.get( key, defaultValue )
