@@ -3,6 +3,9 @@
 	* [ogsmd] Fully implemented the Resource interface.
 	You can now open/close this an unlimited number of times.
 	(Note the FIXME though, there's a race condition still.)
+	* [ogsmd] Supress org.freesmartphone.GSM.SIM.NotFound as
+	a possible response to org.freesmartphone.GSM.SIM.RetrieveMessagebook,
+	instead send an empty list.
 
 2008-09-29	Jan Luebbe      <jluebbe@debian.org>
 

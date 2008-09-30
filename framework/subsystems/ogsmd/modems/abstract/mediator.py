@@ -662,9 +662,9 @@ class SimRetrieveMessagebook( SimMediator ):
 
     @logged
     def responseFromChannel( self, request, response ):
-        if response[-1] != "OK":
-            SimMediator.responseFromChannel( self, request, response )
-        else:
+        # some modems (TI Calypso for a start) do return +CMS Error: 321 here (not found)
+        # if you request a category for which no messages are found
+        if response[-1] in ( "OK", "+CMS ERROR: 321" ):
             result = []
             curmsg = None
             for line in response[:-1]:
@@ -684,8 +684,9 @@ class SimRetrieveMessagebook( SimMediator ):
 
                     sms = ogsmd.gsm.sms.decodeSMS( line, dir)
                     result.append( ( index, status, str(sms.oa), sms.ud, sms.featureMap ) )
-
             self._ok( result )
+        else:
+            SimMediator.responseFromChannel( self, request, response )
 
 #=========================================================================#
 class SimRetrieveMessage( SimMediator ):
