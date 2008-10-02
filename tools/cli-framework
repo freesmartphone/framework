@@ -60,6 +60,11 @@ gps = getObject( "org.freesmartphone.ogpsd", "/org/freedesktop/Gypsy" )
 # usage device object
 usage = getObject( "org.freesmartphone.ousaged", "/org/freesmartphone/Usage" )
 
+# framework
+frameworkiface = getInterface( \
+    "org.freesmartphone.frameworkd",
+    "/org/freesmartphone/Framework",
+    "org.freesmartphone.Framework")
 
 # ogsmd server
 hz = getInterface( \
