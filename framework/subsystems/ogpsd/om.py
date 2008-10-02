@@ -35,7 +35,7 @@ class GTA02Device( UBXDevice ):
 
         self.aidingData = persist.get( "ogpsd", "aidingdata" )
         if self.aidingData is None:
-            self.aidingData = { "almanac": {}, "ephemeris": {}, "position": {} }
+            self.aidingData = { "almanac": {}, "ephemeris": {}, "position": {}, "hui": {} }
 
         super( GTA02Device, self ).__init__( bus, gpschannel )
 
@@ -58,6 +58,7 @@ class GTA02Device( UBXDevice ):
         self.send("CFG-MSG", 3, {"Class" : CLIDPAIR["NAV-POSECEF"][0] , "MsgID" : CLIDPAIR["NAV-POSECEF"][1] , "Rate": 8 })
         self.send("CFG-MSG", 3, {"Class" : CLIDPAIR["AID-ALM"][0] , "MsgID" : CLIDPAIR["AID-ALM"][1] , "Rate": 1 })
         self.send("CFG-MSG", 3, {"Class" : CLIDPAIR["AID-EPH"][0] , "MsgID" : CLIDPAIR["AID-EPH"][1] , "Rate": 1 })
+        self.send("CFG-MSG", 3, {"Class" : CLIDPAIR["AID-HUI"][0] , "MsgID" : CLIDPAIR["AID-HUI"][1] , "Rate": 1 })
 
     def shutdownDevice(self):
         # Disable NAV-POSECEF, AID-REQ (AID-DATA), AID-ALM, AID-EPH messages
@@ -65,6 +66,7 @@ class GTA02Device( UBXDevice ):
         self.send("CFG-MSG", 3, {"Class" : CLIDPAIR["AID-REQ"][0] , "MsgID" : CLIDPAIR["AID-REQ"][1] , "Rate" : 0 })
         self.send("CFG-MSG", 3, {"Class" : CLIDPAIR["AID-ALM"][0] , "MsgID" : CLIDPAIR["AID-ALM"][1] , "Rate" : 0 })
         self.send("CFG-MSG", 3, {"Class" : CLIDPAIR["AID-EPH"][0] , "MsgID" : CLIDPAIR["AID-EPH"][1] , "Rate" : 0 })
+        self.send("CFG-MSG", 3, {"Class" : CLIDPAIR["AID-HUI"][0] , "MsgID" : CLIDPAIR["AID-HUI"][1] , "Rate": 0 })
 
         super( GTA02Device, self ).shutdownDevice()
 
@@ -108,6 +110,9 @@ class GTA02Device( UBXDevice ):
                   "POSACC" : pacc, "TM_CFG" : 0 , "WN" : wn , "TOW" : tow , "TOW_NS" : 0 , \
                   "TACC_MS" : tacc , "TACC_NS" : 0 , "CLKD" : 0 , "CLKDACC" : 0 , "FLAGS" : flags })
 
+        if self.aidingData.get( "hui", None ):
+            self.send("AID-HUI", 72, self.aidingData["hui"])
+
         # Feed gps with almanac
         if self.aidingData.get( "almanac", None ):
             for k, a in self.aidingData["almanac"].iteritems():
@@ -131,5 +136,9 @@ class GTA02Device( UBXDevice ):
         # Save only, if there are values
         if "SF1D0" in data:
             self.aidingData["ephemeris"][ data["SVID"] ] = data
+
+    def handle_AID_HUI( self, data ):
+        data = data[0]
+        self.aidingData["hui"] = data
 
 #vim: expandtab
