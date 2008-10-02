@@ -482,15 +482,12 @@ class UBXDevice( GPSDevice ):
 
     def handle_NAV_TIMEUTC( self, data ):
         data = data[0]
-#        self.time = ( data["Valid"], data["Year"], data["Month"], data["Day"],
-#                data["Hour"], data["Min"], data["Sec"] )
-#        self.TimeChanged( *self.time )
-        time = calendar.timegm( (data["Year"], data["Month"], data["Day"], data["Hour"], data["Min"], data["Sec"]) )
-        # Only update if we have the valid UTC time
+
         # We have valid GPS time (without leap seconds known) much earlier than
         # UTC and they differ by ~17secs at the moment. The leap seconds could
         # be cached so we would know the UTC time +- some seconds much earlier.
         if data["Valid"] & 0x04:
+            time = calendar.timegm( (data["Year"], data["Month"], data["Day"], data["Hour"], data["Min"], data["Sec"]) )
             self._updateTime( time )
 
     # Ignore ACK packets for now

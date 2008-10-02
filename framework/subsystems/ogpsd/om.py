@@ -60,10 +60,6 @@ class GTA02Device( UBXDevice ):
         self.send("CFG-MSG", 3, {"Class" : CLIDPAIR["AID-EPH"][0] , "MsgID" : CLIDPAIR["AID-EPH"][1] , "Rate": 1 })
 
     def shutdownDevice(self):
-        # Save collected aiding data
-        persist.set( "ogpsd", "aidingdata", self.aidingData )
-        persist.sync( "ogpsd" )
-
         # Disable NAV-POSECEF, AID-REQ (AID-DATA), AID-ALM, AID-EPH messages
         self.send("CFG-MSG", 3, {"Class" : CLIDPAIR["NAV-POSECEF"][0] , "MsgID" : CLIDPAIR["NAV-POSECEF"][1] , "Rate" : 0 })
         self.send("CFG-MSG", 3, {"Class" : CLIDPAIR["AID-REQ"][0] , "MsgID" : CLIDPAIR["AID-REQ"][1] , "Rate" : 0 })
@@ -74,6 +70,10 @@ class GTA02Device( UBXDevice ):
 
         helpers.writeToFile( DEVICE_POWER_PATH, "0" )
 
+        # Save collected aiding data
+        persist.set( "ogpsd", "aidingdata", self.aidingData )
+        persist.sync( "ogpsd" )
+
     def handle_NAV_POSECEF( self, data ):
         data = data[0]
         if data["Pacc"] < 100000:
@@ -83,10 +83,10 @@ class GTA02Device( UBXDevice ):
             self.aidingData["position"]["z"] = data["ECEF_Z"]
 
     def handle_AID_DATA( self, data ):
-        pos = self.aidingData["position"]
+        pos = self.aidingData.get("position", None)
 
-        # Position accuracy needs to rough, because device may have been moved
-        pacc = 30000000 # in cm (300 KM)
+        # Let's just try with 3km here and see how well this goes
+        pacc = 300000 # in cm (3 km)
 
         # GPS week number
         wn = int((time.time() - time.mktime(time.strptime("5 Jan 1980", "%d %b %Y"))) / (86400 * 7))
@@ -95,22 +95,27 @@ class GTA02Device( UBXDevice ):
         tow = int(time.time() - (time.mktime(time.strptime("5 Jan 1980", "%d %b %Y")) + wn * 86400 * 7)) * 1000
 
         # Time accuracy needs to be changed, because the RTC is imprecise
-        tacc = 120000 # in ms (2 minutes)
+        tacc = 60000 # in ms (1 minute)
+
+        # We don't want the position to be valid if we don't know it
+        if pos is None:
+            flags = 0x02
+        else:
+            flags = 0x03
 
         # Feed GPS with position and time
-        if pos:
-            self.send("AID-INI", 48, {"X" : pos["x"] , "Y" : pos["y"] , "Z" : pos["z"], "POSACC" : pacc, \
-                      "TM_CFG" : 0 , "WN" : wn , "TOW" : tow , "TOW_NS" : 0 , "TACC_MS" : tacc , "TACC_NS" : 0 , \
-                      "CLKD" : 0 , "CLKDACC" : 0 , "FLAGS" : 0x3 })
+        self.send("AID-INI", 48, {"X" : pos.get("x", 0) , "Y" : pos.get("y", 0) , "Z" : pos.get("z", None), \
+                  "POSACC" : pacc, "TM_CFG" : 0 , "WN" : wn , "TOW" : tow , "TOW_NS" : 0 , \
+                  "TACC_MS" : tacc , "TACC_NS" : 0 , "CLKD" : 0 , "CLKDACC" : 0 , "FLAGS" : flags })
 
         # Feed gps with almanac
-        if self.aidingData["almanac"]:
+        if self.aidingData.get( "almanac", None ):
             for k, a in self.aidingData["almanac"].iteritems():
                 logger.debug("Loaded almanac for SV %d" % a["SVID"])
                 self.send("AID-ALM", 40, a);
 
         # Feed gps with ephemeris
-        if self.aidingData["ephemeris"]:
+        if self.aidingData.get( "ephemeris", None ):
             for k, a in self.aidingData["ephemeris"].iteritems():
                 logger.debug("Loaded ephemeris for SV %d" % a["SVID"])
                 self.send("AID-EPH", 104, a);
