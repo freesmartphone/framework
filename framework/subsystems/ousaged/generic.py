@@ -105,6 +105,7 @@ class AbstractResource( object ):
             logger.info( "Disabled %s in %.1f seconds", self.name, time.time()-ts )
             self.isEnabled = False
 
+    @tasklet.tasklet
     def setPolicy( self, policy ):
         if not policy in ['disabled', 'auto', 'enabled']:
             raise PolicyUnknownError( "Unknown policy %s" % ( policy ) )
@@ -113,7 +114,7 @@ class AbstractResource( object ):
                 raise NotAllowedError( "Can't change to policy %s for %s" % ( policy, self.name ) )
         if self.policy != policy:
             self.policy = policy
-            self._update()
+            yield self._update()
             self.usageControl.ResourceChanged(
                 self.name, self.isEnabled, {"policy": self.policy, "refcount": len( self.users )}
             )
@@ -294,9 +295,9 @@ class GenericUsageControl( dbus.service.Object ):
     def GetResourcePolicy( self, resourcename ):
         return self._getResource( resourcename ).policy
 
-    @dbus.service.method( DBUS_INTERFACE, "ss", "" )
-    def SetResourcePolicy( self, resourcename, policy ):
-        self._getResource( resourcename ).setPolicy( policy )
+    @dbus.service.method( DBUS_INTERFACE, "ss", "", async_callbacks=( "dbus_ok", "dbus_error" ) )
+    def SetResourcePolicy( self, resourcename, policy, dbus_ok, dbus_error ):
+        self._getResource( resourcename ).setPolicy( policy ).start_dbus( dbus_ok, dbus_error )
 
     @dbus.service.method( DBUS_INTERFACE, "s", "", sender_keyword='sender', async_callbacks=( "dbus_ok", "dbus_error" ) )
     def RequestResource( self, resourcename, sender, dbus_ok, dbus_error ):
