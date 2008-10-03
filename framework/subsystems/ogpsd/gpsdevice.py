@@ -191,12 +191,10 @@ class GPSDevice( resource.Resource ):
     # Gypsy Server interface
     # This should be implemented somewhere else once we allow different devices
     @dbus.service.method( DBUS_INTERFACE_PREFIX + ".Server", "s", "o" )
-    @resource.checkedsyncmethod
     def Create( self, device ):
         return DBUS_PATH_PREFIX
 
     @dbus.service.method( DBUS_INTERFACE_PREFIX + ".Server", "o", "" )
-    @resource.checkedsyncmethod
     def Shutdown( self, path ):
         pass
 
