@@ -11,8 +11,11 @@ GPLv2
 __version__ = "0.0.0"
 
 from gpsdevice import GPSDevice
+from framework import resource
 import struct
 import calendar
+import dbus
+import dbus.service
 
 import logging
 logger = logging.getLogger('ogpsd')
@@ -269,6 +272,7 @@ class UBXDevice( GPSDevice ):
 
         self.ack = {"CFG-PRT" : 0}
         self.ubx = {}
+        self.debugfilter = {}
 
     def initializeDevice( self ):
         # Use high sensitivity mode
@@ -413,6 +417,8 @@ class UBXDevice( GPSDevice ):
                 method( data )
             except Exception, e:
                 logger.error( "Error in %s method: %s" % ( methodname, e ) )
+        if self.debugfilter.get( format[-1], False ):
+            self.DebugPacket( format[-1], length, repr( data ) )
 
     def handle_CFG_PRT( self, data ):
         data = data[1]
@@ -493,9 +499,28 @@ class UBXDevice( GPSDevice ):
     # Ignore ACK packets for now
     def handle_ACK_ACK( self, data ):
         data = data[0]
-        logger.debug("Got ACK %s" % data )
+        logger.debug( "Got ACK %s" % data )
         if (data["ClsID"], data["MsgID"]) == CLIDPAIR["CFG-PRT"]:
           self.ack["CFG-PRT"] = 1
 
+    # FIXME use a better data format
+    @dbus.service.method( "org.freesmartphone.GPS.UBX", "sis", "")
+    @resource.checkedsyncmethod
+    def SendDebugPacket( self, clid, length, data ):
+        self.send( clid, length, eval( data, {"__builtins__": None}, None ) )
+
+    @dbus.service.method( "org.freesmartphone.GPS.UBX", "s", "b")
+    @resource.checkedsyncmethod
+    def GetDebugFilter( self, clid ):
+        return self.debugfilter.get( clid, False )
+
+    @dbus.service.method( "org.freesmartphone.GPS.UBX", "sb", "")
+    @resource.checkedsyncmethod
+    def SetDebugFilter( self, clid, state ):
+        self.debugfilter[clid] = state
+
+    @dbus.service.signal( "org.freesmartphone.GPS.UBX", "sis" )
+    def DebugPacket( self, clid, length, data ):
+        pass
 
 #vim: expandtab
