@@ -13,7 +13,7 @@ Module: resource
 """
 
 MODULE_NAME = "frameworkd.resource"
-__version__ = "0.2.1"
+__version__ = "0.2.2"
 
 from framework.patterns import decorator
 
@@ -95,7 +95,8 @@ class Resource( dbus.service.Object ):
             try:
                 usaged = self.bus.get_object( "org.freesmartphone.ousaged", "/org/freesmartphone/Usage" )
             except dbus.exceptions.DBusException:
-                logger.warning( "Can't register resource %s -- ousaged is not present", name )
+                logger.warning( "Can't register resource %s since ousaged is not present. Enabling device", name )
+                gobject.idle_add( self.Enable, lambda: None, lambda dummy: None )
             else:
                 usaged = dbus.Interface( usaged, "org.freesmartphone.Usage" )
                 def on_reply( *arg ):
