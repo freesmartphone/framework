@@ -31,6 +31,7 @@ class FunctionMetaClass(type):
 #============================================================================#
 class Function(object):
 #============================================================================#
+    """Base class for all the rules file functions"""
     __metaclass__ = FunctionMetaClass
     functions = {}
 
@@ -82,6 +83,11 @@ class Not(Function):
     name = 'Not'
     def __call__(self, a):
         return ~a
+        
+class Or(Function):
+    name = 'Or'
+    def __call__(self, a, b):
+        return a | b
 
 class HasAttr(Function):
     name = 'HasAttr'
@@ -92,10 +98,14 @@ class HasAttr(Function):
 def as_rule(r):
     from rule import Rule # needs to be here to prevent circular import
     assert isinstance(r, dict), type(r)
-    trigger = r['trigger']
+    # We have to cases of rules :
+    # Those who can be untriggered ('while')
+    # and those who can't ('trigger')
+    can_untrigger = 'while' in r
+    trigger = r['trigger'] if not can_untrigger else r['while']
     filters = r.get('filters', [])
     actions = r['actions']
-    return Rule(trigger, filters, actions)
+    return Rule(trigger, filters, actions, can_untrigger=can_untrigger)
 
 #============================================================================#
 class Parser(object):

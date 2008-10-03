@@ -24,11 +24,11 @@ class Filter(object):
        will be called or not. When a rule is triggered, the trigger generate a dict
        of values, that can be later used by the filter.
 
-       All the filters need to implement the __call__ method, taking an arbitrary 
+       All the filters need to implement the filter method, taking an arbitrary 
        number of keywords argument (**kargs) representing the event generated dict
        of values. The method returns True if the filter accept the event, False otherwise.
     """
-    def __call__(self, **kargs):
+    def filter(self, **kargs):
         raise NotImplementedError
 
     def __invert__(self):
@@ -37,6 +37,11 @@ class Filter(object):
            The __invert__ method is called by the `~` operator.
         """
         return InvertFilter(self)
+        
+    def __or__(self, f):
+        """Return a filter that is the logical OR operation between this filter and an other filter
+        """
+        return OrFilter(self, f)
 
 #============================================================================#
 class AttributeFilter(Filter):
@@ -46,7 +51,7 @@ class AttributeFilter(Filter):
     """
     def __init__(self, **kargs):
         self.kargs = kargs
-    def __call__(self, **kargs):
+    def filter(self, **kargs):
         return all( key in kargs and kargs[key] == value for (key, value) in self.kargs.items() )
 
     def __repr__(self):
@@ -58,10 +63,21 @@ class InvertFilter(Filter):
     """This filer returns the negation of the argument filter"""
     def __init__(self, filter):
         super(InvertFilter, self).__init__()
-        self.filter = filter
-    def __call__(self, **kargs):
-        return not self.filter(**kargs)
+        self.__filter = filter
+    def filter(self, **kargs):
+        return not self.__filter.filter(**kargs)
 
     def __repr__(self):
-        return "~(%s)" % self.filter
+        return "~(%s)" % self.__filter
+        
+class OrFilter(Filter):
+    """This filter returns the OR logical operation between two filters"""
+    def __init__(self, f1, f2):
+        super(OrFilter, self).__init__()
+        self.f1 = f1
+        self.f2 = f2
+    def filter(self, **kargs):
+        return self.f1.filter(**kargs) or self.f2.filter(**kargs)
+    def __repr__(self):
+        return "Or(%s, %s)" % (self.f1, self.f2)
 

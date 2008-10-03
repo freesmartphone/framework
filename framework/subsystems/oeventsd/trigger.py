@@ -32,11 +32,14 @@ class TriggerMetaClass(type):
 #============================================================================#
 class Trigger(object):
 #============================================================================#
-    """A trigger is the initial event that will activate a rule.
+    """A trigger is the initial event that can activate a rule.
 
-       When a trigger is activated, it call the rule __call__ method,
+       When a trigger is activated, it call the rule `trigger` method,
        giving a set of keywork arguments (the signal attributes to the method)
        Then the rule can decide to start or not its actions.
+       
+       A trigger can also optionaly have a an `untrigger` method. This method will
+       call the `untrigger` method of the connected rules.
     """
     __metaclass__ = TriggerMetaClass
 
@@ -55,18 +58,28 @@ class Trigger(object):
         """
         self.listeners.append(rule)
 
-    def __call__(self, **kargs):
+    def trigger(self, **kargs):
         """Trigger all the connected rules"""
         for rule in self.listeners:
-            rule.on_signal(**kargs)
+            rule.trigger(**kargs)
+            
+    def untrigger(self, **kargs):
+        """untrigger all the connected rules"""
+        for rule in self.listeners:
+            rule.untrigger(**kargs)
 
-    def init(self):
-        """initialize the trigger
+    def enable(self):
+        """Enable the trigger
 
            The trigger won't trigger the connect rules before this
            method has been called
         """
         pass
+        
+    def disable(self):
+        """Disable the trigger"""
+        pass
+
 
 #============================================================================#
 class DBusTrigger(Trigger):
@@ -95,15 +108,18 @@ class DBusTrigger(Trigger):
         self.interface = interface
         self.signal = signal
 
-    def init(self):
+    def enable(self):
         # Connect to the DBus signal
         logger.info("connect trigger to dbus signal %s %s", self.obj, self.signal)
-        self.bus.add_signal_receiver(
+        self.dbus_match = self.bus.add_signal_receiver(
             self.on_signal,
             dbus_interface=self.interface,
             signal_name=self.signal
         )
+        
+    def disable(self):
+        self.dbus_match.remove()
 
     def on_signal(self, *args):
-        self(args=args)
+        self.trigger(args=args)
 

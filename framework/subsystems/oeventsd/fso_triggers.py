@@ -37,7 +37,7 @@ class CallStatusTrigger(DBusTrigger):
         )
     def on_signal(self, id, status, properties):
         logger.info("Receive CallStatus, status = %s", status)
-        self(id=id, status=status, properties=properties)
+        self.trigger(id=id, status=status, properties=properties)
 
     def __repr__(self):
         return "CallStatus"
@@ -62,7 +62,7 @@ class IncomingMessageTrigger(DBusTrigger):
         )
     def on_signal(self, index):
         logger.info("Receive IncomingMessage on index = %s" % index)
-        self(index=index)
+        self.trigger(index=index)
 
     def __repr__(self):
         return "IncomingMessage"
@@ -87,7 +87,7 @@ class PowerStatusTrigger(DBusTrigger):
         )
     def on_signal(self, status):
         logger.info("Receive PowerStatus, status = %s", status)
-        self(status=status)
+        self.trigger(status=status)
 
     def __repr__(self):
         return "PowerStatus"
@@ -112,7 +112,7 @@ class IdleStateTrigger(DBusTrigger):
         )
     def on_signal(self, status):
         logger.info("Receive IdleState, status = %s", status)
-        self(status=status)
+        self.trigger(status=status)
 
     def __repr__(self):
         return "IdleState"
@@ -140,7 +140,7 @@ class TimeTrigger(DBusTrigger):
     def on_signal(self, year, mon, day, hour, min, sec, wday, yday, isdst):
         if self.hour == hour and self.minute == min:
             logger.debug("%s triggered", self)
-            self()
+            self.trigger()
 
     def __repr__(self):
         return "Time(%d:%d)" % (self.hour, self.minute)
@@ -165,7 +165,7 @@ class InputTrigger(DBusTrigger):
         )
     def on_signal(self, switch, event, duration):
         logger.debug("%s triggered", self)
-        self(switch=switch, event=event, duration=duration)
+        self.trigger(switch=switch, event=event, duration=duration)
 
     def __repr__(self):
         return "InputTrigger"

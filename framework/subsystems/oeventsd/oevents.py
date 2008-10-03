@@ -55,7 +55,7 @@ class EventsManager(dbus.service.Object):
     def add_rule(self, rule):
         """Add a new rule, and acticate it"""
         self.rules.append(rule)
-        rule.init()
+        rule.enable()
 
 #============================================================================#
 def factory(prefix, controller):

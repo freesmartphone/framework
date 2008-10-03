@@ -24,41 +24,35 @@ import logging
 logger = logging.getLogger('oeventsd')
 
 #============================================================================#
-class AudioAction(DBusAction):
+class AudioAction(Action):
 #============================================================================#
     """
     A dbus action on the freesmartphone audio device
     """
-    def __init__(self, scenario = None, action = 'play'):
-        bus = dbus.SystemBus()
-        service = 'org.freesmartphone.odeviced'
-        obj = '/org/freesmartphone/Device/Audio'
-        interface = 'org.freesmartphone.Device.Audio'
-        method = 'PlaySound' if action == 'play' else 'StopSound'
-        super(AudioAction, self).__init__(bus, service, obj, interface, method, scenario)
+    def __init__(self, path):
+        super(AudioAction, self).__init__()
+        self.path = path
+    def do(self, **kargs):
+        DBusAction(
+            dbus.SystemBus(),
+            'org.freesmartphone.odeviced',
+            '/org/freesmartphone/Device/Audio',
+            'org.freesmartphone.Device.Audio',
+            'PlaySound', self.path).do()
+    def undo(self, **kargs):
+        DBusAction(
+            dbus.SystemBus(),
+            'org.freesmartphone.odeviced',
+            '/org/freesmartphone/Device/Audio',
+            'org.freesmartphone.Device.Audio',
+            'StopSound', self.path).do()
 
 #============================================================================#
-class PlaySound(AudioAction):
-#============================================================================#
-    function_name = 'PlaySound'
-    def __init__(self, file):
-        super(PlaySound, self).__init__(file, 'play')
-
-#============================================================================#
-class StopSound(AudioAction):
-#============================================================================#
-    function_name = 'StopSound'
-    def __init__(self, file):
-        super(StopSound, self).__init__(file, 'stop')
-
-#============================================================================#
-class AudioScenarioAction(DBusAction):
+class SetAudioScenarioAction(DBusAction):
 #============================================================================#
     """
     A dbus action on the freesmartphone audio device
     """
-    function_name = 'SetScenario'
-
     def __init__(self, scenario = None, action = 'set' ):
         bus = dbus.SystemBus()
         service = 'org.freesmartphone.odeviced'
@@ -69,9 +63,24 @@ class AudioScenarioAction(DBusAction):
             super(AudioScenarioAction, self).__init__(bus, service, obj, interface, "SetScenario", scenario)
         else:
             logger.error( "unhandled action '%s' for Audio scenario" % action )
+            
+class AudioScenarioAction(Action):
+    function_name = 'SetScenario'
+    def __init__(self, scenario):
+        self.scenario = scenario
+    def do(self, **kargs):
+        logger.info("Set Audio Scenario %s", self.scenario)
+        # TODO: retreive the current scenario so that we can use it when we reset the scenario
+        self.backup_scenario = 'stereoout'
+        SetAudioScenarioAction(self.scenario).do()
+    def undo(self, **kargs):
+        logger.info("Revert Audio Scenario to %s", self.backup_scenario)
+        SetAudioScenarioAction(self.backup_scenario).do()
+    def __repr__(self):
+        return "SetScenario(%s)" % self.scenario
 
 #============================================================================#
-class LedAction(DBusAction):
+class LedAction(Action):
 #============================================================================#
     """
     A dbus action on a LED device
@@ -79,18 +88,28 @@ class LedAction(DBusAction):
     function_name = 'SetLed'
 
     def __init__(self, device, action):
+        self.device = device
+        self.action = action
+    def set(self, action):
         bus = dbus.SystemBus()
         service = 'org.freesmartphone.odeviced'
-        obj = '/org/freesmartphone/Device/LED/%s' % device
+        obj = '/org/freesmartphone/Device/LED/%s' % self.device
         interface = 'org.freesmartphone.Device.LED'
         if action == 'light':
-            super(LedAction, self).__init__(bus, service, obj, interface, 'SetBrightness', 100)
+            return DBusAction(bus, service, obj, interface, 'SetBrightness', 100).do()
         elif action == 'blink':
-            super(LedAction, self).__init__(bus, service, obj, interface, 'SetBlinking', 100, 1500)
+            return DBusAction(bus, service, obj, interface, 'SetBlinking', 100, 1500).do()
         elif action == 'dark':
-             super(LedAction, self).__init__(bus, service, obj, interface, 'SetBrightness', 0)
+            return DBusAction(bus, service, obj, interface, 'SetBrightness', 0).do()
         else:
             logger.error( "unhandled action '%s' for Led" % action )
+    def do(self, **kargs):
+        # TODO: actually retrieve the current state of the led
+        self.backup_action = 'dark'
+        self.set(self.action)
+    def undo(self, **kargs):
+        self.set(self.backup_action)
+        
 
 #============================================================================#
 class DisplayBrightnessAction(DBusAction):
@@ -109,47 +128,36 @@ class DisplayBrightnessAction(DBusAction):
         super(DisplayBrightnessAction, self).__init__(bus, service, obj, interface, 'SetBrightness', brightness)
 
 #============================================================================#
-class VibratorAction(DBusAction):
+class VibratorAction(Action):
 #============================================================================#
     """
     A dbus action on the Openmoko Neo Vibrator device
     """
+    function_name = 'Vibration'
     # FIXME device specific, needs to go away from here / made generic (parametric? just take the first?)
-    def __init__(self, target = 'neo1973_vibrator', action = 'start'):
-        bus = dbus.SystemBus()
-        service = 'org.freesmartphone.odeviced'
-        obj = '/org/freesmartphone/Device/LED/%s' % target
-        interface = 'org.freesmartphone.Device.LED'
-        if action == 'start':
-            super(VibratorAction, self).__init__(bus, service, obj, interface, 'SetBlinking', 300, 700)
-        else:
-            super(VibratorAction, self).__init__(bus, service, obj, interface, 'SetBrightness', 0)
-
-#============================================================================#
-class StartVibrationAction(VibratorAction):
-#============================================================================#
-    function_name = 'StartVibration'
-    def __init__(self):
-        super(StartVibrationAction, self).__init__(action='start')
-
-#============================================================================#
-class StopVibrationAction(VibratorAction):
-#============================================================================#
-    function_name = 'StopVibration'
-    def __init__(self):
-        super(StartVibrationAction, self).__init__(action='stop')
+    def __init__(self, target = 'neo1973_vibrator'):
+        self.target = target
+    def do(self, **kargs):
+        DBusAction(dbus.SystemBus(), 
+                    'org.freesmartphone.odeviced',
+                    '/org/freesmartphone/Device/LED/%s' % self.target,
+                    'org.freesmartphone.Device.LED',
+                    'SetBlinking', 300, 700).do()
+                    
+    def undo(self, **kargs):
+        DBusAction(dbus.SystemBus(), 
+                    'org.freesmartphone.odeviced',
+                    '/org/freesmartphone/Device/LED/%s' % self.target,
+                    'org.freesmartphone.Device.LED',
+                    'SetBrightness', 0).do()
 
 #=========================================================================#
 class RingToneAction(Action):
 #=========================================================================#
     function_name = 'RingTone'
-
-    def __init__( self, cmd = 'play' ):
-        self.cmd = cmd
-
-    def __call__(self, **kargs):
-        logger.info( "RingToneAction %s", self.cmd )
-
+        
+    def do(self, **kargs):
+        logger.info( "RingToneAction play" )
         # We use the global Controller class to directly get the object
         prefs = Controller.object( "/org/freesmartphone/Preferences" )
         if prefs is None:
@@ -158,23 +166,23 @@ class RingToneAction(Action):
         phone_prefs = prefs.GetService( "phone" )
         ring_tone = phone_prefs.GetValue( "ring-tone" )
         ring_volume = phone_prefs.GetValue( "ring-volume" )
-        sound_path = os.path.join( installprefix, "share/sounds/", ring_tone )
+        self.sound_path = os.path.join( installprefix, "share/sounds/", ring_tone )
 
-        if self.cmd == "play":
-            logger.info( "Start ringing : tone=%s, volume=%s", ring_tone, ring_volume )
-            AudioAction(sound_path, "play")()
-            VibratorAction( action="start" )()
-
-        elif self.cmd == "stop":
-            logger.info( "Stop ringing : tone=%s, volume=%s", ring_tone, ring_volume )
-            AudioAction( sound_path, "stop" )()
-            VibratorAction( action="stop" )()
-        else:
-            logger.error( "Unknown RingToneAction!" )
-            assert False, "unknown ring tone action"
+        logger.info( "Start ringing : tone=%s, volume=%s", ring_tone, ring_volume )
+        # XXX: Actually we don't use the volume info here !!!
+        self.audio_action = AudioAction(self.sound_path)
+        self.vibrator_action = VibratorAction()
+        
+        self.audio_action.do()
+        self.vibrator_action.do()
+        
+    def undo(self, **kargs):
+        logger.info( "RingToneAction stop" )
+        self.audio_action.undo()
+        self.vibrator_action.undo()
 
     def __repr__(self):
-        return "RingToneAction(%s)" % self.cmd
+        return "RingToneAction()"
 
 #=========================================================================#
 class MessageToneAction(Action):
@@ -184,7 +192,7 @@ class MessageToneAction(Action):
     def __init__( self, cmd = 'play' ):
         self.cmd = cmd
 
-    def __call__(self, **kargs):
+    def do(self, **kargs):
         logger.info( "MessageToneAction %s", self.cmd )
 
         # We use the global Controller class to directly get the object
@@ -221,7 +229,7 @@ class CommandAction(Action):
     def __init__( self, cmd = 'true' ):
         self.cmd = cmd
 
-    def __call__(self, **kargs):
+    def do(self, **kargs):
         logger.info( "CommandAction %s", self.cmd )
 
         # FIXME check return value

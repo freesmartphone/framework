@@ -31,52 +31,25 @@
     trigger: IncomingMessage()
     actions: MessageTone(play)
 -
-    trigger: CallStatus()
+    while: CallStatus()
     filters: HasAttr(status, "incoming")
-    actions: RingTone(play)
+    actions: RingTone()
 -
-    trigger: CallStatus()
-    filters: Not(HasAttr(status, "incoming"))
-    actions: RingTone(stop)
--
-    trigger: CallStatus()
-    filters: HasAttr(status, "outgoing")
+    while: CallStatus()
+    filters: Or(HasAttr(status, "outgoing"), HasAttr(status, "active"))
     actions: SetScenario(gsmhandset)
 -
-    trigger: CallStatus()
-    filters: HasAttr(status, "active")
-    actions: SetScenario(gsmhandset)
--
-    trigger: CallStatus()
-    filters: HasAttr(status, "release")
-    actions: SetScenario(stereoout)
--
-    #
-    # Charging LED Spec
-    #
-    trigger: PowerStatus()
+    while: PowerStatus()
     filters: HasAttr(status, "Charging")
-    actions: 
-            - SetLed("gta02_power_blue", "dark")
-            - SetLed("gta02_power_orange", "light")
+    actions: SetLed("gta02_power_orange", "light")
 -
-    trigger: PowerStatus()
-    filters: HasAttr(status, "Discharging")
-    actions:
-            - SetLed("gta02_power_blue", "dark")
-            - SetLed("gta02_power_orange", "dark")
--
-    trigger: PowerStatus()
-    filters: HasAttr(status, "Full")
-    actions:
-             - SetLed("gta02_power_blue", "light")
-             - SetLed("gta02_power_orange", "dark")
--
-    trigger: PowerStatus()
+    while: PowerStatus()
     filters: HasAttr(status, "Critical")
-    actions:
-             - SetLed("gta02_power_blue", "dark")
-             - SetLed("gta02_power_orange", "blink")
+    actions: SetLed("gta02_power_orange", "blink")
+-
+    while: PowerStatus()
+    filters: HasAttr(status, "Full")
+    actions: SetLed("gta02_power_blue", "light")
 -
     #
     # Headset Audio Scenario Support

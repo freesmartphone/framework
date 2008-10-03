@@ -33,29 +33,33 @@ class ActionMetaClass(type):
 #============================================================================#
 class Action(object):
 #============================================================================#
-    """
-    An action is a functor object that is called by a rule
+    """Base class for Action objects
+    
+    An action has a `do` and `undo` methods.
+    By default the undo method will do nothing, but if it make sense, the action
+    should define it.
     """
     __metaclass__ = ActionMetaClass
 
     def __init__(self):
         pass
-    def __call__(self, **kargs):
-        logger.info("%s called", self)
+    def do(self, **kargs):
+        pass
+    def undo(self, **kargs):
+        pass
     def __repr__(self):
         return "unamed action"
 
 #============================================================================#
 class DebugAction(Action):
 #============================================================================#
-    """
-    A special action for debugging purposes
+    """A special action for debugging purposes
     """
     function_name = 'Debug'
 
     def __init__(self, msg):
         self.msg = msg
-    def __call__(self, **kargs):
+    def do(self, **kargs):
         logger.info("DebugAction : %s", self.msg)
     def __repr__(self):
         return "Debug(\"%s\")" % self.msg
@@ -63,8 +67,7 @@ class DebugAction(Action):
 #============================================================================#
 class DBusAction(Action):
 #============================================================================#
-    """
-    A special action that will call a DBus method
+    """A special action that will call a DBus method.
     """
     def __init__(self, bus, service, obj, interface, method, *args):
         super(DBusAction, self).__init__()
@@ -81,7 +84,7 @@ class DBusAction(Action):
         self.method = method
         self.args = args
 
-    def __call__(self, **kargs):
+    def do(self, **kargs):
         # Get the Dbus object
         object = self.bus.get_object(self.service, self.obj)
         iface = dbus.Interface(object, dbus_interface=self.interface)
