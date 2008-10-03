@@ -418,7 +418,7 @@ class UBXDevice( GPSDevice ):
             except Exception, e:
                 logger.error( "Error in %s method: %s" % ( methodname, e ) )
         if self.debugfilter.get( format[-1], False ):
-            self.DebugPacket( format[-1], length, repr( data ) )
+            self.DebugPacket( format[-1], length, data )
 
     def handle_CFG_PRT( self, data ):
         data = data[1]
@@ -503,11 +503,10 @@ class UBXDevice( GPSDevice ):
         if (data["ClsID"], data["MsgID"]) == CLIDPAIR["CFG-PRT"]:
           self.ack["CFG-PRT"] = 1
 
-    # FIXME use a better data format
-    @dbus.service.method( "org.freesmartphone.GPS.UBX", "sis", "")
+    @dbus.service.method( "org.freesmartphone.GPS.UBX", "siaa{sv}", "")
     @resource.checkedsyncmethod
     def SendDebugPacket( self, clid, length, data ):
-        self.send( clid, length, eval( data, {"__builtins__": None}, None ) )
+        self.send( clid, length, data )
 
     @dbus.service.method( "org.freesmartphone.GPS.UBX", "s", "b")
     @resource.checkedsyncmethod
@@ -519,7 +518,7 @@ class UBXDevice( GPSDevice ):
     def SetDebugFilter( self, clid, state ):
         self.debugfilter[clid] = state
 
-    @dbus.service.signal( "org.freesmartphone.GPS.UBX", "sis" )
+    @dbus.service.signal( "org.freesmartphone.GPS.UBX", "siaa{sv}" )
     def DebugPacket( self, clid, length, data ):
         pass
 
