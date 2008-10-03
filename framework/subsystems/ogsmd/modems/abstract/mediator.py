@@ -330,6 +330,32 @@ class DeviceGetFeatures( DeviceMediator ):
             result["FAX"] = response[2]
         self._ok( result )
 
+#=========================================================================#
+class DeviceGetSimBuffersSms( DeviceMediator ):
+#=========================================================================#
+    def trigger( self ):
+        self._commchannel.enqueue( "+CNMI?", self.responseFromChannel, self.errorFromChannel )
+
+    @logged
+    def responseFromChannel( self, request, response ):
+        if ( response[-1] == "OK" ):
+            mode, mt, bm, ds, bfr = safesplit( self._rightHandSide( response[0] ), ',' )
+            sim_buffers_sms = ( int( mt ) < 2 )
+            self._ok( sim_buffers_sms )
+        else:
+            DeviceMediator.responseFromChannel( self, request, response )
+
+#=========================================================================#
+class DeviceSetSimBuffersSms( DeviceMediator ):
+#=========================================================================#
+    def trigger( self ):
+        self._object.modem.setData( "sim-buffers-sms", self.sim_buffers_sms )
+        if self._object.modem.data( "sim-buffers-sms" ):
+            params = self._object.modem.data( "sms-buffered-cb" )
+        else:
+            params = self._object.modem.data( "sms-direct-cb" )
+        self._commchannel.enqueue( "+CNMI=%s" % params, self.responseFromChannel, self.errorFromChannel )
+
 #
 # SIM Mediators
 #

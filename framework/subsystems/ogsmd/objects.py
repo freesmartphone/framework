@@ -268,6 +268,18 @@ class Device( resource.Resource ):
     def SetAntennaPower( self, power, dbus_ok, dbus_error ):
         mediator.DeviceSetAntennaPower( self, dbus_ok, dbus_error, power=power )
 
+    @dbus.service.method( DBUS_INTERFACE_DEVICE, "", "b",
+                          async_callbacks=( "dbus_ok", "dbus_error" ) )
+    @resource.checkedmethod
+    def GetSimBuffersSms( self, dbus_ok, dbus_error ):
+        mediator.DeviceGetSimBuffersSms( self, dbus_ok, dbus_error )
+
+    @dbus.service.method( DBUS_INTERFACE_DEVICE, "b", "",
+                          async_callbacks=( "dbus_ok", "dbus_error" ) )
+    @resource.checkedmethod
+    def SetSimBuffersSms( self, sim_buffers_sms, dbus_ok, dbus_error ):
+        mediator.DeviceSetSimBuffersSms( self, dbus_ok, dbus_error, sim_buffers_sms=sim_buffers_sms )
+
     #
     # dbus org.freesmartphone.GSM.SIM
     #

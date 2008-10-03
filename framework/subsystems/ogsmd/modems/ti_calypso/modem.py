@@ -30,13 +30,13 @@ class TiCalypso( AbstractModem ):
         AbstractModem.__init__( self, *args, **kwargs )
 
         # VC 1
-        self._channels["CALL"] = CallChannel( self.pathfactory, "ogsmd.call" )
+        self._channels["CALL"] = CallChannel( self.pathfactory, "ogsmd.call", modem=self )
         # VC 2
-        self._channels["UNSOL"] = UnsolicitedResponseChannel( self.pathfactory, "ogsmd.unsolicited" )
+        self._channels["UNSOL"] = UnsolicitedResponseChannel( self.pathfactory, "ogsmd.unsolicited", modem=self )
         # VC 3
-        self._channels["MISC"] = MiscChannel( self.pathfactory, "ogsmd.misc" )
+        self._channels["MISC"] = MiscChannel( self.pathfactory, "ogsmd.misc", modem=self )
         # VC 4
-        # FIXME GPRS
+        # FIXME pre-allocate GPRS channel for pppd?
 
         # configure channels
         self._channels["UNSOL"].setDelegate( UnsolicitedResponseDelegate( self._object, mediator ) )
@@ -55,7 +55,7 @@ class TiCalypso( AbstractModem ):
         return str( muxer.AllocChannel( name ) )
 
     def dataPort( self ):
-        # FIXME remove duplication
+        # FIXME remove duplication and just use pathfactory
         muxer = self._bus.get_object( "org.pyneo.muxer", "/org/pyneo/Muxer" )
         return muxer.AllocChannel( "ogsmd.gprs" )
 

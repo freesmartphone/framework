@@ -178,7 +178,6 @@ class UnsolicitedResponseChannel( CalypsoModemChannel ):
 
         c = self._commands["sim"]
         c.append( "%CBHZ=1" ) # home zone cell broadcast: activate automatic (send frequently, not just once)
-        c.append( "+CNMI=2,1,2,1,1" ) # SMS handling: store on SIM, then notify. Cell Broadcasts: notify immediately (already sent?)
 
         c = self._commands["suspend"]
         c.append( "+CTZU=0" )
@@ -186,7 +185,10 @@ class UnsolicitedResponseChannel( CalypsoModemChannel ):
         c.append( "+CREG=0" )
         c.append( "+CGREG=0" )
         c.append( "+CGEREP=0,0" )
-        c.append( "+CNMI=2,1,0,0,0" )
+        if self._modem.data( "sim-buffers-sms" ):
+            c.append( "+CNMI=%s" % self._modem.data( "sms-buffered-nocb" ) )
+        else:
+            c.append( "+CNMI=%s" % self._modem.data( "sms-direct-nocb" ) )
         c.append( "%CSQ=0" )
         c.append( "%CGEREP=0" )
         c.append( "%CGREG=0" )
@@ -198,9 +200,8 @@ class UnsolicitedResponseChannel( CalypsoModemChannel ):
         c.append( "+CREG=2" )
         c.append( "+CGREG=2" )
         c.append( "+CGEREP=2,1" )
-        c.append( "+CNMI=2,1,2,1,1" )
+        c += self._commands["sim"] # reenable notifications
         c.append( "%CSQ=1" ) # signal strength: send unsol. code
         c.append( "%CNIV=1" )
         c.append( "%CGEREP=1" )
         c.append( "%CGREG=3" )
-        c.append( "%CBHZ=1" ) # home zone cell broadcast: enable

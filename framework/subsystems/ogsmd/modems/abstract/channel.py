@@ -22,6 +22,9 @@ class AbstractModemChannel( AtCommandChannel ):
     def __init__( self, *args, **kwargs ):
         AtCommandChannel.__init__( self, *args, **kwargs )
 
+        # NOTE: might make it a weak-reference, so that garbage collection
+        #       does not get disturbed by the cirular modem/channel reference
+        self._modem = kwargs["modem"]
         self._commands = {}
         self._populateCommands()
         self._sendCommands( "init" )
@@ -43,7 +46,6 @@ class AbstractModemChannel( AtCommandChannel ):
         # FIXME it's actually modem specific whether we can send the command directly
         # after +CPIN: READY or not, so we should not have this here
         gobject.timeout_add_seconds( 10, self._sendCommands, "sim" )
-
 
     def modemStateSimReady( self ):
         """
@@ -109,7 +111,10 @@ class AbstractModemChannel( AtCommandChannel ):
         self._commands["init"] = c
 
         c = []
-        c.append( "+CNMI=2,1,2,1,1" )   # buffer sms on SIM, report CB directly
+        if self._modem.data( "sim-buffers-sms" ):
+            c.append( "+CNMI=%s" % self._modem.data( "sms-buffered-cb" ) )
+        else:
+            c.append( "+CNMI=%s" % self._modem.data( "sms-direct-cb" ) )
         self._commands["sim"] = c
 
         c = []
