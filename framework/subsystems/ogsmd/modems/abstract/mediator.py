@@ -340,7 +340,7 @@ class DeviceGetSimBuffersSms( DeviceMediator ):
     def responseFromChannel( self, request, response ):
         if ( response[-1] == "OK" ):
             mode, mt, bm, ds, bfr = safesplit( self._rightHandSide( response[0] ), ',' )
-            sim_buffers_sms = ( int( mt ) < 2 )
+            sim_buffers_sms = ( int( mt ) == 2 )
             self._ok( sim_buffers_sms )
         else:
             DeviceMediator.responseFromChannel( self, request, response )

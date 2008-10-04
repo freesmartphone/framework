@@ -47,8 +47,8 @@ class AbstractModem( object ):
         self._data["sms-buffered-cb"] = "2,1,2,1,1"
         self._data["sms-buffered-nocb"] = "2,1,0,0,0"
         # FIXME: Might be bad as default, since not all modems necessarily support that
-        self._data["sms-direct-cb"] = "2,3,2,1,1" # might be only 2,2 (or even limited at 2,1)
-        self._data["sms-direct-nocb"] = "2,3,0,0,0" # dito
+        self._data["sms-direct-cb"] = "2,2,2,1,1" # what about a,3,c,d,e?
+        self._data["sms-direct-nocb"] = "2,2,0,0,0" # dito
 
     def open( self, on_ok, on_error ):
         """
