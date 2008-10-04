@@ -217,6 +217,11 @@ class StateBasedLowlevelAtParser( object ):
 
         if self.hasPdu:
             if DEBUG: print "PARSER DEBUG: unsolicited line pdu completed, sending."
+            if not self.curline:
+                if DEBUG: print "Empty line before PDU, ignoring"
+                # We have some cases where there is an empty line before the pdu
+                self.lines.pop()
+                return self.state_inline
             self.hasPdu = False
             self.unsolicited( self.lines )
             return self.reset()

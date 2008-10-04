@@ -36,6 +36,7 @@ logger = logging.getLogger( MODULE_NAME )
 
 DBUS_INTERFACE_DEVICE = "org.freesmartphone.GSM.Device"
 DBUS_INTERFACE_SIM = "org.freesmartphone.GSM.SIM"
+DBUS_INTERFACE_SMS = "org.freesmartphone.GSM.SMS"
 DBUS_INTERFACE_NETWORK = "org.freesmartphone.GSM.Network"
 DBUS_INTERFACE_CALL = "org.freesmartphone.GSM.Call"
 DBUS_INTERFACE_PDP = "org.freesmartphone.GSM.PDP"
@@ -448,12 +449,19 @@ class Device( resource.Resource ):
         mediator.SimDeleteMessage( self, dbus_ok, dbus_error, index=index )
 
     @dbus.service.signal( DBUS_INTERFACE_SIM, "i" )
-    def IncomingMessage( self, index ):
+    def IncomingStoredMessage( self, index ):
         logger.info( "incoming message on sim storage index %s", index )
 
     @dbus.service.signal( DBUS_INTERFACE_SIM, "" )
     def MemoryFull( self ):
         logger.info( "sim memory full" )
+    #
+    # dbus org.freesmartphone.SMS
+    #
+    @dbus.service.signal( DBUS_INTERFACE_SMS, "ssa{sv}" )
+    def IncomingMessage( self, address, text, features ):
+        logger.info( "incoming message (unbuffered) from %s", address )
+
     #
     # dbus org.freesmartphone.GSM.Network
     #

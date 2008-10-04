@@ -16,7 +16,6 @@ from ogsmd.gsm import const, convert
 from ogsmd.helpers import safesplit
 import ogsmd.gsm.sms
 
-
 #=========================================================================#
 class AbstractUnsolicitedResponseDelegate( object ):
 #=========================================================================#
@@ -66,6 +65,18 @@ class AbstractUnsolicitedResponseDelegate( object ):
         number = number.replace( '"', '' )
         self._mediator.Call.clip( self._object, const.phonebookTupleToNumber( number, int(ntype ) ) )
 
+    # +CMT: "004D00690063006B006500790020007000720069",22
+    # 0791947107160000000C9194712716464600008001301131648003D9B70B
+    def plusCMT( self, righthandside, pdu ):
+        """
+        Message Transfer Indication
+        """
+        header = safesplit( righthandside, ',' )
+        length = int(header[1])
+        # Now we decode the actual PDU
+        sms = ogsmd.gsm.sms.decodeSMS( pdu, "MT" )
+        self._object.IncomingMessage( str(sms.oa), sms.ud, sms.featureMap )
+
     # +CMTI: "SM",7
     def plusCMTI( self, righthandside ):
         """
@@ -74,7 +85,7 @@ class AbstractUnsolicitedResponseDelegate( object ):
         storage, index = safesplit( righthandside, ',' )
         if storage != '"SM"':
             assert False, "unhandled +CMTI message notification"
-        self._object.IncomingMessage( int(index) )
+        self._object.IncomingStoredMessage( int(index) )
 
     # +CREG: 1,"000F","032F"
     def plusCREG( self, righthandside ):
