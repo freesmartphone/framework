@@ -377,7 +377,7 @@ class SimGetAuthStatus( SimMediator ):
 class SimSendAuthCode( SimMediator ):
 #=========================================================================#
     def trigger( self ):
-        self._commchannel.enqueue( '+CPIN="%s"' % self.code, self.responseFromChannel, self.errorFromChannel, timeout=const.TIMEOUT["CPIN"] )
+        self._commchannel.enqueue( '+CPIN="%s"' % self.code, self.responseFromChannel, self.errorFromChannel, timeout=const.TIMEOUT["SIMAUTH"] )
 
     @logged
     def responseFromChannel( self, request, response ):
@@ -393,7 +393,7 @@ class SimSendAuthCode( SimMediator ):
 class SimUnlock( SimMediator ):
 #=========================================================================#
     def trigger( self ):
-        self._commchannel.enqueue( '+CPIN="%s","%s"' % ( self.puk, self.new_pin ), self.responseFromChannel, self.errorFromChannel )
+        self._commchannel.enqueue( '+CPIN="%s","%s"' % ( self.puk, self.new_pin ), self.responseFromChannel, self.errorFromChannel, timeout=const.TIMEOUT["SIMAUTH"] )
 
     @logged
     def responseFromChannel( self, request, response ):
@@ -409,7 +409,7 @@ class SimUnlock( SimMediator ):
 class SimChangeAuthCode( SimMediator ):
 #=========================================================================#
     def trigger( self ):
-        self._commchannel.enqueue( '+CPWD="SC","%s","%s"' % ( self.old_pin, self.new_pin ), self.responseFromChannel, self.errorFromChannel )
+        self._commchannel.enqueue( '+CPWD="SC","%s","%s"' % ( self.old_pin, self.new_pin ), self.responseFromChannel, self.errorFromChannel, timeout=const.TIMEOUT["SIMAUTH"] )
 
 #=========================================================================#
 class SimGetAuthCodeRequired( SimMediator ):
@@ -576,7 +576,7 @@ class SimRetrievePhonebook( SimMediator ):
         if minimum is None: # we don't know yet
             SimGetPhonebookInfo( self._object, self.tryAgain, self.reportError )
         else:
-            self._commchannel.enqueue( '+CPBS="SM";+CPBR=%d,%d' % ( minimum, maximum ), self.responseFromChannel, self.errorFromChannel )
+            self._commchannel.enqueue( '+CPBS="SM";+CPBR=%d,%d' % ( minimum, maximum ), self.responseFromChannel, self.errorFromChannel, timeout=const.TIMEOUT["SIMACCESS"] )
 
     @logged
     def responseFromChannel( self, request, response ):
@@ -598,7 +598,7 @@ class SimRetrievePhonebook( SimMediator ):
         if minimum is None: # still?
             raise error.InternalException( "can't get valid phonebook indices from modem" )
         else:
-            self._commchannel.enqueue( '+CPBS="SM";+CPBR=%d,%d' % ( minimum, maximum ), self.responseFromChannel, self.errorFromChannel )
+            self._commchannel.enqueue( '+CPBS="SM";+CPBR=%d,%d' % ( minimum, maximum ), self.responseFromChannel, self.errorFromChannel, timeout=const.TIMEOUT["SIMACCESS"] )
 
     def reportError( self, result ):
         self._error( result )
@@ -607,7 +607,7 @@ class SimRetrievePhonebook( SimMediator ):
 class SimDeleteEntry( SimMediator ):
 #=========================================================================#
     def trigger( self ):
-        self._commchannel.enqueue( '+CPBS="SM";+CPBW=%d,,,' % self.index, self.responseFromChannel, self.errorFromChannel )
+        self._commchannel.enqueue( '+CPBS="SM";+CPBW=%d,,,' % self.index, self.responseFromChannel, self.errorFromChannel, timeout=const.TIMEOUT["SIMACCESS"] )
 
 #=========================================================================#
 class SimStoreEntry( SimMediator ):
@@ -615,13 +615,13 @@ class SimStoreEntry( SimMediator ):
     def trigger( self ):
         number, ntype = const.numberToPhonebookTuple( self.number )
         name = convert.UnicodeToucs2hex( self.name.strip('"') )
-        self._commchannel.enqueue( '+CPBS="SM";+CPBW=%d,"%s",%d,"%s"' % ( self.index, number, ntype, name ), self.responseFromChannel, self.errorFromChannel )
+        self._commchannel.enqueue( '+CPBS="SM";+CPBW=%d,"%s",%d,"%s"' % ( self.index, number, ntype, name ), self.responseFromChannel, self.errorFromChannel, timeout=const.TIMEOUT["SIMACCESS"] )
 
 #=========================================================================#
 class SimRetrieveEntry( SimMediator ):
 #=========================================================================#
     def trigger( self ):
-        self._commchannel.enqueue( '+CPBS="SM";+CPBR=%d' % self.index, self.responseFromChannel, self.errorFromChannel )
+        self._commchannel.enqueue( '+CPBS="SM";+CPBR=%d' % self.index, self.responseFromChannel, self.errorFromChannel, timeout=const.TIMEOUT["SIMACCESS"] )
 
     @logged
     def responseFromChannel( self, request, response ):
@@ -684,7 +684,7 @@ class SimRetrieveMessagebook( SimMediator ):
         except KeyError:
             self._error( error.InvalidParameter( "valid categories are %s" % const.SMS_PDU_STATUS_IN.keys() ) )
         else:
-            self._commchannel.enqueue( '+CMGL=%i' % category, self.responseFromChannel, self.errorFromChannel )
+            self._commchannel.enqueue( '+CMGL=%i' % category, self.responseFromChannel, self.errorFromChannel, timeout=const.TIMEOUT["SIMACCESS"] )
 
     @logged
     def responseFromChannel( self, request, response ):
@@ -718,7 +718,7 @@ class SimRetrieveMessagebook( SimMediator ):
 class SimRetrieveMessage( SimMediator ):
 #=========================================================================#
     def trigger( self ):
-        self._commchannel.enqueue( '+CMGR=%d' % self.index, self.responseFromChannel, self.errorFromChannel )
+        self._commchannel.enqueue( '+CMGR=%d' % self.index, self.responseFromChannel, self.errorFromChannel, timeout=const.TIMEOUT["SIMACCESS"] )
 
     @logged
     def responseFromChannel( self, request, response ):
@@ -768,7 +768,7 @@ class SimStoreMessage( SimMediator ):
         sms.ud = self.contents
         sms.featureMap = self.featuremap
         pdu = sms.pdu()
-        self._commchannel.enqueue( '+CMGW=%i\r%s' % ( len(pdu)/2-1, pdu), self.responseFromChannel, self.errorFromChannel )
+        self._commchannel.enqueue( '+CMGW=%i\r%s' % ( len(pdu)/2-1, pdu), self.responseFromChannel, self.errorFromChannel, timeout=const.TIMEOUT["SIMACCESS"])
 
     def responseFromChannel( self, request, response ):
         if response[-1] != "OK":
@@ -780,7 +780,7 @@ class SimStoreMessage( SimMediator ):
 class SimSendStoredMessage( SimMediator ):
 #=========================================================================#
     def trigger( self ):
-        self._commchannel.enqueue( "+CMSS=%d" % self.index, self.responseFromChannel, self.errorFromChannel, timeout=const.TIMEOUT["CMSS"] )
+        self._commchannel.enqueue( "+CMSS=%d" % self.index, self.responseFromChannel, self.errorFromChannel, timeout=const.TIMEOUT["SIMACCESS"] )
 
     def responseFromChannel( self, request, response ):
         if response[-1] != "OK":
@@ -797,7 +797,7 @@ class SimSendStoredMessage( SimMediator ):
 class SimDeleteMessage( SimMediator ):
 #=========================================================================#
     def trigger( self ):
-        self._commchannel.enqueue( "+CMGD=%d" % self.index, self.responseFromChannel, self.errorFromChannel, timeout=const.TIMEOUT["CMGD"] )
+        self._commchannel.enqueue( "+CMGD=%d" % self.index, self.responseFromChannel, self.errorFromChannel, timeout=const.TIMEOUT["SIMACCESS"] )
 
 #
 # Network Mediators
