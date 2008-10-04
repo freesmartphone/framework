@@ -43,7 +43,7 @@ class GTA02Device( UBXDevice ):
         helpers.writeToFile( DEVICE_POWER_PATH, "1" )
 
         # Wait for the device to be powered up
-        time.sleep(0.2)
+        time.sleep(0.5)
 
         # Reset the device
         #self.send("CFG-RST", 4, {"nav_bbr" : 0xffff, "Reset" : 0x01})
@@ -91,10 +91,11 @@ class GTA02Device( UBXDevice ):
         pacc = 300000 # in cm (3 km)
 
         # GPS week number
-        wn = int((time.time() - time.mktime(time.strptime("5 Jan 1980", "%d %b %Y"))) / (86400 * 7))
+        # FIXME: The Global Positioning System (GPS) epoch is January 6, 1980 and is synchronized to UTC.
+        wn = int((time.time() - time.mktime(time.strptime("6 Jan 1980", "%d %b %Y"))) / (86400 * 7))
 
         # GPS time of week
-        tow = int(time.time() - (time.mktime(time.strptime("5 Jan 1980", "%d %b %Y")) + wn * 86400 * 7)) * 1000
+        tow = int(time.time() - (time.mktime(time.strptime("6 Jan 1980", "%d %b %Y")) + wn * 86400 * 7)) * 1000
 
         # Time accuracy needs to be changed, because the RTC is imprecise
         tacc = 60000 # in ms (1 minute)
