@@ -41,6 +41,8 @@ class Persist( object ):
                 filename = os.path.join( self.rootdir, subsystem+".yaml" )
                 with file( filename, "r" ) as f:
                     data = yaml.safe_load( f.read() )
+                if data is None: # empty file
+                    data = {}
             except:
                 data = {}
             self.cache[subsystem] = data
