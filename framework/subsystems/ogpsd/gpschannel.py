@@ -123,6 +123,7 @@ class SerialChannel( GPSChannel ):
         assert condition == gobject.IO_OUT, "ready to write on bogus condition"
 
         self.serial.write( self.datapending )
+        self.datapending = ""
         self.watchReadyToSend = None
         return False
 
