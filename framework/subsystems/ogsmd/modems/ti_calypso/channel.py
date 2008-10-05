@@ -173,11 +173,14 @@ class UnsolicitedResponseChannel( CalypsoModemChannel ):
         c.append( "%CGREG=3" )
         c.append( "%CSTAT=1" )
         c.append( '@ST="-26"' ) # audio side tone: set to minimum
-        c.append( "%N0187" ) # echo cancelling: enable, noise reduction: enable
+        c.append( "%N028B" ) # Long Echo Cancellation: active, -6db
+        c.append( "%N0125" ) # Noise reduction: active, -6db
+        c.append( "%SLEEP=4" ) # Sleep modes: Enable all
         # FIXME might enable %CPRI later
 
         c = self._commands["sim"]
-        c.append( "%CBHZ=1" ) # home zone cell broadcast: activate automatic (send frequently, not just once)
+        # FIXME reenable if someone wants homezone support
+        #c.append( "%CBHZ=1" ) # home zone cell broadcast: activate automatic (send frequently, not just once)
 
         c = self._commands["suspend"]
         c.append( "+CTZU=0" )

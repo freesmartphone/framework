@@ -11,6 +11,8 @@ from ogsmd.modems.abstract.unsolicited import AbstractUnsolicitedResponseDelegat
 from ogsmd.gsm import const
 from ogsmd.helpers import safesplit
 
+import gobject
+import time
 import logging
 logger = logging.getLogger( "ogsmd.modem.unsolicited" )
 
@@ -22,6 +24,28 @@ class UnsolicitedResponseDelegate( AbstractUnsolicitedResponseDelegate ):
 
         self.fullReadyness = "unknown"
         self.subsystemReadyness = { "PHB": False, "SMS": False }
+
+        self.calypsoUnregister = []
+        self.calypsoRegister = []
+
+    def _checkRecampingBug( self ):
+        logging.debug( "checking for TI Calypso recamping bug..." )
+        # FIXME add recamping check
+        return False
+
+    # Overridden from AbstractUnsolicitedResponseDelegate to check for the
+    # TI Calypso Deep Sleep Recamping bug: http://docs.openmoko.org/trac/ticket/1024
+    def plusCREG( self, righthandside ):
+        # call base implementation
+        AbstractUnsolicitedResponseDelegate.plusCREG( self, righthandside )
+        # check for recamping
+        values = safesplit( righthandside, ',' )
+        self.register = const.REGISTER_STATUS[int(values[0])]
+        if self.register == "unregistered":
+            self.calypsoUnregister.append( time.time() )
+        elif self.register != "busy":
+            self.calypsoRegister.append( time.time() )
+        gobject.idle_add( self._checkRecampingBug )
 
     # +CRING is only used to trigger a status update
     def plusCRING( self, calltype ):
