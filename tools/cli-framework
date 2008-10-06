@@ -53,7 +53,7 @@ framework = getObject( "org.freesmartphone.frameworkd", "/org/freesmartphone/Fra
 
 # ogsmd device object
 gsm = getObject( "org.freesmartphone.ogsmd", "/org/freesmartphone/GSM/Device" )
-        
+
 # ogps device object
 gps = getObject( "org.freesmartphone.ogpsd", "/org/freedesktop/Gypsy" )
 
@@ -64,7 +64,7 @@ usage = getObject( "org.freesmartphone.ousaged", "/org/freesmartphone/Usage" )
 frameworkiface = getInterface( \
     "org.freesmartphone.frameworkd",
     "/org/freesmartphone/Framework",
-    "org.freesmartphone.Framework")
+    "org.freesmartphone.Framework" )
 
 # ogsmd server
 hz = getInterface( \
@@ -100,6 +100,10 @@ gsmsim = getInterface( \
     "org.freesmartphone.ogsmd",
     "/org/freesmartphone/GSM/Device",
     "org.freesmartphone.GSM.SIM" )
+gsmsms = getInterface( \
+    "org.freesmartphone.ogsmd",
+    "/org/freesmartphone/GSM/Device",
+    "org.freesmartphone.GSM.SMS" )
 gsmnetwork = getInterface( \
     "org.freesmartphone.ogsmd",
     "/org/freesmartphone/GSM/Device",
@@ -116,30 +120,39 @@ gsmtest = getInterface( \
     "org.freesmartphone.ogsmd",
     "/org/freesmartphone/GSM/Device",
     "org.freesmartphone.GSM.Test" )
-    
+gsmdebug = getInterface( \
+    "org.freesmartphone.ogsmd",
+    "/org/freesmartphone/GSM/Device",
+    "org.freesmartphone.GSM.Debug" )
+
 # gps
-gpsaccuracy = getInterface(
+gpsaccuracy = getInterface( \
     "org.freesmartphone.ogpsd",
     "/org/freedesktop/Gypsy",
     "org.freedesktop.Gypsy.Accuracy" )
 
-gpsposition = getInterface(
+gpsposition = getInterface( \
     "org.freesmartphone.ogpsd",
     "/org/freedesktop/Gypsy",
     "org.freedesktop.Gypsy.Position" )
 
-gpssatellite = getInterface(
+gpssatellite = getInterface( \
     "org.freesmartphone.ogpsd",
     "/org/freedesktop/Gypsy",
     "org.freedesktop.Gypsy.Satellite" )
 
-gpstime = getInterface(
+gpstime = getInterface( \
     "org.freesmartphone.ogpsd",
     "/org/freedesktop/Gypsy",
     "org.freedesktop.Gypsy.Time" )
 
+ubxdebug = getInterface( \
+    "org.freesmartphone.ogpsd",
+    "/org/freedesktop/Gypsy",
+    "org.freesmartphone.GPS.UBX" )
+
 # usage
-usageiface = getInterface(
+usageiface = getInterface( \
     "org.freesmartphone.ousaged",
     "/org/freesmartphone/Usage",
     "org.freesmartphone.Usage" )
