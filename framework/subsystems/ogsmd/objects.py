@@ -455,9 +455,16 @@ class Device( resource.Resource ):
     @dbus.service.signal( DBUS_INTERFACE_SIM, "" )
     def MemoryFull( self ):
         logger.info( "sim memory full" )
+
     #
     # dbus org.freesmartphone.SMS
     #
+    @dbus.service.method( DBUS_INTERFACE_SMS, "ssa{sv}", "i",
+                          async_callbacks=( "dbus_ok", "dbus_error" ) )
+    @resource.checkedmethod
+    def SendMessage( self, number, contents, featuremap, dbus_ok, dbus_error ):
+        mediator.SmsSendMessage( self, dbus_ok, dbus_error, number=number, contents=contents, featuremap=featuremap )
+
     @dbus.service.signal( DBUS_INTERFACE_SMS, "ssa{sv}" )
     def IncomingMessage( self, address, text, features ):
         logger.info( "incoming message (unbuffered) from %s", address )

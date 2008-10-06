@@ -1,3 +1,11 @@
+2008-10-07	Daniel Willmann	<daniel@totalueberwachung.de>
+
+	* [ogsmd] Add org.freesmartphone.GSM.SMS.IncomingMessage and renamed
+	  org.freesmartphone.GSM.SIM.IncomingMessage to IncomingStoredMessage due to
+	  a limitation with the python dbus bindings.
+	  Warning: API breakage in org.freesmartphone.GSM.SIM !
+	* [ogsmd] Add org.freesmartphone.GSM.SMS.SendMessage method
+
 2008-10-06	Michael Lauer	<mickey@openmoko.org>
 
 	* [ogsmd] [TI CALYPSO] work around deep sleep mode recamping bug

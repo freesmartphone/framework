@@ -196,6 +196,15 @@ class SimMediator( AbstractMediator, AbstractYieldSupport ):
         AbstractYieldSupport.__init__( self, *args, **kwargs )
 
 #=========================================================================#
+class SmsMediator( AbstractMediator, AbstractYieldSupport ):
+#=========================================================================#
+    def __init__( self, *args, **kwargs ):
+        AbstractMediator.__init__( self, *args, **kwargs )
+        # this is a bit ugly, but how should we get the channel elsewhere?
+        self._commchannel = self._object.modem.communicationChannel( "SmsMediator" )
+        AbstractYieldSupport.__init__( self, *args, **kwargs )
+
+#=========================================================================#
 class NetworkMediator( AbstractMediator, AbstractYieldSupport ):
 #=========================================================================#
     def __init__( self, *args, **kwargs ):
@@ -846,6 +855,40 @@ class SimDeleteMessage( SimMediator ):
 #=========================================================================#
     def trigger( self ):
         self._commchannel.enqueue( "+CMGD=%d" % self.index, self.responseFromChannel, self.errorFromChannel, timeout=const.TIMEOUT["SIMACCESS"] )
+
+#
+# SMS Mediators
+#
+
+#=========================================================================#
+class SmsSendMessage( SmsMediator ):
+#=========================================================================#
+    def trigger( self ):
+        sms = ogsmd.gsm.sms.AbstractSMS("MO")
+        sms.pdu_mti = 1
+        sms.pid = 0
+        sms.dcs = 0
+        if self.number[0] == "+":
+            number = self.number[1:]
+            ntype = 1
+        else:
+            ntype = 2
+        sms.oa = ogsmd.gsm.sms.PDUAddress( ntype, 1, number )
+        sms.ud = self.contents
+        sms.featureMap = self.featuremap
+        pdu = sms.pdu()
+        self._commchannel.enqueue( '+CMGS=%i\r%s' % ( len(pdu)/2-1, pdu), self.responseFromChannel, self.errorFromChannel)
+
+    def responseFromChannel( self, request, response ):
+        if response[-1] != "OK":
+            SimMediator.responseFromChannel( self, request, response )
+        else:
+            result = safesplit( self._rightHandSide(response[0]), ',' )
+            mr = result[0]
+            if len(result) == 2:
+                # TODO: Handle ackpdu
+                pass
+            self._ok( int(mr) )
 
 #
 # Network Mediators
