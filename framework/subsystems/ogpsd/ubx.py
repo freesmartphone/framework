@@ -277,7 +277,7 @@ class UBXDevice( GPSDevice ):
         # Use high sensitivity mode
         #self.send("CFG-RXM", 2, {"gps_mode" : 2, "lp_mode" : 0})
         # Enable use of SBAS (even in testmode)
-        #self.send("CFG-SBAS", 8, {"mode" : 3, "usage" : 7, "maxsbas" : 3, "scanmode" : 0})
+        self.send("CFG-SBAS", 8, {"mode" : 1, "usage" : 7, "maxsbas" : 3, "scanmode" : 0})
 
         # Disable NMEA for current port
         self.ubx["CFG-PRT"] = {"In_proto_mask" : 1, "Out_proto_mask" : 1}
@@ -301,8 +301,6 @@ class UBXDevice( GPSDevice ):
         super( UBXDevice, self ).initializeDevice()
 
     def shutdownDevice( self ):
-        super( UBXDevice, self ).shutdownDevice()
-
         # Disable UBX packets
         self.send("CFG-MSG", 3, {"Class" : CLIDPAIR["NAV-STATUS"][0] , "MsgID" : CLIDPAIR["NAV-STATUS"][1] , "Rate" : 0 })
         self.send("CFG-MSG", 3, {"Class" : CLIDPAIR["NAV-POSLLH"][0] , "MsgID" : CLIDPAIR["NAV-POSLLH"][1] , "Rate" : 0 })
@@ -317,6 +315,8 @@ class UBXDevice( GPSDevice ):
         # Reset
         self.gpsfixstatus = 0
         self.buffer = ""
+
+        super( UBXDevice, self ).shutdownDevice()
 
     def parse( self, data ):
         self.buffer += data

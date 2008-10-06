@@ -21,6 +21,7 @@ import os
 import sys
 import marshal
 import time
+import gobject
 
 import logging
 logger = logging.getLogger('ogpsd')
@@ -58,7 +59,7 @@ class GTA02Device( UBXDevice ):
         self.send("CFG-MSG", 3, {"Class" : CLIDPAIR["NAV-POSECEF"][0] , "MsgID" : CLIDPAIR["NAV-POSECEF"][1] , "Rate": 8 })
         self.send("CFG-MSG", 3, {"Class" : CLIDPAIR["AID-ALM"][0] , "MsgID" : CLIDPAIR["AID-ALM"][1] , "Rate": 1 })
         self.send("CFG-MSG", 3, {"Class" : CLIDPAIR["AID-EPH"][0] , "MsgID" : CLIDPAIR["AID-EPH"][1] , "Rate": 1 })
-        self.send("CFG-MSG", 3, {"Class" : CLIDPAIR["AID-HUI"][0] , "MsgID" : CLIDPAIR["AID-HUI"][1] , "Rate": 1 })
+        self.huiTimeout = gobject.timeout_add_seconds( 300, self.requestHuiTimer )
 
     def shutdownDevice(self):
         # Disable NAV-POSECEF, AID-REQ (AID-DATA), AID-ALM, AID-EPH messages
@@ -66,7 +67,9 @@ class GTA02Device( UBXDevice ):
         self.send("CFG-MSG", 3, {"Class" : CLIDPAIR["AID-REQ"][0] , "MsgID" : CLIDPAIR["AID-REQ"][1] , "Rate" : 0 })
         self.send("CFG-MSG", 3, {"Class" : CLIDPAIR["AID-ALM"][0] , "MsgID" : CLIDPAIR["AID-ALM"][1] , "Rate" : 0 })
         self.send("CFG-MSG", 3, {"Class" : CLIDPAIR["AID-EPH"][0] , "MsgID" : CLIDPAIR["AID-EPH"][1] , "Rate" : 0 })
-        self.send("CFG-MSG", 3, {"Class" : CLIDPAIR["AID-HUI"][0] , "MsgID" : CLIDPAIR["AID-HUI"][1] , "Rate": 0 })
+        if self.huiTimeout:
+            gobject.source_remove( self.huiTimeout )
+            self.huiTimeout = None
 
         super( GTA02Device, self ).shutdownDevice()
 
@@ -141,5 +144,9 @@ class GTA02Device( UBXDevice ):
     def handle_AID_HUI( self, data ):
         data = data[0]
         self.aidingData["hui"] = data
+
+    def requestHuiTimer( self ):
+        self.send( "AID-HUI", 0, {} )
+        return True
 
 #vim: expandtab
