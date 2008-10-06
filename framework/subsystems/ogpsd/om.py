@@ -28,7 +28,7 @@ logger = logging.getLogger('ogpsd')
 class GTA02Device( UBXDevice ):
     """GTA02 specific GPS device"""
 
-    def __init__( self, bus, gpschannel ):
+    def __init__( self, bus, channel ):
 
         # Make sure the GPS is off
         helpers.writeToFile( DEVICE_POWER_PATH, "0" )
@@ -37,7 +37,7 @@ class GTA02Device( UBXDevice ):
         if self.aidingData is None:
             self.aidingData = { "almanac": {}, "ephemeris": {}, "position": {}, "hui": {} }
 
-        super( GTA02Device, self ).__init__( bus, gpschannel )
+        super( GTA02Device, self ).__init__( bus, channel )
 
     def initializeDevice( self ):
         helpers.writeToFile( DEVICE_POWER_PATH, "1" )

@@ -27,12 +27,11 @@ logger = logging.getLogger('ogpsd')
 DBUS_INTERFACE = "org.freesmartphone.GPS"
 
 class NMEADevice( GPSDevice ):
-    def __init__( self, bus, gpschannel ):
-        super( NMEADevice, self ).__init__( bus )
+    def __init__( self, bus, channel ):
+        super( NMEADevice, self ).__init__( bus, channel )
 
         self.buffer = ""
-        self.gpschannel = gpschannel
-        self.gpschannel.setCallback( self.parse )
+        self.channel.setCallback( self.parse )
 
         self.prn = range(12)
         self.elevation = range(12)

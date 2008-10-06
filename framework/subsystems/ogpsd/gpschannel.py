@@ -24,6 +24,18 @@ class GPSChannel( object ):
     def __init__( self, path=None ):
         self.callback = None
 
+    def initializeChannel( self ):
+        pass
+
+    def shutdownChannel( self ):
+        pass
+
+    def suspendChannel( self ):
+        self.shutdownChannel()
+
+    def resumeChannel( self ):
+        self.initializeChannel()
+
     def setCallback( self, callback ):
         self.callback = callback
 
@@ -31,7 +43,7 @@ class GPSChannel( object ):
         raise Exception( "Not implemented" )
 
 class UDPChannel ( GPSChannel ):
-    """UDP reader, for gta01, gllin"""
+    """Generic UDP reader"""
 
     def __init__(self, path):
         super(UDPChannel, self).__init__()
@@ -55,8 +67,14 @@ class FileChannel ( GPSChannel ):
     def __init__(self, path):
         super(FileChannel, self).__init__()
         logger.debug("FileChannel opens %s" % path)
+
+    def initializeChannel( self ):
         self.fd = os.open(path, os.O_NONBLOCK + os.O_RDONLY)
         self.watchReadyToRead = gobject.io_add_watch( self.fd, gobject.IO_IN, self.readyToRead )
+
+    def shutdownChannel( self ):
+        gobject.source_remove( self.watchReadyToRead )
+        os.close( self.fd )
 
     def readyToRead( self, source, condition ):
         data_array = []
@@ -90,8 +108,10 @@ class SerialChannel( GPSChannel ):
         self.serial.parity = serial.PARITY_NONE
         self.serial.stopbits = serial.STOPBITS_ONE
         self.serial.timeout = None
-        self.serial.open()
         self.datapending = ""
+
+    def initializeChannel( self ):
+        self.serial.open()
 
         assert self.serial.isOpen(), "Failure opening device"
 
@@ -100,6 +120,12 @@ class SerialChannel( GPSChannel ):
         #self.watchReadyToSend = gobject.io_add_watch( self.serial.fd, gobject.IO_OUT, self.readyToSend )
         self.watchReadyToSend = None
         # self.watchHUP = gobject.io_add_watch( self.serial.fd, gobject.IO_HUP, self.hup )
+
+    def shutdownChannel( self ):
+        gobject.source_remove( self.watchReadyToRead )
+        gobject.source_remove( self.watchReadyToSend )
+        self.serial.close()
+        self.datapending = ""
 
     def readyToRead( self, source, condition ):
         """Called, if data is available on the source."""

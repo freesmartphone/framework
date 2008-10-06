@@ -262,13 +262,12 @@ MSGFMT = {
 MSGFMT_INV = dict( [ [(CLIDPAIR[clid], le),v + [clid]] for (clid, le),v in MSGFMT.items() ] )
 
 class UBXDevice( GPSDevice ):
-    def __init__( self, bus, gpschannel ):
-        super( UBXDevice, self ).__init__( bus )
+    def __init__( self, bus, channel ):
+        super( UBXDevice, self ).__init__( bus, channel )
 
         self.gpsfixstatus = 0
         self.buffer = ""
-        self.gpschannel = gpschannel
-        self.gpschannel.setCallback( self.parse )
+        self.channel.setCallback( self.parse )
 
         self.ack = {"CFG-PRT" : 0}
         self.ubx = {}
@@ -369,7 +368,7 @@ class UBXDevice( GPSDevice ):
                 for i in range(0, (length - fmt_base[0])/fmt_rep[0]):
                     stream = stream + struct.pack(fmt_rep[1], *[payload_rep[i][j] for j in fmt_rep[2]])
         stream = stream + struct.pack("<BB", *self.checksum( stream[2:] ))
-        self.gpschannel.send( stream )
+        self.channel.send( stream )
 
     def checksum( self, msg ):
         ck_a = 0
