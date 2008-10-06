@@ -662,6 +662,17 @@ REGISTER_MODE = { \
 }
 
 #=========================================================================#
+PHONEBOOK_CATEGORY = { \
+    "contacts": "SM",
+    "dialed": "DC",
+    "received": "RC",
+    "own": "ON",
+    "missed": "MC",
+    "emergency": "EN",
+    # FIXME: Do we need more?
+}
+
+#=========================================================================#
 SMS_STATUS_OUT = { \
     "REC READ": "read",
     "REC UNREAD": "unread",

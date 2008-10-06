@@ -2,6 +2,8 @@
 
 	* [ogsmd] [TI CALYPSO] work around deep sleep mode recamping bug
 	as documented in http://docs.openmoko.org/trac/ticket/1024
+	* [ogsmd] change SIM phonebook API to support multiple phonebooks
+	Warning: API breakage in org.freesmartphone.GSM.SIM !
 
 2008-09-30	Michael Lauer	<mickey@openmoko.org>
 

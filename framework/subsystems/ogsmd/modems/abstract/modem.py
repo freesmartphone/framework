@@ -41,7 +41,7 @@ class AbstractModem( object ):
         self._simPinState = "unknown"           # SIM PIN state
         self._simReady = "unknown"              # SIM data access state
         self._data = {}                         # misc modem-wide data, set/get from channels
-        self._phonebookIndices = None, None     # min. index, max. index
+        self._phonebookIndices = {}             # min. index, max. index
 
         self._data["sim-buffers-sms"] = True
         self._data["sms-buffered-cb"] = "2,1,2,1,1"
@@ -131,11 +131,19 @@ class AbstractModem( object ):
             for channel in self._channels.itervalues():
                 channel.modemStateSimReady()
 
-    def setPhonebookIndices( self, first, last ):
-        self._phonebookIndices = first, last
+    def setPhonebookIndices( self, category, first, last ):
+        """
+        Set phonebook valid indices interval for a given phonebook
+        """
+        self._phonebookIndices[category] = first, last
 
-    def phonebookIndices( self ):
-        return self._phonebookIndices
+    def phonebookIndices( self, category ):
+        try:
+            first, last = self._phonebookIndices[category]
+        except KeyError:
+            return None, None
+        else:
+            return first, last
 
     def prepareForSuspend( self, ok_callback, error_callback ):
         """

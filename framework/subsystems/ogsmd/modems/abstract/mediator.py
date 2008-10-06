@@ -546,7 +546,12 @@ class SimGetHomeZones( SimMediator ): # a(siii)
 class SimGetPhonebookInfo( SimMediator ):
 #=========================================================================#
     def trigger( self ):
-        self._commchannel.enqueue( '+CPBS="SM";+CPBR=?', self.responseFromChannel, self.errorFromChannel )
+        try:
+            self.pbcategory = const.PHONEBOOK_CATEGORY[self.category]
+        except KeyError:
+            self._error( error.InvalidParameter( "valid categories are %s" % const.PHONEBOOK_CATEGORY.keys() ) )
+        else:
+            self._commchannel.enqueue( '+CPBS="%s";+CPBR=?' % self.pbcategory, self.responseFromChannel, self.errorFromChannel )
 
     def responseFromChannel( self, request, response ):
         if response[-1] != "OK":
@@ -563,8 +568,8 @@ class SimGetPhonebookInfo( SimMediator ):
             except KeyError:
                 pass
 
-            # store in modem for later use
-            self._object.modem.setPhonebookIndices( result["min_index"], result["max_index"] )
+            # store in modem class for later use
+            self._object.modem.setPhonebookIndices( self.pbcategory, result["min_index"], result["max_index"] )
 
             self._ok( result )
 
@@ -572,11 +577,16 @@ class SimGetPhonebookInfo( SimMediator ):
 class SimRetrievePhonebook( SimMediator ):
 #=========================================================================#
     def trigger( self ):
-        minimum, maximum = self._object.modem.phonebookIndices()
-        if minimum is None: # we don't know yet
-            SimGetPhonebookInfo( self._object, self.tryAgain, self.reportError )
+        try:
+            self.pbcategory = const.PHONEBOOK_CATEGORY[self.category]
+        except KeyError:
+            self._error( error.InvalidParameter( "valid categories are %s" % const.PHONEBOOK_CATEGORY.keys() ) )
         else:
-            self._commchannel.enqueue( '+CPBS="SM";+CPBR=%d,%d' % ( minimum, maximum ), self.responseFromChannel, self.errorFromChannel, timeout=const.TIMEOUT["SIMACCESS"] )
+            minimum, maximum = self._object.modem.phonebookIndices( self.pbcategory )
+            if minimum is None: # don't know yet
+                SimGetPhonebookInfo( self._object, self.pbcategory, self.tryAgain, self.reportError )
+            else:
+                self._commchannel.enqueue( '+CPBS="%s";+CPBR=%d,%d' % ( self.pbcategory, minimum, maximum ), self.responseFromChannel, self.errorFromChannel, timeout=const.TIMEOUT["SIMACCESS"] )
 
     @logged
     def responseFromChannel( self, request, response ):
@@ -594,11 +604,11 @@ class SimRetrievePhonebook( SimMediator ):
             self._ok( result )
 
     def tryAgain( self, result ):
-        minimum, maximum = self._object.modem.phonebookIndices()
+        minimum, maximum = self._object.modem.phonebookIndices( self.pbcategory )
         if minimum is None: # still?
-            raise error.InternalException( "can't get valid phonebook indices from modem" )
+            raise error.InternalException( "can't get valid phonebook indices for phonebook %s from modem" % self.pbcategory )
         else:
-            self._commchannel.enqueue( '+CPBS="SM";+CPBR=%d,%d' % ( minimum, maximum ), self.responseFromChannel, self.errorFromChannel, timeout=const.TIMEOUT["SIMACCESS"] )
+            self._commchannel.enqueue( '+CPBS="%s";+CPBR=%d,%d' % ( self.pbcategory, minimum, maximum ), self.responseFromChannel, self.errorFromChannel, timeout=const.TIMEOUT["SIMACCESS"] )
 
     def reportError( self, result ):
         self._error( result )
@@ -607,21 +617,36 @@ class SimRetrievePhonebook( SimMediator ):
 class SimDeleteEntry( SimMediator ):
 #=========================================================================#
     def trigger( self ):
-        self._commchannel.enqueue( '+CPBS="SM";+CPBW=%d,,,' % self.index, self.responseFromChannel, self.errorFromChannel, timeout=const.TIMEOUT["SIMACCESS"] )
+        try:
+            self.pbcategory = const.PHONEBOOK_CATEGORY[self.category]
+        except KeyError:
+            self._error( error.InvalidParameter( "valid categories are %s" % const.PHONEBOOK_CATEGORY.keys() ) )
+        else:
+            self._commchannel.enqueue( '+CPBS="%s";+CPBW=%d,,,' % ( self.pbcategory, self.index ), self.responseFromChannel, self.errorFromChannel, timeout=const.TIMEOUT["SIMACCESS"] )
 
 #=========================================================================#
 class SimStoreEntry( SimMediator ):
 #=========================================================================#
     def trigger( self ):
-        number, ntype = const.numberToPhonebookTuple( self.number )
-        name = convert.UnicodeToucs2hex( self.name.strip('"') )
-        self._commchannel.enqueue( '+CPBS="SM";+CPBW=%d,"%s",%d,"%s"' % ( self.index, number, ntype, name ), self.responseFromChannel, self.errorFromChannel, timeout=const.TIMEOUT["SIMACCESS"] )
+        try:
+            self.pbcategory = const.PHONEBOOK_CATEGORY[self.category]
+        except KeyError:
+            self._error( error.InvalidParameter( "valid categories are %s" % const.PHONEBOOK_CATEGORY.keys() ) )
+        else:
+            number, ntype = const.numberToPhonebookTuple( self.number )
+            name = convert.UnicodeToucs2hex( self.name.strip('"') )
+            self._commchannel.enqueue( '+CPBS="%s";+CPBW=%d,"%s",%d,"%s"' % ( self.pbcategory, self.index, number, ntype, name ), self.responseFromChannel, self.errorFromChannel, timeout=const.TIMEOUT["SIMACCESS"] )
 
 #=========================================================================#
 class SimRetrieveEntry( SimMediator ):
 #=========================================================================#
     def trigger( self ):
-        self._commchannel.enqueue( '+CPBS="SM";+CPBR=%d' % self.index, self.responseFromChannel, self.errorFromChannel, timeout=const.TIMEOUT["SIMACCESS"] )
+        try:
+            self.pbcategory = const.PHONEBOOK_CATEGORY[self.category]
+        except KeyError:
+            self._error( error.InvalidParameter( "valid categories are %s" % const.PHONEBOOK_CATEGORY.keys() ) )
+        else:
+            self._commchannel.enqueue( '+CPBS="%s";+CPBR=%d' % ( self.pbcategory, self.index ), self.responseFromChannel, self.errorFromChannel, timeout=const.TIMEOUT["SIMACCESS"] )
 
     @logged
     def responseFromChannel( self, request, response ):

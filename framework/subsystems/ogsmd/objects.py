@@ -17,7 +17,7 @@ Attributes:
 """
 
 MODULE_NAME = "ogsmd.objects"
-__version__ = "0.9.2"
+__version__ = "0.9.3"
 
 from framework import resource
 
@@ -362,35 +362,35 @@ class Device( resource.Resource ):
         mediator.SimGetHomeZones( self, dbus_ok, dbus_error )
 
     ### SIM phonebook
-    @dbus.service.method( DBUS_INTERFACE_SIM, "", "a{sv}",
+    @dbus.service.method( DBUS_INTERFACE_SIM, "s", "a{sv}",
                           async_callbacks=( "dbus_ok", "dbus_error" ) )
     @resource.checkedmethod
-    def GetPhonebookInfo( self, dbus_ok, dbus_error ):
-        mediator.SimGetPhonebookInfo( self, dbus_ok, dbus_error )
+    def GetPhonebookInfo( self, category, dbus_ok, dbus_error ):
+        mediator.SimGetPhonebookInfo( self, dbus_ok, dbus_error, category=category )
 
-    @dbus.service.method( DBUS_INTERFACE_SIM, "", "a(iss)",
+    @dbus.service.method( DBUS_INTERFACE_SIM, "s", "a(iss)",
                           async_callbacks=( "dbus_ok", "dbus_error" ) )
     @resource.checkedmethod
-    def RetrievePhonebook( self, dbus_ok, dbus_error ):
-        mediator.SimRetrievePhonebook( self, dbus_ok, dbus_error )
+    def RetrievePhonebook( self, category, dbus_ok, dbus_error ):
+        mediator.SimRetrievePhonebook( self, dbus_ok, dbus_error, category=category )
 
-    @dbus.service.method( DBUS_INTERFACE_SIM, "i", "",
+    @dbus.service.method( DBUS_INTERFACE_SIM, "si", "",
                           async_callbacks=( "dbus_ok", "dbus_error" ) )
     @resource.checkedmethod
-    def DeleteEntry( self, index, dbus_ok, dbus_error ):
-        mediator.SimDeleteEntry( self, dbus_ok, dbus_error, index=index )
+    def DeleteEntry( self, category, index, dbus_ok, dbus_error ):
+        mediator.SimDeleteEntry( self, dbus_ok, dbus_error, category=category, index=index )
 
-    @dbus.service.method( DBUS_INTERFACE_SIM, "iss", "",
+    @dbus.service.method( DBUS_INTERFACE_SIM, "siss", "",
                           async_callbacks=( "dbus_ok", "dbus_error" ) )
     @resource.checkedmethod
-    def StoreEntry( self, index, name, number, dbus_ok, dbus_error ):
-        mediator.SimStoreEntry( self, dbus_ok, dbus_error, index=index, name=name, number=number )
+    def StoreEntry( self, category, index, name, number, dbus_ok, dbus_error ):
+        mediator.SimStoreEntry( self, dbus_ok, dbus_error, category=category, index=index, name=name, number=number )
 
-    @dbus.service.method( DBUS_INTERFACE_SIM, "i", "ss",
+    @dbus.service.method( DBUS_INTERFACE_SIM, "si", "ss",
                           async_callbacks=( "dbus_ok", "dbus_error" ) )
     @resource.checkedmethod
-    def RetrieveEntry( self, index, dbus_ok, dbus_error ):
-        mediator.SimRetrieveEntry( self, dbus_ok, dbus_error, index=index )
+    def RetrieveEntry( self, category, index, dbus_ok, dbus_error ):
+        mediator.SimRetrieveEntry( self, dbus_ok, dbus_error, category=category, index=index )
 
     ### SIM messagebook
     @dbus.service.method( DBUS_INTERFACE_SIM, "", "a{sv}",
