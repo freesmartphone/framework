@@ -334,13 +334,15 @@ class DeviceGetFeatures( DeviceMediator ):
 class DeviceGetSimBuffersSms( DeviceMediator ):
 #=========================================================================#
     def trigger( self ):
-        self._commchannel.enqueue( "+CNMI?", self.responseFromChannel, self.errorFromChannel )
+        # CNMI needs to be issued on the unsolicited channel, otherwise +CMT wont go there
+        commchannel = self._object.modem.communicationChannel( "UnsolicitedMediator" )
+        commchannel.enqueue( "+CNMI?", self.responseFromChannel, self.errorFromChannel )
 
     @logged
     def responseFromChannel( self, request, response ):
         if ( response[-1] == "OK" ):
             mode, mt, bm, ds, bfr = safesplit( self._rightHandSide( response[0] ), ',' )
-            sim_buffers_sms = ( int( mt ) == 2 )
+            sim_buffers_sms = ( int( mt ) == 1 )
             self._ok( sim_buffers_sms )
         else:
             DeviceMediator.responseFromChannel( self, request, response )
@@ -354,7 +356,9 @@ class DeviceSetSimBuffersSms( DeviceMediator ):
             params = self._object.modem.data( "sms-buffered-cb" )
         else:
             params = self._object.modem.data( "sms-direct-cb" )
-        self._commchannel.enqueue( "+CNMI=%s" % params, self.responseFromChannel, self.errorFromChannel )
+        # CNMI needs to be issued on the unsolicited channel, otherwise +CMT wont go there
+        commchannel = self._object.modem.communicationChannel( "UnsolicitedMediator" )
+        commchannel.enqueue( "+CNMI=%s" % params, self.responseFromChannel, self.errorFromChannel )
 
 #
 # SIM Mediators
