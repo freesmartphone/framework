@@ -69,8 +69,9 @@ class Persist( object ):
     def sync( self, subsystem ):
         if subsystem in self.dirty:
             filename = os.path.join( self.rootdir, subsystem+".yaml" )
-            with file( filename, "w" ) as f:
+            with file( filename+".tmp", "w" ) as f:
                 f.write( dump( self.cache[subsystem], Dumper=Dumper ) )
+            os.rename( filename+".tmp", filename )
             self.dirty.discard( subsystem )
 
 possible_rootdirs = os.path.abspath(
