@@ -15,22 +15,10 @@ logger = logging.getLogger('oeventsd')
 
 import dbus
 
-#============================================================================#
-class TriggerMetaClass(type):
-#============================================================================#
-    """The meta class for Trigger class"""
-    def __init__(cls, name, bases, dict):
-        super(TriggerMetaClass, cls).__init__(name, bases, dict)
-        # If a trigger has a class attribute : 'function_name',
-        # Then we create a new function of that name that create this trigger
-        if 'function_name' in dict:
-            def func(*args):
-                return cls(*args)
-            from parser import Function
-            Function.register(dict['function_name'], func)
+from parser import AutoFunction
 
 #============================================================================#
-class Trigger(object):
+class Trigger(AutoFunction):
 #============================================================================#
     """A trigger is the initial event that can activate a rule.
 
@@ -41,7 +29,6 @@ class Trigger(object):
        A trigger can also optionaly have a an `untrigger` method. This method will
        call the `untrigger` method of the connected rules.
     """
-    __metaclass__ = TriggerMetaClass
 
     def __init__(self):
         """Create a new trigger
@@ -49,24 +36,26 @@ class Trigger(object):
            The trigger need to be initialized with the `init` method before
            it can trigger the connected rules
         """
-        self.listeners = []     # List of rules that are triggered by this trigger
+        self.__listeners = []     # List of rules that are triggered by this trigger
 
-    def connect(self, rule):
-        """Connect the trigger to a rule
+    def connect(self, action):
+        """Connect the trigger to an action
 
            This method should only be called by the Rule class
         """
-        self.listeners.append(rule)
+        self.__listeners.append(action)
 
-    def trigger(self, **kargs):
+    def _trigger(self, **kargs):
         """Trigger all the connected rules"""
-        for rule in self.listeners:
-            rule.trigger(**kargs)
+        logger.debug("trigger %s", self)
+        for action in self.__listeners:
+            action.trigger(**kargs)
             
-    def untrigger(self, **kargs):
+    def _untrigger(self, **kargs):
         """untrigger all the connected rules"""
-        for rule in self.listeners:
-            rule.untrigger(**kargs)
+        logger.debug("untrigger %s", self)
+        for action in self.__listeners:
+            action.untrigger(**kargs)
 
     def enable(self):
         """Enable the trigger
@@ -121,5 +110,5 @@ class DBusTrigger(Trigger):
         self.dbus_match.remove()
 
     def on_signal(self, *args):
-        self.trigger(args=args)
+        self._trigger(args=args)
 

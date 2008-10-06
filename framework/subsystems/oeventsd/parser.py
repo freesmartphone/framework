@@ -42,7 +42,23 @@ class Function(object):
 
     def __call__(self, *args):
         raise NotImplementedError
+        
 
+#============================================================================#
+class AutoFunctionMetaClass(type):
+#============================================================================#
+    def __init__(cls, name, bases, dict):
+        # If an action has a class attribute : 'function_name',
+        # Then we create a new function of that name that create this action
+        super(AutoFunctionMetaClass, cls).__init__(name, bases, dict)
+        if 'function_name' in dict:
+            def func(*args):
+                return cls(*args)
+            Function.register(dict['function_name'], func)
+            
+class AutoFunction(object):
+    __metaclass__ = AutoFunctionMetaClass
+            
 
 def split_params(s):
     """ An ugly way to parse function parameters
@@ -96,16 +112,16 @@ class HasAttr(Function):
         return AttributeFilter(**kargs)
 
 def as_rule(r):
-    from rule import Rule # needs to be here to prevent circular import
+    from rule import Rule, WhileRule # needs to be here to prevent circular import
     assert isinstance(r, dict), type(r)
     # We have to cases of rules :
     # Those who can be untriggered ('while')
     # and those who can't ('trigger')
-    can_untrigger = 'while' in r
-    trigger = r['trigger'] if not can_untrigger else r['while']
+    while_rule = 'while' in r
+    trigger = r['trigger'] if not while_rule else r['while']
     filters = r.get('filters', [])
     actions = r['actions']
-    return Rule(trigger, filters, actions, can_untrigger=can_untrigger)
+    return Rule(trigger, filters, actions) if not while_rule else WhileRule(trigger, filters, actions)
 
 #============================================================================#
 class Parser(object):

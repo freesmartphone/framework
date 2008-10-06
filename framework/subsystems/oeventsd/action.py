@@ -16,39 +16,46 @@ import dbus
 import logging
 logger = logging.getLogger('oeventsd')
 
-#============================================================================#
-class ActionMetaClass(type):
-#============================================================================#
-    """The meta class for Action class"""
-    def __init__(cls, name, bases, dict):
-        # If an action has a class attribute : 'function_name',
-        # Then we create a new function of that name that create this action
-        super(ActionMetaClass, cls).__init__(name, bases, dict)
-        if 'function_name' in dict:
-            def func(*args):
-                return cls(*args)
-            from parser import Function
-            Function.register(dict['function_name'], func)
+from parser import AutoFunction
+
 
 #============================================================================#
-class Action(object):
+class Action(AutoFunction):
 #============================================================================#
     """Base class for Action objects
     
-    An action has a `do` and `undo` methods.
-    By default the undo method will do nothing, but if it make sense, the action
+    An action has a `trigger` and `untrigger` methods.
+    By default the untirgger method will do nothing, but if it make sense, the action
     should define it.
     """
-    __metaclass__ = ActionMetaClass
 
     def __init__(self):
         pass
-    def do(self, **kargs):
+    def trigger(self, **kargs):
+        """Perform the action"""
         pass
-    def undo(self, **kargs):
+    def untrigger(self, **kargs):
+        """Undo anything that the action had performed""" 
         pass
     def __repr__(self):
         return "unamed action"
+        
+#============================================================================#
+class ListAction(list, Action):
+#============================================================================#
+    """An action that will trigger a list of actions
+    
+    This is basicaly a script.
+    """
+    def __init__(self, actions):
+        list.__init__(self, actions)
+    def trigger(self, **kargs):
+        for action in self:
+            action.trigger(**kargs)
+    def untrigger(self, **kargs):
+        for action in self:
+            action.untrigger(**kargs)
+            
 
 #============================================================================#
 class DebugAction(Action):
@@ -59,7 +66,7 @@ class DebugAction(Action):
 
     def __init__(self, msg):
         self.msg = msg
-    def do(self, **kargs):
+    def trigger(self, **kargs):
         logger.info("DebugAction : %s", self.msg)
     def __repr__(self):
         return "Debug(\"%s\")" % self.msg
@@ -84,7 +91,7 @@ class DBusAction(Action):
         self.method = method
         self.args = args
 
-    def do(self, **kargs):
+    def trigger(self, **kargs):
         # Get the Dbus object
         object = self.bus.get_object(self.service, self.obj)
         iface = dbus.Interface(object, dbus_interface=self.interface)
