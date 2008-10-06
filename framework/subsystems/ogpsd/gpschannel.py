@@ -61,6 +61,19 @@ class UDPChannel ( GPSChannel ):
 
         return True
 
+class GllinChannel( UDPChannel ):
+    """UDP reader for GTA01, takes care of starting and stopping gllin"""
+
+    def __init__( self, path="/etc/init.d/gllin" ):
+        super( GllinChannel, self ).__init__( 6000 )
+        self.gllin = path
+
+    def initializeChannel( self ):
+        os.system(self.gllin + " start")
+
+    def shutdownChannel( self ):
+        os.system(self.gllin + " stop")
+
 class FileChannel ( GPSChannel ):
     """File reader, for gta01, gllin"""
 
