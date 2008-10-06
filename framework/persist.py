@@ -16,7 +16,13 @@ from __future__ import with_statement
 
 __version__ = "1.0.0"
 
-import os, yaml, atexit
+import os, atexit
+from yaml import load, dump
+try:
+    from yaml import CLoader as Loader
+    from yaml import CDumper as Dumper
+except ImportError:
+    from yaml import Loader, Dumper
 
 import logging
 logger = logging.getLogger( "frameworkd.persist" )
@@ -40,10 +46,11 @@ class Persist( object ):
             try:
                 filename = os.path.join( self.rootdir, subsystem+".yaml" )
                 with file( filename, "r" ) as f:
-                    data = yaml.safe_load( f.read() )
-                if data is None: # empty file
-                    data = {}
+                    text = f.read()
             except:
+                text = ""
+            data = load( text, Loader=Loader )
+            if data is None: # empty file
                 data = {}
             self.cache[subsystem] = data
 
@@ -63,7 +70,7 @@ class Persist( object ):
         if subsystem in self.dirty:
             filename = os.path.join( self.rootdir, subsystem+".yaml" )
             with file( filename, "w" ) as f:
-                f.write( yaml.safe_dump( self.cache[subsystem] ) )
+                f.write( dump( self.cache[subsystem], Dumper=Dumper ) )
             self.dirty.discard( subsystem )
 
 possible_rootdirs = os.path.abspath(
