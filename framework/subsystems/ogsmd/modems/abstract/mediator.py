@@ -584,7 +584,7 @@ class SimRetrievePhonebook( SimMediator ):
         else:
             minimum, maximum = self._object.modem.phonebookIndices( self.pbcategory )
             if minimum is None: # don't know yet
-                SimGetPhonebookInfo( self._object, self.pbcategory, self.tryAgain, self.reportError )
+                SimGetPhonebookInfo( self._object, self.tryAgain, self.reportError, category=self.category )
             else:
                 self._commchannel.enqueue( '+CPBS="%s";+CPBR=%d,%d' % ( self.pbcategory, minimum, maximum ), self.responseFromChannel, self.errorFromChannel, timeout=const.TIMEOUT["SIMACCESS"] )
 
