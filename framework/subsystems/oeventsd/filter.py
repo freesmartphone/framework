@@ -29,7 +29,8 @@ class Filter( object ):
        of values. The method returns True if the filter accept the event, False otherwise.
     """
     def filter( self, **kargs ):
-        raise NotImplementedError
+        # The default filter is always True
+        return True
 
     def __invert__( self ):
         """Return the inverted filter of this filter

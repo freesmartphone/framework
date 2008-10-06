@@ -13,6 +13,7 @@ Module: fso_triggers
 """
 
 from trigger import DBusTrigger
+from rule import WhileRule
 
 import dbus
 
@@ -41,6 +42,29 @@ class CallStatusTrigger(DBusTrigger):
 
     def __repr__(self):
         return "CallStatus"
+        
+# TODO: Maybe this should be an instance of a special class (Condition ?)
+#============================================================================#
+class CallListContains(WhileRule):
+#============================================================================#
+    """This rule keep track of all the calls, and can be used to check for a given status in one of them"""
+    function_name = "CallListContains"
+    
+    def __init__(self, status):
+        self.status = status
+        self.calls = {} # The list of current call object
+        super(CallListContains, self).__init__(CallStatusTrigger())
+        
+    def trigger(self, id=None, status=None, properties=None, **kargs):
+        logger.debug("Trigger %s", self)
+        self.calls[id] = status
+        if self.status in self.calls.values():
+            super(CallListContains, self).trigger()
+        else:
+            super(CallListContains, self).untrigger()
+            
+    def __repr__(self):
+        return "CallListContains(%s)" % self.status
 
 #============================================================================#
 class IncomingMessageTrigger(DBusTrigger):

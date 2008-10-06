@@ -31,8 +31,8 @@
     trigger: IncomingMessage()
     actions: MessageTone(play)
 -
-    while: CallStatus()
-    filters: HasAttr(status, "incoming")
+    while: CallListContains("incoming")
+    filters: Not(CallListContains("active"))
     actions: RingTone()
 -
     while: CallStatus()

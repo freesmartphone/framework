@@ -25,7 +25,7 @@ class Rule( Trigger, Action ):
     When the rule is triggered it will trigger the action only if its filter
     allow it.
     """
-    def __init__( self, trigger, filter, action ):
+    def __init__( self, trigger, filter = Filter(), action = None ):
         """Create a new rule given a trigger, a filter and an action
         
         We can give a list of action or a list of filter instead of a single
@@ -46,7 +46,8 @@ class Rule( Trigger, Action ):
         
         self.__filter = filter
         self.__action = action
-        self.connect( action )
+        if action:
+            self.connect( action )
 
         logger.info( "Creating new rule : %s", self )
 
