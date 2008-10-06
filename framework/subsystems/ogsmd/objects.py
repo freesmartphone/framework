@@ -362,6 +362,12 @@ class Device( resource.Resource ):
         mediator.SimGetHomeZones( self, dbus_ok, dbus_error )
 
     ### SIM phonebook
+    @dbus.service.method( DBUS_INTERFACE_SIM, "", "as",
+                          async_callbacks=( "dbus_ok", "dbus_error" ) )
+    @resource.checkedmethod
+    def ListPhonebooks( self, dbus_ok, dbus_error ):
+        mediator.SimListPhonebooks( self, dbus_ok, dbus_error )
+
     @dbus.service.method( DBUS_INTERFACE_SIM, "s", "a{sv}",
                           async_callbacks=( "dbus_ok", "dbus_error" ) )
     @resource.checkedmethod

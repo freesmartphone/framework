@@ -662,7 +662,7 @@ REGISTER_MODE = { \
 }
 
 #=========================================================================#
-PHONEBOOK_CATEGORY = { \
+PHONEBOOK_CATEGORY = BiDict ( { \
     "contacts": "SM",
     "dialed": "DC",
     "received": "RC",
@@ -670,7 +670,7 @@ PHONEBOOK_CATEGORY = { \
     "missed": "MC",
     "emergency": "EN",
     # FIXME: Do we need more?
-}
+} )
 
 #=========================================================================#
 SMS_STATUS_OUT = { \

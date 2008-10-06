@@ -543,6 +543,25 @@ class SimGetHomeZones( SimMediator ): # a(siii)
                 self._ok( result )
 
 #=========================================================================#
+class SimListPhonebooks( SimMediator ):
+#=========================================================================#
+    def trigger( self ):
+        self._commchannel.enqueue( "+CPBS=?", self.responseFromChannel, self.errorFromChannel )
+
+    @logged
+    def responseFromChannel( self, request, response ):
+        if ( response[-1] == "OK" ):
+            result = []
+            for pb in re.findall( const.PAT_STRING, response[0] ):
+                try:
+                    result.append( const.PHONEBOOK_CATEGORY.revlookup(pb) )
+                except KeyError:
+                    pass
+            self._ok( result )
+        else:
+            SimMediator.responseFromChannel( self, request, response )
+
+#=========================================================================#
 class SimGetPhonebookInfo( SimMediator ):
 #=========================================================================#
     def trigger( self ):
