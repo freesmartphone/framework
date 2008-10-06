@@ -25,13 +25,44 @@ class UnsolicitedResponseDelegate( AbstractUnsolicitedResponseDelegate ):
         self.fullReadyness = "unknown"
         self.subsystemReadyness = { "PHB": False, "SMS": False }
 
-        self.calypsoUnregister = []
-        self.calypsoRegister = []
+        # deep sleep vars
+        self.lastStatus = "busy"
+        self.lastTime = 0
+        self.firstReregister = 0
+        self.lastReregister = 0
+        self.reregisterIntervals = []
 
     def _checkRecampingBug( self ):
         logging.debug( "checking for TI Calypso recamping bug..." )
-        # FIXME add recamping check
+        logging.debug( "reregistering %d times within %d seconds. unreg/reg-Intervals are: %s" % ( len(self.reregisterIntervals), self.lastReregister-self.firstReregister, self.reregisterIntervals ) )
+        reregisterCounter = 0
+        for reregisterInterval in self.reregisterIntervals:
+            if reregisterInterval < 3.0: # only an immediate unregister followed by register counts as a reregister
+                reregisterCounter += 1
+        probeMinutes = ( self.lastReregister - self.firstReregister ) / 60.0
+        recampingFactor = reregisterCounter / probeMinutes
+        logging.debug( "reregistering factor: %f recampings/minute" % recampingFactor )
+        # heuristics now
+        if reregisterCounter > 5 and recampingFactor > 4:
+            self._detectedRecampingBug()
         return False
+
+    def _detectedRecampingBug( self ):
+        logging.info( "This TI Calypso device suffers from the recamping bug. Turning off sleep mode to recover." )
+        # recover from recamping bug...
+        self._object.modem.channel( "MISC" ).enqueue( "%SLEEP=2" )
+        # ...but launch trigger to give it another chance (it's also depending on BTS)
+        gobject.timeout_add_seconds( 60*60, self._reactivateDeepSleep )
+
+
+    def _reactivateDeepSleep( self ):
+        logging.info( "Reenabling deep sleep mode on TI Calypso (giving it another chance)" )
+        self.lastStatus = "busy"
+        self.lastTime = 0
+        self.firstReregister = 0
+        self.lastReregister = 0
+        self.reregisterIntervals = []
+        self._object.modem.channel( "MISC" ).enqueue( "%SLEEP=4" )
 
     # Overridden from AbstractUnsolicitedResponseDelegate to check for the
     # TI Calypso Deep Sleep Recamping bug: http://docs.openmoko.org/trac/ticket/1024
@@ -40,12 +71,16 @@ class UnsolicitedResponseDelegate( AbstractUnsolicitedResponseDelegate ):
         AbstractUnsolicitedResponseDelegate.plusCREG( self, righthandside )
         # check for recamping
         values = safesplit( righthandside, ',' )
-        self.register = const.REGISTER_STATUS[int(values[0])]
-        if self.register == "unregistered":
-            self.calypsoUnregister.append( time.time() )
-        elif self.register != "busy":
-            self.calypsoRegister.append( time.time() )
-        gobject.idle_add( self._checkRecampingBug )
+        register = const.REGISTER_STATUS[int(values[0])]
+        if self.lastStatus == "unregistered":
+            if self.register in "home roaming".split():
+                self.reregisterIntervals.append( time.time() - self.lastTime )
+                if len( self.reregisterIntervals ) == 1:
+                    self.firstReregister = time.time()
+                gobject.idle_add( self._checkRecampingBug )
+                self.lastReregister = time.time()
+        self.lastStatus = register
+        self.lastTime = time.time()
 
     # +CRING is only used to trigger a status update
     def plusCRING( self, calltype ):
