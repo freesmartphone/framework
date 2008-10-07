@@ -137,15 +137,22 @@ class Resource( dbus.service.Object ):
     def Suspend( self, dbus_ok, dbus_error ):
         ok_callback = self.cbFactory( "suspended", dbus_ok )
         err_callback = self.cbFactory( self._resourceStatus, dbus_error, "could not suspend resource" )
-        self._updateResourceStatus( "suspending" )
-        self._suspend( ok_callback, err_callback )
+        # FIXME: What do we do if status is disabling?
+        if self._resourceStatus == "disabled":
+            ok_callback()
+        else:
+            self._updateResourceStatus( "suspending" )
+            self._suspend( ok_callback, err_callback )
 
     @dbus.service.method( DBUS_INTERFACE, "", "", async_callbacks=( "dbus_ok", "dbus_error" ) )
     def Resume( self, dbus_ok, dbus_error ):
         ok_callback = self.cbFactory( "enabled", dbus_ok )
         err_callback = self.cbFactory( self._resourceStatus, dbus_error, "could not resume resource" )
-        self._updateResourceStatus( "resuming" )
-        self._resume( ok_callback, err_callback )
+        if self._resourceStatus == "disabled":
+            ok_callback()
+        else:
+            self._updateResourceStatus( "resuming" )
+            self._resume( ok_callback, err_callback )
 
     # Subclass of Service should reimplement these methods
     def _enable( self, on_ok, on_error ):
