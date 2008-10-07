@@ -37,13 +37,13 @@ class UnsolicitedResponseDelegate( AbstractUnsolicitedResponseDelegate ):
         logging.debug( "reregistering %d times within %d seconds. unreg/reg-Intervals are: %s" % (  len(self.reregisterIntervals), self.lastReregister-self.firstReregister, [ "%.2f" % interval for interval in self.reregisterIntervals ] ) )
         reregisterCounter = 0
         for reregisterInterval in self.reregisterIntervals:
-            if reregisterInterval < 3.0: # only an immediate unregister followed by register counts as a reregister
+            if reregisterInterval < 3.5: # only an immediate unregister followed by register counts as a reregister
                 reregisterCounter += 1
         probeMinutes = ( self.lastReregister - self.firstReregister ) / 60.0
         recampingFactor = reregisterCounter / probeMinutes
         logging.debug( "reregistering factor: %.2f recampings/minute" % recampingFactor )
         # heuristics now
-        if reregisterCounter > 5 and recampingFactor > 4:
+        if reregisterCounter > 5 and recampingFactor > 1:
             self._detectedRecampingBug()
         return False
 
