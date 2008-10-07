@@ -36,7 +36,7 @@ class Rule( Trigger, Action ):
         
         # We accept list OR single value as argument
         if isinstance( filter, list ):
-            filter = AndFilter( filter )
+            filter = AndFilter( *filter )
         if isinstance( action, list ):
             action = ListAction( action )
 
