@@ -25,7 +25,7 @@ class Rule( Trigger, Action ):
     When the rule is triggered it will trigger the action only if its filter
     allow it.
     """
-    def __init__( self, trigger, filter = Filter(), action = None ):
+    def __init__( self, trigger, filter = Filter(), action = Action(), name = "" ):
         """Create a new rule given a trigger, a filter and an action
         
         We can give a list of action or a list of filter instead of a single
@@ -39,6 +39,10 @@ class Rule( Trigger, Action ):
             filter = AndFilter( *filter )
         if isinstance( action, list ):
             action = ListAction( action )
+            
+        assert isinstance(trigger, Trigger)
+        assert isinstance(action, Action)
+        assert isinstance(filter, Filter)
 
         self.__trigger = trigger
         # The trigger will call this rule when triggered
@@ -46,28 +50,30 @@ class Rule( Trigger, Action ):
         
         self.__filter = filter
         self.__action = action
-        if action:
-            self.connect( action )
+        self.connect( action )
 
-        logger.info( "Creating new rule : %s", self )
+        self.name = name
 
     def __repr__( self ):
+        if self.name:
+            return "'%s'" % self.name
         return "on %s if %s then %s" % ( self.__trigger, self.__filter, self.__action )
 
     def trigger( self, **kargs ):
         # First we check that ALL the filters match the signal
-        logger.debug( "trigger %s", self )
         if not self.__filter.filter( **kargs ):
             return False
         self._trigger( **kargs )
         return True
 
     def enable( self ):
+        # It should be enough to enable the trigger and the filter
         logger.info( "enable rule : %s", self )
         self.__trigger.enable()
         self.__filter.enable()
         
     def disable( self ):
+        # It should be enough to disable the trigger and the filter
         logger.info( "disable rule : %s", self )
         self.__trigger.disable()
         self.__filter.disable()
@@ -84,7 +90,6 @@ class WhileRule( Rule, Filter ):
         super( WhileRule, self ).__init__( *args )
         self.triggered = False
     def trigger( self, **kargs ):
-        logger.debug( "trigger %s", self )
         if self.triggered:
             if not self._Rule__filter.filter( **kargs ):
                 self.untrigger( **kargs )
@@ -102,6 +107,8 @@ class WhileRule( Rule, Filter ):
         return self.triggered
         
     def __repr__( self ):
+        if self.name:
+            return "'%s'" % self.name
         return "While %s if %s then %s" % ( self._Rule__trigger, self._Rule__filter, self._Rule__action )
 
 

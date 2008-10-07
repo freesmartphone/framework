@@ -96,10 +96,13 @@ class DBusTrigger(Trigger):
         self.obj = obj
         self.interface = interface
         self.signal = signal
+        self.dbus_match = None
 
     def enable(self):
+        if self.dbus_match is not None: # if the rule is already enabled we do nothing 
+            return
         # Connect to the DBus signal
-        logger.info("connect trigger to dbus signal %s %s", self.obj, self.signal)
+        logger.debug("connect trigger to dbus signal %s %s", self.obj, self.signal)
         self.dbus_match = self.bus.add_signal_receiver(
             self.on_signal,
             dbus_interface=self.interface,
@@ -107,7 +110,10 @@ class DBusTrigger(Trigger):
         )
         
     def disable(self):
+        if self.dbus_match is None: # if the rule is already disabled we do nothing 
+            return
         self.dbus_match.remove()
+        self.dbus_match = None
 
     def on_signal(self, *args):
         self._trigger(args=args)

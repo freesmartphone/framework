@@ -121,8 +121,11 @@ def as_rule(r):
     trigger = r['trigger'] if not while_rule else r['while']
     filters = r.get('filters', [])
     actions = r['actions']
-    return Rule(trigger, filters, actions) if not while_rule else WhileRule(trigger, filters, actions)
-
+    name = r.get('name', "")
+    ret = Rule(trigger, filters, actions, name) if not while_rule else WhileRule(trigger, filters, actions, name)
+    logger.info( "Created new rule : %s", ret )
+    return ret
+    
 #============================================================================#
 class Parser(object):
 #============================================================================#

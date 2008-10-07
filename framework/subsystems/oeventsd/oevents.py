@@ -15,6 +15,7 @@ Module: oevents
 __version__ = "0.3.0"
 
 from framework.config import config
+from framework.controller import Controller
 
 from action import Action
 from parser import Parser
@@ -51,11 +52,35 @@ class EventsManager(dbus.service.Object):
         # The set of rules is empty
         self.rules = []
         logger.info( "%s %s initialized. Serving %s at %s", self.__class__.__name__, __version__, self.interface, self.path )
+        
+        # We need to update the rule every time the 'preferences/rules/enabled-rules' list is modified
+        bus = dbus.SystemBus()
+        bus.add_signal_receiver(
+            self.on_rules_enabled_modified, 'Notify', 'org.freesmartphone.Preferences.Service',
+            'org.freesmartphone.opreferencesd', '/org/freesmartphone/Preferences/rules'
+        )
 
     def add_rule(self, rule):
-        """Add a new rule, and acticate it"""
+        """Add a new rule into the event manager"""
         self.rules.append(rule)
-        rule.enable()
+        
+    def on_rules_enabled_modified(self, *args):
+        self.update()
+        
+    def update(self):
+        """Enable the rules that need to be"""
+        logger.info("update the rules")
+        # First we need to get the 'enabled-rules' value from the 'rules' preference service
+        prefs = Controller.object( "/org/freesmartphone/Preferences" )
+        rules_prefs = prefs.GetService( "rules" )
+        enabled_rules = rules_prefs.GetValue( "enabled-rules" )
+        enabled_rules = [str(x) for x in enabled_rules]
+        
+        for rule in self.rules:
+            if rule.name in enabled_rules:
+                rule.enable()
+            else:
+                rule.disable()
 
 #============================================================================#
 def factory(prefix, controller):
@@ -76,6 +101,7 @@ def factory(prefix, controller):
             for rule in rules:
                 events_manager.add_rule(rule)
             break   # We only use the first file
+    events_manager.update()
 
     # Return the dbus object to the framework
     return [events_manager]

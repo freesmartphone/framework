@@ -30,6 +30,7 @@
     #
     trigger: IncomingMessage()
     actions: MessageTone(play)
+
 -
     while: CallListContains("incoming")
     filters: Not(CallListContains("active"))
@@ -65,6 +66,15 @@
              - HasAttr(switch, "HEADSET")
              - HasAttr(event, "released")
     actions: Command('amixer -d sset "Amp Spk" unmute')
+    
+    # A test
+    # This rule will only be enabled in silent mode
+    # According to the preferences rules conf files.
+-
+    name: 'test-rule'
+    trigger: IdleState()
+    filters: HasAttr(status, "BUSY")
+    actions: Debug("Hello This is a test")
 -
     #
     # Idleness Brightness Handling
