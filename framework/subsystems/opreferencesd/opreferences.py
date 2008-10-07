@@ -92,7 +92,7 @@ class PreferencesManager(dbus.service.Object):
     @dbus.service.method("org.freesmartphone.Preferences", in_signature='s', out_signature='')
     def SetProfile(self, profile):
         """Set the current profile"""
-        logger.debug("SetProfile to %s", profile)
+        logger.info("SetProfile to %s", profile)
         profile = str(profile)
         assert profile in self.GetProfiles()
         self.profiles = [profile, 'default']

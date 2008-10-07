@@ -6,10 +6,15 @@ import dbus.service
 from schema import Schema
 from configuration import Configuration
 
+from helpers import dbus_to_python
+
 import logging
 logger = logging.getLogger('opreferencesd')
 
 class NoServiceError(Exception):
+    pass
+    
+class NoValueError(Exception):
     pass
 
 class Service(dbus.service.Object):
@@ -94,6 +99,8 @@ class Service(dbus.service.Object):
         else:
             logger.info("Service %s : can't find key %s, using default", self, key) 
             ret = parameter.default
+        if ret is None:
+            raise NoValueError
         # We have to call this method to give the proper type to the ret value
         ret = parameter.dbus(ret)
         return ret
@@ -109,10 +116,7 @@ class Service(dbus.service.Object):
         # Here we always set the value into the top profile configuration file
         # Shouldn't we use the profile that actually defines the value if there is one ?
         profile = self.manager.profiles[0] if parameter.profilable else 'default'
-        try:
-            value = parameter.type(value)
-        except:
-            raise TypeError, "expected %s, got %s" % (parameter.type, type(value))
+        value = dbus_to_python(value)
         conf = self.get_conf(profile)
         conf[key] = value
     
@@ -135,7 +139,7 @@ class Service(dbus.service.Object):
     @dbus.service.signal('org.freesmartphone.Preferences.Service', signature='sv')
     def Notify(self, key, value):
         """signal used to notify a parameter change"""
-        pass
+        logger.debug("Notify change in value %s/%s", self.name, key)
         
     def on_profile_changed(self, profile):
         """called everytime we the global profile is changed"""

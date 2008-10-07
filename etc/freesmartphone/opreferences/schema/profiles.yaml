@@ -5,6 +5,4 @@
 # The int have no meaning, it will be replaced by a real structure later
 
 profiles:
-    type: dict
-    value:
-        type: int
+    type: list
