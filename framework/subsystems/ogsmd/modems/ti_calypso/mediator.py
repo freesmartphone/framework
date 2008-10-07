@@ -55,8 +55,10 @@ class CallRelease( CallMediator ):
 class CallReleaseAll( CallMediator ):
 #=========================================================================#
     def trigger( self ):
-            callHandler.releaseAll( self._commchannel )
-            self._ok()
+        # need to use misc channel here, so that it can also work during outgoing call
+        # FIXME might rather want to consider using the state machine after all (see below)
+        callHandler.releaseAll( self._object.modem.channel( "MiscMediator" ) )
+        self._ok()
 
 #=========================================================================#
 class CallActivate( CallMediator ):
@@ -99,8 +101,7 @@ class CallHandler( object ):
         return self.feedUserInput( "release", index=index, channel=commchannel )
 
     def releaseAll( self, commchannel ):
-        # not going via state machine, since this is possible at any time
-        commchannel.enqueue( "H" )
+        return self.feedUserInput( "dropall", channel=commchannel )
 
     def hold( self, commchannel ):
         return self.feedUserInput( "hold", channel=commchannel )
@@ -110,6 +111,7 @@ class CallHandler( object ):
             if info["status"] == "incoming":
                 self._updateStatus( callId )
                 break # can't be more than one call incoming at once (GSM limitation)
+                # FIXME is the above comment really true?
 
     def statusChangeFromNetwork( self, callId, info ):
         self._calls[callId].update( info )
@@ -119,6 +121,7 @@ class CallHandler( object ):
 
     def feedUserInput( self, action, *args, **kwargs ):
         # simple actions
+        # FIXME might rather want to consider using the state machine, since that would be more clear
         if action == "dropall":
             kwargs["channel"].enqueue( 'H' )
             return True
