@@ -820,6 +820,7 @@ class SimStoreMessage( SimMediator ):
             number = self.number[1:]
             ntype = 1
         else:
+            number = self.number
             ntype = 2
         sms.oa = ogsmd.gsm.sms.PDUAddress( ntype, 1, number )
         sms.ud = self.contents
@@ -872,6 +873,7 @@ class SmsSendMessage( SmsMediator ):
             number = self.number[1:]
             ntype = 1
         else:
+            number = self.number
             ntype = 2
         sms.oa = ogsmd.gsm.sms.PDUAddress( ntype, 1, number )
         sms.ud = self.contents
