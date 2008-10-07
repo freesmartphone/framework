@@ -164,6 +164,12 @@ bus.add_signal_receiver( handler, None, None, None, None,
     interface_keyword = "interface",
     member_keyword = "member",
     path_keyword = "path" )
+    
+# preferences
+preferences = getInterface( \
+    "org.freesmartphone.opreferencesd",
+    "/org/freesmartphone/Preferences",
+    "org.freesmartphone.Preferences" )
 
 import rlcompleter, readline, atexit
 readline.parse_and_bind( "tab: complete" )
