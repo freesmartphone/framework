@@ -10,7 +10,9 @@ Interactive console for the freesmartphone.org framework
 GPLv2 or later
 """
 
-import os, sys, code
+__version__ = "0.9.0"
+
+import os, sys, code, pprint
 import dbus.service
 import dbus.mainloop.glib
 import dbus
@@ -18,7 +20,34 @@ from syslog import syslog, LOG_ERR, LOG_WARNING, LOG_INFO, LOG_DEBUG
 import dbus, sys, atexit
 from gobject import MainLoop
 
+pp = pprint.PrettyPrinter( indent=4 )
+
+
+#----------------------------------------------------------------------------#
+def dbus_to_python(v):
+#----------------------------------------------------------------------------#
+    if isinstance(v, dbus.Int32):
+        return int(v)
+    elif isinstance(v, dbus.String):
+        return str(v)
+    elif isinstance(v, dbus.Dictionary):
+        return dict( (dbus_to_python(k), dbus_to_python(v)) for k,v in v.iteritems() )
+    elif isinstance(v, dbus.Array):
+        return [dbus_to_python(x) for x in v]
+    elif isinstance(v, dbus.Struct):
+        return tuple(dbus_to_python(x) for x in v)
+    else:
+        return v
+#        raise TypeError("Can't convert type %s to python object" % type(v))
+
+#----------------------------------------------------------------------------#
+def prettyPrint( expression ):
+#----------------------------------------------------------------------------#
+    pp.pprint( dbus_to_python(expression) )
+
+#----------------------------------------------------------------------------#
 def handler( *args, **kwargs ):
+#----------------------------------------------------------------------------#
     if kwargs["path"].startswith( "/org/freesmartphone" ):
         print "[SIGNAL]   %s.%s    from " % ( kwargs["interface"], kwargs["member"] ),
         print "%s via %s" % ( kwargs["path"], kwargs["sender"] )
@@ -28,14 +57,20 @@ def handler( *args, **kwargs ):
         print ">>> ",
         sys.stdout.flush()
 
+#----------------------------------------------------------------------------#
 def getObject( busname, objectpath ):
+#----------------------------------------------------------------------------#
     return bus.get_object( busname, objectpath, follow_name_owner_changes=True )
 
+#----------------------------------------------------------------------------#
 def getInterface( busname, objectpath, interface ):
+#----------------------------------------------------------------------------#
     proxy = getObject( busname, objectpath )
     return dbus.Interface( proxy, interface)
 
+#----------------------------------------------------------------------------#
 def getObjectsForInterface( interface ):
+#----------------------------------------------------------------------------#
     paths = framework.ListObjectsByInterface( interface )
     result = {}
     for path in paths:
@@ -157,6 +192,11 @@ usageiface = getInterface( \
     "/org/freesmartphone/Usage",
     "org.freesmartphone.Usage" )
 
+# preferences
+preferences = getInterface( \
+    "org.freesmartphone.opreferencesd",
+    "/org/freesmartphone/Preferences",
+    "org.freesmartphone.Preferences" )
 
 bus.add_signal_receiver( handler, None, None, None, None,
     sender_keyword = "sender",
@@ -164,12 +204,6 @@ bus.add_signal_receiver( handler, None, None, None, None,
     interface_keyword = "interface",
     member_keyword = "member",
     path_keyword = "path" )
-    
-# preferences
-preferences = getInterface( \
-    "org.freesmartphone.opreferencesd",
-    "/org/freesmartphone/Preferences",
-    "org.freesmartphone.Preferences" )
 
 import rlcompleter, readline, atexit
 readline.parse_and_bind( "tab: complete" )
@@ -186,6 +220,7 @@ def runmainloop():
         mainloop.quit()
         sys.exit( 0 )
 
+sys.displayhook = prettyPrint
 console = code.InteractiveConsole( locals() )
 try:
     console.interact( "freesmartphone.org interactive command line" )
