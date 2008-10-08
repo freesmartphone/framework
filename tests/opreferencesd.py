@@ -7,12 +7,14 @@ import dbus
 from dbus.mainloop.glib import DBusGMainLoop
 DBusGMainLoop(set_as_default=True)
 
+import test
+
 class BaseTest(unittest.TestCase):
     def setUp(self):
         # We connect to the DBus object
         self.bus = dbus.SystemBus()
         self.preferences = self.bus.get_object('org.freesmartphone.opreferencesd', '/org/freesmartphone/Preferences')
-    def testProfiles(self):
+    def test_profiles(self):
         """Test that we can get the profiles, and that we have a 'default' profile"""
         profiles = self.preferences.GetProfiles()
         assert 'default' in profiles
@@ -26,7 +28,7 @@ class BaseTest(unittest.TestCase):
         profile = self.preferences.GetProfile()
         assert profile == 'silent'
     
-    def testServices(self):
+    def test_services(self):
         services = self.preferences.GetServices()
         assert 'profiles' in services
         # Try to get a service that doesn't exist
@@ -40,20 +42,23 @@ class BaseTest(unittest.TestCase):
         path = self.preferences.GetService('profiles')
         assert(path == '/org/freesmartphone/Preferences/profiles')
     
-    def testGet(self):
+    @test.taskletTest
+    def test_get(self):
         path = self.preferences.GetService('profiles')
         profiles = self.bus.get_object('org.freesmartphone.opreferencesd', path)
+        profiles = dbus.Interface(profiles, 'org.freesmartphone.Preferences.Service')
         # Try to get a valid key
         value = profiles.GetValue('profiles')
         # Try to get an invalid key
-        profiles.GetValue('This_key_does_not_exist')
+        self.assertRaises(dbus.exceptions.DBusException, profiles.GetValue, 'This_key_does_not_exist')
+        yield True
         
         
 def suite():
    suite = unittest.TestSuite()
-   suite.addTest(BaseTest("testProfiles"))
-   suite.addTest(BaseTest("testServices"))
-   suite.addTest(BaseTest("testGet"))
+   suite.addTest(BaseTest("test_profiles"))
+   suite.addTest(BaseTest("test_services"))
+   suite.addTest(BaseTest("test_get"))
    return suite
     
 
