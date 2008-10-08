@@ -62,7 +62,10 @@ class Tasklet(object):
     See the example 8 to see how to use this.
     """
     def __init__(self, *args, **kargs):
-        self.generator = kargs.get('generator', None) or self.do_run(*args, **kargs)
+        if 'generator' in kargs:
+            self.generator = kargs['generator']
+        else:
+            self.generator = self.do_run(*args, **kargs)
         assert isinstance(self.generator, GeneratorType), type(self.generator)
         self.stack = traceback.extract_stack()[:-2]
         
