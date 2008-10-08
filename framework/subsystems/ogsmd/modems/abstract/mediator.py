@@ -109,7 +109,9 @@ class AbstractMediator( object ):
                 e = error.SimBlocked( text )
             elif code in ( 5, 6, 7, 11, 12, 15, 17, 18, 48 ):
                 e = error.SimAuthFailed( text )
-                # TODO launch idle task that sends an new auth status signal
+            elif code == 100:
+                e = error.SimNotReady( "Antenna powered off or SIM not unlocked yet" )
+            # TODO launch idle task that sends an new auth status signal
 
         elif category == "CMS":
             if code == 310:
