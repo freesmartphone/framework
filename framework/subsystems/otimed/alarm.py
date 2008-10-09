@@ -1,19 +1,18 @@
 #!/usr/bin/env python
 # -*- coding: UTF-8 -*-
 """
-Open Usage Daemon - Generic usage support
+Open Time Daemon - Alarm Support
 
-(C) 2008 Michael 'Mickey' Lauer <mlauer@vanille-media.de>
 (C) 2008 Jan 'Shoragan' Lübbe <jluebbe@lasnet.de>
 (C) 2008 Openmoko, Inc.
 GPLv2 or later
 
 Package: otimed
-Module: generic
+Module: alarm
 """
 
 MODULE_NAME = "otimed.alarm"
-__version__ = "0.1.1"
+__version__ = "0.1.2"
 
 DBUS_INTERFACE_PREFIX = "org.freesmartphone.Time.Alarm"
 DBUS_PATH_PREFIX = "/org/freesmartphone/Time/Alarm"
@@ -45,7 +44,7 @@ def log_dbus_error( desc ):
 class Alarm( object ):
 #----------------------------------------------------------------------------#
     """This class represents an alarm that has been set by an application
-    
+
     Every application can have only one Alarm set. If the application has no
     well-known bus name, the Alarm will be cleared when then application
     disconnects from the bus.
@@ -107,8 +106,8 @@ class AlarmController( dbus.service.Object ):
             try:
                 # we need to have odeviced started up before being able to set alarms
                 proxy = self.bus.get_object( "org.freesmartphone.odeviced", "/org/freesmartphone/Framework" )
-                objects = dbus.Interface( proxy, "org.freesmartphone.Objects" )
-                objects.ListObjectsByInterface(
+                framework = dbus.Interface( proxy, "org.freesmartphone.Framework" )
+                framework.ListObjectsByInterface(
                     "org.freesmartphone.Device.RealTimeClock",
                     reply_handler=cbListObjects, error_handler=log_dbus_error( "can not get list of RTCs" )
                 )

@@ -2,6 +2,8 @@
 
 	* [ogsmd] Add parameter validation to org.freesmartphone.GSM.Call.Initiate
 
+	* Move ListObjectsByInterface to org.freesmartphone.Framework, warning: API Change
+
 2008-10-07	Daniel Willmann	<daniel@totalueberwachung.de>
 
 	* [ogsmd] Add org.freesmartphone.GSM.SMS.IncomingMessage and renamed

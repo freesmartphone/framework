@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: UTF-8 -*-
 """
-Open Device Daemon - Framework Introspection Object
+Open Device Daemon - Framework Support Object
 
 (C) 2008 Michael 'Mickey' Lauer <mlauer@vanille-media.de>
 (C) 2008 Jan 'Shoragan' Lübbe <jluebbe@lasnet.de>
@@ -10,7 +10,7 @@ Open Device Daemon - Framework Introspection Object
 GPLv2 or later
 """
 
-__version__ = "0.5.1"
+__version__ = "0.5.2"
 
 from .introspection import process_introspection_data
 from .config import DBUS_INTERFACE_PREFIX
@@ -47,16 +47,15 @@ class InvalidTarget( dbus.DBusException ):
     _dbus_error_name = "org.freesmartphone.Framework.InvalidTarget"
 
 #----------------------------------------------------------------------------#
-class Objects( dbus.service.Object ):
+class Framework( dbus.service.Object ):
 #----------------------------------------------------------------------------#
-    """A D-Bus Object implementing org.freesmartphone.Objects"""
+    """A D-Bus Object implementing org.freesmartphone.Framework"""
     DBUS_INTERFACE_FRAMEWORK = DBUS_INTERFACE_PREFIX + ".Framework"
-    DBUS_INTERFACE_FRAMEWORK_OBJECTS = DBUS_INTERFACE_PREFIX + ".Objects"
 
     InterfaceCache = {}
 
     def __init__( self, bus, controller ):
-        self.interface = self.DBUS_INTERFACE_FRAMEWORK_OBJECTS
+        self.interface = self.DBUS_INTERFACE_FRAMEWORK
         self.path = "/org/freesmartphone/Framework"
         self.bus = bus
         dbus.service.Object.__init__( self, bus, self.path )
@@ -69,7 +68,7 @@ class Objects( dbus.service.Object ):
     #
     # dbus methods
     #
-    @dbus.service.method( DBUS_INTERFACE_FRAMEWORK_OBJECTS, "s", "ao",
+    @dbus.service.method( DBUS_INTERFACE_FRAMEWORK, "s", "ao",
                           async_callbacks=( "dbus_ok", "dbus_error" ) )
     def ListObjectsByInterface( self, interface, dbus_ok, dbus_error ):
 
@@ -82,12 +81,12 @@ class Objects( dbus.service.Object ):
 
                 for object in self.controller.objects:
                     try:
-                        interfaces = Objects.InterfaceCache[object]
+                        interfaces = Framework.InterfaceCache[object]
                     except KeyError:
                         logger.debug( "introspecting object %s..." % object )
                         introspectionData = yield tasklet.WaitDBus( self._getInterfaceForObject( object, "org.freedesktop.DBus.Introspectable" ).Introspect )
                         interfaces = process_introspection_data( introspectionData )["interfaces"]
-                        Objects.InterfaceCache[object] = interfaces
+                        Framework.InterfaceCache[object] = interfaces
 
                     logger.debug( "interfaces for object are %s" % interfaces )
                     for iface in interfaces:
@@ -192,7 +191,7 @@ class Objects( dbus.service.Object ):
 #----------------------------------------------------------------------------#
 def factory( prefix, controller ):
 #----------------------------------------------------------------------------#
-    return [ Objects( controller.bus, controller ) ]
+    return [ Framework( controller.bus, controller ) ]
 
 #----------------------------------------------------------------------------#
 if __name__ == "__main__":
@@ -201,6 +200,6 @@ if __name__ == "__main__":
     bus = dbus.SystemBus()
 
     query = bus.get_object( "org.freesmartphone.frameworkd", "/org/freesmartphone/Framework" )
-    objects = query.ListObjectsByInterface( '*',  dbus_interface="org.freesmartphone.Objects" )
+    objects = query.ListObjectsByInterface( '*',  dbus_interface="org.freesmartphone.Framework" )
 
     phone = bus.get_object( "org.freesmartphone.ogsmd", "/org/freesmartphone/GSM/Device" )
