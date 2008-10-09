@@ -11,7 +11,7 @@ Module: mediator
 """
 
 from ogsmd.modems.abstract import mediator
-from ogsmd.gsm import error
+from ogsmd.gsm import error, const
 import types
 
 #=========================================================================#
@@ -31,6 +31,15 @@ del mediator
 class CallInitiate( CallMediator ):
 #=========================================================================#
     def trigger( self ):
+        # check parameters
+        if self.calltype not in const.PHONE_CALL_TYPES:
+            self._error( error.InvalidParameter( "invalid call type. Valid call types are: %s" % const.PHONE_CALL_TYPES ) )
+            return
+        for digit in self.number:
+            if digit not in const.PHONE_NUMBER_DIGITS:
+                self._error( error.InvalidParameter( "invalid number digit. Valid number digits are: %s" % const.PHONE_NUMBER_DIGITS ) )
+                return
+        # do the work
         if self.calltype == "voice":
             dialstring = "%s;" % self.number
         else:

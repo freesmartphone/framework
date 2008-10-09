@@ -1,3 +1,7 @@
+2008-10-09	Michael Lauer	<mickey@openmoko.org>
+
+	* [ogsmd] Add parameter validation to org.freesmartphone.GSM.Call.Initiate
+
 2008-10-07	Daniel Willmann	<daniel@totalueberwachung.de>
 
 	* [ogsmd] Add org.freesmartphone.GSM.SMS.IncomingMessage and renamed
