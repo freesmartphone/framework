@@ -32,6 +32,7 @@ class AudioAction(Action):
     def __init__(self, path):
         super(AudioAction, self).__init__()
         self.path = path
+
     def trigger(self, **kargs):
         DBusAction(
             dbus.SystemBus(),
@@ -39,6 +40,7 @@ class AudioAction(Action):
             '/org/freesmartphone/Device/Audio',
             'org.freesmartphone.Device.Audio',
             'PlaySound', self.path).trigger()
+
     def untrigger(self, **kargs):
         DBusAction(
             dbus.SystemBus(),
@@ -60,22 +62,28 @@ class SetAudioScenarioAction(DBusAction):
         interface = 'org.freesmartphone.Device.Audio'
         if action == 'set':
             # FIXME gsmhandset ugly ugly hardcoded
-            super(AudioScenarioAction, self).__init__(bus, service, obj, interface, "SetScenario", scenario)
+            super(SetAudioScenarioAction, self).__init__(bus, service, obj, interface, "SetScenario", scenario)
         else:
             logger.error( "unhandled action '%s' for Audio scenario" % action )
-            
+
+#============================================================================#
 class AudioScenarioAction(Action):
+#============================================================================#
     function_name = 'SetScenario'
+
     def __init__(self, scenario):
         self.scenario = scenario
+
     def trigger(self, **kargs):
         logger.info("Set Audio Scenario %s", self.scenario)
         # TODO: retreive the current scenario so that we can use it when we reset the scenario
         self.backup_scenario = 'stereoout'
         SetAudioScenarioAction(self.scenario).trigger()
+
     def untrigger(self, **kargs):
         logger.info("Revert Audio Scenario to %s", self.backup_scenario)
         SetAudioScenarioAction(self.backup_scenario).trigger()
+
     def __repr__(self):
         return "SetScenario(%s)" % self.scenario
 
@@ -111,7 +119,6 @@ class LedAction(Action):
         self.set(self.backup_action)
     def __repr__(self):
         return "SetLed(%s, %s)" % (self.device, self.action)
-        
 
 #============================================================================#
 class DisplayBrightnessAction(DBusAction):
@@ -145,7 +152,7 @@ class VibratorAction(Action):
                     '/org/freesmartphone/Device/LED/%s' % self.target,
                     'org.freesmartphone.Device.LED',
                     'SetBlinking', 300, 700).trigger()
-                    
+
     def untrigger(self, **kargs):
         DBusAction(dbus.SystemBus(), 
                     'org.freesmartphone.odeviced',
@@ -157,7 +164,7 @@ class VibratorAction(Action):
 class RingToneAction(Action):
 #=========================================================================#
     function_name = 'RingTone'
-        
+
     def trigger(self, **kargs):
         logger.info( "RingToneAction play" )
         # We use the global Controller class to directly get the object
@@ -174,10 +181,10 @@ class RingToneAction(Action):
         # XXX: Actually we don't use the volume info here !!!
         self.audio_action = AudioAction(self.sound_path)
         self.vibrator_action = VibratorAction()
-        
+
         self.audio_action.trigger()
         self.vibrator_action.trigger()
-        
+
     def untrigger(self, **kargs):
         logger.info( "RingToneAction stop" )
         self.audio_action.untrigger()
