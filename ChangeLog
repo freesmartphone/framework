@@ -1,3 +1,11 @@
+2008-10-10	Daniel Willmann	<daniel@totalueberwachung.de>
+
+	* [ogpsd] With gllin version 1.1 installed GPS should work out of the box
+	  for GTA01 owners.
+	* [ogpsd] Enable SBAS (satellite based augmentation system) by default for
+	  UBX devices which greatly increases accuracy if an EGNOS/WAAS/MSAS
+	  satellite can be found.
+
 2008-10-09	Michael Lauer	<mickey@openmoko.org>
 
 	* [ogsmd] Add parameter validation to org.freesmartphone.GSM.Call.Initiate
