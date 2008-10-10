@@ -8,7 +8,10 @@ GPLv2 or later
 """
 
 MODULE_NAME = "odeviced.input"
-__version__ = "0.9.9.1"
+__version__ = "0.9.9.2"
+
+from pyglet.linux_const import EV_ABS
+from pyglet.linux import input_device_supports_event_type
 
 from framework.patterns import asyncworker
 from helpers import DBUS_INTERFACE_PREFIX, DBUS_PATH_PREFIX, readFromFile, writeToFile, cleanObjectName
@@ -64,10 +67,15 @@ class Input( dbus.service.Object, asyncworker.AsyncWorker ):
                 logger.debug( "can't open /dev/input/event%d: %s. Assuming it doesn't exist.", i, e )
                 break
             else:
-                self.input[f] = "event%d" % i
+                # Ignore input devices spitting out absolute data (touchscreen, mouse, et. al)
+                if input_device_supports_event_type( f, EV_ABS ):
+                    logger.info( "skipping input node %d due to it supporting EV_ABS" % ( i ) )
+                    os.close( f )
+                    continue
+                else:
+                    self.input[f] = "event%d" % i
 
         logger.info( "opened %d input file descriptors", len( self.input ) )
-        # FIXME what to do if initialization of a module fails?s
 
         self.watches = {}
         self.events = {}
