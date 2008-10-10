@@ -23,6 +23,10 @@ socket.NETLINK_KOBJECT_UEVENT = 15 # not present in earlier versions
 import logging
 logger = logging.getLogger( MODULE_NAME )
 
+FBIOBLANK = 0x4611
+FB_BLANK_UNBLANK = 0
+FB_BLANK_POWERDOWN = 4
+
 #----------------------------------------------------------------------------#
 class Display( dbus.service.Object ):
 #----------------------------------------------------------------------------#
@@ -37,14 +41,35 @@ class Display( dbus.service.Object ):
         logger.info( "%s %s initialized. Serving %s at %s" % ( self.__class__.__name__, __version__, self.interface, self.path ) )
         self.node = node
         self.max = int( readFromFile( "%s/max_brightness" % self.node ) )
-        logger.debug( "max brightness %d" % self.max )
+        self.current = int( readFromFile( "%s/actual_brightness" % self.node ) )
+        logger.debug( "current brightness %d, max brightness %d" % ( self.current, self.max ) )
 
-        # FIXME Check which we're currently on before accessing
+        # FIXME Check which framebuffer we're currently on before accessing
         fb_fname = "/dev/fb0"
         if os.path.exists( fb_fname ):
             self.fb_fd = open( fb_fname )
         else:
             self.fb_fd = -1
+
+    def _valueToPercent( self, value ):
+        return int( 100.0 / self.max * int( value ) )
+
+    def _percentToValue( self, percent ):
+        if percent >= 100:
+            value = self.max
+        elif percent <= 0:
+            value = 0
+        else:
+            value = int( round( percent / 100.0 * self.max ) )
+        return value
+
+    def _setFbPower( self, on ):
+        if self.fb_fd >= 0:
+            logger.debug( "issuing ioctl( FBIOBLANK, %s )" % ( "FB_BLANK_UNBLANK" if on else "FB_BLANK_POWERDOWN" ) )
+            fcntl.ioctl(self.fb_fd, FBIOBLANK, FB_BLANK_UNBLANK if on else FB_BLANK_POWERDOWN )
+        else:
+            logger.error( "can't issue ioctl on framebuffer -- device not existing" )
+        return False # don't call me again
     #
     # dbus
     #
@@ -55,25 +80,18 @@ class Display( dbus.service.Object ):
     @dbus.service.method( DBUS_INTERFACE, "", "i" )
     def GetBrightness( self ):
         value = readFromFile( "%s/actual_brightness" % self.node )
-        return int( 100.0 / self.max * int( value ) )
+        return self._valueToPercent( value )
 
     @dbus.service.method( DBUS_INTERFACE, "i", "" )
     def SetBrightness( self, brightness ):
-        if brightness >= 100:
-            value = self.max
-        elif brightness <= 0:
-            value = 0
-        else:
-            value = int( round( brightness / 100.0 * self.max ) )
-        if self.fb_fd >= 0:
-            if value != 0:
-                # ioctl(FBIOBLANK, FB_BLANK_UNBLANK)
-                fcntl.ioctl(self.fb_fd, 0x4611, 0)
-        writeToFile( "%s/brightness" % self.node, str( value ) )
-        if self.fb_fd >= 0:
-            if value == 0:
-                # ioctl(FBIOBLANK, FB_BLANK_POWERDOWN)
-                fcntl.ioctl(self.fb_fd, 0x4611, 4)
+        value = self._percentToValue( brightness )
+        if self.current != value:
+            writeToFile( "%s/brightness" % self.node, str( value ) )
+            if self.current == 0: # previously, we were off
+                self._setFbPower( True )
+            elif value == 0:
+                self._setFbPower( False )
+            self.current = value
 
     @dbus.service.method( DBUS_INTERFACE, "", "b" )
     def GetBacklightPower( self ):
