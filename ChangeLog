@@ -6,6 +6,10 @@
 	  UBX devices which greatly increases accuracy if an EGNOS/WAAS/MSAS
 	  satellite can be found.
 
+2008-10-10	Harald Welte 	<laforge@openmoko.org>
+
+	* [odeviced] [PATCH] use /dev/fb0 ioctl based screen blanking
+
 2008-10-09	Michael Lauer	<mickey@openmoko.org>
 
 	* [ogsmd] Add parameter validation to org.freesmartphone.GSM.Call.Initiate

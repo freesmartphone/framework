@@ -17,7 +17,7 @@ import dbus.service
 
 import gobject
 
-import os, time, sys, socket
+import os, time, sys, socket, fcntl
 socket.NETLINK_KOBJECT_UEVENT = 15 # not present in earlier versions
 
 import logging
@@ -39,6 +39,12 @@ class Display( dbus.service.Object ):
         self.max = int( readFromFile( "%s/max_brightness" % self.node ) )
         logger.debug( "max brightness %d" % self.max )
 
+        # FIXME Check which we're currently on before accessing
+        fb_fname = "/dev/fb0"
+        if os.path.exists( fb_fname ):
+            self.fb_fd = open( fb_fname )
+        else:
+            self.fb_fd = -1
     #
     # dbus
     #
@@ -59,7 +65,15 @@ class Display( dbus.service.Object ):
             value = 0
         else:
             value = int( round( brightness / 100.0 * self.max ) )
+        if self.fb_fd >= 0:
+            if value != 0:
+                # ioctl(FBIOBLANK, FB_BLANK_UNBLANK)
+                fcntl.ioctl(self.fb_fd, 0x4611, 0)
         writeToFile( "%s/brightness" % self.node, str( value ) )
+        if self.fb_fd >= 0:
+            if value == 0:
+                # ioctl(FBIOBLANK, FB_BLANK_POWERDOWN)
+                fcntl.ioctl(self.fb_fd, 0x4611, 4)
 
     @dbus.service.method( DBUS_INTERFACE, "", "b" )
     def GetBacklightPower( self ):
