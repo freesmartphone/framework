@@ -24,6 +24,7 @@ from parser import Parser
 from fso_actions import *
 from fso_triggers import *
 
+import gobject
 import dbus
 import os
 
@@ -82,6 +83,8 @@ class EventsManager(dbus.service.Object):
             else:
                 rule.disable()
 
+        return False
+
 #============================================================================#
 def factory(prefix, controller):
 #============================================================================#
@@ -101,7 +104,7 @@ def factory(prefix, controller):
             for rule in rules:
                 events_manager.add_rule(rule)
             break   # We only use the first file
-    events_manager.update()
+    gobject.idle_add( events_manager.update )
 
     # Return the dbus object to the framework
     return [events_manager]
