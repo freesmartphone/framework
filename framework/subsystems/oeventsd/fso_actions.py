@@ -178,8 +178,9 @@ class RingToneAction(Action):
         self.sound_path = os.path.join( installprefix, "share/sounds/", ring_tone )
 
         logger.info( "Start ringing : tone=%s, volume=%s", ring_tone, ring_volume )
-        # XXX: Actually we don't use the volume info here !!!
-        self.audio_action = AudioAction(self.sound_path)
+        # XXX: We don't set the ringing volume.
+        #      Here we only disable the ringing action if the volume is 0
+        self.audio_action = AudioAction(self.sound_path) if ring_volume else Action()
         self.vibrator_action = VibratorAction()
 
         self.audio_action.trigger()
