@@ -78,7 +78,7 @@ TIMEOUT = { \
   "SIMAUTH": 7,
   "SIMACCESS": 10,
   "CFUN": 9,
-  "COPS": 15,
+  "COPS": 30,
   "COPS=?": 80,
   "RING": 4,
   "CCFC": 10,
