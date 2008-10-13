@@ -25,6 +25,38 @@ import os, subprocess, shlex
 import logging
 logger = logging.getLogger('oeventsd')
 
+
+class SetProfile( Action ):
+    function_name = 'SetProfile'
+    
+    def __init__( self, profile ):
+        self.profile = profile
+    
+    @tasklet.tasklet
+    def __trigger( self ):
+        # We store the current profile
+        # XXX: we should use profile push and pop instead
+        prefs = dbus.SystemBus().get_object(
+            'org.freesmartphone.opreferencesd',
+            '/org/freesmartphone/Preferences'
+        )
+        prefs = dbus.Interface(prefs, 'org.freesmartphone.Preferences')
+        self.backup_profile = yield tasklet.WaitDBus( prefs.GetProfile )
+        # Then we can set the profile
+        yield tasklet.WaitDBus( prefs.SetProfile, self.profile )
+    
+    def trigger( self, **kargs ):
+        self.__trigger().start()
+        
+    def untrigger( self, **kargs ):
+        # TODO: how do we handle the case where we untrigger the action
+        #       before we finish the trigger tasklet ? 
+        SetProfile( self.backup_profile ).trigger()
+        
+    def __repr__( self ):
+        return "SetProfile(%s)" % self.profile
+         
+
 #============================================================================#
 class AudioAction(Action):
 #============================================================================#
