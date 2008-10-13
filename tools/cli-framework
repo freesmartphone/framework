@@ -197,6 +197,12 @@ preferences = getInterface( \
     "org.freesmartphone.opreferencesd",
     "/org/freesmartphone/Preferences",
     "org.freesmartphone.Preferences" )
+    
+# events
+events = getInterface( \
+    "org.freesmartphone.oeventsd",
+    "/org/freesmartphone/Events",
+    "org.freesmartphone.Events" )
 
 bus.add_signal_receiver( handler, None, None, None, None,
     sender_keyword = "sender",
