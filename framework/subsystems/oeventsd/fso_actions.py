@@ -13,6 +13,8 @@ Module: fso_actions
 
 """
 
+import framework.patterns.tasklet as tasklet
+
 from action import Action, DBusAction
 from framework.controller import Controller
 from framework.config import installprefix
@@ -164,32 +166,53 @@ class VibratorAction(Action):
 class RingToneAction(Action):
 #=========================================================================#
     function_name = 'RingTone'
-
-    def trigger(self, **kargs):
+    
+    # We need to make DBus calls and wait for the result,
+    # So we use a tasklet to avoid blocking the mainloop.
+    @tasklet.tasklet
+    def __trigger(self):
         logger.info( "RingToneAction play" )
-        # We use the global Controller class to directly get the object
-        prefs = Controller.object( "/org/freesmartphone/Preferences" )
-        if prefs is None:
-            logger.error( "preferences not available and no default values defined." )
-            return
-        phone_prefs = prefs.GetService( "phone" )
-        ring_tone = phone_prefs.GetValue( "ring-tone" )
-        ring_volume = phone_prefs.GetValue( "ring-volume" )
+
+        # We get the 'phone' preferences service and
+        # retreive the ring-tone and ring-volume config values
+        # We are careful to use 'yield' cause the calls could be blocking.
+        prefs = dbus.SystemBus().get_object(
+            'org.freesmartphone.opreferencesd',
+            '/org/freesmartphone/Preferences'
+        )
+        prefs = dbus.Interface(prefs, 'org.freesmartphone.Preferences')
+        
+        phone_prefs = yield tasklet.WaitDBus( prefs.GetService, "phone" )
+        phone_prefs = dbus.SystemBus().get_object(
+            'org.freesmartphone.opreferencesd',
+            phone_prefs
+        )
+        phone_prefs = dbus.Interface(phone_prefs, 'org.freesmartphone.Preferences.Service')
+        
+        ring_tone = yield tasklet.WaitDBus( phone_prefs.GetValue, "ring-tone" )
+        ring_volume = yield tasklet.WaitDBus( phone_prefs.GetValue, "ring-volume" )
         self.sound_path = os.path.join( installprefix, "share/sounds/", ring_tone )
 
         logger.info( "Start ringing : tone=%s, volume=%s", ring_tone, ring_volume )
         # XXX: We don't set the ringing volume.
         #      Here we only disable the ringing action if the volume is 0
-        self.audio_action = AudioAction(self.sound_path) if ring_volume else Action()
+        self.audio_action = AudioAction(self.sound_path) if ring_volume != 0 else None
         self.vibrator_action = VibratorAction()
 
         self.audio_action.trigger()
         self.vibrator_action.trigger()
 
+    def trigger(self, **kargs):
+        self.audio_action = None
+        self.vibrator_action = None
+        # Start the tasklet
+        self.__trigger().start()
+        
+
     def untrigger(self, **kargs):
         logger.info( "RingToneAction stop" )
-        self.audio_action.untrigger()
-        self.vibrator_action.untrigger()
+        if self.audio_action: self.audio_action.untrigger()
+        if self.vibrator_action : self.vibrator_action.untrigger()
 
     def __repr__(self):
         return "RingToneAction()"
