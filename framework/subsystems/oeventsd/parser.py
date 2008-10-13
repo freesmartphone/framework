@@ -130,6 +130,7 @@ def as_rule(r):
 class Parser(object):
 #============================================================================#
     def parse_rules(self, src):
+        """Parse a string for a list of rules"""
         rules = yaml.load(src)
         ret = []
         for r in rules:
@@ -138,6 +139,15 @@ class Parser(object):
             except Exception, e:
                 logger.error("can't parse rule %s : %s", r, e)
         return ret
+        
+    def parse_rule(self, src):
+        """Parse a string for a rules"""
+        rule = yaml.load(src)
+        try:
+            return as_rule(rule)
+        except Exception, e:
+            logger.error("can't parse rule %s : %s", rule, e)
+            raise
 
 if __name__ == '__main__':
     src = """

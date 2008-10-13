@@ -101,7 +101,16 @@ class EventsManager(dbus.service.Object):
                 if value:
                     trigger._trigger()
                 else:
-                    trigger._untrigger() 
+                    trigger._untrigger()
+                    
+    @dbus.service.method( "org.freesmartphone.Events" , in_signature='s' )
+    def AddRule( self, rule_str ):
+        """Parse a rule string and add it into the rule list"""
+        parser = Parser()
+        rule = parser.parse_rule( rule_str )
+        self.add_rule(rule)
+        self.update()
+        
 
 #============================================================================#
 def factory(prefix, controller):
