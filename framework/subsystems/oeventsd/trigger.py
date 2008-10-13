@@ -118,3 +118,19 @@ class DBusTrigger(Trigger):
     def on_signal(self, *args):
         self._trigger(args=args)
 
+#============================================================================#
+class TestTrigger( Trigger ):
+#============================================================================#
+    """This trigger can be used ot debug the events system.
+    
+    It is triggered when oeventsd.TriggerTest method is called
+    """
+    function_name = "Test"
+    
+    def __init__( self, name ):
+        super( TestTrigger, self ).__init__()
+        self.name = name
+        
+    def __repr__( self ):
+        return "Test(%s)" % self.name
+    

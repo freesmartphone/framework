@@ -19,6 +19,7 @@ from framework.controller import Controller
 
 from action import Action
 from parser import Parser
+from trigger import TestTrigger
 
 # FIXME: treat custom triggers, actions, and filters as plugins and load them on demand
 from fso_actions import *
@@ -84,6 +85,23 @@ class EventsManager(dbus.service.Object):
                 rule.disable()
 
         return False
+        
+    @dbus.service.method( "org.freesmartphone.Events" , in_signature='sb' )
+    def TriggerTest( self, name, value = True ):
+        """Trigger or untrigger all the 'Test' triggers with matching names
+        
+        This method is only here for testing purpose.
+        :arguments:
+        name : the name of the Test triggers to trigger/untrigger
+        value : True to trigger, False to untrigger 
+        """
+        for rule in self.rules:
+            trigger = rule._Rule__trigger
+            if isinstance( trigger, TestTrigger ) and trigger.name == name:
+                if value:
+                    trigger._trigger()
+                else:
+                    trigger._untrigger() 
 
 #============================================================================#
 def factory(prefix, controller):

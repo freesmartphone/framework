@@ -67,7 +67,10 @@
              - HasAttr(event, "released")
     actions: Command('amixer -d sset "Amp Spk" unmute')
     
-    # A test
+    #
+    # A few testing rules :
+    #
+    
     # This rule will only be enabled in silent mode
     # According to the preferences rules conf files.
 -
@@ -76,6 +79,13 @@
     filters: HasAttr(status, "BUSY")
     actions: Debug("Hello This is a test")
 -
+    trigger: Test("test")
+    actions: Debug("trigger test")
+-
+    while: Test("test2")
+    actions: RingTone()
+-
+
     #
     # Idleness Brightness Handling
     #
