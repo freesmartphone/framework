@@ -26,7 +26,9 @@ __docformat__ = "restructuredtext en"
 
 import sys, traceback
 from types import GeneratorType
+
 import gobject  # Only used for the Sleep tasklet
+import dbus # Only used for the WaitDBusName tasklet
 
 import logging
 logger = logging.getLogger( "tasklet" )
@@ -390,6 +392,19 @@ class WaitDBusSignal(Tasklet):
         if self.connection:
             self.connection.remove()
         self.obj = self.callback = self.connection = None
+        
+class WaitDBusName(Tasklet):
+    """Special tasklet that blocks until a given DBus name is available on the system bus"""
+    def run(self, name):
+        bus_obj = dbus.SystemBus().get_object('org.freedesktop.DBus', '/org/freedesktop/DBus')
+        bus_obj_iface = dbus.proxies.Interface(bus_obj, 'org.freedesktop.DBus')
+        all_bus_names = bus_obj_iface.ListNames()
+        if name in all_bus_names:
+            yield None
+        while True:
+            var = yield WaitDBusSignal( bus_obj_iface, 'NameOwnerChanged' )
+            if var[0] == name:
+                yield None
         
 class WaitFunc(Tasklet):
     """A special tasklet that will wait for a function to call a callback.
