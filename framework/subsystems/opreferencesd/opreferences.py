@@ -79,7 +79,7 @@ class PreferencesManager(dbus.service.Object):
         try:
             ret = Service(self, name)
         except NoServiceError:
-            logger.info("service does not exist : %s", name)
+            logger.error("service does not exist : %s", name)
             raise DBusNoServiceError, name
         self.services[name] = ret
         return ret
