@@ -34,7 +34,9 @@
 -
     while: CallListContains("incoming")
     filters: Not(CallListContains("active"))
-    actions: RingTone()
+    actions: 
+             - RingTone()
+             - SetDisplayBrightness("pcf50633_bl", 90)
 -
     while: CallStatus()
     filters: Or(HasAttr(status, "outgoing"), HasAttr(status, "active"))
