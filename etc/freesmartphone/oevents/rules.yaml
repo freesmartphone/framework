@@ -52,9 +52,14 @@
     filters: HasAttr(status, "full")
     actions: SetLed("gta02_power_blue", "light")
 -
+    trigger: PowerStatus()
+    filters: HasAttr(status, "empty")
+    actions: Command('poweroff')
+
     #
     # Headset Audio Scenario Support
     #
+-
     trigger: InputEvent()
     filters:
              - HasAttr(switch, "HEADSET")
