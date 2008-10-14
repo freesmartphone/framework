@@ -23,6 +23,7 @@ logger = logging.getLogger('ogpsd')
 
 class GPSDevice( resource.Resource ):
     """An Dbus Object implementing org.freedesktop.Gypsy"""
+    enabled = False
 
     def __init__( self, bus, channel=None ):
         self._fixstatus = 0
@@ -60,12 +61,14 @@ class GPSDevice( resource.Resource ):
     #
     def _enable( self, on_ok, on_error ):
         logger.info( "enabling" )
+	enabled = True
         self.channel.initializeChannel()
         self.initializeDevice()
         self.ConnectionStatusChanged( True )
         on_ok()
 
     def _disable( self, on_ok, on_error ):
+	enabled = False
         logger.info( "disabling" )
         self.ConnectionStatusChanged( False )
         self.shutdownDevice()
@@ -73,18 +76,20 @@ class GPSDevice( resource.Resource ):
         on_ok()
 
     def _suspend( self, on_ok, on_error ):
-        logger.info( "suspending" )
-        self.ConnectionStatusChanged( False )
-        self.suspendDevice()
-        self.channel.suspendChannel()
-        on_ok()
+	if enabled:
+            logger.info( "suspending" )
+            self.ConnectionStatusChanged( False )
+            self.suspendDevice()
+            self.channel.suspendChannel()
+            on_ok()
 
     def _resume( self, on_ok, on_error ):
-        logger.info("resuming")
-        self.channel.resumeChannel()
-        self.resumeDevice()
-        self.ConnectionStatusChanged( True )
-        on_ok()
+	if enabled:
+	    logger.info("resuming")
+            self.channel.resumeChannel()
+            self.resumeDevice()
+            self.ConnectionStatusChanged( True )
+            on_ok()
 
     def initializeDevice( self ):
         pass
