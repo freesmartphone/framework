@@ -139,7 +139,7 @@ class Resource( dbus.service.Object ):
         err_callback = self.cbFactory( self._resourceStatus, dbus_error, "could not suspend resource" )
         # FIXME: What do we do if status is disabling?
         if self._resourceStatus == "disabled":
-            ok_callback()
+            dbus_ok()
         else:
             self._updateResourceStatus( "suspending" )
             self._suspend( ok_callback, err_callback )
@@ -149,7 +149,7 @@ class Resource( dbus.service.Object ):
         ok_callback = self.cbFactory( "enabled", dbus_ok )
         err_callback = self.cbFactory( self._resourceStatus, dbus_error, "could not resume resource" )
         if self._resourceStatus == "disabled":
-            ok_callback()
+            dbus_ok()
         else:
             self._updateResourceStatus( "resuming" )
             self._resume( ok_callback, err_callback )
