@@ -8,7 +8,7 @@ GPLv2 or later
 """
 
 MODULE_NAME = "odeviced.kernel26"
-__version__ = "0.9.4"
+__version__ = "0.9.5"
 
 from helpers import DBUS_INTERFACE_PREFIX, DBUS_PATH_PREFIX, readFromFile, writeToFile, cleanObjectName
 from framework.config import config
@@ -215,12 +215,12 @@ class PowerSupply( dbus.service.Object ):
         self.sendCapacityIfChanged( capacity )
         if self.online:
             if capacity > 98:
-                self.sendPowerStatusIfChanged( "Full" )
+                self.sendPowerStatusIfChanged( "full" )
         else: # offline
             if capacity <= 5:
-                self.sendPowerStatusIfChanged( "Empty" )
+                self.sendPowerStatusIfChanged( "empty" )
             elif capacity <= 10:
-                self.sendPowerStatusIfChanged( "Critical" )
+                self.sendPowerStatusIfChanged( "critical" )
         return True # call me again
 
     def handlePropertyChange( self, properties ):
@@ -232,13 +232,13 @@ class PowerSupply( dbus.service.Object ):
         except KeyError:
             pass
         try:
-            powerStatus = properties["POWER_SUPPLY_STATUS"]
+            powerStatus = properties["POWER_SUPPLY_STATUS"].lower()
         except KeyError:
             pass
         else:
             # FIXME: what should we do with the "Not Charging" state? It seems to be only a temporary state
             # occuring during the time the charger has been physically inserted but not been yet enumerated on USB
-            if powerStatus != "Not charging":
+            if powerStatus != "not charging":
                 self.sendPowerStatusIfChanged( powerStatus )
         return False # don't call me again
 

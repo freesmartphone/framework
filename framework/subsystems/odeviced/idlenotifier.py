@@ -6,13 +6,13 @@ The IdleNotifier signalizes while the system goes through different idle states.
 Another plugin or an application can use the state notifications to act accordingly.
 Known states and possible use cases:
 
-- AWAKE: after suspend and on startup, power up peripherals and prepare I/O
-- BUSY: receiving input from input events
-- IDLE: not receiving any input
-- IDLE_DIM: not receiving input for "a while", dim the display and/or clock down the CPU
-- IDLE_PRELOCK: not receiving input for "a long while", prepare to put some more I/O to sleep
-- LOCK: not receiving input for "very long", lock the display now
-- SUSPEND: shut down CPU, suspend to RAM or DISK
+- "awake": after suspend and on startup, power up peripherals and prepare I/O
+- "busy": receiving input from input events
+- "idle": not receiving any input
+- "idle_dim": not receiving input for "a while", dim the display and/or clock down the CPU
+- "idle_prelock": not receiving input for "a long while", prepare to put some more I/O to sleep
+- "lock": not receiving input for "very long", lock the display now
+- "suspend": shut down CPU, suspend to RAM or DISK
 
 (C) 2008 Michael 'Mickey' Lauer <mlauer@vanille-media.de>
 (C) 2008 Openmoko, Inc.
@@ -20,7 +20,7 @@ GPLv2 or later
 """
 
 MODULE_NAME = "odeviced.idlenotifier"
-__version__ = "0.9.9.2"
+__version__ = "0.9.9.3"
 
 from helpers import DBUS_INTERFACE_PREFIX, DBUS_PATH_PREFIX, readFromFile, writeToFile
 from framework.config import config
@@ -49,15 +49,15 @@ class IdleNotifier( dbus.service.Object ):
         dbus.service.Object.__init__( self, bus, self.path )
         logger.info( "%s %s initialized. Serving %s at %s", self.__class__.__name__, __version__, self.interface, self.path )
 
-        self.state = "AWAKE"
+        self.state = "awake"
         self.timeouts = { \
-                        "IDLE": 10,
-                        "IDLE_DIM": 20,
-                        "IDLE_PRELOCK": 12,
-                        "LOCK": 2,
-                        "SUSPEND": 20, \
+                        "idle": 10,
+                        "idle_dim": 20,
+                        "idle_prelock": 12,
+                        "lock": 2,
+                        "suspend": 20, \
                         }
-        self.states = "AWAKE NONE BUSY IDLE IDLE_DIM IDLE_PRELOCK LOCK SUSPEND".split()
+        self.states = "awake none busy idle idle_dim idle_prelock lock suspend".split()
 
         configvalue = config.getValue( MODULE_NAME, "ignoreinput", "" )
         ignoreinput = [ int(value) for value in configvalue.split(',') if value != "" ]
@@ -79,13 +79,13 @@ class IdleNotifier( dbus.service.Object ):
 
         # override default timeouts with configuration (if set)
         for key in self.timeouts:
-            self.timeouts[key] = config.getInt( MODULE_NAME, key.lower(), self.timeouts[key] )
-            logger.debug( "setting %s timeout to %d" % ( key.lower(), self.timeouts[key] ) )
+            self.timeouts[key] = config.getInt( MODULE_NAME, key, self.timeouts[key] )
+            logger.debug( "setting %s timeout to %d" % ( key, self.timeouts[key] ) )
 
         # states without timeout
-        self.timeouts["BUSY"] = -1
+        self.timeouts["busy"] = -1
         self.validStates = self.timeouts.keys()
-        self.timeouts["AWAKE"] = -1
+        self.timeouts["awake"] = -1
 
         if len( self.input ):
             self.launchStateMachine()
@@ -93,7 +93,7 @@ class IdleNotifier( dbus.service.Object ):
     def launchStateMachine( self ):
         for i in self.input:
             gobject.io_add_watch( i, gobject.IO_IN, self.onInputActivity )
-        self.timeout = gobject.timeout_add_seconds( 2, self.onState, "IDLE" )
+        self.timeout = gobject.timeout_add_seconds( 2, self.onState, "idle" )
 
     def nextState( self, state ):
         index = self.states.index( state )
@@ -104,10 +104,10 @@ class IdleNotifier( dbus.service.Object ):
     def onInputActivity( self, source, condition ):
         data = os.read( source, 512 )
         if __debug__: logger.debug( "read %d bytes from fd %d ('%s')" % ( len( data ), source, self.input[source] ) )
-        if self.state != "BUSY":
+        if self.state != "busy":
             if self.timeout is not None:
                 gobject.source_remove( self.timeout )
-            self.onState( "BUSY" )
+            self.onState( "busy" )
         return True
 
     def onState( self, state ):

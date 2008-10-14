@@ -10,7 +10,7 @@ Interactive console for the freesmartphone.org framework
 GPLv2 or later
 """
 
-__version__ = "0.9.0"
+__version__ = "0.9.1"
 
 import os, sys, code, pprint
 import dbus.service
@@ -43,7 +43,8 @@ def dbus_to_python(v):
 #----------------------------------------------------------------------------#
 def prettyPrint( expression ):
 #----------------------------------------------------------------------------#
-    pp.pprint( dbus_to_python(expression) )
+    if expression is not None:
+        pp.pprint( dbus_to_python(expression) )
 
 #----------------------------------------------------------------------------#
 def handler( *args, **kwargs ):
@@ -120,13 +121,11 @@ devidle = getInterface( \
     "org.freesmartphone.Device.IdleNotifier" \
     )
 
-devpow = getInterface( \
-    "org.freesmartphone.odeviced",
-    "/org/freesmartphone/Device",
-    "org.freesmartphone.Device.PowerManagement" \
-    )
+display = getObjectsForInterface( "org.freesmartphone.Device.Display" ).values()[0]
+bat = getObjectsForInterface( "org.freesmartphone.Device.PowerSupply" ).values()[0]
+leds = getObjectsForInterface( "org.freesmartphone.Device.LED" ).values()
 
-# device
+# ogsmd
 gsmdevice = getInterface( \
     "org.freesmartphone.ogsmd",
     "/org/freesmartphone/GSM/Device",
@@ -160,7 +159,7 @@ gsmdebug = getInterface( \
     "/org/freesmartphone/GSM/Device",
     "org.freesmartphone.GSM.Debug" )
 
-# gps
+# ogps
 gpsaccuracy = getInterface( \
     "org.freesmartphone.ogpsd",
     "/org/freedesktop/Gypsy",
@@ -197,7 +196,7 @@ preferences = getInterface( \
     "org.freesmartphone.opreferencesd",
     "/org/freesmartphone/Preferences",
     "org.freesmartphone.Preferences" )
-    
+
 # events
 events = getInterface( \
     "org.freesmartphone.oeventsd",
