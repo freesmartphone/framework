@@ -44,17 +44,16 @@ class Display( dbus.service.Object ):
         self.current = int( readFromFile( "%s/actual_brightness" % self.node ) )
         logger.debug( "current brightness %d, max brightness %d" % ( self.current, self.max ) )
 
-        # FIXME Check which framebuffer we're currently on before accessing
-        fb_fname = "/dev/fb0"
-        if os.path.exists( fb_fname ):
-            self.fb_fd = open( fb_fname )
-        else:
-            self.fb_fd = -1
-
     def _valueToPercent( self, value ):
+        """
+        convert device dependent value to percentage
+        """
         return int( 100.0 / self.max * int( value ) )
 
     def _percentToValue( self, percent ):
+        """
+        convert percentage to device dependent value
+        """
         if percent >= 100:
             value = self.max
         elif percent <= 0:
@@ -64,11 +63,18 @@ class Display( dbus.service.Object ):
         return value
 
     def _setFbPower( self, on ):
-        if self.fb_fd >= 0:
-            logger.debug( "issuing ioctl( FBIOBLANK, %s )" % ( "FB_BLANK_UNBLANK" if on else "FB_BLANK_POWERDOWN" ) )
-            fcntl.ioctl(self.fb_fd, FBIOBLANK, FB_BLANK_UNBLANK if on else FB_BLANK_POWERDOWN )
+        """
+        set power on current framebuffer device
+        """
+        try:
+            framebuffer = open( "/dev/fb0" )
+        except IOError:
+            logger.exception( "can't open framebuffer device to issue ioctl" )
         else:
-            logger.error( "can't issue ioctl on framebuffer -- device not existing" )
+            logger.debug( "issuing ioctl( FBIOBLANK, %s )" % ( "FB_BLANK_UNBLANK" if on else "FB_BLANK_POWERDOWN" ) )
+            result = fcntl.ioctl( framebuffer, FBIOBLANK, FB_BLANK_UNBLANK if on else FB_BLANK_POWERDOWN )
+            if result != 0:
+                logger.warning( "issuing ioctl( FBIOBLANK, %s ) returned error %d", ( "FB_BLANK_UNBLANK" if on else "FB_BLANK_POWERDOWN" ), result )
         return False # don't call me again
     #
     # dbus
