@@ -251,7 +251,7 @@ class GenericUsageControl( dbus.service.Object ):
         dbus.service.Object.__init__( self, bus, self.path )
         self.resources = {}
         bus.add_signal_receiver(
-            self.nameOwnerChangedHandler,
+            self._nameOwnerChangedHandler,
             "NameOwnerChanged",
             dbus.BUS_DAEMON_IFACE,
             dbus.BUS_DAEMON_NAME,
@@ -271,7 +271,23 @@ class GenericUsageControl( dbus.service.Object ):
             raise ResourceUnknownError( "Unknown resource %s" % resourcename )
         return r
 
-    def nameOwnerChangedHandler( self, name, old_owner, new_owner ):
+    @tasklet.tasklet
+    def _suspend( self ):
+        """The actual suspending tasklet"""
+        logger.info( "suspending all resources" )
+        for resource in self.resources.values():
+            logger.debug( "suspending %s", resource.name )
+            yield resource._suspend()
+
+        # FIXME Play apmd and then use the sysfs interface
+        os.system( "apm -s" )
+
+        logger.info( "resuming all resources" )
+        for resource in self.resources.values():
+            logger.debug( "resuming %s", resource.name )
+            yield resource._resume()
+
+    def _nameOwnerChangedHandler( self, name, old_owner, new_owner ):
         if old_owner and not new_owner:
             for resource in self.resources.values():
                 resource.cleanup( old_owner ).start()
@@ -306,7 +322,12 @@ class GenericUsageControl( dbus.service.Object ):
         This call will return imediatly, even if the resource need to perform
         some enabling actions.
         """
-        self.resources[resourcename].request( sender ).start_dbus( dbus_ok, dbus_error )
+        try:
+            resource = self.resources[resourcename]
+        except KeyError:
+            dbus_error( ResourceUnknownError( "known resources are %s" % self.resources.keys() ) )
+        else:
+            resource.request( sender ).start_dbus( dbus_ok, dbus_error )
 
     @dbus.service.method( DBUS_INTERFACE, "s", "", sender_keyword='sender', async_callbacks=( "dbus_ok", "dbus_error" ) )
     def ReleaseResource( self, resourcename, sender, dbus_ok, dbus_error ):
@@ -315,7 +336,12 @@ class GenericUsageControl( dbus.service.Object ):
         This call will return imediatly, even if the resource need to perform
         some disabling actions.
         """
-        self.resources[resourcename].release( sender ).start_dbus( dbus_ok, dbus_error )
+        try:
+            resource = self.resources[resourcename]
+        except KeyError:
+            dbus_error( ResourceUnknownError( "known resources are %s" % self.resources.keys() ) )
+        else:
+            resource.release( sender ).start_dbus( dbus_ok, dbus_error )
 
     @dbus.service.method( DBUS_INTERFACE, "so", "", sender_keyword='sender' )
     def RegisterResource( self, resourcename, path, sender ):
@@ -324,31 +350,18 @@ class GenericUsageControl( dbus.service.Object ):
         The client must provide a name for the resource, and a dbus object
         path to an object implementing org.freesmartphone.Resource interface.
         """
-        logger.info( "Register new resource %s", resourcename )
-        resource = ClientResource( self, resourcename, path, sender )
-        self._addResource( resource )
+        if resourcename in self.resources:
+            dbus_error( ResourceExistsError( "resource %s already exists" % resourcename ) )
+        else:
+            logger.info( "Register new resource %s", resourcename )
+            resource = ClientResource( self, resourcename, path, sender )
+            self._addResource( resource )
 
     @dbus.service.method( DBUS_INTERFACE, "", "", async_callbacks=( "dbus_ok", "dbus_error" ) )
     def Suspend( self, dbus_ok, dbus_error ):
         """Suspend all the resources"""
         # Call the _suspend task connected to the dbus callbacks
         self._suspend().start_dbus( dbus_ok, dbus_error )
-
-    @tasklet.tasklet
-    def _suspend( self ):
-        """The actual suspending tasklet"""
-        logger.info( "suspending all resources" )
-        for resource in self.resources.values():
-            logger.debug( "suspending %s", resource.name )
-            yield resource._suspend()
-
-        # FIXME Play apmd and then use the sysfs interface
-        os.system( "apm -s" )
-
-        logger.info( "resuming all resources" )
-        for resource in self.resources.values():
-            logger.debug( "resuming %s", resource.name )
-            yield resource._resume()
 
     #
     # dbus signals
