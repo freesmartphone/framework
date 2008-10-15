@@ -1,0 +1,45 @@
+Test suite for the framework
+---------------------------------
+The tests directory contains all the tests script. The goal of those scripts is
+to automaticaly perform call to the framework dbus API and check for errors.
+
+We use python unittest module for our test suites. the 'test' module (test.py)
+also provides a few conveniant methods for writting new test cases.
+
+
+To start all the tests
+--------------------------------
+1 - Make sure that the framework is running.
+2 - Edit the file 'tests.conf' to reflect the current conditions of the test. 
+3 - Run ./test.py
+
+Some tests can take time (specially when they fail due a timeout)
+If a test fails it can mean that the framework is broken, OR that the test
+is broken, that is why the tests should be relatively simple. 
+
+To start only specific tests
+-------------------------------
+Same thing, but run directly the test script implementing the needed tests
+instead of test.py. e.g:
+  python -N sim.py
+TODO: make it possible to specify a given test module as an argument of test.py
+  
+ 
+To create new tests
+-------------------------------
+You need to create a new python module that define a few unittests.
+Then add the name of the module in the `modules` list in test.py (TODO: make it
+a config option.)
+
+the test module provides a few useful decorators for your test :
+* taskletTest : This decorator defines that your test will run into a Tasklet.
+It will automatically start the gobject main loop before you start the test and
+stop it at the end of the test.
+
+* request : This decorator defines that a test can only be performed if a given
+config option is set. For example if a test require the presence of a sim card,
+it should use :
+ @request("sim.present", True)
+ 
+
+

@@ -1,4 +1,12 @@
+#!/usr/bin/python -N
+"""
+framework tests
 
+(C) 2008 Guillaume 'Charlie' Chereau <charlie@openmoko.org>
+(C) 2008 Michael 'Mickey' Lauer <mlauer@vanille-media.de>
+(C) 2008 Openmoko, Inc.
+GPLv2 or later
+"""
 
 import unittest
 import gobject
@@ -29,6 +37,7 @@ class BaseTest(unittest.TestCase):
         assert profile == 'silent'
     
     def test_services(self):
+        """Try to get the 'profile' service"""
         services = self.preferences.GetServices()
         assert 'profiles' in services
         # Try to get a service that doesn't exist
@@ -43,34 +52,25 @@ class BaseTest(unittest.TestCase):
         assert(path == '/org/freesmartphone/Preferences/profiles')
     
     @test.taskletTest
-    def test_get(self):
+    def test_get_key(self):
+        """Try to get a valid key"""
         path = self.preferences.GetService('profiles')
         profiles = self.bus.get_object('org.freesmartphone.opreferencesd', path)
         profiles = dbus.Interface(profiles, 'org.freesmartphone.Preferences.Service')
-        # Try to get a valid key
         value = profiles.GetValue('profiles')
-        # Try to get an invalid key
+        yield True
+    @test.taskletTest
+    def test_get_invalid_key(self):
+        """Try to get an invalid key"""
+        path = self.preferences.GetService('profiles')
+        profiles = self.bus.get_object('org.freesmartphone.opreferencesd', path)
+        profiles = dbus.Interface(profiles, 'org.freesmartphone.Preferences.Service')
         self.assertRaises(dbus.exceptions.DBusException, profiles.GetValue, 'This_key_does_not_exist')
         yield True
-        
-        
-def suite():
-   suite = unittest.TestSuite()
-   suite.addTest(BaseTest("test_profiles"))
-   suite.addTest(BaseTest("test_services"))
-   suite.addTest(BaseTest("test_get"))
-   return suite
     
 
 if __name__ == '__main__':
-    try:
-        assert False
-    except:
-        pass
-    else:
-        print 'You need to run this in debug mode (-N option on neo)'
-        import sys
-        sys.exit(-1)
+    test.check_debug_mode()
 
-    runner = unittest.TextTestRunner()
-    runner.run(suite())
+    suite = unittest.defaultTestLoader.loadTestsFromTestCase(BaseTest)
+    result = unittest.TextTestRunner(verbosity=3).run(suite)
