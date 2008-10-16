@@ -202,6 +202,19 @@ events = getInterface( \
     "org.freesmartphone.oeventsd",
     "/org/freesmartphone/Events",
     "org.freesmartphone.Events" )
+    
+    
+# pim
+pim = getInterface( \
+    "org.freesmartphone.opimd",
+    "/org/freesmartphone/PIM",
+    "org.freesmartphone.PIM" )
+    
+# pimsources
+pimsources = getInterface( \
+    "org.freesmartphone.opimd",
+    "/org/freesmartphone/PIM/Sources",
+    "org.freesmartphone.PIM.Sources" )
 
 bus.add_signal_receiver( handler, None, None, None, None,
     sender_keyword = "sender",
