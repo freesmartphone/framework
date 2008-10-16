@@ -1,0 +1,65 @@
+Object path / method				Interface name
+
+PIM/
+ + Messages/				OK	.PIM.Messages
+   - Query()				OK
+   + Queries/				OK	.PIM.MessageQuery
+     + n				OK
+       - GetResultCount()		OK
+       - Rewind()			OK
+       - Skip()				OK			
+       - GetMessageURI()		OK
+       - GetResult()			OK
+       - GetMultipleResults()		OK
+       - Dispose()			OK
+       * MessageAdded			##
+       * MessageDeleted			##
+       * MessageChanged			##
+   - GetFolderNames()			OK
+   - GetFolderOverview()		--
+   - GetFolderURIFromName()		OK
+   + Folders/				OK	.PIM.MessageFolder
+     + n				OK
+       - GetMessageCount()		OK
+       - GetMessageURIs()		OK
+       * MessageMoved			OK
+   + n					OK	.PIM.Message
+     - GetContent()			OK
+     - GetMultipleFields()		OK
+     - Update()				--
+     - Delete()				--
+     - MoveToFolder()			OK
+     + OnDemandAttachments/		--
+       + n				--
+   * NewMessage				OK
+
+ + Contacts/				OK	.PIM.Contacts
+   - Add()				OK
+   - GetSingleContactSingleField()	OK
+   - Query()				OK
+   + Queries/				OK	.PIM.ContactQuery
+     + n				OK
+       - GetResultCount()		OK
+       - Rewind()			OK
+       - Skip()				OK
+       - GetContactURI()		OK
+       - GetResult()			OK
+       - GetMultipleResults()		OK
+       - Dispose()			OK
+       * ContactAdded			##
+       * ContactDeleted			##
+       * ContactChanged			##
+   + n					OK	.PIM.Contact
+     - GetContent()			OK
+     - GetMultipleFields()		OK
+     - Update()				--
+     - Delete()				--
+
+ + Sources/				OK	.PIM.Sources
+   - GetEntryCount()			OK
+   + n					OK	.PIM.Source
+     - GetName()			OK
+     - GetSupportedPIMDomains()		OK
+     - GetStatus()			OK
+     - Connect()			--
+     - Disconnect()			--
