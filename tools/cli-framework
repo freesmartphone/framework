@@ -10,35 +10,31 @@ Interactive console for the freesmartphone.org framework
 GPLv2 or later
 """
 
-__version__ = "0.9.1"
+__version__ = "0.9.1.1"
 
-import os, sys, code, pprint
 import dbus.service
 import dbus.mainloop.glib
-import dbus
-from syslog import syslog, LOG_ERR, LOG_WARNING, LOG_INFO, LOG_DEBUG
-import dbus, sys, atexit
 from gobject import MainLoop
+import os, sys, code, pprint, types, atexit
 
 pp = pprint.PrettyPrinter( indent=4 )
-
 
 #----------------------------------------------------------------------------#
 def dbus_to_python(v):
 #----------------------------------------------------------------------------#
-    if isinstance(v, dbus.Int32):
+    if isinstance(v, dbus.Int32) or type(v) == types.IntType:
         return int(v)
-    elif isinstance(v, dbus.String):
+    elif isinstance(v, dbus.String) or type(v) == types.StringType:
         return str(v)
-    elif isinstance(v, dbus.Dictionary):
+    elif isinstance(v, dbus.Dictionary) or type(v) == types.DictType:
         return dict( (dbus_to_python(k), dbus_to_python(v)) for k,v in v.iteritems() )
-    elif isinstance(v, dbus.Array):
+    elif isinstance(v, dbus.Array) or type(v) == types.ListType:
         return [dbus_to_python(x) for x in v]
-    elif isinstance(v, dbus.Struct):
+    elif isinstance(v, dbus.Struct) or type(v) == types.TupleType:
         return tuple(dbus_to_python(x) for x in v)
     else:
         return v
-#        raise TypeError("Can't convert type %s to python object" % type(v))
+        raise TypeError("Can't convert type %s to python object" % type(v))
 
 #----------------------------------------------------------------------------#
 def prettyPrint( expression ):
@@ -121,8 +117,14 @@ devidle = getInterface( \
     "org.freesmartphone.Device.IdleNotifier" \
     )
 
-display = getObjectsForInterface( "org.freesmartphone.Device.Display" ).values()[0]
-bat = getObjectsForInterface( "org.freesmartphone.Device.PowerSupply" ).values()[0]
+try:
+    display = getObjectsForInterface( "org.freesmartphone.Device.Display" ).values()[0]
+except IndexError:
+    pass
+try:
+    bat = getObjectsForInterface( "org.freesmartphone.Device.PowerSupply" ).values()[0]
+except IndexError:
+    pass
 leds = getObjectsForInterface( "org.freesmartphone.Device.LED" ).values()
 
 # ogsmd
@@ -202,14 +204,14 @@ events = getInterface( \
     "org.freesmartphone.oeventsd",
     "/org/freesmartphone/Events",
     "org.freesmartphone.Events" )
-    
-    
+
+
 # pim
 pim = getInterface( \
     "org.freesmartphone.opimd",
     "/org/freesmartphone/PIM",
     "org.freesmartphone.PIM" )
-    
+
 # pimsources
 pimsources = getInterface( \
     "org.freesmartphone.opimd",
