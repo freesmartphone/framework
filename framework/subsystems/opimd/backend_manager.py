@@ -31,12 +31,13 @@ from dbus.service import FallbackObject as DBusFBObject
 from dbus.service import signal as dbus_signal
 from dbus.service import method as dbus_method
 
-from syslog import syslog, LOG_WARNING, LOG_INFO, LOG_DEBUG
+import logging
+logger = logging.getLogger('opimd')
 
 from domain_manager import DomainManager
 from helpers import *
 from settings_manager import *
-
+import framework.patterns.tasklet as tasklet
 
 PIMB_CAN_ADD_ENTRY = 'add_entry'
 PIMB_CAN_DEL_ENTRY = 'del_entry'
@@ -99,13 +100,13 @@ class BackendManager(DBusFBObject):
                     if (ENV_MODE == 'pyneo' and 'fso' in plugin): continue
                     if (ENV_MODE == 'fso' and 'pyneo' in plugin): continue
                     
-                    syslog(LOG_DEBUG, "Loading " + plugin)
+                    logger.debug("Loading %s", plugin)
                     
                     (file_name, file_ext) = os.path.splitext(plugin)
                     __import__(file_name, globals(), locals(), [])
         
         except OSError:
-            syslog(LOG_WARNING, "Could not open backend plugin directory: %s" % plugin_path)
+            logger.warning("Could not open backend plugin directory: %s", plugin_path)
 
 
     @classmethod
@@ -114,7 +115,7 @@ class BackendManager(DBusFBObject):
         
         @param backend The backend object to register"""
         class_._backends.append(backend)
-        syslog(LOG_INFO, "Registered backend " + backend.name)
+        logger.info("Registered backend %s", backend.name)
         
         for domain in backend.get_supported_domains():
             domain_handler = DomainManager.get_domain_handler(domain)
@@ -149,6 +150,20 @@ class BackendManager(DBusFBObject):
     def GetEntryCount(self):
         """Return the number of backends we know of"""
         return len(self._backends)
+        
+    @dbus_method(_DIN_SOURCES, "", "", async_callbacks=( "dbus_ok", "dbus_error" ))
+    def InitAllEntries(self, dbus_ok, dbus_error):
+        """Initialize all the entries"""
+        # We implement the function as a tasklet that will call all
+        # 'load_entries' tasklet of every backends
+        # XXX: if speed is an issue we could start the tasks in parallel
+        @tasklet.tasklet
+        def init_all():
+            for backend in self._backends:
+                logger.debug("loading entries for backend %s", backend)
+                yield backend.load_entries()
+        # start the tasklet connected to the dbus callbacks
+        init_all().start_dbus(dbus_ok, dbus_error)
 
 
     @dbus_method(_DIN_SOURCE, "", "s", rel_path_keyword="rel_path")

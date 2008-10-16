@@ -36,6 +36,7 @@ from backend_manager import BackendManager
 from backend_manager import PIMB_CAN_ADD_ENTRY, PIMB_CAN_DEL_ENTRY, PIMB_CAN_UPD_ENTRY
 from domain_manager import DomainManager
 from helpers import *
+import framework.patterns.tasklet as tasklet
 
 
 _DOMAINS = ('Contacts', )
@@ -62,23 +63,15 @@ class SIMContactBackendFSO(object):
         
         for domain in _DOMAINS:
             self._domain_handlers[domain] = DomainManager.get_domain_handler(domain)
-
-        # XXX: we should only do it on user request
-        # self.load_entries()
-
+            
+    def __repr__(self):
+        return self.name
 
     def get_supported_domains(self):
         """Returns a list of PIM domains that this plugin supports"""
         return _DOMAINS
 
-
-    def log_error(self, error):
-        logger.error("%s hit an error and schedules retry. Reason: %s", self.name, error)
-        timeout_add(_OGSMD_POLL_INTERVAL, self.load_entries)
-
-
     def process_entries(self, entries):
-        logger.debug("process SIM contacts entries")
         for (sim_entry_id, name, number) in entries:
             
             if len(name) == 0: continue
@@ -93,30 +86,34 @@ class SIMContactBackendFSO(object):
             entry['Phone'] = phone_number_to_tel_uri(number)
             entry['Name'] = name
             
+            logger.debug("add entrie : %s", name)
             entry_id = self._domain_handlers['Contacts'].register_contact(self, entry)
             self._entry_ids.append(entry_id)
 
-
+    @tasklet.tasklet
     def load_entries(self):
         bus = SystemBus()
         
         logger.debug("get SIM phonebook from ogsmd")
         try:
+            # We have to request the GSM resource first
+            usage = bus.get_object('org.freesmartphone.ousaged', '/org/freesmartphone/Usage')
+            usage_iface = Interface(usage, 'org.freesmartphone.Usage')
+            yield tasklet.WaitDBus(usage.RequestResource, 'GSM')
+            
             gsm = bus.get_object('org.freesmartphone.ogsmd', '/org/freesmartphone/GSM/Device')
             gsm_sim_iface = Interface(gsm, 'org.freesmartphone.GSM.SIM')
             
-            gsm_sim_iface.RetrievePhonebook(
-                'contacts',
-                reply_handler = self.process_entries,
-                error_handler = self.log_error)
+            contacts = yield tasklet.WaitDBus(gsm_sim_iface.RetrievePhonebook,'contacts')
+            logger.debug("process SIM contacts entries")
+            self.process_entries(contacts)
+            
+            # Don't forget to release the GSM resource 
+            yield tasklet.WaitDBus(usage.ReleaseResource, 'GSM')
                 
         except DBusException, e:
             logger.error("%s: Could not request SIM phonebook from ogsmd : %s", self.name, e)
-            return True
-        
-        return False
-
-
+            
 
 ###  Initalization  ###
 

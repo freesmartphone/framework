@@ -24,12 +24,14 @@
 
 """pypimd CSV-Contacts Backend Plugin"""
 
-from syslog import syslog, LOG_WARNING, LOG_INFO, LOG_DEBUG
+import logging
+logger = logging.getLogger('opimd')
 
 from domain_manager import DomainManager
 from backend_manager import BackendManager
 from backend_manager import PIMB_CAN_ADD_ENTRY, PIMB_CAN_DEL_ENTRY, PIMB_CAN_UPD_ENTRY
 
+import framework.patterns.tasklet as tasklet
 
 _DOMAINS = ('Contacts', )
 _CSV_FILE_NAME = 'csv-contacts.txt'
@@ -52,9 +54,9 @@ class CSVContactBackend(object):
         
         for domain in _DOMAINS:
             self._domain_handlers[domain] = DomainManager.get_domain_handler(domain)
-        # XXX: we should only do it on user request
-        # self.load_entries_from_file()
-
+            
+    def __repr__(self):
+        return self.name
 
     def __del__(self):
         self.save_entries_to_file()
@@ -65,6 +67,10 @@ class CSVContactBackend(object):
         
         return _DOMAINS
 
+    @tasklet.tasklet
+    def load_entries(self):
+        self.load_entries_from_file()
+        yield None
 
     def load_entries_from_file(self):
         """Loads all entries from disk"""
@@ -86,7 +92,7 @@ class CSVContactBackend(object):
                 self._entry_ids.append(entry_id)
                 
         except IOError:
-            syslog("Error opening " + _CSV_FILE_NAME)
+            logger.error("Error opening %s", _CSV_FILE_NAME)
 
 
     def save_entries_to_file(self):

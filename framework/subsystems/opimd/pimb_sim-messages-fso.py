@@ -36,6 +36,9 @@ from backend_manager import BackendManager
 from backend_manager import PIMB_CAN_ADD_ENTRY, PIMB_CAN_DEL_ENTRY, PIMB_CAN_UPD_ENTRY
 from domain_manager import DomainManager
 from helpers import *
+import framework.patterns.tasklet as tasklet
+
+from setting_manager import settings
 
 
 _DOMAINS = ('Messages', )
@@ -63,11 +66,12 @@ class SIMMessageBackendFSO(object):
         self._entry_ids = []
         
         for domain in _DOMAINS:
-         self._domain_handlers[domain] = DomainManager.get_domain_handler(domain)
+            self._domain_handlers[domain] = DomainManager.get_domain_handler(domain)
 
-        # XXX: we should only do it on user request
-        # self.load_entries()
         self.install_signal_handlers()
+        
+    def __repr__(self):
+        return self.name
 
 
     def get_supported_domains(self):
@@ -75,12 +79,7 @@ class SIMMessageBackendFSO(object):
         return _DOMAINS
 
 
-    def handle_sim_error(self, error):
-        logger.error("%s hit an error, scheduling retry. Reason: %s", self.name, error)
-        timeout_add(_OGSMD_POLL_INTERVAL, self.load_entries)
-
-
-    def process_single_entry(self, status, number, text):
+    def process_single_entry(self, status, number, text, props):
         entry = {}
         
         entry['Direction'] = 'in' if status in ('read', 'unread') else 'out'
@@ -103,33 +102,36 @@ class SIMMessageBackendFSO(object):
 
 
     def process_all_entries(self, entries):
-        for (sim_entry_id, status, number, text) in entries:
+        for (sim_entry_id, status, number, text, props) in entries:
             if len(text) == 0: continue
-            self.process_single_entry(status, number, text)
+            self.process_single_entry(status, number, text, props)
 
 
     def process_incoming_entry(self, entry):
         (number, text) = entry
         self.process_single_entry('unread', number, text)
 
-
+    @tasklet.tasklet
     def load_entries(self):
         bus = SystemBus()
         
         try:
+            # We have to request the GSM resource first
+            usage = bus.get_object('org.freesmartphone.ousaged', '/org/freesmartphone/Usage')
+            usage_iface = Interface(usage, 'org.freesmartphone.Usage')
+            yield tasklet.WaitDBus(usage.RequestResource, 'GSM')
+            
             gsm = bus.get_object('org.freesmartphone.ogsmd', '/org/freesmartphone/GSM/Device')
             self.gsm_sim_iface = Interface(gsm, 'org.freesmartphone.GSM.SIM')
             
-            self.gsm_sim_iface.RetrieveMessagebook(
-                'all',
-                reply_handler=self.process_all_entries,
-                error_handler=self.handle_sim_error)
+            entries = yield tasklet.WaitDBus(self.gsm_sim_iface.RetrieveMessagebook, 'all')
+            self.process_all_entries(entries)
+                
+            # Don't forget to release the GSM resource 
+            yield tasklet.WaitDBus(usage.ReleaseResource, 'GSM')
                 
         except DBusException, e:
-            syslog(LOG_WARNING, "%s: Could not request SIM messagebook from ogsmd, scheduling retry (%s)" % (self.name, e))
-            return True
-        
-        return False
+            logger.warning("%s: Could not request SIM messagebook from ogsmd (%s)", self.name, e)
 
 
     def handle_incoming_message(self, message_id):
