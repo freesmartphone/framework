@@ -118,7 +118,7 @@ class UnsolicitedResponseDelegate( AbstractUnsolicitedResponseDelegate ):
         """
         Call Progress Indication:
         callId = call number in internal call table (same as call number in CCLD)
-        msgType = 0:setup, 1:disconnect, 2:alert, 3:call, 4:sync, 5:progress, 6:connected, 7:release, 8:reject (from network), 9:request
+        msgType = 0:setup, 1:disconnect, 2:alert, 3:call proceed, 4:sync, 5:progress, 6:connected, 7:release, 8:reject (from network), 9:request (MO Setup), 10: hold
         ibt = 1, if in-band-tones enabled
         tch = 1, if traffic channel assigned
         direction = 0:MO, 1:MT, 2:CCBS, 3:MO-autoredial
