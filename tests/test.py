@@ -141,10 +141,11 @@ check_debug_mode()
 if __name__ == '__main__':
     # This list all the modules containing the tests we want to run
     # TODO: provide command line arguments like in Mikey ogsmd test script
-    modules = ['test', 'opreferencesd', 'sim']
+    modules = ['test', 'opreferencesd', 'sim', 'opimd']
 
     for module in modules:
         module = __import__(module)
         print "== testing module : %s ==" % module.__name__
         suite = unittest.defaultTestLoader.loadTestsFromModule(module)
         result = unittest.TextTestRunner(verbosity=3).run(suite)
+        print
