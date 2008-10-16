@@ -28,11 +28,7 @@ The settings are accessed by using them as properties of the class instance:
 settings["startup_cmd"] = "moo"
 """
 
-DBUS_BUS_NAME_PYNEO = "org.pyneo.pim"
-DBUS_PATH_BASE_PYNEO = "/org/pyneo/pim"
-DIN_BASE_PYNEO = "org.pyneo.pim"
-
-DBUS_BUS_NAME_FSO = "org.freesmartphone.PIM"
+DBUS_BUS_NAME_FSO = "org.freesmartphone.opimd"
 DBUS_PATH_BASE_FSO = "/org/freesmartphone/PIM"
 DIN_BASE_FSO = "org.freesmartphone.PIM"
 
@@ -91,6 +87,7 @@ class SettingsManager():
     def load_settings(self):
         """Loads all entries from disk"""
         
+        # TODO: use a config file in the same format that frameword.conf
         try:
             file = open(self._file_name, "r")
             

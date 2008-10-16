@@ -28,7 +28,9 @@ from dbus import SystemBus
 from dbus.proxies import Interface
 from dbus.exceptions import DBusException
 from gobject import timeout_add
-from logging import getLogger as get_logger
+
+import logging
+logger = logging.getLogger('opimd')
 
 from backend_manager import BackendManager
 from backend_manager import PIMB_CAN_ADD_ENTRY, PIMB_CAN_DEL_ENTRY, PIMB_CAN_UPD_ENTRY
@@ -59,9 +61,10 @@ class SIMContactBackendFSO(object):
         self._entry_ids = []
         
         for domain in _DOMAINS:
-         self._domain_handlers[domain] = DomainManager.get_domain_handler(domain)
+            self._domain_handlers[domain] = DomainManager.get_domain_handler(domain)
 
-        self.load_entries()
+        # XXX: we should only do it on user request
+        # self.load_entries()
 
 
     def get_supported_domains(self):
@@ -70,12 +73,12 @@ class SIMContactBackendFSO(object):
 
 
     def log_error(self, error):
-        log = get_logger('opimd')
-        log.error("%s hit an error and schedules retry. Reason: %s" % (self.name, error))
+        logger.error("%s hit an error and schedules retry. Reason: %s", self.name, error)
         timeout_add(_OGSMD_POLL_INTERVAL, self.load_entries)
 
 
     def process_entries(self, entries):
+        logger.debug("process SIM contacts entries")
         for (sim_entry_id, name, number) in entries:
             
             if len(name) == 0: continue
@@ -97,16 +100,18 @@ class SIMContactBackendFSO(object):
     def load_entries(self):
         bus = SystemBus()
         
+        logger.debug("get SIM phonebook from ogsmd")
         try:
             gsm = bus.get_object('org.freesmartphone.ogsmd', '/org/freesmartphone/GSM/Device')
             gsm_sim_iface = Interface(gsm, 'org.freesmartphone.GSM.SIM')
             
             gsm_sim_iface.RetrievePhonebook(
-                reply_handler=process_entries,
-                error_handler=log_error)
+                'contacts',
+                reply_handler = self.process_entries,
+                error_handler = self.log_error)
                 
         except DBusException, e:
-            syslog(LOG_WARNING, "%s: Could not request SIM phonebook from ogsmd, scheduling retry (%s)" % (self.name, e))
+            logger.error("%s: Could not request SIM phonebook from ogsmd : %s", self.name, e)
             return True
         
         return False

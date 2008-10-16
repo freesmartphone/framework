@@ -51,8 +51,9 @@ class CSVContactBackend(object):
         self._entry_ids = []
         
         for domain in _DOMAINS:
-         self._domain_handlers[domain] = DomainManager.get_domain_handler(domain)
-        self.load_entries_from_file()
+            self._domain_handlers[domain] = DomainManager.get_domain_handler(domain)
+        # XXX: we should only do it on user request
+        # self.load_entries_from_file()
 
 
     def __del__(self):

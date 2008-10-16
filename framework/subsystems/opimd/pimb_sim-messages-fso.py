@@ -28,7 +28,9 @@ from dbus import SystemBus
 from dbus.proxies import Interface
 from dbus.exceptions import DBusException
 from gobject import timeout_add
-from logging import getLogger as get_logger
+
+import logging
+logger = logging.getLogger('opimd')
 
 from backend_manager import BackendManager
 from backend_manager import PIMB_CAN_ADD_ENTRY, PIMB_CAN_DEL_ENTRY, PIMB_CAN_UPD_ENTRY
@@ -63,7 +65,8 @@ class SIMMessageBackendFSO(object):
         for domain in _DOMAINS:
          self._domain_handlers[domain] = DomainManager.get_domain_handler(domain)
 
-        self.load_entries()
+        # XXX: we should only do it on user request
+        # self.load_entries()
         self.install_signal_handlers()
 
 
@@ -73,8 +76,7 @@ class SIMMessageBackendFSO(object):
 
 
     def handle_sim_error(self, error):
-        log = get_logger('opimd')
-        log.error("%s hit an error, scheduling retry. Reason: %s" % (self.name, error))
+        logger.error("%s hit an error, scheduling retry. Reason: %s", self.name, error)
         timeout_add(_OGSMD_POLL_INTERVAL, self.load_entries)
 
 
