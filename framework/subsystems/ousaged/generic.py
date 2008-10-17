@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: UTF-8 -*-
 """
-Open Usage Daemon - Generic usage support
+Open Usage Daemon - Generic reference counted Resource Management
 
 (C) 2008 Michael 'Mickey' Lauer <mlauer@vanille-media.de>
 (C) 2008 Jan 'Shoragan' Lübbe <jluebbe@lasnet.de>
@@ -13,7 +13,7 @@ Module: generic
 """
 
 MODULE_NAME = "ousaged"
-__version__ = "0.1.1"
+__version__ = "0.5.0"
 
 DBUS_INTERFACE_PREFIX = "org.freesmartphone.Usage"
 DBUS_PATH_PREFIX = "/org/freesmartphone/Usage"
@@ -23,43 +23,55 @@ import framework.patterns.tasklet as tasklet
 import dbus
 import dbus.service
 
-from gobject import idle_add
-
 import os, sys, time
 
 import logging
 logger = logging.getLogger( MODULE_NAME )
 
-class NotAllowedError( dbus.DBusException ):
-    _dbus_error_name = "org.freesmartphone.Resource.NotAllowed"
+#----------------------------------------------------------------------------#
+# DBus Exceptions specifications specific to this module
 
-class PolicyUnknownError( dbus.DBusException ):
-    _dbus_error_name = "org.freesmartphone.Resource.PolicyUnknown"
+class PolicyUnknown( dbus.DBusException ):
+    _dbus_error_name = "org.freesmartphone.Usage.PolicyUnknown"
 
-class ResourceUnknownError( dbus.DBusException ):
-    _dbus_error_name = "org.freesmartphone.Resource.Unknown"
+class PolicyDisabled( dbus.DBusException ):
+    _dbus_error_name = "org.freesmartphone.Usage.PolicyDisabled"
 
-class ResourceExistsError( dbus.DBusException ):
-    _dbus_error_name = "org.freesmartphone.Resource.Exists"
+class ResourceUnknown( dbus.DBusException ):
+    _dbus_error_name = "org.freesmartphone.Usage.ResourceUnknown"
 
-class UserExistsError( dbus.DBusException ):
-    _dbus_error_name = "org.freesmartphone.Resource.UserExists"
+class ResourceExists( dbus.DBusException ):
+    _dbus_error_name = "org.freesmartphone.Usage.ResourceExists"
 
-class UserUnknownError( dbus.DBusException ):
-    _dbus_error_name = "org.freesmartphone.Resource.UserUnknown"
+class ResourceInUse( dbus.DBusException ):
+    _dbus_error_name = "org.freesmartphone.Usage.ResourceInUse"
+
+class UserExists( dbus.DBusException ):
+    _dbus_error_name = "org.freesmartphone.Usage.UserExists"
+
+class UserUnknown( dbus.DBusException ):
+    _dbus_error_name = "org.freesmartphone.Usage.UserUnknown"
 
 #----------------------------------------------------------------------------#
 class AbstractResource( object ):
 #----------------------------------------------------------------------------#
-    """Base class for all resources
+    """
+    Abstract base class for a resource.
 
     This is the internal class used by the resource manager to keep track of a resource.
     Every resource has a name, a list of current users, and a policy.
 
-    The policy can be 'auto', 'disabled' or 'enabled'
+    Valid policies are:
+        * auto: Reference counted, this is the default,
+        * disabled: The resource is always off,
+        * enabled: The resource is always on.
     """
+
+    VALID_POLICIES = "disabled auto enable".split()
+
     def __init__( self, usageControl, name = "Abstract" ):
-        """Create a new resource
+        """
+        Create a new resource
 
         `usageControl` : the resource controler object that will handle this resource
         `name` : the name of the resource
@@ -72,33 +84,41 @@ class AbstractResource( object ):
 
     @tasklet.tasklet
     def _enable( self ):
-        """Enable the resource"""
+        """
+        Enable the resource.
+        """
         yield None
 
     @tasklet.tasklet
     def _disable( self ):
-        """Disable the resource"""
+        """
+        Disable the resource.
+        """
         yield None
 
     @tasklet.tasklet
     def _suspend( self ):
-        """Called before the system is going to suspend"""
+        """
+        Called before the system is going to suspend.
+        """
         yield None
 
     @tasklet.tasklet
     def _resume( self ):
-        """Called after a system resume"""
+        """
+        Called after a system resume.
+        """
         yield None
 
     @tasklet.tasklet
     def _update( self ):
-        if not self.isEnabled and (self.users or self.policy == 'enabled'):
+        if not self.isEnabled and ( self.users or self.policy == 'enabled' ):
             logger.debug( "Enabling %s", self.name )
             ts = time.time()
             yield self._enable()
             logger.info( "Enabled %s in %.1f seconds", self.name, time.time()-ts )
             self.isEnabled = True
-        elif self.isEnabled and not (self.users or self.policy == 'enabled'):
+        elif self.isEnabled and not ( self.users or self.policy == 'enabled' ):
             logger.debug( "Disabling %s", self.name )
             ts = time.time()
             yield self._disable()
@@ -107,24 +127,24 @@ class AbstractResource( object ):
 
     @tasklet.tasklet
     def setPolicy( self, policy ):
-        if not policy in ['disabled', 'auto', 'enabled']:
-            raise PolicyUnknownError( "Unknown policy %s" % ( policy ) )
+        if not policy in AbstractResource.VALID_POLICIES:
+            raise PolicyUnknown( "Unknown resource policy. Valid policies are %s" % AbstractResource.VALID_POLICIES )
         if self.users:
-            if not policy in ['auto', 'enabled']:
-                raise NotAllowedError( "Can't change to policy %s for %s" % ( policy, self.name ) )
+            if policy == "disabled":
+                raise ResourceInUse( "Can't disable %s. Current users are: %s" % ( self.name, self.users ) )
         if self.policy != policy:
             self.policy = policy
             yield self._update()
             self.usageControl.ResourceChanged(
-                self.name, self.isEnabled, {"policy": self.policy, "refcount": len( self.users )}
+                self.name, self.isEnabled, { "policy": self.policy, "refcount": len( self.users ) }
             )
 
     @tasklet.tasklet
     def request( self, user ):
-        if not self.policy in ['auto', 'enabled']:
-            raise NotAllowedError( "Request for %s is not allowed" % ( self.name ) )
+        if not self.policy in [ 'auto', 'enabled' ]:
+            raise PolicyDisabled( "Requesting %s not allowed by resource policy." % ( self.name ) )
         if user in self.users:
-            raise UserExistsError( "User %s already requested %s" % ( user, self.name ) )
+            raise UserExists( "User %s already requested %s" % ( user, self.name ) )
         self.users.append( user )
         yield self._update()
         self.usageControl.ResourceChanged(
@@ -134,7 +154,7 @@ class AbstractResource( object ):
     @tasklet.tasklet
     def release( self, user ):
         if not user in self.users:
-            raise UserUnknownError( "User %s did not request %s before releasing it" % ( user, self.name ) )
+            raise UserUnknown( "User %s did not request %s before releasing it" % ( user, self.name ) )
         self.users.remove( user )
         yield self._update()
         self.usageControl.ResourceChanged(
@@ -150,6 +170,9 @@ class AbstractResource( object ):
 #----------------------------------------------------------------------------#
 class DummyResource( AbstractResource ):
 #----------------------------------------------------------------------------#
+    """
+    This is a dummy resource class that does nothing.
+    """
     def __init__( self, usageControl, name ):
         AbstractResource.__init__( self , usageControl, name )
 
@@ -164,6 +187,11 @@ class DummyResource( AbstractResource ):
 #----------------------------------------------------------------------------#
 class ODeviceDResource( AbstractResource ):
 #----------------------------------------------------------------------------#
+    """
+    This is a resource class for objects controlled by the odeviced subsystem.
+    """
+    DEPRECATED = True
+
     def __init__( self, usageControl, name ):
         AbstractResource.__init__( self , usageControl, name )
         self.bus = dbus.SystemBus()
@@ -181,25 +209,6 @@ class ODeviceDResource( AbstractResource ):
         yield tasklet.WaitDBus( iface.SetPower, False )
 
 #----------------------------------------------------------------------------#
-class OGPSDResource( AbstractResource ):
-#----------------------------------------------------------------------------#
-    def __init__( self, usageControl, name ):
-        AbstractResource.__init__( self , usageControl, name )
-        self.bus = dbus.SystemBus()
-
-    @tasklet.tasklet
-    def _enable( self ):
-        proxy = self.bus.get_object( "org.freesmartphone.ogpsd", "/org/freedesktop/Gypsy" )
-        iface = dbus.Interface( proxy, "org.freesmartphone.GPS" )
-        yield tasklet.WaitDBus( iface.SetPower, True )
-
-    @tasklet.tasklet
-    def _disable( self ):
-        proxy = self.bus.get_object( "org.freesmartphone.ogpsd", "/org/freedesktop/Gypsy" )
-        iface = dbus.Interface( proxy, "org.freesmartphone.GPS" )
-        yield tasklet.WaitDBus( iface.SetPower, False )
-
-#----------------------------------------------------------------------------#
 class ClientResource( AbstractResource ):
 #----------------------------------------------------------------------------#
     """A resource that is controled by an external client.
@@ -209,7 +218,8 @@ class ClientResource( AbstractResource ):
     If the client is written in python, it can use the framework.Resource class.
     """
     def __init__( self, usageControl, name, path, sender ):
-        """Create a new ClientResource
+        """
+        Create a new ClientResource
 
         Only the resource manager should call this method
         """
@@ -241,8 +251,9 @@ class ClientResource( AbstractResource ):
 #----------------------------------------------------------------------------#
 class GenericUsageControl( dbus.service.Object ):
 #----------------------------------------------------------------------------#
-    """An abstract Dbus Object implementing
-    org.freesmartphone.Usage"""
+    """
+    A Dbus Object implementing org.freesmartphone.Usage.
+    """
     DBUS_INTERFACE = DBUS_INTERFACE_PREFIX
 
     def __init__( self, bus ):
@@ -261,14 +272,14 @@ class GenericUsageControl( dbus.service.Object ):
 
     def _addResource( self, resource ):
         if not self.resources.get(resource.name, None) is None:
-            raise ResourceExistsError( "Resource %s already registered" % resource.name )
+            raise ResourceExists( "Resource %s already registered" % resource.name )
         self.resources[resource.name] = resource
         self.ResourceAvailable( resource.name, True )
 
     def _getResource( self, resourcename ):
         r = self.resources.get(resourcename, None)
         if r is None:
-            raise ResourceUnknownError( "Unknown resource %s" % resourcename )
+            raise ResourceUnknown( "Unknown resource %s" % resourcename )
         return r
 
     @tasklet.tasklet
@@ -317,7 +328,8 @@ class GenericUsageControl( dbus.service.Object ):
 
     @dbus.service.method( DBUS_INTERFACE, "s", "", sender_keyword='sender', async_callbacks=( "dbus_ok", "dbus_error" ) )
     def RequestResource( self, resourcename, sender, dbus_ok, dbus_error ):
-        """Called by a client to request a resource
+        """
+        Called by a client to request a resource.
 
         This call will return imediatly, even if the resource need to perform
         some enabling actions.
@@ -325,13 +337,14 @@ class GenericUsageControl( dbus.service.Object ):
         try:
             resource = self.resources[resourcename]
         except KeyError:
-            dbus_error( ResourceUnknownError( "known resources are %s" % self.resources.keys() ) )
+            dbus_error( ResourceUnknown( "Known resources are %s" % self.resources.keys() ) )
         else:
             resource.request( sender ).start_dbus( dbus_ok, dbus_error )
 
     @dbus.service.method( DBUS_INTERFACE, "s", "", sender_keyword='sender', async_callbacks=( "dbus_ok", "dbus_error" ) )
     def ReleaseResource( self, resourcename, sender, dbus_ok, dbus_error ):
-        """Called by a client to release a previously requested resource
+        """
+        Called by a client to release a previously requested resource.
 
         This call will return imediatly, even if the resource need to perform
         some disabling actions.
@@ -339,19 +352,20 @@ class GenericUsageControl( dbus.service.Object ):
         try:
             resource = self.resources[resourcename]
         except KeyError:
-            dbus_error( ResourceUnknownError( "known resources are %s" % self.resources.keys() ) )
+            dbus_error( ResourceUnknown( "Known resources are %s" % self.resources.keys() ) )
         else:
             resource.release( sender ).start_dbus( dbus_ok, dbus_error )
 
     @dbus.service.method( DBUS_INTERFACE, "so", "", sender_keyword='sender' )
     def RegisterResource( self, resourcename, path, sender ):
-        """Register a new resource from a client
+        """
+        Register a new resource from a client.
 
         The client must provide a name for the resource, and a dbus object
         path to an object implementing org.freesmartphone.Resource interface.
         """
         if resourcename in self.resources:
-            dbus_error( ResourceExistsError( "resource %s already exists" % resourcename ) )
+            dbus_error( ResourceExists( "Resource %s already exists" % resourcename ) )
         else:
             logger.info( "Register new resource %s", resourcename )
             resource = ClientResource( self, resourcename, path, sender )
@@ -359,7 +373,9 @@ class GenericUsageControl( dbus.service.Object ):
 
     @dbus.service.method( DBUS_INTERFACE, "", "", async_callbacks=( "dbus_ok", "dbus_error" ) )
     def Suspend( self, dbus_ok, dbus_error ):
-        """Suspend all the resources"""
+        """
+        Suspend all the resources.
+        """
         # Call the _suspend task connected to the dbus callbacks
         self._suspend().start_dbus( dbus_ok, dbus_error )
 
@@ -382,8 +398,6 @@ def factory( prefix, controller ):
     # Problem: presence of these objects is then depending other subsystems, so need to
     # postpone this until we have subsystem dependency support in the controller
     genericUsageControl = GenericUsageControl( controller.bus )
-#    genericUsageControl._addResource( DummyResource( genericUsageControl, "GSM" ) )
-#    genericUsageControl._addResource( OGPSDResource( genericUsageControl, "GPS" ) )
     genericUsageControl._addResource( ODeviceDResource( genericUsageControl, "Bluetooth" ) )
     genericUsageControl._addResource( ODeviceDResource( genericUsageControl, "WiFi" ) )
     genericUsageControl._addResource( ODeviceDResource( genericUsageControl, "UsbHost" ) )
