@@ -74,11 +74,13 @@ class Trigger(AutoFunction):
 class DBusTrigger(Trigger):
 #============================================================================#
     """A special trigger that waits for a given DBus signal to trigger its rules"""
+    function_name = 'DbusTrigger'
+    
     def __init__(self, bus, service, obj, interface, signal):
         """Create the DBus trigger
 
         arguments:
-        - bus       the DBus bus name
+        - bus       the DBus bus name (or a string : 'system' | 'session')
         - service   the DBus name of the service
         - obj       the DBus path of the object
         - interface the Dbus interface of the signal
@@ -87,6 +89,14 @@ class DBusTrigger(Trigger):
         """
         super(DBusTrigger, self).__init__()
         # some arguments checking
+        if isinstance(bus, str):
+            if bus == 'system':
+                bus = dbus.SystemBus()
+            elif bus == 'session':
+                bus = dbus.SessionBus()
+            else:
+                raise TypeError("Bad dbus bus : %s" % bus)
+            
         assert isinstance(service, str)
         assert obj is None or isinstance(obj, str)
         assert isinstance(interface, str)
@@ -97,6 +107,9 @@ class DBusTrigger(Trigger):
         self.interface = interface
         self.signal = signal
         self.dbus_match = None
+        
+    def __repr__(self):
+        return "DBusTrigger(%s %s.%s)" % (self.service, self.obj, self.signal)
 
     def enable(self):
         if self.dbus_match is not None: # if the rule is already enabled we do nothing 

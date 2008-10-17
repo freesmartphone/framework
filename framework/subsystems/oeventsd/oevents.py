@@ -131,6 +131,8 @@ def factory(prefix, controller):
             for rule in rules:
                 events_manager.add_rule(rule)
             break   # We only use the first file
+        else:
+            logger.debug("file %s doesn't exist", path)
     gobject.idle_add( events_manager.update )
 
     # Return the dbus object to the framework

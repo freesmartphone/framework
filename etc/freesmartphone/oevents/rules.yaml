@@ -92,6 +92,9 @@
     while: Test("test2")
     actions: RingTone()
 -
+    trigger: DbusTrigger(system, 'org.freesmartphone.odeviced', 0, 'org.freesmartphone.Device.IdleNotifier', 'State')
+    actions: Debug("dbus trigger test")
+- 
 
     #
     # Idleness Brightness Handling

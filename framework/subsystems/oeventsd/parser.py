@@ -53,7 +53,10 @@ class AutoFunctionMetaClass(type):
         super(AutoFunctionMetaClass, cls).__init__(name, bases, dict)
         if 'function_name' in dict:
             def func(*args):
-                return cls(*args)
+                try:
+                    return cls(*args)
+                except Exception, e:
+                    logger.error("Error while calling function %s : %s", dict['function_name'], e)
             Function.register(dict['function_name'], func)
             
 class AutoFunction(object):
