@@ -37,8 +37,7 @@ from backend_manager import PIMB_CAN_ADD_ENTRY, PIMB_CAN_DEL_ENTRY, PIMB_CAN_UPD
 from domain_manager import DomainManager
 from helpers import *
 import framework.patterns.tasklet as tasklet
-
-from setting_manager import settings
+from framework.config import config
 
 
 _DOMAINS = ('Messages', )
@@ -95,7 +94,7 @@ class SIMMessageBackendFSO(object):
         # TODO Handle text properly, i.e. make it on-demand if >1KiB
         entry['Text'] = text
         
-        entry['Folder'] = settings['sim_messages_default_folder']
+        entry['Folder'] = config.getValue('opimd', 'sim_messages_default_folder', default='SMS')
         
         entry_id = self._domain_handlers['Messages'].register_message(self, entry)
         self._entry_ids.append(entry_id)

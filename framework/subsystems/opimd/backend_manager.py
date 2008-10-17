@@ -36,8 +36,9 @@ logger = logging.getLogger('opimd')
 
 from domain_manager import DomainManager
 from helpers import *
-from settings_manager import *
+from opimd import *
 import framework.patterns.tasklet as tasklet
+from framework.config import config
 
 PIMB_CAN_ADD_ENTRY = 'add_entry'
 PIMB_CAN_DEL_ENTRY = 'del_entry'
@@ -133,7 +134,7 @@ class BackendManager(DBusFBObject):
         
         try:
             key = domain.lower() + "_default_backend"
-            backend_name = settings[key]
+            backend_name = config.getValue('opimd', key)
             
             for b in class_._backends:
                 if b.name == backend_name:

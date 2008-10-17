@@ -28,7 +28,7 @@ import os
 
 from syslog import syslog, LOG_WARNING, LOG_INFO, LOG_DEBUG
 
-from settings_manager import *
+from opimd import *
 
 
 

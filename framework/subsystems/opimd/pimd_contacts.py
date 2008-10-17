@@ -39,7 +39,7 @@ from backend_manager import PIMB_CAN_ADD_ENTRY
 
 from domain_manager import DomainManager
 from helpers import *
-from settings_manager import *
+from opimd import *
 
 
 _DOMAIN_NAME = "Contacts"

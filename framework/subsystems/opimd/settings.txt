@@ -1,4 +1,0 @@
-sim_messages_default_folder=SMS
-messages_trash_folder=Trash
-contacts_default_backend=CSV-Contacts
-messages_default_folder=Unfiled

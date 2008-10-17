@@ -39,8 +39,9 @@ from backend_manager import PIMB_CAN_ADD_ENTRY
 
 from domain_manager import DomainManager
 from helpers import *
-from settings_manager import *
+from opimd import *
 
+from framework.config import config
 
 _DOMAIN_NAME = "Messages"
 
@@ -827,10 +828,10 @@ class MessageDomain(DBusFBObject):
         self.path = _DBUS_PATH_MESSAGES
         
         # Create the default folders
-        folder_name = settings['messages_default_folder']
+        folder_name = config.getValue('opimd', 'messages_default_folder', default="Unfiled")
         self._folders.append(MessageFolder(self._messages, 0, folder_name))
         
-        folder_name = settings['messages_trash_folder']
+        folder_name = config.getValue('opimd', 'messages_trash_folder', default="Trash")
         self._folders.append(MessageFolder(self._messages, 1, folder_name))
         
 
@@ -881,7 +882,7 @@ class MessageDomain(DBusFBObject):
         try:
             folder_name = message_data['Folder']
         except KeyError:
-            folder_name = settings['messages_default_folder']
+            folder_name = config.getValue('opimd', 'messages_default_folder', "Unfiled")
         
         try:
             folder_id = self.get_folder_id_from_name(folder_name)

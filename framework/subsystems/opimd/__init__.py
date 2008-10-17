@@ -37,7 +37,7 @@ from gobject import MainLoop
 import logging
 logger = logging.getLogger('opimd')
 
-from settings_manager import *
+from opimd import *
 
 def factory(prefix, controller):
     """This is the function that FSO's frameworkd will call to start this subsystem"""
