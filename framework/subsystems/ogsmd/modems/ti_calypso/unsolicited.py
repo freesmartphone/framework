@@ -43,7 +43,7 @@ class UnsolicitedResponseDelegate( AbstractUnsolicitedResponseDelegate ):
         recampingFactor = reregisterCounter / probeMinutes
         logging.debug( "reregistering factor: %.2f recampings/minute" % recampingFactor )
         # heuristics now
-        if reregisterCounter > 5 and recampingFactor > 1:
+        if reregisterCounter > 5 and recampingFactor > 0.3:
             self._detectedRecampingBug()
         return False
 
