@@ -23,7 +23,7 @@ import framework.patterns.tasklet as tasklet
 import dbus
 import dbus.service
 
-import os, sys, time
+import time
 
 import logging
 logger = logging.getLogger( MODULE_NAME )
@@ -356,8 +356,8 @@ class GenericUsageControl( dbus.service.Object ):
         else:
             resource.release( sender ).start_dbus( dbus_ok, dbus_error )
 
-    @dbus.service.method( DBUS_INTERFACE, "so", "", sender_keyword='sender' )
-    def RegisterResource( self, resourcename, path, sender ):
+    @dbus.service.method( DBUS_INTERFACE, "so", "", sender_keyword='sender', async_callbacks=( "dbus_ok", "dbus_error" ) )
+    def RegisterResource( self, resourcename, path, sender, dbus_ok, dbus_error ):
         """
         Register a new resource from a client.
 
@@ -370,6 +370,7 @@ class GenericUsageControl( dbus.service.Object ):
             logger.info( "Register new resource %s", resourcename )
             resource = ClientResource( self, resourcename, path, sender )
             self._addResource( resource )
+            dbus_ok()
 
     @dbus.service.method( DBUS_INTERFACE, "", "", async_callbacks=( "dbus_ok", "dbus_error" ) )
     def Suspend( self, dbus_ok, dbus_error ):
