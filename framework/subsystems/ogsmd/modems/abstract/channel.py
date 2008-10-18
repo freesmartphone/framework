@@ -103,7 +103,6 @@ class AbstractModemChannel( AtCommandChannel ):
         c.append( '+CSNS=0' )           # single numbering scheme: voice
         # sms
         c.append( '+CMGF=0' )           # message format: enable pdu mode, disable text mode
-        c.append( '+CSMS=1' )           # GSM Phase 2+ commands: enable, this seems to fail in PDU mode
         # unsolicited
         c.append( '+CLIP=0' )           # calling line identification presentation: disable
         c.append( '+COLP=0' )           # connected line identification presentation: disable
@@ -111,6 +110,7 @@ class AbstractModemChannel( AtCommandChannel ):
         self._commands["init"] = c
 
         c = []
+        c.append( '+CSMS=1' )           # GSM Phase 2+ commands: enable (this seems to fail in PDU mode?)
         if self._modem.data( "sim-buffers-sms" ):
             c.append( "+CNMI=%s" % self._modem.data( "sms-buffered-cb" ) )
         else:
