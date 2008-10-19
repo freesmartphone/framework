@@ -7,6 +7,8 @@ The Open Device Daemon - Python Implementation
 GPLv2 or later
 """
 
+__version__ = "0.8.0"
+
 from ogsmd.modems.abstract.unsolicited import AbstractUnsolicitedResponseDelegate
 from ogsmd.gsm import const
 from ogsmd.helpers import safesplit
@@ -14,10 +16,11 @@ from ogsmd.helpers import safesplit
 import gobject
 import time
 import logging
-logger = logging.getLogger( "ogsmd.modem.unsolicited" )
+logger = logging.getLogger( "ogsmd" )
 
+#=========================================================================#
 class UnsolicitedResponseDelegate( AbstractUnsolicitedResponseDelegate ):
-
+#=========================================================================#
     def __init__( self, *args, **kwargs ):
         AbstractUnsolicitedResponseDelegate.__init__( self, *args, **kwargs )
         self._mediator.createCallHandler( self._object )
@@ -33,22 +36,22 @@ class UnsolicitedResponseDelegate( AbstractUnsolicitedResponseDelegate ):
         self.reregisterIntervals = []
 
     def _checkRecampingBug( self ):
-        logging.debug( "checking for TI Calypso recamping bug..." )
-        logging.debug( "reregistering %d times within %d seconds. unreg/reg-Intervals are: %s" % (  len(self.reregisterIntervals), self.lastReregister-self.firstReregister, [ "%.2f" % interval for interval in self.reregisterIntervals ] ) )
+        logger.debug( "checking for TI Calypso recamping bug..." )
+        logger.debug( "reregistering %d times within %d seconds. unreg/reg-Intervals are: %s" % (  len(self.reregisterIntervals), self.lastReregister-self.firstReregister, [ "%.2f" % interval for interval in self.reregisterIntervals ] ) )
         reregisterCounter = 0
         for reregisterInterval in self.reregisterIntervals:
             if reregisterInterval < 3.5: # only an immediate unregister followed by register counts as a reregister
                 reregisterCounter += 1
         probeMinutes = ( self.lastReregister - self.firstReregister ) / 60.0
         recampingFactor = reregisterCounter / probeMinutes
-        logging.debug( "reregistering factor: %.2f recampings/minute" % recampingFactor )
+        logger.debug( "reregistering factor: %.2f recampings/minute" % recampingFactor )
         # heuristics now
         if reregisterCounter > 5 and recampingFactor > 0.3:
             self._detectedRecampingBug()
         return False
 
     def _detectedRecampingBug( self ):
-        logging.info( "This TI Calypso device suffers from the recamping bug. Turning off sleep mode to recover." )
+        logger.info( "This TI Calypso device suffers from the recamping bug. Turning off sleep mode to recover." )
         # recover from recamping bug...
         self._object.modem.channel( "MISC" ).enqueue( "%SLEEP=2" )
         # ...but launch trigger to give it another chance (it's also depending on BTS)
@@ -56,7 +59,7 @@ class UnsolicitedResponseDelegate( AbstractUnsolicitedResponseDelegate ):
 
 
     def _reactivateDeepSleep( self ):
-        logging.info( "Reenabling deep sleep mode on TI Calypso (giving it another chance)" )
+        logger.info( "Reenabling deep sleep mode on TI Calypso (giving it another chance)" )
         self.lastStatus = "busy"
         self.lastTime = 0
         self.firstReregister = 0
