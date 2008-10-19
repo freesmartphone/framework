@@ -15,7 +15,7 @@ __version__ = "1.0.0"
 from .config import config, DBUS_BUS_NAME_PREFIX
 
 import dbus
-import os, sys
+import os, sys, time
 
 import logging
 logger = logging.getLogger( MODULE_NAME )
@@ -28,6 +28,7 @@ class Subsystem( object ):
     """
     def __init__( self, name, bus, path, controller ):
         logger.debug( "subsystem %s created" % name )
+        self.launchTime = time.time()
         self.name = name
         self.bus = bus
         self.path = path
@@ -44,6 +45,9 @@ class Subsystem( object ):
             logger.warning( "service %s doesn't have any busnames registered" % self.name )
         else:
             logger.debug( "service %s now owning busnames %s" % (self.name, self.busnames) )
+
+        self.launchTime = time.time() - self.launchTime
+        logger.info( "subsystem %s took %.2f seconds to startup" % ( self.name, self.launchTime ) )
 
     def objects( self ):
         return self._objects

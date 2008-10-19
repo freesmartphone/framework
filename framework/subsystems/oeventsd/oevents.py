@@ -54,7 +54,7 @@ class EventsManager(dbus.service.Object):
         # The set of rules is empty
         self.rules = []
         logger.info( "%s %s initialized. Serving %s at %s", self.__class__.__name__, __version__, self.interface, self.path )
-        
+
         # We need to update the rule every time the 'preferences/rules/enabled-rules' list is modified
         bus = dbus.SystemBus()
         bus.add_signal_receiver(
@@ -65,19 +65,24 @@ class EventsManager(dbus.service.Object):
     def add_rule(self, rule):
         """Add a new rule into the event manager"""
         self.rules.append(rule)
-        
+
     def on_rules_enabled_modified(self, *args):
         self.update()
-        
+
     def update(self):
         """Enable the rules that need to be"""
-        logger.info("update the rules")
+        logger.info("Updating the rules")
         # First we need to get the 'enabled-rules' value from the 'rules' preference service
-        prefs = Controller.object( "/org/freesmartphone/Preferences" )
+        try:
+            prefs = Controller.object( "/org/freesmartphone/Preferences" )
+        except KeyError: # preferences service not online
+            logger.warning( "Can't access /org/freesmartphone/Preferences. Rules will be limited." )
+            # FIXME can we do something (limited) without preferences or not?
+            return False
         rules_prefs = prefs.GetService( "rules" )
         enabled_rules = rules_prefs.GetValue( "enabled-rules" )
         enabled_rules = [str(x) for x in enabled_rules]
-        
+
         for rule in self.rules:
             if rule.name in enabled_rules:
                 rule.enable()
@@ -85,15 +90,15 @@ class EventsManager(dbus.service.Object):
                 rule.disable()
 
         return False
-        
+
     @dbus.service.method( "org.freesmartphone.Events" , in_signature='sb' )
     def TriggerTest( self, name, value = True ):
         """Trigger or untrigger all the 'Test' triggers with matching names
-        
+
         This method is only here for testing purpose.
         :arguments:
         name : the name of the Test triggers to trigger/untrigger
-        value : True to trigger, False to untrigger 
+        value : True to trigger, False to untrigger
         """
         for rule in self.rules:
             trigger = rule._Rule__trigger
@@ -102,7 +107,7 @@ class EventsManager(dbus.service.Object):
                     trigger._trigger()
                 else:
                     trigger._untrigger()
-                    
+
     @dbus.service.method( "org.freesmartphone.Events" , in_signature='s' )
     def AddRule( self, rule_str ):
         """Parse a rule string and add it into the rule list"""
@@ -110,7 +115,7 @@ class EventsManager(dbus.service.Object):
         rule = parser.parse_rule( rule_str )
         self.add_rule(rule)
         self.update()
-        
+
 
 #============================================================================#
 def factory(prefix, controller):
