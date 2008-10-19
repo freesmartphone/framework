@@ -1022,8 +1022,10 @@ def phonebookTupleToNumber( nstring, ntype ):
     Returns a full number depending on a number string and a number type.
     """
 
-    # FIXME figure out how to decode ntype 208
-    assert ntype in ( 129, 145, 185, 208 ), "unknown type %i" % ntype
+    # FIXME unknown types seen so far: 185, 208, 255
+    if ntype not in ( 129, 145 ):
+        logger.warning( "Out-of-spec GSM number type seen: %s. Please report." % ntype )
+
     if ntype == 145: # should not include '+', but sometimes it does
         if nstring[0] == '+':
             return nstring
