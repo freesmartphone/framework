@@ -13,13 +13,15 @@ Module: controller
 __version__ = "0.9.4"
 
 from framework.config import DBUS_BUS_NAME_PREFIX, debug, config, loggingmap
-from optparse import OptionParser
+from framework.patterns import daemon
 import subsystem
 
 import dbus, dbus.service
 from dbus.mainloop.glib import DBusGMainLoop
 from gobject import MainLoop, idle_add
-import os, sys, types
+
+from optparse import OptionParser
+import os, sys, types, time
 
 import logging
 logger = logging.getLogger( "frameworkd.controller" )
@@ -49,14 +51,14 @@ class TheOptionParser( OptionParser ):
             help = "launch following subsystems (default=all)",
             action = "store",
         )
-        self.add_option( "-d", "--debug",
-            dest = "debug",
-            help = "launch in debug mode",
+        self.add_option( "-d", "--daemonize",
+            dest = "daemonize",
+            help = "launch as daemon",
             action = "store_true",
         )
 
 #----------------------------------------------------------------------------#
-class Controller( object ):
+class Controller( daemon.Daemon ):
 #----------------------------------------------------------------------------#
     """
     Loading and registering plugins.
@@ -72,6 +74,9 @@ class Controller( object ):
         return cls.objects[name]
 
     def __init__( self, path ):
+        self.launchTime = time.time()
+        daemon.Daemon.__init__( self, "/tmp/frameworkd.pid" )
+
         # dbus & glib mainloop
         DBusGMainLoop( set_as_default=True )
         self.mainloop = MainLoop()
@@ -89,7 +94,7 @@ class Controller( object ):
 
         # call me
         idle_add( self.idle )
-        timeout_add_seconds( 50, self.timeout )
+        timeout_add_seconds( 1*60, self.timeout )
 
         self._configureLoggers()
         self._handleOverrides()
@@ -120,10 +125,9 @@ class Controller( object ):
             Controller.objects.update( self._subsystems[s].objects() )
 
         # do we have any subsystems left?
-        if not self.options.values.debug:
-            if len( self._subsystems ) == 1: # no additional subsystems could be loaded
-                logger.error( "can't launch without at least one subsystem. Exiting." )
-                sys.exit( -1 )
+        if len( self._subsystems ) == 1: # no additional subsystems could be loaded
+            logger.error( "can't launch without at least one subsystem. Exiting." )
+            sys.exit( -1 )
 
         logger.info( "================== objects registered ===================" )
         objectnames = Controller.objects.keys()
@@ -131,11 +135,18 @@ class Controller( object ):
         for obj in objectnames:
             logger.info( "%s [%s]" % ( obj, Controller.objects[obj].interface ) )
 
+    def launch( self ):
+        if self.options.values.daemonize:
+            self.start() # daemonize, then run self.run()
+        else:
+            self.run()
+
     def subsystems( self ):
         return self._subsystems
 
     def idle( self ):
-        logger.debug( "entered mainloop" )
+        logger.info( "================== mainloop   entered ===================" )
+        logger.info( "startup time was %.2f seconds" % ( time.time() - self.launchTime ) )
         #self.bus.add_signal_receiver(
             #self._nameOwnerChanged,
             #"NameOwnerChanged",
@@ -159,7 +170,20 @@ class Controller( object ):
         return True # call me again
 
     def run( self ):
+        """
+        Run the mainloop.
+
+        Called after daemonizing, or (in debug mode), from Controller.launch()
+        """
         self.mainloop.run()
+
+    def shutdown( self ):
+        """
+        Quit the mainloop.
+        """
+        # FIXME notify all subsystems to clean up their resources
+        logger.info( "shutting down..." )
+        self.mainloop.quit()
 
     #
     # private API

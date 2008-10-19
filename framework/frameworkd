@@ -8,7 +8,7 @@ The Open Device Daemon - Python Implementation
 GPLv2 or later
 """
 
-__version__ = "0.2.0"
+__version__ = "1.0.0"
 
 import sys, os
 
@@ -22,7 +22,8 @@ if __name__ == "__main__":
     c = controller.Controller( "%s/subsystems" % os.path.dirname( controller.__file__ ) )
 
     try:
-        c.run()
+        c.launch()
     except KeyboardInterrupt:
         print >>sys.stderr, "ctrl-c: exiting."
-        sys.exit( 0 )
+        c.shutdown()
+        del c

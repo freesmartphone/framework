@@ -1,3 +1,7 @@
+2008-10-19	Michael Lauer	<mickey@openmoko.org>
+
+	* Command line parameter '-d' now triggers daemonizing the process.
+
 2008-10-10	Daniel Willmann	<daniel@totalueberwachung.de>
 
 	* [ogpsd] With gllin version 1.1 installed GPS should work out of the box

@@ -28,11 +28,8 @@ __all__ = ( \
 )
 
 from configparse import SmartConfigParser
-
 import os
-
 import logging, logging.handlers
-logger = logging.getLogger( "frameworkd" )
 
 loggingmap = { \
     "DEBUG": logging.DEBUG,
@@ -53,35 +50,41 @@ searchpath = [
     ]
 for p in searchpath:
     if os.path.exists( p ):
-        logger.info( "Using configuration file %s" % p )
+        logging.info( "Using configuration file %s" % p )
         config = SmartConfigParser( p )
         break
 
 if config is None:
-    logger.error( "Can't find a configuration file. Looked in %s" % searchpath )
+    logging.error( "Can't find a configuration file. Looked in %s" % searchpath )
     raise IOError, "can't find configuration file"
 
 version = config.getInt( "frameworkd", "version", 0 )
 if version != NEEDS_VERSION:
-    logger.warning( "configuration format too old. Please update and add the following lines to your configuration file:" )
-    logger.warning( "[frameworkd]" )
-    logger.warning( "version = %d" % NEEDS_VERSION )
+    logging.warning( "configuration format too old. Please update and add the following lines to your configuration file:" )
+    logging.warning( "[frameworkd]" )
+    logging.warning( "version = %d" % NEEDS_VERSION )
 
 debug = config.getValue( "frameworkd", "log_level", "INFO" )
 debugto = config.getValue( "frameworkd", "log_to", "stderr" )
 debugdest = config.getValue( "frameworkd", "log_destination", "/tmp/frameworkd.log" )
 
+# get root logger and yank all existing handlers
+rootlogger = logging.getLogger( "" )
+rootlogger.setLevel( loggingmap.get( debug, logging.INFO ) )
+for handler in rootlogger.handlers:
+    rootlogger.removeHandler( handler )
+
+# now that we are clean, setup our actual handler
 if debugto == "stderr":
-    logging.basicConfig( level=loggingmap.get( debug, logging.INFO ), format="%(asctime)s %(name)-8s %(levelname)-8s %(message)s", datefmt="%Y.%m.%d %H:%M:%S" )
+    handler = logging.StreamHandler() # default=stderr
 elif debugto == "file":
-    logging.basicConfig( filename=debugdest, level=loggingmap.get( debug, logging.INFO ), format="%(asctime)s %(name)-8s %(levelname)-8s %(message)s", datefmt="%Y.%m.%d %H:%M:%S" )
+    handler = logging.FileHandler( debugdest )
 elif debugto == "syslog":
-    # full config necessary for root logger
-    rootlogger = logging.getLogger( "" )
-    rootlogger.setLevel( loggingmap.get( debug, logging.INFO ) )
-    sysloghandler = logging.handlers.SysLogHandler( address = "/dev/log" )
-    sysloghandler.setFormatter( logging.Formatter( "%(asctime)s %(name)-8s %(levelname)-8s %(message)s", datefmt="%Y.%m.%d %H:%M:%S" ) )
-    rootlogger.addHandler( sysloghandler )
+    handler = logging.handlers.SysLogHandler( address = "/dev/log" )
+
+# configure the formatter and set the handler
+handler.setFormatter( logging.Formatter( "%(asctime)s %(name)-8s %(levelname)-8s %(message)s", datefmt="%Y.%m.%d %H:%M:%S" ) )
+rootlogger.addHandler( handler )
 
 #
 # compute install prefix
@@ -94,4 +97,4 @@ for p in searchpath:
         installprefix = p
         break
 
-logger.info( "Installprefix is %s" % installprefix )
+logging.info( "Installprefix is %s" % installprefix )
