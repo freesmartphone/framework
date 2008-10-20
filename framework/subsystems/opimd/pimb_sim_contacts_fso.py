@@ -1,6 +1,6 @@
 #
 #   Openmoko PIM Daemon
-#   SIM-Messages Backend Plugin for FSO
+#   SIM-Contacts Backend Plugin for FSO
 #
 #   http://openmoko.org/
 #   http://pyneo.org/
@@ -22,7 +22,7 @@
 #   Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
 #
 
-"""pypimd SIM-Messages Backend Plugin for FSO"""
+"""pypimd SIM-Contacts Backend Plugin for FSO"""
 
 from dbus import SystemBus
 from dbus.proxies import Interface
@@ -32,23 +32,22 @@ from gobject import timeout_add
 import logging
 logger = logging.getLogger('opimd')
 
-from backend_manager import BackendManager
+from backend_manager import BackendManager, Backend
 from backend_manager import PIMB_CAN_ADD_ENTRY, PIMB_CAN_DEL_ENTRY, PIMB_CAN_UPD_ENTRY
 from domain_manager import DomainManager
 from helpers import *
 import framework.patterns.tasklet as tasklet
-from framework.config import config
 
 
-_DOMAINS = ('Messages', )
+_DOMAINS = ('Contacts', )
 _OGSMD_POLL_INTERVAL = 7500
 
 
 
 #----------------------------------------------------------------------------#
-class SIMMessageBackendFSO(object):
+class SIMContactBackendFSO(Backend):
 #----------------------------------------------------------------------------#
-    name = 'SIM-Messages-FSO'
+    name = 'SIM-Contacts-FSO'
     properties = []
 
     # Dict containing the domain handler objects we support
@@ -56,64 +55,47 @@ class SIMMessageBackendFSO(object):
     
     # List of all entry IDs that have data from us
     _entry_ids = None
-    
-    _gsm_sim_iface = None
 #----------------------------------------------------------------------------#
 
     def __init__(self):
+        super(SIMContactBackendFSO, self).__init__()
         self._domain_handlers = {}
         self._entry_ids = []
         
         for domain in _DOMAINS:
             self._domain_handlers[domain] = DomainManager.get_domain_handler(domain)
-
-        self.install_signal_handlers()
-        
+            
     def __repr__(self):
         return self.name
-
 
     def get_supported_domains(self):
         """Returns a list of PIM domains that this plugin supports"""
         return _DOMAINS
 
-
-    def process_single_entry(self, status, number, text, props):
-        entry = {}
-        
-        entry['Direction'] = 'in' if status in ('read', 'unread') else 'out'
-        
-        if status == 'read': entry['MessageRead'] = 1
-        if status == 'sent': entry['MessageSent'] = 1
-        
-        if entry['Direction'] == 'in':
-            entry['Sender'] = phone_number_to_tel_uri(number)
-        else:
-            entry['Recipient'] = phone_number_to_tel_uri(number)
-        
-        # TODO Handle text properly, i.e. make it on-demand if >1KiB
-        entry['Text'] = text
-        
-        entry['Folder'] = config.getValue('opimd', 'sim_messages_default_folder', default='SMS')
-        
-        entry_id = self._domain_handlers['Messages'].register_message(self, entry)
-        self._entry_ids.append(entry_id)
-
-
-    def process_all_entries(self, entries):
-        for (sim_entry_id, status, number, text, props) in entries:
-            if len(text) == 0: continue
-            self.process_single_entry(status, number, text, props)
-
-
-    def process_incoming_entry(self, entry):
-        (number, text) = entry
-        self.process_single_entry('unread', number, text)
+    def process_entries(self, entries):
+        for (sim_entry_id, name, number) in entries:
+            
+            if len(name) == 0: continue
+            
+            # Remove special characters that indicate groups
+            
+            # TODO Do this in a non-unicode-destructing manner
+            name = name.encode('ascii', 'ignore')
+#            name.translate({"\xbf":None, "$":None})
+            
+            entry = {}
+            entry['Phone'] = phone_number_to_tel_uri(number)
+            entry['Name'] = name
+            
+            logger.debug("add entrie : %s", name)
+            entry_id = self._domain_handlers['Contacts'].register_contact(self, entry)
+            self._entry_ids.append(entry_id)
 
     @tasklet.tasklet
     def load_entries(self):
         bus = SystemBus()
         
+        logger.debug("get SIM phonebook from ogsmd")
         try:
             # We have to request the GSM resource first
             usage = bus.get_object('org.freesmartphone.ousaged', '/org/freesmartphone/Usage')
@@ -121,39 +103,15 @@ class SIMMessageBackendFSO(object):
             yield tasklet.WaitDBus(usage.RequestResource, 'GSM')
             
             gsm = bus.get_object('org.freesmartphone.ogsmd', '/org/freesmartphone/GSM/Device')
-            self.gsm_sim_iface = Interface(gsm, 'org.freesmartphone.GSM.SIM')
+            gsm_sim_iface = Interface(gsm, 'org.freesmartphone.GSM.SIM')
             
-            entries = yield tasklet.WaitDBus(self.gsm_sim_iface.RetrieveMessagebook, 'all')
-            self.process_all_entries(entries)
-                
+            contacts = yield tasklet.WaitDBus(gsm_sim_iface.RetrievePhonebook,'contacts')
+            logger.debug("process SIM contacts entries")
+            self.process_entries(contacts)
+            
             # Don't forget to release the GSM resource 
             yield tasklet.WaitDBus(usage.ReleaseResource, 'GSM')
                 
         except DBusException, e:
-            logger.warning("%s: Could not request SIM messagebook from ogsmd (%s)", self.name, e)
-
-
-    def handle_incoming_message(self, message_id):
-        self.gsm_sim_iface.RetrieveMessage(
-            message_id,
-            reply_handler=self.process_incoming_entry
-            # TODO We ignore errors for now
-            )
-
-
-    def install_signal_handlers(self):
-        """Hooks to some d-bus signals that are of interest to us"""
-        
-        bus = SystemBus()
-        
-        bus.add_signal_receiver(
-            self.handle_incoming_message,
-            'IncomingMessage',
-            'org.freesmartphone.GSM.SIM'
-            )
-
-
-
-###  Initalization  ###
-
-BackendManager.register_backend(SIMMessageBackendFSO())
+            logger.error("%s: Could not request SIM phonebook from ogsmd : %s", self.name, e)
+            

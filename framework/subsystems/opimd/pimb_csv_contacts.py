@@ -23,15 +23,18 @@
 #
 
 """pypimd CSV-Contacts Backend Plugin"""
+import os
 
 import logging
 logger = logging.getLogger('opimd')
 
 from domain_manager import DomainManager
-from backend_manager import BackendManager
+from backend_manager import BackendManager, Backend
 from backend_manager import PIMB_CAN_ADD_ENTRY, PIMB_CAN_DEL_ENTRY, PIMB_CAN_UPD_ENTRY
 
 import framework.patterns.tasklet as tasklet
+from framework.config import config, rootdir
+rootdir = os.path.join( rootdir, 'opim' )
 
 _DOMAINS = ('Contacts', )
 _CSV_FILE_NAME = 'csv-contacts.txt'
@@ -39,7 +42,7 @@ _CSV_FILE_NAME = 'csv-contacts.txt'
 
 
 #----------------------------------------------------------------------------#
-class CSVContactBackend(object):
+class CSVContactBackend(Backend):
 #----------------------------------------------------------------------------#
     name = 'CSV-Contacts'
     properties = [PIMB_CAN_ADD_ENTRY, PIMB_CAN_DEL_ENTRY, PIMB_CAN_UPD_ENTRY]
@@ -49,6 +52,7 @@ class CSVContactBackend(object):
 #----------------------------------------------------------------------------#
 
     def __init__(self):
+        super(CSVContactBackend, self).__init__()
         self._domain_handlers = {}
         self._entry_ids = []
         
@@ -76,7 +80,8 @@ class CSVContactBackend(object):
         """Loads all entries from disk"""
         
         try:
-            file = open(_CSV_FILE_NAME, 'r')
+            path = os.path.join(rootdir, _CSV_FILE_NAME)
+            file = open(path, 'r')
             
             for line in file:
                 if line.find('=') == -1: continue
@@ -92,13 +97,14 @@ class CSVContactBackend(object):
                 self._entry_ids.append(entry_id)
                 
         except IOError:
-            logger.error("Error opening %s", _CSV_FILE_NAME)
+            logger.error("Error opening %s", path)
 
 
     def save_entries_to_file(self):
         """Saves all entries to disk"""
         
-        file = open(_CSV_FILE_NAME, 'w')
+        path = os.path.join(rootdir, _CSV_FILE_NAME)
+        file = open(path, 'w')
         
         for entry in self._domain_handlers['Contacts'].enumerate_contacts(self):
             line = ""
@@ -112,14 +118,8 @@ class CSVContactBackend(object):
 
     def add_contact(self, contact_data):
         contact_id = self._domain_handlers['Contacts'].register_contact(self, contact_data)
-        
         # TODO Delayed writing to prevent performance issues when adding lots of contacts
         self.save_entries_to_file()
         
         return contact_id
 
-
-
-###  Initalization  ###
-
-BackendManager.register_backend(CSVContactBackend())

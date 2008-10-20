@@ -32,12 +32,10 @@ from dbus.service import method as dbus_method
 
 from difflib import SequenceMatcher
 
-from syslog import syslog, LOG_ERR, LOG_WARNING, LOG_INFO, LOG_DEBUG
-
 from backend_manager import BackendManager
 from backend_manager import PIMB_CAN_ADD_ENTRY
 
-from domain_manager import DomainManager
+from domain_manager import DomainManager, Domain
 from helpers import *
 from opimd import *
 
@@ -798,7 +796,7 @@ class MessageFolder(DBusFBObject):
 
 
 #----------------------------------------------------------------------------#
-class MessageDomain(DBusFBObject):
+class MessageDomain(Domain):
 #----------------------------------------------------------------------------#
     name = _DOMAIN_NAME
 
@@ -817,8 +815,7 @@ class MessageDomain(DBusFBObject):
         self.query_manager = QueryManager(self._messages)
         
         # Initialize the D-Bus-Interface
-        DBusFBObject.__init__(
-            self,
+        super(MessageDomain, self).__init__(
             conn=SystemBus(),
             object_path=_DBUS_PATH_MESSAGES
             )
@@ -1060,8 +1057,3 @@ class MessageDomain(DBusFBObject):
         folder = self._folders[folder_id]
         folder.register_message(num_id)
 
-
-
-###  Initalization  ###
-
-DomainManager.register_domain(MessageDomain())

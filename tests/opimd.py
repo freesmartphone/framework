@@ -24,10 +24,12 @@ class PimTests(unittest.TestCase):
         # Get the pim interface
         pim_sources = self.bus.get_object('org.freesmartphone.opimd', '/org/freesmartphone/PIM/Sources')
         self.pim_sources = dbus.Interface(pim_sources, 'org.freesmartphone.PIM.Sources')
+        pim_contacts = self.bus.get_object('org.freesmartphone.opimd', '/org/freesmartphone/PIM/Contacts')
+        self.pim_contacts = dbus.Interface(pim_contacts, 'org.freesmartphone.PIM.Contacts')
 
-    def test_init(self):
-        """Try to init the PIM sources"""
+    def test_all(self):
         self.pim_sources.InitAllEntries()
+        self.pim_contacts.Add({'Name':"gui", 'Phone':"0123456789"})
         
 if __name__ == '__main__':
     suite = unittest.defaultTestLoader.loadTestsFromTestCase(PimTests)

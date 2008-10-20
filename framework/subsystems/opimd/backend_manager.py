@@ -65,6 +65,23 @@ except ImportError:
     ENV_MODE = 'pyneo'
 
 
+# We use a meta class to automaticaly register all the backend subclasses
+#----------------------------------------------------------------------------#
+class BackendMetaClass(type):
+#----------------------------------------------------------------------------#
+    def __init__(cls, name, bases, dict):
+        super(BackendMetaClass, cls).__init__(name, bases, dict)
+        if object in bases:
+            return
+        Backend._all_backends_cls.append(cls)
+
+#----------------------------------------------------------------------------#
+class Backend(object):
+#----------------------------------------------------------------------------#
+    """Base class for all backend"""
+    __metaclass__ = BackendMetaClass
+    _all_backends_cls = []
+
 
 #----------------------------------------------------------------------------#
 class BackendManager(DBusFBObject):
@@ -73,7 +90,7 @@ class BackendManager(DBusFBObject):
     _backends = []
 #----------------------------------------------------------------------------#
 
-    def __init__(self, plugin_path):
+    def __init__(self):
         """Initializes the backend manager
         
         @param plugin_path The directory where we'll look for backend plugins"""
@@ -89,33 +106,15 @@ class BackendManager(DBusFBObject):
         self.interface = _DIN_SOURCES
         self.path = _DBUS_PATH_SOURCES
         
-        # Load all backend plugins (pimb = PIM Backend)
-        try:
-            files = os.listdir(plugin_path)
-            
-            for plugin in filter(
-                lambda s: (s[-3:] == '.py' and s[:5] == 'pimb_'),
-                    files):
-                    
-                    # Don't load unsuited modules
-                    if (ENV_MODE == 'pyneo' and 'fso' in plugin): continue
-                    if (ENV_MODE == 'fso' and 'pyneo' in plugin): continue
-                    
-                    logger.debug("Loading %s", plugin)
-                    
-                    (file_name, file_ext) = os.path.splitext(plugin)
-                    __import__(file_name, globals(), locals(), [])
-        
-        except OSError:
-            logger.warning("Could not open backend plugin directory: %s", plugin_path)
-
+        for backend_cls in Backend._all_backends_cls:
+            self.register_backend(backend_cls())
 
     @classmethod
-    def register_backend(class_, backend):
+    def register_backend(cls, backend):
         """Register a backend and register it with all supported PIM domains
         
         @param backend The backend object to register"""
-        class_._backends.append(backend)
+        cls._backends.append(backend)
         logger.info("Registered backend %s", backend.name)
         
         for domain in backend.get_supported_domains():

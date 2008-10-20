@@ -26,56 +26,47 @@
 
 import os
 
-from syslog import syslog, LOG_WARNING, LOG_INFO, LOG_DEBUG
+import logging
+logger = logging.getLogger('opimd')
 
+from dbus.service import FallbackObject as DBusFBObject
 from opimd import *
 
+# We use a meta class to automaticaly register all the domain subclasses
+#----------------------------------------------------------------------------#
+class DomainMetaClass(DBusFBObject.__metaclass__):
+#----------------------------------------------------------------------------#
+    def __init__(cls, name, bases, dict):
+        super(DomainMetaClass, cls).__init__(name, bases, dict)
+        if DBusFBObject in bases:
+            return
+        Domain._all_domains_cls.append(cls)
 
+#----------------------------------------------------------------------------#
+class Domain(DBusFBObject):
+#----------------------------------------------------------------------------#
+    """Base class for all domains"""
+    __metaclass__ = DomainMetaClass
+    _all_domains_cls = []
 
 #----------------------------------------------------------------------------#
 class DomainManager(object):
 #----------------------------------------------------------------------------#
     _domains = {}        # List containing the domain objects
 #----------------------------------------------------------------------------#
+    @classmethod
+    def init(cls):
+        for domain_cls in Domain._all_domains_cls:
+            cls._domains[domain_cls.name] = domain_cls()
+            logger.info("Registered domain %s", domain_cls.name)
 
     @classmethod
-    def init(class_, plugin_path):
-
-        # Load all domain plugins (pimd = PIM Domain)
-        try:
-            files = os.listdir(plugin_path)
-            
-            for plugin in filter(
-                lambda s: (s[-3:] == '.py' and s[:5] == 'pimd_'),
-                    files):
-                    
-                    # Don't load unsuited modules
-                    if (ENV_MODE == 'pyneo' and 'fso' in plugin): continue
-                    if (ENV_MODE == 'fso' and 'pyneo' in plugin): continue
-                    
-                    syslog(LOG_DEBUG, "Loading " + plugin)
-                    
-                    (file_name, file_ext) = os.path.splitext(plugin)
-                    __import__(file_name, globals(), locals(), [])
-        
-        except OSError:
-            syslog(LOG_WARNING, "Could not open domain plugin directory: %s" % plugin_path)
-
+    def get_domain_handler(cls, domain):
+        return cls._domains[domain] if (domain in cls._domains) else None
 
     @classmethod
-    def register_domain(class_, domain):
-        class_._domains[domain.name] = domain
-        syslog(LOG_INFO, "Registered domain " + domain.name)
-
-
-    @classmethod
-    def get_domain_handler(class_, domain):
-        return class_._domains[domain] if (domain in class_._domains) else None
-
-
-    @classmethod
-    def enumerate_dbus_objects(class_):
-        for handler in class_._domains.values():
+    def enumerate_dbus_objects(cls):
+        for handler in cls._domains.values():
             for obj in handler.get_dbus_objects():
                 yield obj
 

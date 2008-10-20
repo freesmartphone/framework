@@ -39,18 +39,25 @@ logger = logging.getLogger('opimd')
 
 from opimd import *
 
+# We import the domain modules, so that there classes are registered
+import pimd_contacts
+import pimd_messages
+# Same thing for the backend modules
+import pimb_sim_contacts_fso
+import pimb_sim_messages_fso
+import pimb_csv_contacts
+
 def factory(prefix, controller):
     """This is the function that FSO's frameworkd will call to start this subsystem"""
     # Claim the bus name
     # TODO Check for exceptions
     SystemBus().request_name(DBUS_BUS_NAME_FSO)
     
-    from backend_manager import BackendManager
     from domain_manager import DomainManager
+    DomainManager.init()
     
-    # Load plugins
-    DomainManager.init(os.getcwdu())
-    backend_manager = BackendManager(os.getcwdu())
+    from backend_manager import BackendManager
+    backend_manager = BackendManager()
     
     dbus_objects = []
     

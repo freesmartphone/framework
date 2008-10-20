@@ -32,12 +32,10 @@ from dbus.service import method as dbus_method
 
 from difflib import SequenceMatcher
 
-from syslog import syslog, LOG_ERR, LOG_WARNING, LOG_INFO, LOG_DEBUG
-
 from backend_manager import BackendManager
 from backend_manager import PIMB_CAN_ADD_ENTRY
 
-from domain_manager import DomainManager
+from domain_manager import DomainManager, Domain
 from helpers import *
 from opimd import *
 
@@ -229,7 +227,7 @@ class Contact():
             compare_value = ""
             
             # TODO Do this in a more extensible way
-            if ("phone" in field_name) or (field_name == "Phone"): compare_value = get_compare_for_tel(field_value)
+            # if ("phone" in field_name) or (field_name == "Phone"): compare_value = get_compare_for_tel(field_value)
             
             our_field = [field_name, field_value, compare_value, backend_name]
             
@@ -700,7 +698,7 @@ class QueryManager(DBusFBObject):
 
 
 #----------------------------------------------------------------------------#
-class ContactDomain(DBusFBObject):
+class ContactDomain(Domain):
 #----------------------------------------------------------------------------#
     name = _DOMAIN_NAME
 
@@ -717,8 +715,7 @@ class ContactDomain(DBusFBObject):
         self.query_manager = QueryManager(self._contacts)
         
         # Initialize the D-Bus-Interface
-        DBusFBObject.__init__(
-            self,
+        super(ContactDomain, self).__init__(
             conn=SystemBus(),
             object_path=_DBUS_PATH_CONTACTS
             )
@@ -882,8 +879,3 @@ class ContactDomain(DBusFBObject):
             
         return self._contacts[num_id].get_fields(new_field_list)
 
-
-
-###  Initalization  ###
-
-DomainManager.register_domain(ContactDomain())
