@@ -14,7 +14,16 @@ Module: oevents
 
 __version__ = "0.3.0"
 
-from framework.config import config
+import gobject
+import dbus
+import os
+
+import logging
+logger = logging.getLogger('oeventsd')
+
+from framework.config import config, rootdir
+rootdir = os.path.join( rootdir, 'oevents' )
+
 from framework.controller import Controller
 
 from action import Action
@@ -24,13 +33,6 @@ from trigger import TestTrigger
 # FIXME: treat custom triggers, actions, and filters as plugins and load them on demand
 from fso_actions import *
 from fso_triggers import *
-
-import gobject
-import dbus
-import os
-
-import logging
-logger = logging.getLogger('oeventsd')
 
 # TODO:
 # - Add a way to dynamically remove events
@@ -124,20 +126,13 @@ def factory(prefix, controller):
     events_manager = EventsManager(controller.bus)
 
     # Get the initial rules files
-    # We can set a list of possible path in the config file
-    possible_rule_files = config.getValue("oeventsd", "rules_file", "").split(':')
-    logger.debug("rules files are : %s", possible_rule_files)
     parser = Parser()
-    # Now we try to parse the rules from the first existing rule file
-    for path in possible_rule_files:
-        if os.path.exists(path):
-            logger.info("parsing rules from file %s", path)
-            rules = parser.parse_rules(open(path).read())
-            for rule in rules:
-                events_manager.add_rule(rule)
-            break   # We only use the first file
-        else:
-            logger.debug("file %s doesn't exist", path)
+    rules_file = os.path.join( rootdir, 'rules.yaml' )
+    rules = parser.parse_rules(open(rules_file).read())
+    for rule in rules:
+        events_manager.add_rule(rule)
+            
+    # This is to ensure that all the other subsystems are up before we update the events_manager
     gobject.idle_add( events_manager.update )
 
     # Return the dbus object to the framework

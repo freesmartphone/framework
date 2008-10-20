@@ -27,7 +27,8 @@ except ImportError:
 import logging
 logger = logging.getLogger( "frameworkd.persist" )
 
-from framework.config import config
+from framework.config import config, rootdir
+rootdir = os.path.join( rootdir, 'persist' )
 
 class Persist( object ):
     def __init__( self, rootdir ):
@@ -74,13 +75,6 @@ class Persist( object ):
             os.rename( filename+".tmp", filename )
             self.dirty.discard( subsystem )
 
-possible_rootdirs = os.path.abspath(
-    config.getValue( "frameworkd.persist", "rootdir", "../etc/freesmartphone/persist:/etc/freesmartphone/persist:/usr/etc/freesmartphone/persist" )
-).split(':')
-for path in possible_rootdirs:
-    if os.path.exists(path):
-        persist = Persist(path)
-        break
-else:
-    raise Exception("can't find the persistance root directory")
+persist = Persist( rootdir )
+
 

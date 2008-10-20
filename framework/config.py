@@ -25,6 +25,7 @@ __all__ = ( \
     "debugto",
     "debugdest",
     "installprefix",
+    "rootdir"
 )
 
 from configparse import SmartConfigParser
@@ -98,3 +99,17 @@ for p in searchpath:
         break
 
 logging.info( "Installprefix is %s" % installprefix )
+
+#
+# compute root dir
+#
+possible_rootdirs = os.path.abspath(
+    config.getValue( "frameworkd", "rootdir", "../etc/freesmartphone:/etc/freesmartphone:/usr/etc/freesmartphone" )
+).split( ':' )
+for path in possible_rootdirs:
+    if os.path.exists( path ):
+        rootdir = path
+        break
+else:
+    raise IOError( "can't find the root directory" )
+logging.info( "Root dir is %s" % rootdir )

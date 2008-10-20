@@ -21,6 +21,9 @@ import dbus.service
 import dbus.mainloop.glib
 import gobject
 
+from framework.config import config, rootdir
+rootdir = os.path.join( rootdir, 'opreferences' )
+
 from schema import Schema, Parameter
 from service import Service, NoServiceError
 from configuration import Configuration
@@ -159,16 +162,10 @@ def factory(prefix, controller):
     """This is the magic function that will be called bye the framework module manager"""
     # Get the root dir containing the schema and conf dirs
     # We can set a list of possible path in the config file
-    possible_root_dir = controller.config.get("opreferencesd", "rootdir").split(':')
-    for path in possible_root_dir:
-        if os.path.exists(path):
-            root_dir = path
-            break
-    else:
-        raise Exception("can't find the preferences root directory")
+    
 
-    schema_dir = '%s/schema' % root_dir
-    conf_dir = '%s/conf' % root_dir
+    schema_dir = os.path.join( rootdir, 'schema' )
+    conf_dir = os.path.join( rootdir, 'conf' )
 
     pref_manager = PreferencesManager(controller.bus, schema_dir, conf_dir)
     return [pref_manager]
