@@ -8,7 +8,7 @@ GPLv2 or later
 """
 
 MODULE_NAME = "odeviced.kernel26"
-__version__ = "0.9.5"
+__version__ = "0.9.6"
 
 from helpers import DBUS_INTERFACE_PREFIX, DBUS_PATH_PREFIX, readFromFile, writeToFile, cleanObjectName
 from framework.config import config
@@ -168,10 +168,16 @@ class PowerSupply( dbus.service.Object ):
         self.node = node
 
         self.ueventsock = s = socket.socket( socket.AF_NETLINK, socket.SOCK_DGRAM, socket.NETLINK_KOBJECT_UEVENT )
-        s.bind( ( os.getpid(), 1 ) )
-        self.ueventsockWatch = gobject.io_add_watch( s.fileno(), gobject.IO_IN, self.onUeventActivity )
+        # this only works as root
+        try:
+            s.bind( ( os.getpid(), 1 ) )
+        except socket.error, e:
+            logger.exception( "Could not bind to netlink kobject. Power supply reporting will not work." )
+        else:
+            self.ueventsockWatch = gobject.io_add_watch( s.fileno(), gobject.IO_IN, self.onUeventActivity )
         capacityCheckTimeout = config.getInt( MODULE_NAME, "capacity_check_timeout", 60*5 )
         self.capacityWatch = gobject.timeout_add_seconds( capacityCheckTimeout, self.onCapacityCheck )
+        # FIXME should this rather be handled globally (controller issuing a coldstart on every subsystem?)
         gobject.idle_add( self.onColdstart )
 
         self.powerStatus = "unknown"
