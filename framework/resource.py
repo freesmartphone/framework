@@ -93,7 +93,7 @@ class Resource( dbus.service.Object ):
             logger.info( "Trying to register resource %s", self._resourceName )
             # Here we are sure ousaged exists, if it has not been disabled
             try:
-                usaged = self.bus.get_object( "org.freesmartphone.ousaged", "/org/freesmartphone/Usage" )
+                usaged = self._resourceBus.get_object( "org.freesmartphone.ousaged", "/org/freesmartphone/Usage" )
             except dbus.exceptions.DBusException:
                 logger.warning( "Can't register resource %s since ousaged is not present. Enabling device", name )
                 gobject.idle_add( self.Enable, lambda: None, lambda dummy: None )
