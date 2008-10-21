@@ -99,7 +99,7 @@ def request(*conds):
         ret.__dict__ = func.__dict__
         ret.__name__ = func.__name__
         # Important to change the name so that the user see that the test has been skipped
-        ret.__doc__ = "%s : SKIPPED (need %s)" % (func.__doc__ or func.__name__, kargs)
+        ret.__doc__ = "%s : SKIPPED (need %s)" % (func.__doc__ or func.__name__, conds)
         return ret
     return _request
     
@@ -133,6 +133,22 @@ def check_debug_mode():
         print 'You need to run this in debug mode (-N option on neo)'
         import sys
         sys.exit(-1)
+        
+class Operator(object):
+    """Class used to communicate with the test operator during the tests"""
+    def query(self, question):
+        """Ask a y/n question to the operator"""
+        while True:
+            answer = raw_input("\n> %s y/n " % question)
+            if answer.lower() == 'y':
+                return True
+            if answer.lower() == 'n':
+                return False
+    def tell(self, msg):
+        """Print a message to the operator"""
+        print msg
+
+operator = Operator()
 
     
 # We check for the debug mode
@@ -141,7 +157,7 @@ check_debug_mode()
 if __name__ == '__main__':
     # This list all the modules containing the tests we want to run
     # TODO: provide command line arguments like in Mikey ogsmd test script
-    modules = ['test', 'opreferencesd', 'sim', 'opimd']
+    modules = ['test', 'opreferencesd', 'sim', 'opimd', 'ogsmd2']
 
     for module in modules:
         module = __import__(module)
