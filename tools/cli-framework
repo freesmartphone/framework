@@ -10,7 +10,7 @@ Interactive console for the freesmartphone.org framework
 GPLv2 or later
 """
 
-__version__ = "0.9.1.1"
+__version__ = "0.9.1.2"
 
 import dbus.service
 import dbus.mainloop.glib
@@ -68,7 +68,7 @@ def getInterface( busname, objectpath, interface ):
 #----------------------------------------------------------------------------#
 def getObjectsForInterface( interface ):
 #----------------------------------------------------------------------------#
-    paths = framework.ListObjectsByInterface( interface )
+    paths = framework.ListObjectsByInterface( interface, dbus_interface="org.freesmartphone.Framework" )
     result = {}
     for path in paths:
         result[str(path)] = getInterface( "org.freesmartphone.frameworkd", path, interface )
