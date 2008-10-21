@@ -449,7 +449,7 @@ class UBXDevice( GPSDevice ):
             valid = 0
         data = data[0]
         self._updatePosition( valid, data["LAT"]/scaling,
-                data["LON"]/scaling, data["HEIGHT"]/1000.0 )
+                data["LON"]/scaling, data["HMSL"]/1000.0 )
 
     def handle_NAV_DOP( self, data ):
         if self.gpsfixstatus == 3:
