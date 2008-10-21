@@ -129,7 +129,8 @@ class DBusTrigger(Trigger):
         self.dbus_match = None
 
     def on_signal(self, *args):
-        self._trigger(args=args)
+        kargs = dict( ('arg%d' % i, v) for i,v in enumerate(args) )
+        self._trigger( **kargs )
 
 #============================================================================#
 class TestTrigger( Trigger ):
