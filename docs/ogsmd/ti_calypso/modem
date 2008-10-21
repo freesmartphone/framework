@@ -32,6 +32,7 @@
   a Error 512 state in that case. You will have to restart the modem once this happens.
 
 * Shutting down an ongoing GPRS connection can take ages. Need to better interface with pppd here.
+  * We should issue ATH here (first check whether there is no call ongoing though)
 
 === GSM standards violations ===
 

@@ -1,3 +1,9 @@
+2008-10-21	Michael Lauer	<mickey@openmoko.org>
+
+	* [ousaged] Remove dummy resources encapsulating odeviced objects
+	* [odeviced] Add ResourceAwarePowerControl class and use it
+	* [odeviced] Add powercontrol_ibm.py for IBM ACPI Resources
+
 2008-10-19	Michael Lauer	<mickey@openmoko.org>
 
 	* Command line parameter '-d' now triggers daemonizing the process.

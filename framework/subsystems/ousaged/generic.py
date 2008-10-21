@@ -13,7 +13,7 @@ Module: generic
 """
 
 MODULE_NAME = "ousaged"
-__version__ = "0.5.0"
+__version__ = "0.5.1"
 
 DBUS_INTERFACE_PREFIX = "org.freesmartphone.Usage"
 DBUS_PATH_PREFIX = "/org/freesmartphone/Usage"
@@ -394,18 +394,11 @@ class GenericUsageControl( dbus.service.Object ):
 #----------------------------------------------------------------------------#
 def factory( prefix, controller ):
 #----------------------------------------------------------------------------#
-    objects = []
-    # FIXME remove hardcoding resources here and rather rely on presence of PowerControl interface
-    # Problem: presence of these objects is then depending other subsystems, so need to
-    # postpone this until we have subsystem dependency support in the controller
-    genericUsageControl = GenericUsageControl( controller.bus )
-    genericUsageControl._addResource( ODeviceDResource( genericUsageControl, "Bluetooth" ) )
-    genericUsageControl._addResource( ODeviceDResource( genericUsageControl, "WiFi" ) )
-    genericUsageControl._addResource( ODeviceDResource( genericUsageControl, "UsbHost" ) )
-    objects.append( genericUsageControl )
-    return objects
+    return [ GenericUsageControl( controller.bus ) ]
 
+#----------------------------------------------------------------------------#
 if __name__ == "__main__":
+#----------------------------------------------------------------------------#
     bus = dbus.SystemBus()
 
     def requestInterfaceForObject( prefix, interface, object ):
