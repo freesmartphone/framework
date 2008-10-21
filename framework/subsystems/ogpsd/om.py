@@ -95,10 +95,17 @@ class GTA02Device( UBXDevice ):
 
         # GPS week number
         # FIXME: The Global Positioning System (GPS) epoch is January 6, 1980 and is synchronized to UTC.
-        wn = int((time.time() - time.mktime(time.strptime("6 Jan 1980", "%d %b %Y"))) / (86400 * 7))
+        wn = int((time.mktime(time.gmtime()) - time.mktime(time.strptime("6 Jan 1980 UTC", "%d %b %Y %Z"))) / (86400 * 7))
+
+        try:
+            leapsecs = self.aidingData["hui"]["UTC_LS"]
+        except:
+            # If we don't have current leap seconds yet assume 14 seconds. They are not changing that fast and it's
+            # more accurate than assuming 0 (as up until now only leap seconds have been added)
+            leapsecs = 14
 
         # GPS time of week
-        tow = int(time.time() - (time.mktime(time.strptime("6 Jan 1980", "%d %b %Y")) + wn * 86400 * 7)) * 1000
+        tow = int(time.mktime(time.gmtime()) - (time.mktime(time.strptime("6 Jan 1980 UTC", "%d %b %Y %Z")) + wn * 86400 * 7) + leapsecs) * 1000
 
         # Time accuracy needs to be changed, because the RTC is imprecise
         tacc = 60000 # in ms (1 minute)
@@ -110,7 +117,7 @@ class GTA02Device( UBXDevice ):
             flags = 0x03
 
         # Feed GPS with position and time
-        self.send("AID-INI", 48, {"X" : pos.get("x", 0) , "Y" : pos.get("y", 0) , "Z" : pos.get("z", None), \
+        self.send("AID-INI", 48, {"X" : pos.get("x", 0) , "Y" : pos.get("y", 0) , "Z" : pos.get("z", 0), \
                   "POSACC" : pacc, "TM_CFG" : 0 , "WN" : wn , "TOW" : tow , "TOW_NS" : 0 , \
                   "TACC_MS" : tacc , "TACC_NS" : 0 , "CLKD" : 0 , "CLKDACC" : 0 , "FLAGS" : flags })
 
