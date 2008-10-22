@@ -96,11 +96,13 @@ class DBusTrigger(Trigger):
                 bus = dbus.SessionBus()
             else:
                 raise TypeError("Bad dbus bus : %s" % bus)
+        if not obj:
+            obj = None
             
-        assert isinstance(service, str)
-        assert obj is None or isinstance(obj, str)
-        assert isinstance(interface, str)
-        assert isinstance(signal, str)
+        assert isinstance(service, str), "service is not str"
+        assert obj is None or isinstance(obj, str), "obj is not str or None"
+        assert isinstance(interface, str), "interface is not str"
+        assert isinstance(signal, str), "signal is not str"
         self.bus = bus
         self.service = service
         self.obj = obj

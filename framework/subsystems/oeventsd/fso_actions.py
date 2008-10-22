@@ -122,39 +122,6 @@ class AudioScenarioAction(Action):
         return "SetScenario(%s)" % self.scenario
 
 #============================================================================#
-class LedAction(Action):
-#============================================================================#
-    """
-    A dbus action on a LED device
-    """
-    function_name = 'SetLed'
-
-    def __init__(self, device, action):
-        self.device = device
-        self.action = action
-    def set(self, action):
-        bus = dbus.SystemBus()
-        service = 'org.freesmartphone.odeviced'
-        obj = '/org/freesmartphone/Device/LED/%s' % self.device
-        interface = 'org.freesmartphone.Device.LED'
-        if action == 'light':
-            return DBusAction(bus, service, obj, interface, 'SetBrightness', 100).trigger()
-        elif action == 'blink':
-            return DBusAction(bus, service, obj, interface, 'SetBlinking', 100, 1500).trigger()
-        elif action == 'dark':
-            return DBusAction(bus, service, obj, interface, 'SetBrightness', 0).trigger()
-        else:
-            logger.error( "unhandled action '%s' for Led" % action )
-    def trigger(self, **kargs):
-        # TODO: actually retrieve the current state of the led
-        self.backup_action = 'dark'
-        self.set(self.action)
-    def untrigger(self, **kargs):
-        self.set(self.backup_action)
-    def __repr__(self):
-        return "SetLed(%s, %s)" % (self.device, self.action)
-
-#============================================================================#
 class DisplayBrightnessAction(DBusAction):
 #============================================================================#
     """

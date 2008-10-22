@@ -33,6 +33,7 @@ from trigger import TestTrigger
 # FIXME: treat custom triggers, actions, and filters as plugins and load them on demand
 from fso_actions import *
 from fso_triggers import *
+from leds_actions import *
 
 # TODO:
 # - Add a way to dynamically remove events
