@@ -10,7 +10,7 @@ Interactive console for the freesmartphone.org framework
 GPLv2 or later
 """
 
-__version__ = "0.9.1.2"
+__version__ = "0.9.1.3"
 
 import dbus.service
 import dbus.mainloop.glib
@@ -32,6 +32,8 @@ def dbus_to_python(v):
         return [dbus_to_python(x) for x in v]
     elif isinstance(v, dbus.Struct) or type(v) == types.TupleType:
         return tuple(dbus_to_python(x) for x in v)
+    elif isinstance(v, dbus.Boolean) or type(v) == types.BooleanType:
+        return bool(v)
     else:
         return v
         raise TypeError("Can't convert type %s to python object" % type(v))
