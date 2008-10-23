@@ -229,6 +229,7 @@ bus.add_signal_receiver( handler, None, None, None, None,
 
 import rlcompleter, readline, atexit
 readline.parse_and_bind( "tab: complete" )
+readline.set_history_length(1000)
 try:
     readline.read_history_file( os.path.expanduser( "~/.framework-history" ) )
 except IOError:
