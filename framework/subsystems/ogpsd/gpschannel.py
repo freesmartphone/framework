@@ -125,6 +125,8 @@ class SerialChannel( GPSChannel ):
         self.serial.stopbits = serial.STOPBITS_ONE
         self.serial.timeout = None
         self.datapending = ""
+        self.watchReadyToRead = None
+        self.watchReadyToSend = None
 
     def initializeChannel( self ):
         self.serial.open()
@@ -138,8 +140,12 @@ class SerialChannel( GPSChannel ):
         # self.watchHUP = gobject.io_add_watch( self.serial.fd, gobject.IO_HUP, self.hup )
 
     def shutdownChannel( self ):
-        gobject.source_remove( self.watchReadyToRead )
-        gobject.source_remove( self.watchReadyToSend )
+        if self.watchReadyToRead:
+            gobject.source_remove( self.watchReadyToRead )
+            self.watchReadyToRead = None
+        if self.watchReadyToSend:
+            gobject.source_remove( self.watchReadyToSend )
+            self.watchReadyToSend = None
         self.serial.close()
         self.datapending = ""
 
