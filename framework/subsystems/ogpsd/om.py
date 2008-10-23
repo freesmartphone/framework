@@ -22,6 +22,8 @@ import sys
 import marshal
 import time
 import gobject
+from datetime import datetime
+from datetime import timedelta
 
 import logging
 logger = logging.getLogger('ogpsd')
@@ -94,18 +96,24 @@ class GTA02Device( UBXDevice ):
         pacc = 300000 # in cm (3 km)
 
         # GPS week number
-        # FIXME: The Global Positioning System (GPS) epoch is January 6, 1980 and is synchronized to UTC.
-        wn = int((time.mktime(time.gmtime()) - time.mktime(time.strptime("6 Jan 1980 UTC", "%d %b %Y %Z"))) / (86400 * 7))
+        # FIXME: The Global Positioning System (GPS) epoch is January 6, 1980 UTC.
+        epoch = datetime(1980, 1, 6)
+        now = datetime.utcnow()
+
+        gpstime = (now - epoch)
+
+        # Week number
+        wn = gpstime.days / 7
 
         try:
             leapsecs = self.aidingData["hui"]["UTC_LS"]
         except:
-            # If we don't have current leap seconds yet assume 14 seconds. They are not changing that fast and it's
-            # more accurate than assuming 0 (as up until now only leap seconds have been added)
+            # If we don't have current leap seconds yet assume 14 seconds.
             leapsecs = 14
 
         # GPS time of week
-        tow = int(time.mktime(time.gmtime()) - (time.mktime(time.strptime("6 Jan 1980 UTC", "%d %b %Y %Z")) + wn * 86400 * 7) + leapsecs) * 1000
+        towdelta = gpstime - timedelta(weeks=wn)
+        tow = (towdelta.days * 86400 + towdelta.seconds + leapsecs) * 1000
 
         # Time accuracy needs to be changed, because the RTC is imprecise
         tacc = 60000 # in ms (1 minute)
