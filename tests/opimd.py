@@ -27,7 +27,8 @@ class PimTests(unittest.TestCase):
         pim_contacts = self.bus.get_object('org.freesmartphone.opimd', '/org/freesmartphone/PIM/Contacts')
         self.pim_contacts = dbus.Interface(pim_contacts, 'org.freesmartphone.PIM.Contacts')
 
-    def test_all(self):
+    def test_add(self):
+        """Try to add a contact and check that a query get this contact"""
         self.pim_sources.InitAllEntries()
         # Add a new contact
         self.pim_contacts.Add({'Name':"gui", 'Phone':"0123456789"})
@@ -43,6 +44,15 @@ class PimTests(unittest.TestCase):
                 break
         else:
             self.fail("Can't find the added contact")
+        
+    def test_query(self):
+        """Try to make a query on the contacts"""
+        self.pim_sources.InitAllEntries()
+        query_path = self.pim_contacts.Query({'Name':"gui"})
+        query = self.bus.get_object('org.freesmartphone.opimd', query_path)
+        query = dbus.Interface(query, 'org.freesmartphone.PIM.ContactQuery')
+        count = query.GetResultCount()
+        results = query.GetMultipleResults(count)
         
         
 if __name__ == '__main__':
