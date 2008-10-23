@@ -30,6 +30,9 @@ from dbus.service import FallbackObject as DBusFBObject
 from dbus.service import signal as dbus_signal
 from dbus.service import method as dbus_method
 
+import logging
+logger = logging.getLogger('opimd')
+
 from difflib import SequenceMatcher
 
 from backend_manager import BackendManager
@@ -363,7 +366,7 @@ class Contact():
                     field_match = float(match_len) / seq2_len
                     
                     if field_match > best_field_match: best_field_match = field_match
-                    syslog(LOG_DEBUG, "Contacts: Field match for %s / %s: %f" % (comp_value, field_value, field_match))
+                    logger.debug("Contacts: Field match for %s / %s: %f", comp_value, field_value, field_match)
             
             except KeyError:
                 # Contact has no data for this field contained in the query, so this entry cannot match
@@ -594,11 +597,11 @@ class QueryManager(DBusFBObject):
 
 
     def process_query(self, query, dbus_sender):
-        """Handles a query and returns the URI of the newly created query result
+        """Handles a query and returns the dbus path of the newly created query result
         
         @param query Query to evaluate
         @param dbus_sender Sender's unique name on the bus
-        @return URI of the query result"""
+        @return dbus path of the query result"""
         
         query_handler = SingleQueryHandler(query, self._contacts, dbus_sender)
         
@@ -607,7 +610,7 @@ class QueryManager(DBusFBObject):
         
         self._queries[query_id] = query_handler
         
-        return 'dbus://' + _DBUS_PATH_QUERIES + '/' + str(query_id)
+        return _DBUS_PATH_QUERIES + '/' + str(query_id)
 
 
     def check_new_contact(self, contact_id):
@@ -808,7 +811,8 @@ class ContactDomain(Domain):
         result = contact['URI']
         
         # As we just added a new contact, we check it against all queries to see if it matches
-        self.query_manager.check_new_contact(contact_id)
+        # XXX: I comment this out because it doesn't work : Charlie
+        # self.query_manager.check_new_contact(contact_id)
         
         return result
 
@@ -842,11 +846,11 @@ class ContactDomain(Domain):
 
     @dbus_method(_DIN_CONTACTS, "a{sv}", "s", sender_keyword="sender")
     def Query(self, query, sender):
-        """Processes a query and returns the URI of the resulting query object
+        """Processes a query and returns the dbus path of the resulting query object
         
         @param query Query
         @param sender Unique name of the query sender on the bus
-        @return URI of the query object, e.g. dbus://org.pyneo.PIM/Contacts/Queries/4"""
+        @return dbus path of the query object, e.g. /org.pyneo.PIM/Contacts/Queries/4"""
         
         return self.query_manager.process_query(query, sender)
 
