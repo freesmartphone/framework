@@ -155,17 +155,17 @@ class Contact():
     _used_backends = None
 #----------------------------------------------------------------------------#
 
-    def __init__(self, uri):
+    def __init__(self, path):
         """Creates a new Contact instance
         
-        @param uri URI of the contact itself"""
+        @param path Path of the contact itself"""
         
         self._fields = []
         self._field_idx = {}
         self._used_backends = []
         
-        # Add URI field
-        self._fields.append( ['URI', uri, '', ''] )
+        # Add Path field
+        self._fields.append( ['Path', path, '', ''] )
         self.rebuild_index()
 
 
@@ -466,11 +466,11 @@ class SingleQueryHandler(object):
         self.cursors[dbus_sender] += num_entries
 
 
-    def get_contact_uri(self, dbus_sender):
-        """Determines the URI of the next contact that the cursor points at and advances to the next result entry
+    def get_contact_path(self, dbus_sender):
+        """Determines the Path of the next contact that the cursor points at and advances to the next result entry
         
         @param dbus_sender Sender's unique name on the bus
-        @return URI of the contact"""
+        @return Path of the contact"""
         
         # If the sender is not in the list of cursors it just means that it is starting to iterate
         if not self.cursors.has_key(dbus_sender): self.cursors[dbus_sender] = 0
@@ -485,7 +485,7 @@ class SingleQueryHandler(object):
         contact = self._contacts[contact_id]
         self.cursors[dbus_sender] += 1
         
-        return contact['URI']
+        return contact['Path']
 
 
     def get_result(self, dbus_sender):
@@ -525,12 +525,12 @@ class SingleQueryHandler(object):
         @param num_entries Number of result set entries to return
         @return List of dicts with field_name/field_value pairs"""
         
-        result = {}
+        result = []
         
         for i in range(num_entries):
             try:
                 entry = self.get_result(dbus_sender)
-                result[i] = entry
+                result.append(entry)
             except NoMoreContactsError:
                 break
         
@@ -621,9 +621,9 @@ class QueryManager(DBusFBObject):
         for (query_id, query_handler) in self._queries.items():
             if query_handler.check_new_contact(contact_id):
                 contact = self._contacts[contact_id]
-                contact_uri = contact['URI']
+                contact_path = contact['Path']
                 # TODO Figure out how relative signals really work
-                # self.ContactAdded(query_id, contact_uri)
+                # self.ContactAdded(query_id, contact_path)
 
 
     @dbus_method(_DIN_QUERY, "", "i", rel_path_keyword="rel_path")
@@ -657,13 +657,13 @@ class QueryManager(DBusFBObject):
 
 
     @dbus_method(_DIN_QUERY, "", "s", rel_path_keyword="rel_path", sender_keyword="sender")
-    def GetContactURI(self, rel_path, sender):
+    def GetContactPath(self, rel_path, sender):
         num_id = int(rel_path[1:])
         
         # Make sure the requested query exists
         if not self._queries.has_key(num_id): raise InvalidQueryIDError()
         
-        return self._queries[num_id].get_contact_uri(sender)
+        return self._queries[num_id].get_contact_path(sender)
 
 
     @dbus_method(_DIN_QUERY, "", "a{sv}", rel_path_keyword="rel_path", sender_keyword="sender")
@@ -676,7 +676,7 @@ class QueryManager(DBusFBObject):
         return self._queries[num_id].get_result(sender)
 
 
-    @dbus_method(_DIN_QUERY, "i", "(a{sv})", rel_path_keyword="rel_path", sender_keyword="sender")
+    @dbus_method(_DIN_QUERY, "i", "aa{sv}", rel_path_keyword="rel_path", sender_keyword="sender")
     def GetMultipleResults(self, num_entries, rel_path, sender):
         num_id = int(rel_path[1:])
         
@@ -768,8 +768,8 @@ class ContactDomain(Domain):
             # Merging failed, so create a new contact entry and append it to the list
             contact_id = len(self._contacts)
             
-            uri = 'dbus://' + _DBUS_PATH_CONTACTS+ '/' + str(contact_id)
-            contact = Contact(uri)
+            path = _DBUS_PATH_CONTACTS+ '/' + str(contact_id)
+            contact = Contact(path)
             contact.import_fields(contact_data, backend.name)
             
             self._contacts.append(contact)
@@ -793,7 +793,7 @@ class ContactDomain(Domain):
         """Adds a contact to the list, assigning it to the default backend and saving it
         
         @param contact_data List of fields; format is [Key:Value, Key:Value, ...]
-        @return URI of the newly created d-bus contact object"""
+        @return Path of the newly created d-bus contact object"""
         
         # We use the default backend for now
         backend = BackendManager.get_default_backend(_DOMAIN_NAME)
@@ -808,7 +808,7 @@ class ContactDomain(Domain):
             raise InvalidBackendError()
         
         contact = self._contacts[contact_id]
-        result = contact['URI']
+        result = contact['Path']
         
         # As we just added a new contact, we check it against all queries to see if it matches
         # XXX: I comment this out because it doesn't work : Charlie
