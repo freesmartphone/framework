@@ -18,13 +18,10 @@ __version__ = "0.0.0"
 import math
 import string
 import time
-import dbus
 from gpsdevice import GPSDevice
 
 import logging
 logger = logging.getLogger('ogpsd')
-
-DBUS_INTERFACE = "org.freesmartphone.GPS"
 
 class NMEADevice( GPSDevice ):
     def __init__( self, bus, channel ):
