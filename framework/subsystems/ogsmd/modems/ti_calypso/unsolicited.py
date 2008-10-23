@@ -66,6 +66,8 @@ class UnsolicitedResponseDelegate( AbstractUnsolicitedResponseDelegate ):
         self.lastReregister = 0
         self.reregisterIntervals = []
         self._object.modem.channel( "MISC" ).enqueue( "%SLEEP=4" )
+        # We don't want to be called again
+        return False
 
     # Overridden from AbstractUnsolicitedResponseDelegate to check for the
     # TI Calypso Deep Sleep Recamping bug: http://docs.openmoko.org/trac/ticket/1024
