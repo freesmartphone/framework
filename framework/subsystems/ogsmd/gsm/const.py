@@ -177,7 +177,7 @@ CMS = { \
     10  : "Call bared",
     21  : "Short message transfer rejected",
     27  : "Destination out of service",
-    28  : "Unindentified subscriber",
+    28  : "Unidentified subscriber",
     29  : "Facility rejected",
     30  : "Unknown subscriber",
     38  : "Network out of order",
