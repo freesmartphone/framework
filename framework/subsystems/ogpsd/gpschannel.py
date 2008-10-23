@@ -80,9 +80,10 @@ class FileChannel ( GPSChannel ):
     def __init__(self, path):
         super(FileChannel, self).__init__()
         logger.debug("FileChannel opens %s" % path)
+        self.path = path
 
     def initializeChannel( self ):
-        self.fd = os.open(path, os.O_NONBLOCK + os.O_RDONLY)
+        self.fd = os.open(self.path, os.O_NONBLOCK + os.O_RDONLY)
         self.watchReadyToRead = gobject.io_add_watch( self.fd, gobject.IO_IN, self.readyToRead )
 
     def shutdownChannel( self ):
@@ -104,6 +105,8 @@ class FileChannel ( GPSChannel ):
             self.callback(data)
 
         return True
+    def send( self, stream ):
+        logger.debug( "Tried to send data to a FileChannel, ignoring" )
 
 class SerialChannel( GPSChannel ):
     """Serial reader"""
