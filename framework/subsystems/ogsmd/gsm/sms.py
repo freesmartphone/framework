@@ -136,6 +136,19 @@ def parse_userdata( sms, ud_len, bytes ):
         sms.ud = userdata.decode( sms.dcs_alphabet )
 
 class PDUAddress:
+    @classmethod
+    def guess( cls, number ):
+        if number[0] == "+":
+            number = number[1:]
+            ntype = 1
+        elif number.isdigit():
+            # The type of number is unknown
+            number = number
+            ntype = 0
+        else:
+            number = number
+            ntype = 5
+        return cls( ntype, 1, number )
     def __init__( self, type, dialplan, number ):
         self.type = type
         self.dialplan = dialplan
