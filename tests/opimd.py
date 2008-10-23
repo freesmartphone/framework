@@ -29,7 +29,21 @@ class PimTests(unittest.TestCase):
 
     def test_all(self):
         self.pim_sources.InitAllEntries()
+        # Add a new contact
         self.pim_contacts.Add({'Name':"gui", 'Phone':"0123456789"})
+        # check that the contact is present in the lists
+        query_path = self.pim_contacts.Query({'Name':"gui"})
+        query = self.bus.get_object('org.freesmartphone.opimd', query_path)
+        query = dbus.Interface(query, 'org.freesmartphone.PIM.ContactQuery')
+        count = query.GetResultCount()
+        assert count >= 1
+        for i in range(count):
+            res = query.GetResult()
+            if res.get('Name', None) == "gui" and res.get('Phone', None) == "0123456789":
+                break
+        else:
+            self.fail("Can't find the added contact")
+        
         
 if __name__ == '__main__':
     suite = unittest.defaultTestLoader.loadTestsFromTestCase(PimTests)
