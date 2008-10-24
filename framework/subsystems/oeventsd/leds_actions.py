@@ -105,6 +105,7 @@ class LedAction(Action):
     function_name = 'SetLed'
 
     def __init__(self, device, action):
+        Action.__init__( self )
         self.led = Led(device)
         self.action = action
         if not action in ['light', 'blink']:
