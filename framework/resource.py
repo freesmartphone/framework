@@ -13,12 +13,12 @@ Module: resource
 """
 
 MODULE_NAME = "frameworkd.resource"
-__version__ = "0.2.2"
+__version__ = "0.3.0"
 
 from framework.patterns import decorator
 
 import gobject
-import dbus, dbus.service
+import dbus.service
 from dbus import validate_interface_name, Signature, validate_member_name
 
 import logging
@@ -59,7 +59,7 @@ class Resource( dbus.service.Object ):
     The Resource class is used for anything that need to know about who is
     using a given resource. The OUsaged subsystem manage all the resources and keep
     track of how many clients are using them. When a resource is no longer used,
-    its Disable method will be called by ousaged. The resource objet can then do
+    its Disable method will be called by ousaged. The resource object can then do
     whatever is needed. When a resource is disabled and a client need to use it,
     ousaged will call its Enable method.
 
@@ -72,15 +72,18 @@ class Resource( dbus.service.Object ):
     """
     DBUS_INTERFACE = 'org.freesmartphone.Resource'
 
-    def __init__( self, bus, path, name=None ):
+    def __init__( self, bus, name ):
         """
         Register the object as a new resource in ousaged
 
-        name is the name of the resource, that will be used by the clients.
-        path is the dbus object path to this object.
+        bus: dbus session bus
+        name: the name of the resource that will be used by the clients
         """
-        super( Resource, self ).__init__( bus, path )
-
+        # HACK HACK HACK: We do _not_ initialize the dbus service object here,
+        # (in order to prevent initializing it twice), but rather rely on someone
+        # else doing this for us.
+        if not isinstance( self, dbus.service.Object ):
+            raise RuntimeError( "Resource only allowed as mixin w/ dbus.service.Object" )
         self._resourceBus = bus
         self._resourceName = name
         self._resourceStatus = "disabled"

@@ -46,7 +46,8 @@ class GPSDevice( resource.Resource ):
             dbus.BUS_DAEMON_PATH
         )
 
-        super( GPSDevice, self ).__init__( bus, self.path, name='GPS' )
+        dbus.service.Object.__init__( self, bus, self.path )
+        resource.Resource.__init__( self, bus, "GPS" )
         logger.info("%s initialized. Serving %s at %s" % ( self.__class__.__name__, self.interface, self.path ) )
 
     def nameOwnerChangedHandler( self, name, old_owner, new_owner ):

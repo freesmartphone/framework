@@ -25,7 +25,7 @@ logger = logging.getLogger( MODULE_NAME )
 class IbmBluetoothPowerControl( ResourceAwarePowerControl ):
 #----------------------------------------------------------------------------#
     def __init__( self, bus, node ):
-        super( IbmBluetoothPowerControl, self ).__init__( bus, "Bluetooth", node )
+        ResourceAwarePowerControl.__init__( self, bus, "Bluetooth", node )
         self.powernode = self.node
         self.onValue = "enable"
         self.offValue = "disable"

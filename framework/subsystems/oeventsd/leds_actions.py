@@ -52,7 +52,7 @@ class Led(object):
         obj = '/org/freesmartphone/Device/LED/%s' % device
         interface = 'org.freesmartphone.Device.LED'
         dbus_obj = bus.get_object(service, obj)
-        self.interface = dbus.Interface(dbus_obj, interface)
+        self.interface = dbus.Interface(dbus_obj, interface, follow_name_owner_changes=True)
         
         self.users = {}
     

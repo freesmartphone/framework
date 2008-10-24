@@ -17,7 +17,7 @@ Attributes:
 """
 
 MODULE_NAME = "ogsmd.objects"
-__version__ = "0.9.3"
+__version__ = "0.9.4"
 
 from framework import resource
 
@@ -172,7 +172,8 @@ class Device( resource.Resource ):
         self.path = DBUS_OBJECT_PATH_DEVICE
         self.modemtype = modemtype
         self.modem = None
-        super( Device, self ).__init__( bus, self.path, name='GSM' )
+        dbus.service.Object.__init__( self, bus, self.path )
+        resource.Resource.__init__( self, bus, "GSM" )
         logger.info( "%s initialized. Serving %s at %s", self.__class__.__name__, self.interface, self.path )
 
     def __del__( self ):

@@ -13,7 +13,7 @@ Module: powercontrol
 __version__ = "0.0.0"
 MODULE_NAME = "odeviced.powercontrol"
 
-from helpers import DBUS_INTERFACE_PREFIX, DBUS_PATH_PREFIX
+from helpers import DBUS_INTERFACE_PREFIX, DBUS_PATH_PREFIX, readFromFile, writeToFile
 from framework import resource
 
 import dbus.service
@@ -102,7 +102,7 @@ class ResourceAwarePowerControl( GenericPowerControl, resource.Resource ):
 
     def __init__( self, bus, name, node ):
         GenericPowerControl.__init__( self, bus, name, node )
-        resource.Resource.__init__( self, bus, "/this/path/no/worky", name )
+        resource.Resource.__init__( self, bus, name )
 
     def _enable( self, on_ok, on_error ):
         self.SetPower( True )
