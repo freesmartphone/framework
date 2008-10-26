@@ -1,3 +1,8 @@
+2008-10-26	Michael Lauer	<mickey@openmoko.org>
+
+	* [odeviced] Support .ogg in GStreamerPlayer and code more defensively
+	(checking whether decoders are available before trying to instanciate them)
+
 2008-10-21	Michael Lauer	<mickey@openmoko.org>
 
 	* [ousaged] Remove dummy resources encapsulating odeviced objects

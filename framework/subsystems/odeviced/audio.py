@@ -11,7 +11,7 @@ Module: audio
 """
 
 MODULE_NAME = "odeviced.audio"
-__version__ = "0.4.2"
+__version__ = "0.4.3"
 
 from framework.config import config
 from framework.patterns import asyncworker
@@ -98,16 +98,31 @@ class GStreamerPlayer( Player ):
     A Gstreamer based Player.
     """
 
-    decoderMap = { \
-        "sid": "siddec",
-        "mod": "modplug",
-        "mp3": "mad",
-        "wav": "wavparse",
-        }
+    decoderMap = {}
 
     def __init__( self, *args, **kwargs ):
         Player.__init__( self, *args, **kwargs )
+        # set up decoder map as instance
+        if self.decoderMap == {}:
+            self._trySetupDecoder( "mod", "modplug" )
+            self._trySetupDecoder( "mp3", "mad" )
+            self._trySetupDecoder( "sid", "siddec" )
+            self._trySetupDecoder( "wav", "wavparse" )
+            haveit = self._trySetupDecoder( "ogg", "oggdemux ! ivorbisdec ! audioconvert" )
+            if not haveit:
+                self._trySetupDecoder( "ogg", "oggdemux ! vorbisdec ! audioconvert" )
         self.pipelines = {}
+
+    def _trySetupDecoder( self, ext, dec ):
+        # FIXME might even save the bin's already, not just the description
+        try:
+            gst.parse_bin_from_description( dec, 0 )
+        except gobject.GError, e:
+            logger.warning( "GST can't parse %s; Not adding %s to decoderMap" % ( dec, ext ) )
+            return False
+        else:
+            self.decoderMap[ext] = dec
+            return True
 
     def _onMessage( self, bus, message, name ):
         pipeline, status, repeat, ok_cb, error_cb = self.pipelines[name]
@@ -138,7 +153,6 @@ class GStreamerPlayer( Player ):
                 pipeline.set_state( gst.STATE_NULL )
                 del self.pipelines[name]
                 # ok_cb()
-
         else:
             logger.debug( "G: UNHANDLED: %s" % t )
 
@@ -164,15 +178,26 @@ class GStreamerPlayer( Player ):
         if name in self.pipelines:
             error_cb( AlreadyPlaying( name ) )
         else:
-            pipeline = self.createPipeline( name )
-            if pipeline is None:
-                error_cb( UnknownFormat( "known formats are %s" % self.decoderMap.keys() ) )
+            try:
+                decoder = GStreamerPlayer.decoderMap[ name.split( '.' )[-1] ]
+            except KeyError:
+                return error_cb( UnknownFormat( "Known formats are %s" % self.decoderMap.keys() ) )
             else:
-                bus = pipeline.get_bus()
-                bus.add_signal_watch()
-                bus.connect( "message", self._onMessage, name )
-                self.pipelines[name] = ( pipeline, "unknown", repeat, ok_cb, error_cb )
-                pipeline.set_state( gst.STATE_PLAYING )
+                # parse_launch may burn a few cycles compared to element_factory_make,
+                # however it should still be faster than creating the pipeline from
+                # individual elements in python, since it's all happening in compiled code
+                try:
+                    pipeline = gst.parse_launch( "filesrc location=%s ! %s ! alsasink" % ( name, decoder ) )
+                except gobject.GError, e:
+                    logger.exception( "could not instanciate pipeline: %s" % e )
+                    return error_cb( PlayerError( "Could not instanciate pipeline due to an internal error." ) )
+                else:
+                    # everything ok, go play
+                    bus = pipeline.get_bus()
+                    bus.add_signal_watch()
+                    bus.connect( "message", self._onMessage, name )
+                    self.pipelines[name] = ( pipeline, "unknown", repeat, ok_cb, error_cb )
+                    pipeline.set_state( gst.STATE_PLAYING )
 
     def task_stop( self, ok_cb, error_cb, name ):
         try:
@@ -187,17 +212,6 @@ class GStreamerPlayer( Player ):
         for name in self.pipelines:
             self.pipelines[name][0].set_state( gst.STATE_READY )
         ok_cb()
-
-    def createPipeline( self, name ):
-        try:
-            decoder = GStreamerPlayer.decoderMap[ name.split( '.' )[-1] ]
-        except KeyError:
-            return None
-        else:
-            # parse_launch may burn a few cycles compared to element_factory_make,
-            # however it should still be faster than creating the pipeline from
-            # individual elements in python, since it's all happening in compiled code
-            return gst.parse_launch( "filesrc location=%s ! %s ! alsasink" % ( name, decoder ) )
 
 #----------------------------------------------------------------------------#
 class AlsaScenarios( object ):
