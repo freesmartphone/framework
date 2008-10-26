@@ -47,8 +47,8 @@ class NeoBluetoothPowerControl( ResourceAwarePowerControl ):
 #----------------------------------------------------------------------------#
 class NeoUsbHostPowerControl( GenericPowerControl ):
     # WARNING If it's a ResourceAwarePowerControl and there is no ousaged
-    # running, then it will break USBeth by switching it to host mode
-    # (which may not be what you want...)
+    # running on startup, then it will break USBeth by automagically switching
+    # to USB host mode (which may not be what you want...)
 #----------------------------------------------------------------------------#
     def __init__( self, bus, node ):
         super( NeoUsbHostPowerControl, self ).__init__( bus, "UsbHost", node )
