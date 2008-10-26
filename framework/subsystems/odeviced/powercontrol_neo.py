@@ -11,7 +11,7 @@ Module: powercontrol_neo
 """
 
 MODULE_NAME = "odeviced.powercontrol_neo"
-__version__ = "0.7.0"
+__version__ = "0.7.1"
 
 from helpers import readFromFile, writeToFile
 from powercontrol import GenericPowerControl, ResourceAwarePowerControl
@@ -45,7 +45,10 @@ class NeoBluetoothPowerControl( ResourceAwarePowerControl ):
             writeToFile( self.resetnode, "1" )
 
 #----------------------------------------------------------------------------#
-class NeoUsbHostPowerControl( ResourceAwarePowerControl ):
+class NeoUsbHostPowerControl( GenericPowerControl ):
+    # WARNING If it's a ResourceAwarePowerControl and there is no ousaged
+    # running, then it will break USBeth by switching it to host mode
+    # (which may not be what you want...)
 #----------------------------------------------------------------------------#
     def __init__( self, bus, node ):
         super( NeoUsbHostPowerControl, self ).__init__( bus, "UsbHost", node )
