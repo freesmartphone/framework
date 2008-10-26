@@ -23,7 +23,7 @@ import framework.patterns.tasklet as tasklet
 import dbus
 import dbus.service
 
-import time
+import time, os
 
 import logging
 logger = logging.getLogger( MODULE_NAME )
