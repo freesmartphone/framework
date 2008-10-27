@@ -866,13 +866,8 @@ class SmsSendMessage( SmsMediator ):
         sms.pdu_mti = 1
         sms.pid = 0
         sms.dcs = 0
-        if self.number[0] == "+":
-            number = self.number[1:]
-            ntype = 1
-        else:
-            number = self.number
-            ntype = 2
-        sms.oa = ogsmd.gsm.sms.PDUAddress( ntype, 1, number )
+        # Use PDUAddress
+        sms.oa = ogsmd.gsm.sms.PDUAddress.guess( self.number )
         sms.ud = self.contents
         sms.featureMap = self.featuremap
         pdu = sms.pdu()
