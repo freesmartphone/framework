@@ -1,3 +1,7 @@
+2008-09-29	Jan Luebbe      <jluebbe@debian.org>
+
+	* [oeventd] Handle suspending after pressing the powerbutton in the rules
+
 2008-10-26	Michael Lauer	<mickey@openmoko.org>
 
 	* [odeviced] Support .ogg in GStreamerPlayer and code more defensively
