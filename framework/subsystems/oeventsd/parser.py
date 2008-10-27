@@ -19,6 +19,12 @@ import re
 import logging
 logger = logging.getLogger('oeventsd')
 
+try:
+    from yaml import CLoader as Loader
+    from yaml import CDumper as Dumper
+except ImportError:
+    from yaml import Loader, Dumper
+
 #============================================================================#
 class FunctionMetaClass(type):
 #============================================================================#
@@ -78,9 +84,11 @@ def split_params(s):
         if s[i] == ',' and lev == 0:
             return [s[:i]] + split_params(s[i+1:])
     return [s]
-
-
+    
 # The following is used to be able to parse instructions on yaml
+# It only works if we don't use CLoader
+# TODO: if there is really no way to have automatic string interpretation
+# from python yaml with Cloader, then remove this totaly
 pattern = re.compile(r'^(.+?)\((.*?)\)$')
 
 def function_constructor(loader, node):
@@ -88,12 +96,13 @@ def function_constructor(loader, node):
     match = pattern.match(value)
     name = match.group(1)
     params = split_params(match.group(2))
-    params = [yaml.load(p) for p in params]
+    params = [yaml.load(p, Loader=loader) for p in params]
     if not name in Function.functions:
         raise Exception("Function %s not registered" % name)
     func = Function.functions[name]
     return func(*params)
 
+# This will only works if we don't use CLoader
 yaml.add_constructor(u'!Function', function_constructor)
 yaml.add_implicit_resolver(u'!Function', pattern)
 
@@ -132,9 +141,38 @@ def as_rule(r):
 #============================================================================#
 class Parser(object):
 #============================================================================#
+    def __parse(self, value):
+        """replace all function by the actual returned value of the function in
+           structure parsed by yaml
+           
+           This is a hack, it used to work by using yaml.add_implicit_resolver
+           but unfortunately this won't work with CLoader, so we have to parse
+           all the string instead of letting yaml doing it for us.
+           
+           Beside, by using this there is no way to differentiate a string containing
+           parenthesis from a function.
+        """
+        if isinstance(value, list):
+            return [self.__parse(v) for v in value]
+        if isinstance(value, dict):
+            return dict((k, self.__parse(v)) for k,v in value.iteritems())
+        if not isinstance(value, basestring):
+            return value
+        match = pattern.match(value)
+        if not match:
+            return value
+        name = match.group(1)
+        params = split_params(match.group(2))
+        params = [self.__parse(yaml.load(p, Loader=Loader)) for p in params]
+        if not name in Function.functions:
+            raise Exception("Function %s not registered" % name)
+        func = Function.functions[name]
+        return func(*params)
+    
     def parse_rules(self, src):
         """Parse a string for a list of rules"""
-        rules = yaml.load(src)
+        rules = yaml.load(src, Loader=Loader)
+        rules = self.__parse(rules)
         ret = []
         for r in rules:
             try:
@@ -146,6 +184,7 @@ class Parser(object):
     def parse_rule(self, src):
         """Parse a string for a rules"""
         rule = yaml.load(src)
+        rule = self.__parse(rule)
         try:
             return as_rule(rule)
         except Exception, e:
