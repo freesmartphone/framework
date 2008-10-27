@@ -70,7 +70,7 @@ class CallListContains(WhileRule):
 class IncomingMessageTrigger(DBusTrigger):
 #============================================================================#
     """
-    A custom dbus trigger for org.freesmartphone.GSM.Call.CallStatus
+    A custom dbus trigger for org.freesmartphone.GSM.SIM.IncomingStoredMessage
     """
 
     function_name = 'IncomingMessage'
@@ -82,7 +82,7 @@ class IncomingMessageTrigger(DBusTrigger):
             'org.freesmartphone.ogsmd',
             '/org/freesmartphone/GSM/Device',
             'org.freesmartphone.GSM.SIM',
-            'IncomingMessage'
+            'IncomingStoredMessage'
         )
     def on_signal(self, index):
         logger.info("Receive IncomingMessage on index = %s" % index)
