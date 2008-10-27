@@ -17,18 +17,20 @@ from __future__ import with_statement
 __version__ = "1.0.0"
 
 import os, atexit
-from yaml import load, dump
-try:
-    from yaml import CLoader as Loader
-    from yaml import CDumper as Dumper
-except ImportError:
-    from yaml import Loader, Dumper
-
-import logging
-logger = logging.getLogger( "frameworkd.persist" )
 
 from framework.config import config, rootdir
 rootdir = os.path.join( rootdir, 'persist' )
+format = config.getValue( "frameworkd", "persist_format", "pickle" )
+
+if format == "pickle":
+    import pickle
+elif format == "yaml":
+    from yaml import load, dump
+    try:
+        from yaml import CLoader as Loader
+        from yaml import CDumper as Dumper
+    except ImportError:
+        from yaml import Loader, Dumper
 
 class Persist( object ):
     def __init__( self, rootdir ):
@@ -45,14 +47,18 @@ class Persist( object ):
     def _load( self, subsystem ):
         if not subsystem in self.cache:
             try:
-                filename = os.path.join( self.rootdir, subsystem+".yaml" )
+                filename = os.path.join( self.rootdir, subsystem+"."+format )
                 with file( filename, "r" ) as f:
-                    text = f.read()
+                    data = f.read()
             except:
-                text = ""
-            data = load( text, Loader=Loader )
-            if data is None: # empty file
+                logger.error( "no persist data for subsystem %s" % subsystem )
+                data = ""
+            if data == "": # empty file
                 data = {}
+            elif format == "pickle":
+                data = pickle.loads( data )
+            elif format == "yaml":
+                data = load( data, Loader=Loader )
             self.cache[subsystem] = data
 
     def get( self, subsystem, key ):
@@ -69,9 +75,13 @@ class Persist( object ):
 
     def sync( self, subsystem ):
         if subsystem in self.dirty:
-            filename = os.path.join( self.rootdir, subsystem+".yaml" )
+            if format == "pickle":
+                data = pickle.dumps( self.cache[subsystem], protocol = 2 )
+            elif format == "yaml":
+                data = dump( self.cache[subsystem], Dumper=Dumper )
+            filename = os.path.join( self.rootdir, subsystem+"."+format )
             with file( filename+".tmp", "w" ) as f:
-                f.write( dump( self.cache[subsystem], Dumper=Dumper ) )
+                f.write( data )
             os.rename( filename+".tmp", filename )
             self.dirty.discard( subsystem )
 
