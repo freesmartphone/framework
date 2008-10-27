@@ -269,3 +269,19 @@ class CommandAction(Action):
 
     def __repr__(self):
         return "CommandAction(%s)" % self.cmd
+
+#============================================================================#
+class SuspendAction(DBusAction):
+#============================================================================#
+    """
+    A dbus action to supend the device
+    """
+    function_name = 'Suspend'
+
+    def __init__(self):
+        bus = dbus.SystemBus()
+        service = 'org.freesmartphone.ousaged'
+        obj = '/org/freesmartphone/Usage'
+        interface = 'org.freesmartphone.Usage'
+        super(SuspendAction, self).__init__(bus, service, obj, interface, 'Suspend')
+

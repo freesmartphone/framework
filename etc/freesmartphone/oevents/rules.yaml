@@ -26,6 +26,15 @@
     actions: Debug("A Test")
 -
     #
+    # Suspend Handling
+    #
+    trigger: InputEvent()
+    filters:
+             - HasAttr(switch, "POWER")
+             - HasAttr(event, "pressed")
+    actions: Suspend()
+-
+    #
     # Call -> Audio Scenario Handling
     #
     trigger: IncomingMessage()
