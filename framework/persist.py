@@ -18,6 +18,9 @@ __version__ = "1.0.0"
 
 import os, atexit
 
+import logging
+logger = logging.getLogger( "frameworkd.persist" )
+
 from framework.config import config, rootdir
 rootdir = os.path.join( rootdir, 'persist' )
 format = config.getValue( "frameworkd", "persist_format", "pickle" )
