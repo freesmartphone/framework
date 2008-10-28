@@ -34,6 +34,7 @@ class UnsolicitedResponseDelegate( AbstractUnsolicitedResponseDelegate ):
         self.firstReregister = 0
         self.lastReregister = 0
         self.reregisterIntervals = []
+        self.recampingTimeout = None
 
     def _checkRecampingBug( self ):
         logger.debug( "checking for TI Calypso recamping bug..." )
@@ -55,7 +56,11 @@ class UnsolicitedResponseDelegate( AbstractUnsolicitedResponseDelegate ):
         # recover from recamping bug...
         self._object.modem.channel( "MISC" ).enqueue( "%SLEEP=2" )
         # ...but launch trigger to give it another chance (it's also depending on BTS)
-        gobject.timeout_add_seconds( 60*60, self._reactivateDeepSleep )
+        if not self.recampingTimeout is None:
+            # If recamping happens while there's still a timeout set warn the user and extend the timeout
+            logger.warning( "Recamping bug occured, but TI Calypso is still out of deep sleep mode." )
+            gobject.source_remove( self.recampingTimeout )
+        self.recampingTimeout = gobject.timeout_add_seconds( 60*60, self._reactivateDeepSleep )
 
 
     def _reactivateDeepSleep( self ):
@@ -67,6 +72,7 @@ class UnsolicitedResponseDelegate( AbstractUnsolicitedResponseDelegate ):
         self.reregisterIntervals = []
         self._object.modem.channel( "MISC" ).enqueue( "%SLEEP=4" )
         # We don't want to be called again
+        self.recampingTimeout = None
         return False
 
     # Overridden from AbstractUnsolicitedResponseDelegate to check for the

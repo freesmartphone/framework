@@ -16,6 +16,7 @@ TI Calypso specific modem channels
 import time
 import itertools
 import select
+import gobject
 
 import logging
 logger = logging.getLogger('ogsmd')
@@ -208,3 +209,9 @@ class UnsolicitedResponseChannel( CalypsoModemChannel ):
         c.append( "%CNIV=1" )
         c.append( "%CGEREP=1" )
         c.append( "%CGREG=3" )
+
+    def close( self ):
+        if not self.delegate.recampingTimeout is None:
+            gobject.source_remove( self.delegate.recampingTimeout )
+            self.delegate.recampingTimeout = None
+        super( UnsolicitedResponseChannel, self ).close()
