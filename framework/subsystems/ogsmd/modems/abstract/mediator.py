@@ -760,14 +760,14 @@ class SimRetrieveMessagebook( SimMediator ):
                     index = int(header.groupdict()["index"])
                     status = const.SMS_PDU_STATUS_OUT[int(header.groupdict()["status"])]
                     if "read" in status:
-                      dir = "MT"
+                      direction = "MT"
                     else:
-                      dir = "MO"
+                      direction = "MO"
                     length = int(header.groupdict()["pdulen"])
                 else:
                     # Now we decode the actual PDU
 
-                    sms = ogsmd.gsm.sms.decodeSMS( line, dir)
+                    sms = ogsmd.gsm.sms.decodeSMS( line, direction)
                     result.append( ( index, status, str(sms.oa), sms.ud, sms.featureMap ) )
             self._ok( result )
         else:
@@ -791,13 +791,13 @@ class SimRetrieveMessage( SimMediator ):
                     header = const.PAT_SMS_PDU_HEADER_SINGLE.match( self._rightHandSide(line) )
                     status = const.SMS_PDU_STATUS_OUT[int(header.groupdict()["status"])]
                     if status <= 1:
-                      dir = "MT"
+                      direction = "MT"
                     else:
-                      dir = "MO"
+                      direction = "MO"
                     length = int(header.groupdict()["pdulen"])
                 else:
                     # Now we decode the actual PDU
-                    sms = ogsmd.gsm.sms.decodeSMS( line, dir )
+                    sms = ogsmd.gsm.sms.decodeSMS( line, direction )
                     result = ( status, str(sms.oa), sms.ud, sms.featureMap )
 
             self._ok( *result )
