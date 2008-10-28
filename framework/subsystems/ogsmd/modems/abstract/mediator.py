@@ -790,7 +790,7 @@ class SimRetrieveMessage( SimMediator ):
                     #print "line is header line"
                     header = const.PAT_SMS_PDU_HEADER_SINGLE.match( self._rightHandSide(line) )
                     status = const.SMS_PDU_STATUS_OUT[int(header.groupdict()["status"])]
-                    if status <= 1:
+                    if "read" in status:
                       direction = "MT"
                     else:
                       direction = "MO"
