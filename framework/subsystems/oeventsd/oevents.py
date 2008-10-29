@@ -114,11 +114,20 @@ class EventsManager(dbus.service.Object):
     @dbus.service.method( "org.freesmartphone.Events" , in_signature='s' )
     def AddRule( self, rule_str ):
         """Parse a rule string and add it into the rule list"""
+        rule_str = str( rule_str )
         parser = Parser()
         rule = parser.parse_rule( rule_str )
+        logger.info( "Add rule %s", rule )
         self.add_rule(rule)
         self.update()
 
+    @dbus.service.method( "org.freesmartphone.Events" , in_signature='s' )
+    def RemoveRule( self, name ):
+        """Remove a rule by name"""
+        for rule in self.rules[:]:
+            if rule.name == name:
+                logger.info( "Removing rule %s", name )
+                self.rules.remove(rule)
 
 #============================================================================#
 def factory(prefix, controller):
