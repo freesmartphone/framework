@@ -198,7 +198,8 @@ class RingToneAction(Action):
         self.audio_action = AudioAction(self.sound_path) if ring_volume != 0 else None
         self.vibrator_action = VibratorAction()
 
-        self.audio_action.trigger()
+        if self.audio_action:
+            self.audio_action.trigger()
         self.vibrator_action.trigger()
 
     def trigger(self, **kargs):
@@ -237,15 +238,22 @@ class MessageToneAction(Action):
         volume = phone_prefs.GetValue( "message-volume" )
         sound_path = os.path.join( installprefix, "share/sounds/", tone )
 
+        # XXX: We don't set the ringing volume.
+        #      Here we only disable the audio action if the volume is 0
+        self.audio_action = AudioAction(sound_path) if volume != 0 else None
+        #self.vibrator_action = VibratorAction()
+
+
         if self.cmd == "play":
             logger.info( "Start ringing : tone=%s, volume=%s", tone, volume )
-            AudioAction(sound_path, "play")()
-            #VibratorAction( action="start" )()
+            if self.audio_action:
+                self.audio_action.trigger()
+            #self.vibrator_action.trigger()
 
         elif self.cmd == "stop":
             logger.info( "Stop ringing : tone=%s, volume=%s", tone, volume )
-            AudioAction( sound_path, "stop" )()
-            #VibratorAction( action="stop" )()
+            if self.audio_action: self.audio_action.untrigger()
+            if self.vibrator_action : self.vibrator_action.untrigger()
         else:
             logger.error( "Unknown MessageToneAction!" )
             assert False, "unknown message tone action"
