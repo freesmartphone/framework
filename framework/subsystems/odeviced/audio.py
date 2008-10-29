@@ -17,13 +17,17 @@ from framework.config import config
 from framework.patterns import asyncworker
 from helpers import DBUS_INTERFACE_PREFIX, DBUS_PATH_PREFIX, readFromFile, writeToFile, cleanObjectName
 
-import gst
 import gobject
 import dbus.service
 import sys, os, time, struct, subprocess
 
 import logging
 logger = logging.getLogger( "odeviced.audio" )
+
+try:
+    import gst
+except ImportError:
+    logger.warning( "Could not import gst module (python-gst installed?)" )
 
 #----------------------------------------------------------------------------#
 class UnknownFormat( dbus.DBusException ):
@@ -74,6 +78,18 @@ class Player( asyncworker.AsyncWorker ):
     def enqueueTask( self, ok_cb, error_cb, task, *args ):
         self.enqueue( ok_cb, error_cb, task, args )
 
+    def onProcessElement( self, element ):
+        logger.debug( "getting task from queue..." )
+        ok_cb, error_cb, task, args = element
+        logger.debug( "got task: %s %s" % ( task, args ) )
+        try:
+            method = getattr( self, "task_%s" % task )
+        except AttributeError:
+            logger.debug( "unhandled task: %s %s" % ( task, args ) )
+        else:
+            method( ok_cb, error_cb, *args )
+        return True
+
     def task_play( self, ok_cb, error_cb, name, repeat ):
         ok_cb()
 
@@ -89,7 +105,17 @@ class NullPlayer( Player ):
     """
     A dummy player, useful e.g. if no audio subsystem is available.
     """
-    pass
+    def task_play( self, ok_cb, error_cb, name, repeat ):
+        logger.info( "NullPlayer [not] playing sound %s" % name )
+        ok_cb()
+
+    def task_stop( self, ok_cb, error_cb, name ):
+        logger.info( "NullPlayer [not] stopping sound %s" % name )
+        ok_cb()
+
+    def task_panic( self, ok_cb, error_cb ):
+        logger.info( "NullPlayer [not] stopping all sounds" )
+        ok_cb()
 
 #----------------------------------------------------------------------------#
 class GStreamerPlayer( Player ):
@@ -161,18 +187,6 @@ class GStreamerPlayer( Player ):
         if newstatus != status:
             self.pipelines[name] = pipeline, newstatus, repeat, ok_cb, error_cb
             self._object.SoundStatus( name, newstatus, {} )
-
-    def onProcessElement( self, element ):
-        logger.debug( "getting task from queue..." )
-        ok_cb, error_cb, task, args = element
-        logger.debug( "got task: %s %s" % ( task, args ) )
-        try:
-            method = getattr( self, "task_%s" % task )
-        except AttributeError:
-            logger.debug( "unhandled task: %s %s" % ( task, args ) )
-        else:
-            method( ok_cb, error_cb, *args )
-        return True
 
     def task_play( self, ok_cb, error_cb, name, repeat ):
         if name in self.pipelines:
@@ -312,7 +326,11 @@ class Audio( dbus.service.Object ):
         dbus.service.Object.__init__( self, bus, self.path )
         logger.info( "%s %s initialized. Serving %s at %s" % ( self.__class__.__name__, __version__, self.interface, self.path ) )
         # FIXME make it configurable or autodetect which player is to be used
-        self.player = GStreamerPlayer( self )
+        try:
+            self.player = GStreamerPlayer( self )
+        except NameError:
+            logger.exception( "Could not instanciate GStreamerPlayer; Falling back to NullPlayer" )
+            self.player = NullPlayer( self )
         # FIXME gather scenario path from configuration
         scenario_dir = config.getValue( MODULE_NAME, "scenario_dir", "/etc/alsa/scenario" )
         default_scenario = config.getValue( MODULE_NAME, "default_scenario", "default" )
