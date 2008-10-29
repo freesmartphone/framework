@@ -63,6 +63,7 @@ class AutoFunctionMetaClass(type):
                     return cls(*args)
                 except Exception, e:
                     logger.error("Error while calling function %s : %s", dict['function_name'], e)
+                    raise
             Function.register(dict['function_name'], func)
             
 class AutoFunction(object):
@@ -124,6 +125,7 @@ class HasAttr(Function):
         return AttributeFilter(**kargs)
 
 def as_rule(r):
+    """Turn a dictionary into a rule"""
     from rule import Rule, WhileRule # needs to be here to prevent circular import
     assert isinstance(r, dict), type(r)
     # We have to cases of rules :
@@ -172,10 +174,10 @@ class Parser(object):
     def parse_rules(self, src):
         """Parse a string for a list of rules"""
         rules = yaml.load(src, Loader=Loader)
-        rules = self.__parse(rules)
         ret = []
         for r in rules:
             try:
+                r = self.__parse(r)     # We should try to clean that...
                 ret.append(as_rule(r))
             except Exception, e:
                 logger.error("can't parse rule %s : %s", r, e)
@@ -183,7 +185,7 @@ class Parser(object):
         
     def parse_rule(self, src):
         """Parse a string for a rules"""
-        rule = yaml.load(src)
+        rule = yaml.load(src, Loader=Loader)
         rule = self.__parse(rule)
         try:
             return as_rule(rule)
