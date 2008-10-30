@@ -8,7 +8,7 @@ GPLv2 or later
 """
 
 MODULE_NAME = "odeviced.input"
-__version__ = "0.9.9.2"
+__version__ = "0.9.9.3"
 
 from pyglet.linux_const import EV_ABS
 from pyglet.linux import input_device_supports_event_type
@@ -131,12 +131,14 @@ class Input( dbus.service.Object, asyncworker.AsyncWorker ):
                 self.events[ ( typ, code ) ] = timestamp, timeout
                 self.Event( self.watches[ ( typ, code ) ], "pressed", 0 )
             elif value == 0x00: # released
-                self.Event( self.watches[ ( typ, code ) ], "released", 0 )
                 try:
                     timestamp, timeout = self.events[ ( typ, code ) ]
                 except KeyError:
                     logger.warning( "potential logic problem, key released before pressed. watches are %s events are %s" % ( self.watches, self.events ) )
+                    self.Event( self.watches[ ( typ, code ) ], "released", 0 )
                 else:
+                    delta = int( time.time() - timestamp )
+                    self.Event( self.watches[ ( typ, code ) ], "released", delta )
                     if timeout:
                         gobject.source_remove( timeout )
                     del self.events[ ( typ, code ) ]
