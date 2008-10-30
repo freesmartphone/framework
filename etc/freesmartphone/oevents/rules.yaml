@@ -31,7 +31,8 @@
     trigger: InputEvent()
     filters:
              - HasAttr(switch, "POWER")
-             - HasAttr(event, "pressed")
+             - HasAttr(event, "released")
+             - HasAttr(duration, 0)
     actions: Suspend()
 -
     #
