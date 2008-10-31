@@ -1,6 +1,11 @@
-2008-09-29	Jan Luebbe      <jluebbe@debian.org>
+2008-10-31	Michael Lauer	<mickey@openmoko.org>
 
-	* [oeventd] Handle suspending after pressing the powerbutton in the rules
+	* [ogsmd] add TI-Calypso specific modem option called 'ti_calypso_deep_sleep'.
+	  Valid values are: 'never', 'adaptive' (default), and 'always'. See Om bug #1024.
+
+2008-10-29	Jan Luebbe      <jluebbe@debian.org>
+
+	* [oeventsd] Handle suspending after pressing the powerbutton in the rules
 
 2008-10-26	Michael Lauer	<mickey@openmoko.org>
 

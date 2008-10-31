@@ -13,6 +13,15 @@ Module: channel
 TI Calypso specific modem channels
 """
 
+__version__ = "0.9.9.1"
+
+from framework.config import config
+
+from ogsmd.gsm.decor import logged
+from ogsmd.gsm.callback import SimpleCallback
+
+from ogsmd.modems.abstract.channel import AbstractModemChannel
+
 import time
 import itertools
 import select
@@ -20,11 +29,6 @@ import gobject
 
 import logging
 logger = logging.getLogger('ogsmd')
-
-from ogsmd.gsm.decor import logged
-from ogsmd.gsm.callback import SimpleCallback
-
-from ogsmd.modems.abstract.channel import AbstractModemChannel
 
 #=========================================================================#
 class CalypsoModemChannel( AbstractModemChannel ):
@@ -176,7 +180,13 @@ class UnsolicitedResponseChannel( CalypsoModemChannel ):
         c.append( '@ST="-26"' ) # audio side tone: set to minimum
         c.append( "%N028B" ) # Long Echo Cancellation: active, -6db
         c.append( "%N0125" ) # Noise reduction: active, -6db
-        c.append( "%SLEEP=4" ) # Sleep modes: Enable all
+
+        deepSleepMode = config.getValue( "ogsmd", "ti_calypso_deep_sleep", "adaptive" )
+        if deepSleepMode == "never":
+            c.append( "%SLEEP=2" ) # sleep mode: disable all
+        else:
+            c.append( "%SLEEP=4" ) # sleep mode: enable all
+
         # FIXME might enable %CPRI later
 
         c = self._commands["sim"]
