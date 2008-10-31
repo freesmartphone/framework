@@ -779,9 +779,9 @@ CALL_FORWARDING_CLASS = BiDict( { \
 
 #=========================================================================#
 CALL_IDENTIFICATION_RESTRICTION = BiDict( { \
-    "network": 0,
-    "on": 1,
-    "off": 2,
+    "network": 0, # use default
+    "on": 2, # send identity
+    "off": 1, # suppress identity
 } )
 
 #=========================================================================#
