@@ -21,7 +21,7 @@ TODO:
  * refactor parameter validation
 """
 
-__version__ = "0.9.9.1"
+__version__ = "0.9.9.2"
 
 from ogsmd.gsm import error, const, convert
 from ogsmd.gsm.decor import logged
@@ -1068,6 +1068,7 @@ class NetworkDisableCallForwarding( NetworkMediator ):
 class NetworkGetCallingIdentification( NetworkMediator ): # s
 #=========================================================================#
     def trigger( self ):
+        self._commchannel = self._object.modem.communicationChannel( "CallMediator" ) # exceptional, since this is a call-specific command
         self._commchannel.enqueue( "+CLIR?", self.responseFromChannel, self.errorFromChannel )
 
     @logged
@@ -1086,7 +1087,7 @@ class NetworkSetCallingIdentification( NetworkMediator ): # s
             restriction = const.CALL_IDENTIFICATION_RESTRICTION[self.status]
         except KeyError:
             self._error( error.InvalidParameter( "valid restrictions are %s" % const.CALL_IDENTIFICATION_RESTRICTION.keys() ) )
-
+        self._commchannel = self._object.modem.communicationChannel( "CallMediator" ) # exceptional, since this is a call-specific command
         self._commchannel.enqueue( "+CLIR=%d" % restriction, self.responseFromChannel, self.errorFromChannel )
 
 #=========================================================================#

@@ -1,22 +1,24 @@
 2008-10-31	Michael Lauer	<mickey@openmoko.org>
 
-	* [ogsmd] add TI-Calypso specific modem option called 'ti_calypso_deep_sleep'.
+	* [ogsmd] Added TI-Calypso specific modem option called 'ti_calypso_deep_sleep'.
 	  Valid values are: 'never', 'adaptive' (default), and 'always'. See Om bug #1024.
+	* [ogsmd] Fixed bogus logic and sent-on-wrong-channel bugs in
+	  org.freesmartphone.GSM.Network.SetCallingIdentification.
 
 2008-10-29	Jan Luebbe      <jluebbe@debian.org>
 
-	* [oeventsd] Handle suspending after pressing the powerbutton in the rules
+	* [oeventsd] Handled suspending after pressing the powerbutton in the rules
 
 2008-10-26	Michael Lauer	<mickey@openmoko.org>
 
-	* [odeviced] Support .ogg in GStreamerPlayer and code more defensively
+	* [odeviced] Supported .ogg in GStreamerPlayer and code more defensively
 	(checking whether decoders are available before trying to instanciate them)
 
 2008-10-21	Michael Lauer	<mickey@openmoko.org>
 
-	* [ousaged] Remove dummy resources encapsulating odeviced objects
-	* [odeviced] Add ResourceAwarePowerControl class and use it
-	* [odeviced] Add powercontrol_ibm.py for IBM ACPI Resources
+	* [ousaged] Removed dummy resources encapsulating odeviced objects
+	* [odeviced] Added ResourceAwarePowerControl class and use it
+	* [odeviced] Added powercontrol_ibm.py for IBM ACPI Resources
 
 2008-10-19	Michael Lauer	<mickey@openmoko.org>
 
