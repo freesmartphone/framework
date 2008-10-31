@@ -7,8 +7,9 @@ The Open Device Daemon - Python Implementation
 GPLv2 or later
 """
 
-__version__ = "0.8.0"
+__version__ = "0.8.1"
 
+from framework.config import config
 from ogsmd.modems.abstract.unsolicited import AbstractUnsolicitedResponseDelegate
 from ogsmd.gsm import const
 from ogsmd.helpers import safesplit
@@ -28,13 +29,16 @@ class UnsolicitedResponseDelegate( AbstractUnsolicitedResponseDelegate ):
         self.fullReadyness = "unknown"
         self.subsystemReadyness = { "PHB": False, "SMS": False }
 
-        # deep sleep vars
-        self.lastStatus = "busy"
-        self.lastTime = 0
-        self.firstReregister = 0
-        self.lastReregister = 0
-        self.reregisterIntervals = []
-        self.recampingTimeout = None
+        self.checkForRecamping = ( config.getValue( "ogsmd", "ti_calypso_deep_sleep", "adaptive" ) == "adaptive" )
+
+        if self.checkForRecamping:
+            # initialize deep sleep vars
+            self.lastStatus = "busy"
+            self.lastTime = 0
+            self.firstReregister = 0
+            self.lastReregister = 0
+            self.reregisterIntervals = []
+            self.recampingTimeout = None
 
     def _checkRecampingBug( self ):
         logger.debug( "checking for TI Calypso recamping bug..." )
@@ -80,6 +84,9 @@ class UnsolicitedResponseDelegate( AbstractUnsolicitedResponseDelegate ):
     def plusCREG( self, righthandside ):
         # call base implementation
         AbstractUnsolicitedResponseDelegate.plusCREG( self, righthandside )
+        # do we care for recamping?
+        if not self.checkForRecamping:
+            return
         # check for recamping
         values = safesplit( righthandside, ',' )
         register = const.REGISTER_STATUS[int(values[0])]
