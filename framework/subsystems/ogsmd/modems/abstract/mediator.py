@@ -21,6 +21,8 @@ TODO:
  * refactor parameter validation
 """
 
+__version__ = "0.9.9.1"
+
 from ogsmd.gsm import error, const, convert
 from ogsmd.gsm.decor import logged
 from ogsmd.helpers import safesplit
@@ -914,7 +916,7 @@ class NetworkGetStatus( NetworkMediator ):
             else:
                 result["strength"] = const.signalQualityToPercentage( int(safesplit( self._rightHandSide( response[0] ), ',' )[0]) ) # +CSQ: 22,99
 
-        request, response, error = yield( "+CREG?;+COPS?" )
+        request, response, error = yield( "+CREG?;+COPS=3,0;+COPS?" )
         if error is not None:
             self.errorFromChannel( request, error )
         else:
