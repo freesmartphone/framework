@@ -8,7 +8,7 @@ GPLv2 or later
 """
 
 MODULE_NAME = "odeviced.kernel26"
-__version__ = "0.9.6"
+__version__ = "0.9.7"
 
 from helpers import DBUS_INTERFACE_PREFIX, DBUS_PATH_PREFIX, readFromFile, writeToFile, cleanObjectName
 from framework.config import config
@@ -123,6 +123,8 @@ class LED( dbus.service.Object ):
         self.node = node
         self.triggers = readFromFile( "%s/trigger" % self.node ).split()
         logger.debug( "available triggers %s" % self.triggers )
+        # initial status = off
+        self.SetBrightness( 0 )
 
     #
     # dbus
