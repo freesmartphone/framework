@@ -20,7 +20,6 @@ import dbus, dbus.service
 from dbus.mainloop.glib import DBusGMainLoop
 from gobject import MainLoop, idle_add
 
-from optparse import OptionParser
 import os, sys, types, time
 
 import logging
@@ -31,31 +30,6 @@ try: # not present in older glib versions
 except ImportError:
     logger.error( "python-gobject >= 2.14.0 required" )
     sys.exit( -1 )
-
-#----------------------------------------------------------------------------#
-class TheOptionParser( OptionParser ):
-#----------------------------------------------------------------------------#
-    def __init__( self ):
-        OptionParser.__init__( self )
-        self.set_defaults( overrides=[] )
-        self.add_option( "-o", "--override",
-            dest = "overrides",
-            help = "override configuration",
-            metavar = "SECTION.KEY=VALUE",
-            action = "append"
-        )
-        self.add_option( "-s", "--subsystems",
-            metavar = "system1,system2,system3,...",
-            dest = "subsystems",
-            default = "",
-            help = "launch following subsystems (default=all)",
-            action = "store",
-        )
-        self.add_option( "-d", "--daemonize",
-            dest = "daemonize",
-            help = "launch as daemon",
-            action = "store_true",
-        )
 
 #----------------------------------------------------------------------------#
 class Controller( daemon.Daemon ):
@@ -73,8 +47,9 @@ class Controller( daemon.Daemon ):
         """
         return cls.objects[name]
 
-    def __init__( self, path ):
+    def __init__( self, path, options ):
         self.launchTime = time.time()
+        self.options = options
         daemon.Daemon.__init__( self, "/tmp/frameworkd.pid" )
 
         # dbus & glib mainloop
@@ -194,11 +169,8 @@ class Controller( daemon.Daemon ):
             loglevel = loggingmap.get( config.getValue( section, "log_level", debug ) )
             logger.debug( "setting logger for %s to %s" % ( section, loglevel ) )
             logging.getLogger( section ).setLevel( loglevel )
-        # FIXME configure handlers
 
     def _handleOverrides( self ):
-        self.options = TheOptionParser()
-        self.options.parse_args()
         self.config = config
 
         for override in self.options.values.overrides:

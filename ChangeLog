@@ -1,3 +1,7 @@
+2008-11-01	Michael Lauer	<mickey@openmoko.org>
+
+	* Add command line argument for profiling with the python-hotshot profiler
+
 2008-10-31	Michael Lauer	<mickey@openmoko.org>
 
 	* [ogsmd] Added TI-Calypso specific modem option called 'ti_calypso_deep_sleep'.
