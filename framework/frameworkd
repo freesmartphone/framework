@@ -8,7 +8,7 @@ The Open Device Daemon - Python Implementation
 GPLv2 or later
 """
 
-__version__ = "1.1.0"
+__version__ = "1.2.0"
 
 import sys, os
 from optparse import OptionParser
@@ -40,7 +40,7 @@ class TheOptionParser( OptionParser ):
         self.add_option( "-p", "--profile",
             metavar = "<filename>",
             dest = "profile",
-            help = "launch in profile mode (needs python-hotshot)",
+            help = "launch in profile mode (needs python-profile)",
             action = "store",
         )
 
@@ -52,9 +52,9 @@ if __name__ == "__main__":
 
     if options.values.profile:
         try:
-            import hotshot
+            import cProfile
         except ImportError:
-            print "python-hotshot not found. Can't profile"
+            print "Can't import cProfile; python-profile not installed? Can't profile."
             sys.exit( -1 )
         else:
             print "WARNING: profiling mode. profiling to %s" % options.values.profile
@@ -68,11 +68,18 @@ if __name__ == "__main__":
 
     try:
         if options.values.profile:
-            profile = hotshot.Profile( options.values.profile )
-            profile.runcall( c.launch )
+            p = cProfile.Profile()
+            p.run( "c.launch()" )
         else:
             c.launch()
     except KeyboardInterrupt:
         print >>sys.stderr, "ctrl-c: exiting."
         c.shutdown()
         del c
+
+    if options.values.profile:
+        import lsprofcalltree
+        k = lsprofcalltree.KCacheGrind(p)
+        data = open( options.values.profile, "w" )
+        k.output( data )
+        data.close()

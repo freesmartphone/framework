@@ -1,3 +1,9 @@
+2008-11-02	Michael Lauer	<mickey@openmoko.org>
+
+	* python-hotshot is deprecated and give bogus results. Switch to cProfile and
+	  import http://www.gnome.org/~johan/lsprofcalltree.py, that way we can view
+	  the profile results in kcachegrind.
+
 2008-11-01	Michael Lauer	<mickey@openmoko.org>
 
 	* Add command line argument for profiling with the python-hotshot profiler
