@@ -11,6 +11,8 @@ Module: modem
 
 """
 
+__version__ = "0.9.9.2"
+
 import mediator
 
 from ogsmd.modems.abstract.modem import AbstractModem
@@ -20,6 +22,8 @@ from .unsolicited import UnsolicitedResponseDelegate
 
 from ogsmd.gsm.decor import logged
 from ogsmd.gsm.channel import AtCommandChannel
+
+import subprocess
 
 #=========================================================================#
 class TiCalypso( AbstractModem ):
@@ -41,7 +45,24 @@ class TiCalypso( AbstractModem ):
         # configure channels
         self._channels["UNSOL"].setDelegate( UnsolicitedResponseDelegate( self._object, mediator ) )
 
+    def close( self ): # SYNC
+        """
+        Close modem.
+
+        Overriden for internal purposes.
+        """
+        # call default implementation (closing all channels)
+        AbstractModem.close( self )
+        # FIXME ok this is a bit hefty. gsm0710muxd has open/close dbus calls,
+        # but last time I checked they weren't working.
+        subprocess.call( "killall gsm0710muxd", shell=True )
+
     def channel( self, category ):
+        """
+        Return proper channel.
+
+        Overridden for internal purposes.
+        """
         if category == "CallMediator":
             return self._channels["CALL"]
         elif category == "UnsolicitedMediator":
@@ -50,7 +71,11 @@ class TiCalypso( AbstractModem ):
             return self._channels["MISC"]
 
     def pathfactory( self, name ):
-        """Allocate a new channel from the MUXer."""
+        """
+        Allocate a new channel from the MUXer.
+
+        Overridden for internal purposes.
+        """
         muxer = self._bus.get_object( "org.pyneo.muxer", "/org/pyneo/Muxer" )
         return str( muxer.AllocChannel( name ) )
 
