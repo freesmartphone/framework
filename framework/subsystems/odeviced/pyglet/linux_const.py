@@ -1,16 +1,11 @@
 #!/usr/bin/env python
-
-'''
+"""
 Event constants from /usr/include/linux/input.h
 
-Original Source:
+Based on http://pyglet.googlecode.com/svn/trunk/experimental/input/linux.py
+"""
 
-http://pyglet.googlecode.com/svn/trunk/experimental/input/linux.py
-'''
-
-__docformat__ = 'restructuredtext'
-__version__ = '$Id$'
-
+# Event types
 
 EV_SYN = 0x00
 EV_KEY = 0x01
@@ -26,7 +21,7 @@ EV_PWR = 0x16
 EV_FF_STATUS = 0x17
 EV_MAX = 0x1f
 
-# Synchronization events.
+# Synchronization events
 
 SYN_REPORT = 0
 SYN_CONFIG = 1

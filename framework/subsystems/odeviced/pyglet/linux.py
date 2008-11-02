@@ -1,12 +1,11 @@
 #!/usr/bin/env python
+"""
+Basic Linux Input System Support
 
-'''
-Linux Input System Support
+Based on http://pyglet.googlecode.com/svn/trunk/experimental/input/linux.py
+"""
 
-Original Source:
-
-http://pyglet.googlecode.com/svn/trunk/experimental/input/linux.py
-'''
+from linux_const import *
 
 from fcntl import ioctl
 import array
@@ -15,9 +14,6 @@ import errno
 import os
 import struct
 import sys
-#import pyglet
-
-from linux_const import *
 
 c = ctypes.cdll.LoadLibrary('libc.so.6')
 
@@ -105,18 +101,40 @@ class input_absinfo(ctypes.Structure):
         ('flat', ctypes.c_int32),
     )
 
+#define EVIOCGVERSION           _IOR('E', 0x01, int)                    /* get driver version */
 EVIOCGVERSION = _IOR('E', 0x01, ctypes.c_int)
+#define EVIOCGID                _IOR('E', 0x02, struct input_id)        /* get device ID */
 EVIOCGID = _IOR('E', 0x02, input_id)
+#define EVIOCGNAME(len)         _IOC(_IOC_READ, 'E', 0x06, len)         /* get device name */
 EVIOCGNAME = _IOR_str('E', 0x06)
+#define EVIOCGPHYS(len)         _IOC(_IOC_READ, 'E', 0x07, len)         /* get physical location */
 EVIOCGPHYS = _IOR_str('E', 0x07)
+#define EVIOCGUNIQ(len)         _IOC(_IOC_READ, 'E', 0x08, len)         /* get unique identifier */
 EVIOCGUNIQ = _IOR_str('E', 0x08)
+#define EVIOCGBIT(ev,len)       _IOC(_IOC_READ, 'E', 0x20 + ev, len)    /* get event bits */
 def EVIOCGBIT(fileno, ev, buffer):
     return _IOR_len('E', 0x20 + ev)(fileno, buffer)
+#define EVIOCGABS(abs)          _IOR('E', 0x40 + abs, struct input_absinfo)             /* get abs value/limits */
 def EVIOCGABS(fileno, abs):
     buffer = input_absinfo()
     return _IOR_len('E', 0x40 + abs)(fileno, buffer)
+#define EVIOCGKEY(len)          _IOC(_IOC_READ, 'E', 0x18, len)         /* get global keystate */
+def EVIOCGKEY(fileno, buffer):
+    return _IOR_len('E', 0x18)(fileno, buffer)
+#define EVIOCGLED(len)          _IOC(_IOC_READ, 'E', 0x19, len)         /* get all LEDs */
+def EVIOCGLED(fileno, buffer):
+    return _IOR_len('E', 0x19)(fileno, buffer)
+#define EVIOCGSND(len)          _IOC(_IOC_READ, 'E', 0x1a, len)         /* get all sounds status */
+def EVIOCGSND(fileno, buffer):
+    return _IOR_len('E', 0x1a)(fileno, buffer)
+#define EVIOCGSW(len)           _IOC(_IOC_READ, 'E', 0x1b, len)         /* get all switch states */
+def EVIOCGSW(fileno, buffer):
+    return _IOR_len('E', 0x1b)(fileno, buffer)
 
 def get_set_bits(bytes):
+    """
+    Returns a set of bits that correspond to set bits in the bytefield.
+    """
     bits = set()
     j = 0
     for byte in bytes:
@@ -126,6 +144,39 @@ def get_set_bits(bytes):
             byte >>= 1
         j += 8
     return bits
+
+def input_device_supports_event_type( fileno, evtype ):
+    """
+    Returns true whether a given input device node supports a given event type.
+    False, otherwise.
+    """
+    event_types_bits = (ctypes.c_byte * 4)()
+    EVIOCGBIT( fileno, 0, event_types_bits )
+    return evtype in get_set_bits(event_types_bits)
+
+def input_device_key_held( fileno, key ):
+    """
+    Returns true whether a given key is set.
+    False, otherwise.
+    """
+    key_state_bits = (ctypes.c_byte * (KEY_MAX+8/8))()
+    EVIOCGKEY( fileno, key_state_bits )
+    return key in get_set_bits(key_state_bits)
+
+event_type_names = {
+    EV_SYN: "EV_SYN",
+    EV_KEY: "EV_KEY",
+    EV_REL: "EV_REL",
+    EV_ABS: "EV_ABS",
+    EV_MSC: "EV_MSC",
+    EV_SW: "EV_SW",
+    EV_LED: "EV_LED",
+    EV_SND: "EV_SND",
+    EV_REP: "EV_REP",
+    EV_FF: "EV_FF",
+    EV_PWR: "EV_PRW",
+    EV_FF_STATUS: "EV_FF_STATUS",
+}
 
 class Element(object):
     value = None
@@ -163,33 +214,6 @@ event_types = {
     EV_LED: (LED_MAX, Element),
     EV_SND: (SND_MAX, Element),
 }
-
-event_type_names = {
-    EV_SYN: "EV_SYN",
-    EV_KEY: "EV_KEY",
-    EV_REL: "EV_REL",
-    EV_ABS: "EV_ABS",
-    EV_MSC: "EV_MSC",
-    EV_SW: "EV_SW",
-    EV_LED: "EV_LED",
-    EV_SND: "EV_SND",
-    EV_REP: "EV_REP",
-    EV_FF: "EV_FF",
-    EV_PWR: "EV_PRW",
-    EV_FF_STATUS: "EV_FF_STATUS",
-}
-
-def input_device_supports_event_type( fileno, evtype ):
-    """
-    Returns true whether a given input device node supports a given event type.
-    False, otherwise.
-    """
-    event_types_bits = (ctypes.c_byte * 4)()
-    EVIOCGBIT(fileno, 0, event_types_bits)
-    for event_type in get_set_bits(event_types_bits):
-        if event_type == evtype:
-            return True
-    return False
 
 class Device(object):
     _fileno = None
@@ -234,7 +258,7 @@ class Device(object):
             EVIOCGBIT(fileno, event_type, event_codes_bits)
             for event_code in get_set_bits(event_codes_bits):
                 element = element_class(fileno, event_type, event_code)
-                self.element_map[(event_type, event_code)] = element 
+                self.element_map[(event_type, event_code)] = element
                 self.elements.append(element)
 
         os.close(fileno)
@@ -282,6 +306,6 @@ def get_devices():
             try:
                 _devices[path] = Device(path)
             except OSError:
-                pass 
+                pass
 
     return _devices.values()
