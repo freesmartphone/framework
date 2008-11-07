@@ -221,7 +221,8 @@ class UnsolicitedResponseChannel( CalypsoModemChannel ):
         c.append( "%CGREG=3" )
 
     def close( self ):
-        if not self.delegate.recampingTimeout is None:
-            gobject.source_remove( self.delegate.recampingTimeout )
-            self.delegate.recampingTimeout = None
+        if self.delegate.checkForRecamping:
+            if not self.delegate.recampingTimeout is None:
+                gobject.source_remove( self.delegate.recampingTimeout )
+                self.delegate.recampingTimeout = None
         super( UnsolicitedResponseChannel, self ).close()
