@@ -51,6 +51,8 @@ def decodePDUNumber(bs):
         number = ""
     elif num_type == 5:
         number = unpack_sevenbit(number)
+        number = number.decode( "gsm_default" )
+
     else:
         number = bcd_decode(number)
     return (num_type, num_plan, number)
@@ -59,7 +61,8 @@ def decodePDUNumber(bs):
 def encodePDUNumber(num):
 #=========================================================================#
     if num.type == 5:
-        enc = pack_sevenbit(num.number)
+        number = num.number.encode("gsm_default")
+        enc = pack_sevenbit(number)
         length = len(enc)*2
         if (len(num.number)*7)%8 <= 4:
             length -= 1
