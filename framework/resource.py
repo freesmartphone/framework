@@ -30,20 +30,20 @@ def checkedmethod(f, *args, **kw):
     #print "calling %s with args %s, %s" % (f.func_name, args, kw)
     self = args[0]
     dbus_error = args[-1]
-    if self._resourceStatus != "enabled":
-        dbus_error( ResourceNotEnabled )
-    else:
+    if self._resourceStatus != "disabled":
         return f(*args, **kw)
+    else:
+        dbus_error( ResourceNotEnabled )
 
 #----------------------------------------------------------------------------#
 @decorator.decorator
 def checkedsyncmethod(f, *args, **kw):
     #print "calling %s with args %s, %s" % (f.func_name, args, kw)
     self = args[0]
-    if self._resourceStatus != "enabled":
-        raise ResourceNotEnabled()
-    else:
+    if self._resourceStatus != "disabled":
         return f(*args, **kw)
+    else:
+        raise ResourceNotEnabled()
 
 #----------------------------------------------------------------------------#
 class ResourceNotEnabled( dbus.DBusException ):
