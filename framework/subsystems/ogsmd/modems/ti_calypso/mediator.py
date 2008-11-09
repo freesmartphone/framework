@@ -10,9 +10,14 @@ Package: ogsmd.modems.ti_calypso
 Module: mediator
 """
 
+__version__ = "0.9.9.0"
+
 from ogsmd.modems.abstract import mediator
 from ogsmd.gsm import error, const
 import types
+
+import logging
+logger = logging.getLogger( "ogsmd" )
 
 #=========================================================================#
 # Ok, now this is a bit of magic...:
@@ -308,9 +313,13 @@ class CallHandler( object ):
 #=========================================================================#
 def createCallHandler( dbus_object ):
 #=========================================================================#
+    # FIXME now that we have resources and the modem will be instanciated
+    # more than once, we should probably get rid of the singleton.
     global callHandler
-    assert callHandler is None, "call handler created more than once"
-    callHandler = CallHandler( dbus_object )
+    if callHandler is None:
+        callHandler = CallHandler( dbus_object )
+    else:
+        logger.warning( "Attempting to create the call handler more than once." )
 
 #=========================================================================#
 callHandler = None
