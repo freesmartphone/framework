@@ -192,16 +192,24 @@ class GStreamerPlayer( Player ):
         if name in self.pipelines:
             error_cb( AlreadyPlaying( name ) )
         else:
+            # Split options from filename, these may be useful for advanced
+            # settings on MOD and SID files.
+            base, ext = name.rsplit( '.', 1 )
+            options = ext.split( ';' )
+            ext = options.pop( 0 )
+            file = ".".join( [ base, ext ] )
             try:
-                decoder = GStreamerPlayer.decoderMap[ name.split( '.' )[-1] ]
+                decoder = GStreamerPlayer.decoderMap[ ext ]
             except KeyError:
                 return error_cb( UnknownFormat( "Known formats are %s" % self.decoderMap.keys() ) )
             else:
+                if len(options) > 0:
+                    decoder = decoder + " " + " ".join( options )
                 # parse_launch may burn a few cycles compared to element_factory_make,
                 # however it should still be faster than creating the pipeline from
                 # individual elements in python, since it's all happening in compiled code
                 try:
-                    pipeline = gst.parse_launch( "filesrc location=%s ! %s ! alsasink" % ( name, decoder ) )
+                    pipeline = gst.parse_launch( "filesrc location=%s ! %s ! alsasink" % ( file, decoder ) )
                 except gobject.GError, e:
                     logger.exception( "could not instanciate pipeline: %s" % e )
                     return error_cb( PlayerError( "Could not instanciate pipeline due to an internal error." ) )
