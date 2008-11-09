@@ -131,6 +131,17 @@ class IdleNotifier( dbus.service.Object ):
     def GetState( self ):
         return self.state
 
+    @dbus.service.method( DBUS_INTERFACE, "", "a{si}" )
+    def GetTimeouts( self ):
+        return self.timeouts
+
+    @dbus.service.method( DBUS_INTERFACE, "si", "" )
+    def SetTimeout( self, state, timeout ):
+        if not state in self.validStates:
+            raise InvalidState( "valid states are: %s" % self.validStates )
+        else if timeout is not None:
+            self.timeouts[state] = timeout
+
     @dbus.service.method( DBUS_INTERFACE, "s", "" )
     def SetState( self, state ):
         if state == self.state:
