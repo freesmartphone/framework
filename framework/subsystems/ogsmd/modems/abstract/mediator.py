@@ -381,7 +381,7 @@ class DeviceSetSimBuffersSms( DeviceMediator ):
 class SimGetAuthStatus( SimMediator ):
 #=========================================================================#
     def trigger( self ):
-        self._commchannel.enqueue( "+CPIN?", self.responseFromChannel, self.errorFromChannel )
+        self._commchannel.enqueue( "+CPIN?", self.responseFromChannel, self.errorFromChannel, timeout=const.TIMEOUT["SIMAUTH"] )
 
     @logged
     def responseFromChannel( self, request, response ):
@@ -873,7 +873,7 @@ class SmsSendMessage( SmsMediator ):
         sms.ud = self.contents
         sms.featureMap = self.featuremap
         pdu = sms.pdu()
-        self._commchannel.enqueue( '+CMGS=%i\r%s' % ( len(pdu)/2-1, pdu), self.responseFromChannel, self.errorFromChannel)
+        self._commchannel.enqueue( '+CMGS=%i\r%s' % ( len(pdu)/2-1, pdu), self.responseFromChannel, self.errorFromChannel, timeout=const.TIMEOUT["NETWORK"])
 
     def responseFromChannel( self, request, response ):
         if response[-1] != "OK":
