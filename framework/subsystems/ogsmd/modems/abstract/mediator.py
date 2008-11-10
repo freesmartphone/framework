@@ -283,7 +283,7 @@ class DeviceGetInfo( DeviceMediator ):
 class DeviceGetAntennaPower( DeviceMediator ):
 #=========================================================================#
     def trigger( self ):
-        self._commchannel.enqueue( "+CFUN?", self.responseFromChannel, self.errorFromChannel )
+        self._commchannel.enqueue( "+CFUN?", self.responseFromChannel, self.errorFromChannel, timeout=const.TIMEOUT["CFUN"] )
 
     @logged
     def responseFromChannel( self, request, response ):
@@ -306,7 +306,7 @@ class DeviceSetAntennaPower( DeviceMediator ):
             if pin_state != self._object.modem._simPinState:
                 self._object.AuthStatus( pin_state )
 
-        self._commchannel.enqueue( "+CFUN=%d" % self.power, self.responseFromChannel, self.errorFromChannel )
+        self._commchannel.enqueue( "+CFUN=%d" % self.power, self.responseFromChannel, self.errorFromChannel, timeout=const.TIMEOUT["CFUN"] )
 
     @logged
     def responseFromChannel( self, request, response ):
