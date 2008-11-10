@@ -733,7 +733,7 @@ class SimGetMessagebookInfo( SimMediator ):
             afull, amax, bfull, bmax, cfull, cmax = safesplit( self._rightHandSide( response[0] ), ',' )
             result = {}
             # FIXME Can we safely ignore all but the first tuple always?
-            result.update( first=1, last=int(amax), used=afull )
+            result.update( first=1, last=int(amax), used=int(afull) )
             self._ok( result )
 
 #=========================================================================#
