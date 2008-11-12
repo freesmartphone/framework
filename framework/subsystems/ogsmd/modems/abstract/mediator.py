@@ -296,7 +296,7 @@ class DeviceGetAntennaPower( DeviceMediator ):
 class DeviceSetAntennaPower( DeviceMediator ):
 #=========================================================================#
     def trigger( self ):
-        self._commchannel.enqueue( "+CPIN?", self.intermediateResponse, self.errorFromChannel )
+        self._commchannel.enqueue( "+CPIN?", self.intermediateResponse, self.errorFromChannel, timeout=const.TIMEOUT["SIMAUTH"] )
 
     def intermediateResponse( self, request, response ):
         if not response[-1] == "OK":
@@ -315,7 +315,7 @@ class DeviceSetAntennaPower( DeviceMediator ):
         else:
             DeviceMediator.responseFromChannel( self, request, response )
 
-        self._commchannel.enqueue( "+CPIN?", self.intermediateResponse2, self.errorFromChannel )
+        self._commchannel.enqueue( "+CPIN?", self.intermediateResponse2, self.errorFromChannel, timeout=const.TIMEOUT["SIMAUTH"] )
 
     def intermediateResponse2( self, request, response ):
         if not response[-1] == "OK":
