@@ -8,7 +8,7 @@ GPLv2 or later
 """
 
 MODULE_NAME = "odeviced.input"
-__version__ = "0.9.9.3"
+__version__ = "0.9.9.4"
 
 from pyglet.linux_const import EV_ABS
 from pyglet.linux import input_device_supports_event_type
@@ -125,7 +125,8 @@ class Input( dbus.service.Object, asyncworker.AsyncWorker ):
         if ( typ, code ) in self.watches:
             if value == 0x01: # pressed
                 if self.reportheld[ typ, code ]:
-                    timeout = gobject.timeout_add_seconds( 1, self.callbackKeyHeldTimeout, typ, code )
+                    # not using gobject.timeout_add_seconds here, since we need to granularity
+                    timeout = gobject.timeout_add( 1000, self.callbackKeyHeldTimeout, typ, code )
                 else:
                     timeout = 0
                 self.events[ ( typ, code ) ] = timestamp, timeout
