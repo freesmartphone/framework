@@ -139,6 +139,9 @@ class UnsolicitedResponseDelegate( AbstractUnsolicitedResponseDelegate ):
     # call to homezone number while in homezone
     # this is sent while the call is incoming
     # %CCCN: 0,0,A10E0201000201103006810120850101
+    # calling a alice sim
+    # %CCCN: 0,0,A10E0201000201103006810128840107
+    #
     def percentCCCN( self, righthandside ):
         direction, callId, ie = safesplit( righthandside, "," )
         # this is ASN.1 BER, but we don't want a full decoder here
