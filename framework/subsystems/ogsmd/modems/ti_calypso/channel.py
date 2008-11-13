@@ -188,10 +188,7 @@ class UnsolicitedResponseChannel( CalypsoModemChannel ):
             c.append( "%SLEEP=4" ) # sleep mode: enable all
 
         # FIXME might enable %CPRI later
-
         c = self._commands["sim"]
-        # FIXME reenable if someone wants homezone support
-        #c.append( "%CBHZ=1" ) # home zone cell broadcast: activate automatic (send frequently, not just once)
 
         c = self._commands["suspend"]
         c.append( "+CTZU=0" )
@@ -199,10 +196,14 @@ class UnsolicitedResponseChannel( CalypsoModemChannel ):
         c.append( "+CREG=0" )
         c.append( "+CGREG=0" )
         c.append( "+CGEREP=0,0" )
-        if self._modem.data( "sim-buffers-sms" ):
-            c.append( "+CNMI=%s" % self._modem.data( "sms-buffered-nocb" ) )
-        else:
-            c.append( "+CNMI=%s" % self._modem.data( "sms-direct-nocb" ) )
+
+        def sms_no_cb( self=self ):
+            if self._modem.data( "sim-buffers-sms" ):
+                return "+CNMI=%s" % self._modem.data( "sms-buffered-nocb" )
+            else:
+                return "+CNMI=%s" % self._modem.data( "sms-direct-nocb" )
+
+        c.append( sms_no_cb )
         c.append( "%CSQ=0" )
         c.append( "%CGEREP=0" )
         c.append( "%CGREG=0" )
@@ -219,6 +220,11 @@ class UnsolicitedResponseChannel( CalypsoModemChannel ):
         c.append( "%CNIV=1" )
         c.append( "%CGEREP=1" )
         c.append( "%CGREG=3" )
+
+        def homezone( self=self ):
+            return "%CBHZ=1" if self._modem.data( "homezone-enabled", False ) else "%CBHZ=0"
+
+        c.append( homezone )
 
     def close( self ):
         if self.delegate.checkForRecamping:

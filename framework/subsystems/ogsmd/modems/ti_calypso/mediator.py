@@ -10,7 +10,7 @@ Package: ogsmd.modems.ti_calypso
 Module: mediator
 """
 
-__version__ = "0.9.9.0"
+__version__ = "0.9.9.1"
 
 from ogsmd.modems.abstract import mediator
 from ogsmd.gsm import error, const
@@ -56,7 +56,12 @@ class CbSetCellBroadcastSubscriptions( CbSetCellBroadcastSubscriptions ): # s
                     firstChannel = lastChannel = int( self.channels )
 
             logger.debug( "listening to cell broadcasts on channels %d - %d" % ( firstChannel, lastChannel ) )
-            self._commchannel.enqueue( "%CBHZ=1" if firstChannel <= 221 <= lastChannel else "%CBHZ=0" )
+            homezone = firstChannel <= 221 <= lastChannel
+            self._object.modem.setData( "homezone-enabled", homezone )
+            if homezone:
+                self._commchannel.enqueue( "%CBHZ=1" )
+            else:
+                self._commchannel.enqueue( "%CBHZ=0" )
             self._ok()
 
 #=========================================================================#
