@@ -501,6 +501,18 @@ Language: %s
 Message: %s""" % (self.sn, self.mid, self.page, self.dcs_alphabet, self.dcs_language, self.ud)
 
 if __name__ == "__main__":
+    import sys
+    #============================================================================#
+    def readFromFile( path ):
+    #============================================================================#
+        try:
+            value = open( path, 'r' ).read().strip()
+        except IOError, e:
+            print( "(could not read from '%s': %s)" % ( path, e ) )
+            return "N/A"
+        else:
+            return value
+
     pdus_MT = [
     "0791448720900253040C914497035290960000500151614414400DD4F29C9E769F41E17338ED06",
     "0791448720003023440C91449703529096000050015132532240A00500037A020190E9339A9D3EA3E920FA1B1466B341E472193E079DD3EE73D85DA7EB41E7B41C1407C1CBF43228CC26E3416137390F3AABCFEAB3FAAC3EABCFEAB3FAAC3EABCFEAB3FAAC3EABCFEAB3FADC3EB7CFED73FBDC3EBF5D4416D9457411596457137D87B7E16438194E86BBCF6D16D9055D429548A28BE822BA882E6370196C2A8950E291E822BA88",
@@ -532,6 +544,11 @@ if __name__ == "__main__":
     pdus_CB = [
     "001000DD001133DAED46ABD56AB5186CD668341A8D46A3D168341A8D46A3D168341A8D46A3D168341A8D46A3D168341A8D46A3D168341A8D46A3D168341A8D46A3D168341A8D46A3D168341A8D46A3D168341A8D46A3D100",
     ]
+
+    if len(sys.argv) == 3:
+        pdus_MT = readFromFile(sys.argv[1]).split("\n")
+        pdus_MO = readFromFile(sys.argv[2]).split("\n")
+
 
     def testpdu(pdu, dir):
         sms = decodeSMS(pdu, dir)
