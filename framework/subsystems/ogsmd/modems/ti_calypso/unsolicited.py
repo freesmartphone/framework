@@ -116,12 +116,29 @@ class UnsolicitedResponseDelegate( AbstractUnsolicitedResponseDelegate ):
     # +CSSU: 2,,"",128
     def plusCSSU( self, righthandside ):
         code, index, number, type = safesplit( righthandside, "," )
+        info = {}
+        if code == "0":
+            info["forwarded"] = True
+        elif code == "1":
+            info["cug"] = True
+        elif code == "2":
+            info["remotehold"] = True
+        elif code == "3":
+            info["remotehold"] = False
+        else:
+            logger.info( "unhandled +CSSU code '%s'" % code )
+        if info:
+            self._mediator.callHandler.statusChangeFromNetworkByStatus( "incoming", info )
 
     #
     # TI Calypso proprietary
     #
 
     # %CCCN: 0,0,A10E02010402011030068101428F0101
+
+    # call to homezone number while in homezone
+    # this is sent while the call is incoming
+    # %CCCN: 0,0,A10E0201000201103006810120850101
     def percentCCCN( self, righthandside ):
         direction, callId, ie = safesplit( righthandside, "," )
         # this is ASN.1 BER, but we don't want a full decoder here

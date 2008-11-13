@@ -165,6 +165,12 @@ class CallHandler( object ):
             self._calls[callId] = { "status":"release" }
         self._updateStatus( callId )
 
+    def statusChangeFromNetworkByStatus( self, status, info ):
+        calls = [call for call in self._calls.items() if call[1]["status"] == status]
+        if not len(calls) == 1:
+            raise error.InternalException( "non-unique call state '%'" % status )
+        self.statusChangeFromNetwork( calls[0][0], info )
+
     def feedUserInput( self, action, *args, **kwargs ):
         # simple actions
         # FIXME might rather want to consider using the state machine, since that would be more clear
