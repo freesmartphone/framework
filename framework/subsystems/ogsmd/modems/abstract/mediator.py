@@ -1095,8 +1095,10 @@ class NetworkSendUssdRequest( NetworkMediator ): # s
 #=========================================================================#
     def trigger( self ):
         # FIXME request code validation
+        # when using UCS2 we need to encode the request, although it is just a number :/
+        request = convert.UnicodeToucs2hex( self.request )
         commchannel = self._object.modem.communicationChannel( "UnsolicitedMediator" ) # exceptional, since CUSD is semi-unsolicited
-        commchannel.enqueue( '+CUSD=1,"%s",15' % self.request, self.responseFromChannel, self.errorFromChannel )
+        commchannel.enqueue( '+CUSD=1,"%s",15' % request, self.responseFromChannel, self.errorFromChannel )
 
 #
 # Call Mediators
