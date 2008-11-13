@@ -69,20 +69,32 @@ class AbstractModemChannel( AtCommandChannel ):
     #
     # internal API
     #
-
     def _sendCommands( self, state ):
         commands = self._commands[state]
         if commands:
             for command in commands:
-                self.enqueue( command )
+                try:
+                    commandstring = command()
+                except TypeError: # not a callable
+                    commandstring = command
+                self.enqueue( commandstring )
 
     def _sendCommandsNotifyDone( self, state, done_callback ):
         # FIXME no error handling, just checking when the results are through
         commands = self._commands[state]
         if commands:
             for command in commands[:-1]:
-                self.enqueue( command )
-            self.enqueue( commands[-1], done_callback, done_callback )
+                try:
+                    commandstring = command()
+                except TypeError: # not a callable
+                    commandstring = command
+                self.enqueue( commandstring )
+            command = commands[-1]
+            try:
+                commandstring = command()
+            except TypeError:
+                commandstring = command
+            self.enqueue( commandstring, done_callback, done_callback )
         else:
             done_callback( "", "" )
 
@@ -111,10 +123,13 @@ class AbstractModemChannel( AtCommandChannel ):
 
         c = []
         c.append( '+CSMS=1' )           # GSM Phase 2+ commands: enable (this seems to fail in PDU mode?)
-        if self._modem.data( "sim-buffers-sms" ):
-            c.append( "+CNMI=%s" % self._modem.data( "sms-buffered-cb" ) )
-        else:
-            c.append( "+CNMI=%s" % self._modem.data( "sms-direct-cb" ) )
+
+        def sms_and_cb( self=self ):
+            if self._modem.data( "sim-buffers-sms" ):
+                return "+CNMI=%s" % self._modem.data( "sms-buffered-cb" )
+            else:
+                return "+CNMI=%s" % self._modem.data( "sms-direct-cb" )
+        c.append( sms_and_cb )
         self._commands["sim"] = c
 
         c = []
