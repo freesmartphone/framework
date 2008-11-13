@@ -33,6 +33,33 @@ for key, val in mediator.__dict__.items():
 del mediator
 
 #=========================================================================#
+class CbSetCellBroadcastSubscriptions( CbSetCellBroadcastSubscriptions ): # s
+#=========================================================================#
+    # reimplemented for special TI Calypso %CBHZ handling
+    def responseFromChannel( self, request, response ):
+        if response[-1] != "OK":
+            CbMediator.responseFromChannel( self, request, response )
+        else:
+            firstChannel = 0
+            lastChannel = 0
+            if self.channels == "all":
+                firstChannel = 0
+                lastChannel = 999
+            elif self.channels == "none":
+                pass
+            else:
+                if "-" in self.channels:
+                    first, last = self.channels.split( '-' )
+                    firstChannel = int( first )
+                    lastChannel = int( last )
+                else:
+                    firstChannel = lastChannel = int( self.channels )
+
+            logger.debug( "listening to cell broadcasts on channels %d - %d" % ( firstChannel, lastChannel ) )
+            self._commchannel.enqueue( "%CBHZ=1" if firstChannel <= 221 <= lastChannel else "%CBHZ=0" )
+            self._ok()
+
+#=========================================================================#
 class CallInitiate( CallMediator ):
 #=========================================================================#
     def trigger( self ):
