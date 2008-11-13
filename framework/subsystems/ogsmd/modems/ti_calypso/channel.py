@@ -173,6 +173,7 @@ class UnsolicitedResponseChannel( CalypsoModemChannel ):
         c.append( "%CPI=3" ) # call progress indication: enable with call number ID, GSM Cause, and ALS
         c.append( "%CSCN=1,2,1,2" ) # show service change: call control service and supplementary service
         c.append( "%CSQ=1" ) # signal strength: send unsol. code
+        c.append( "%CPRI=1" ) # gsm cipher indication: send unsol. code
         c.append( "%CNIV=1" )
         c.append( "%CGEREP=1" )
         c.append( "%CGREG=3" )
@@ -187,7 +188,6 @@ class UnsolicitedResponseChannel( CalypsoModemChannel ):
         else:
             c.append( "%SLEEP=4" ) # sleep mode: enable all
 
-        # FIXME might enable %CPRI later
         c = self._commands["sim"]
 
         c = self._commands["suspend"]
@@ -205,6 +205,7 @@ class UnsolicitedResponseChannel( CalypsoModemChannel ):
 
         c.append( sms_no_cb )
         c.append( "%CSQ=0" )
+        c.append( "%CPRI=0" )
         c.append( "%CGEREP=0" )
         c.append( "%CGREG=0" )
         c.append( "%CBHZ=0" ) # home zone cell broadcast: disable
@@ -217,6 +218,7 @@ class UnsolicitedResponseChannel( CalypsoModemChannel ):
         c.append( "+CGEREP=2,1" )
         c += self._commands["sim"] # reenable notifications
         c.append( "%CSQ=1" ) # signal strength: send unsol. code
+        c.append( "%CPRI=1" ) # gsm cipher indication: send unsol. code
         c.append( "%CNIV=1" )
         c.append( "%CGEREP=1" )
         c.append( "%CGREG=3" )
