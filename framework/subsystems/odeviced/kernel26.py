@@ -8,7 +8,7 @@ GPLv2 or later
 """
 
 MODULE_NAME = "odeviced.kernel26"
-__version__ = "0.9.7"
+__version__ = "0.9.8"
 
 from helpers import DBUS_INTERFACE_PREFIX, DBUS_PATH_PREFIX, readFromFile, writeToFile, cleanObjectName
 from framework.config import config
@@ -43,6 +43,8 @@ class Display( dbus.service.Object ):
         self.max = int( readFromFile( "%s/max_brightness" % self.node ) )
         self.current = int( readFromFile( "%s/actual_brightness" % self.node ) )
         logger.debug( "current brightness %d, max brightness %d" % ( self.current, self.max ) )
+        self.fbblank = config.getBool( MODULE_NAME, "fb_blank", True )
+        logger.info( "framebuffer blanking %s" % ( "enabled" if self.fbblank else "disabled" ) )
 
     def _valueToPercent( self, value ):
         """
@@ -66,6 +68,8 @@ class Display( dbus.service.Object ):
         """
         set power on current framebuffer device
         """
+        if not self.fbblank:
+            return
         try:
             framebuffer = open( "/dev/fb0" )
         except IOError:
