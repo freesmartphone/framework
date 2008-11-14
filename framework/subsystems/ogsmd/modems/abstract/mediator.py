@@ -991,8 +991,18 @@ class NetworkRegisterWithProvider( NetworkMediator ):
 #=========================================================================#
 class NetworkGetCountryCode( NetworkMediator ):
 #=========================================================================#
-    def __init__( self, dbus_object, dbus_ok, dbus_error, **kwargs ):
-        dbus_error( error.UnsupportedCommand( self.__class__.__name__ ) )
+    def trigger( self ):
+        self._commchannel.enqueue( "+COPS=3,2;+COPS?;+COPS=3,0", self.responseFromChannel, self.errorFromChannel )
+
+    def responseFromChannel( self, request, response ):
+        if response[-1] == "OK" and len( response ) > 1:
+            values = self._rightHandSide( response[0] ).split( ',' )
+            if len( values ) != 3:
+                self._error( error.NetworkNotFound( "Not registered to an operator" ) )
+            else:
+                mcc = int( values[2].strip( '"' )[:3] )
+                code, name = const.mccToCountryCode( mcc )
+                self._ok( code, name )
 
 #=========================================================================#
 class NetworkGetCallForwarding( NetworkMediator ): # a{sv}

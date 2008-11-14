@@ -517,10 +517,10 @@ class Device( resource.Resource ):
     def RegisterWithProvider( self, operator_code, dbus_ok, dbus_error ):
         mediator.NetworkRegisterWithProvider( self, dbus_ok, dbus_error, operator_code=operator_code )
 
-    @dbus.service.method( DBUS_INTERFACE_NETWORK, "", "s",
+    @dbus.service.method( DBUS_INTERFACE_NETWORK, "", "ss",
                           async_callbacks=( "dbus_ok", "dbus_error" ) )
     @resource.checkedmethod
-    def GetNetworkCountryCode( self, dbus_ok, dbus_error ):
+    def GetCountryCode( self, dbus_ok, dbus_error ):
         mediator.NetworkGetCountryCode( self, dbus_ok, dbus_error )
 
     @dbus.service.method( DBUS_INTERFACE_NETWORK, "s", "a{sv}",
