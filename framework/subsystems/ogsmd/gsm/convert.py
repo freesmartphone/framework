@@ -43,42 +43,6 @@ def flatten(x):
     return result
 
 #=========================================================================#
-def decodePDUNumber(bs):
-#=========================================================================#
-    num_type = (bs[0] & 0x70) >> 4
-    num_plan = (bs[0] & 0x0F)
-    number = bs[1:]
-    if number == []:
-        number = ""
-    elif num_type == 5:
-        number = unpack_sevenbit(number)
-        number = number.decode( "gsm_default" )
-
-    else:
-        number = bcd_decode(number)
-        # Every occurence of the padding semi-octet should be removed
-        number = number.replace("f", "")
-        # Decode special "digits"
-        number = number.translate(PDUADDR_DEC_TRANS)
-    return (num_type, num_plan, number)
-
-#=========================================================================#
-def encodePDUNumber(num):
-#=========================================================================#
-    if num.type == 5:
-        number = num.number.encode("gsm_default")
-        enc = pack_sevenbit(number)
-        length = len(enc)*2
-        if (len(num.number)*7)%8 <= 4:
-            length -= 1
-    else:
-        # Encode special "digits"
-        number = num.number.translate(PDUADDR_ENC_TRANS)
-        enc = bcd_encode(number)
-        length = len(number)
-    return flatten( [length, 0x80 | num.type << 4 | num.dialplan, enc] )
-
-#=========================================================================#
 def bcd_decode(bs):
 #=========================================================================#
   s = "".join(["%1x%1x" % (b & 0xF, b >> 4) for b in bs])

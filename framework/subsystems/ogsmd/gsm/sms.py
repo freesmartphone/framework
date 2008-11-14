@@ -44,7 +44,7 @@ def decodeSMS( pdu, direction ):
     sca_len = bytes[offset]
     offset += 1
     if sca_len > 0:
-        sms.sca = PDUAddress( *decodePDUNumber( bytes[offset:offset+sca_len] ) )
+        sms.sca = PDUAddress.decode( bytes[offset:offset+sca_len] )
     else:
         sms.sca = False
 
@@ -71,7 +71,7 @@ def decodeSMS( pdu, direction ):
     # WARNING, the length is coded in digits of the number, not in octets occupied!
     oa_len = 1 + (bytes[offset] + 1) / 2
     offset += 1
-    sms.oa = PDUAddress( *decodePDUNumber( bytes[offset:offset+oa_len] ) )
+    sms.oa = PDUAddress.decode( bytes[offset:offset+oa_len] )
     sms.da = sms.oa
 
     offset += oa_len
@@ -157,6 +157,25 @@ class PDUAddress:
             number = number
             ntype = 5
         return cls( ntype, 1, number )
+
+    @classmethod
+    def decode( cls, bs ):
+        num_type = ( bs[0] & 0x70)  >> 4
+        num_plan = ( bs[0] & 0x0F )
+        number = bs[1:]
+        if number == []:
+            number = ""
+        elif num_type == 5:
+            number = unpack_sevenbit( number )
+            number = number.decode( "gsm_default" )
+        else:
+            number = bcd_decode( number )
+            # Every occurence of the padding semi-octet should be removed
+            number = number.replace( "f", "" )
+            # Decode special "digits"
+            number = number.translate( PDUADDR_DEC_TRANS )
+        return cls( num_type, num_plan, number )
+
     def __init__( self, type, dialplan, number ):
         self.type = type
         self.dialplan = dialplan
@@ -166,6 +185,21 @@ class PDUAddress:
         if self.type == 1:
             prefix = "+"
         return prefix + self.number
+
+    def pdu( self ):
+        if self.type == 5:
+            number = self.number.encode("gsm_default")
+            enc = pack_sevenbit(number)
+            length = len(enc)*2
+            if (len(self.number)*7)%8 <= 4:
+                length -= 1
+        else:
+            # Encode special "digits"
+            number = self.number.translate(PDUADDR_ENC_TRANS)
+            enc = bcd_encode(number)
+            length = len(number)
+        return flatten( [length, 0x80 | self.type << 4 | self.dialplan, enc] )
+
 
 class AbstractSMS(object):
     def __init__( self, direction ):
@@ -297,7 +331,7 @@ class AbstractSMS(object):
     def pdu( self ):
         pdubytes = []
         if self.sca:
-            scabcd = encodePDUNumber( self.sca )
+            scabcd = self.sca.pdu()
             # SCA has non-standard length
             scabcd[0] = len( scabcd ) - 1
             pdubytes.extend( scabcd )
@@ -322,7 +356,7 @@ class AbstractSMS(object):
         if self.pdu_mti == 1:
             pdubytes.append( self.mr )
 
-        pdubytes.extend( encodePDUNumber(self.oa) )
+        pdubytes.extend( self.oa.pdu() )
 
         pdubytes.append( self.pid )
 
