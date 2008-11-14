@@ -769,7 +769,7 @@ class SimRetrieveMessagebook( SimMediator ):
                 else:
                     # Now we decode the actual PDU
 
-                    sms = ogsmd.gsm.sms.decodeSMS( line, direction)
+                    sms = ogsmd.gsm.sms.SMS.decode( line, direction )
                     result.append( ( index, status, str(sms.oa), sms.ud, sms.featureMap ) )
             self._ok( result )
         else:
@@ -799,7 +799,7 @@ class SimRetrieveMessage( SimMediator ):
                     length = int(header.groupdict()["pdulen"])
                 else:
                     # Now we decode the actual PDU
-                    sms = ogsmd.gsm.sms.decodeSMS( line, direction )
+                    sms = ogsmd.gsm.sms.SMS.decode( line, direction )
                     result = ( status, str(sms.oa), sms.ud, sms.featureMap )
 
             self._ok( *result )
@@ -816,7 +816,7 @@ class SimSetServiceCenterNumber( SimMediator ):
 class SimStoreMessage( SimMediator ):
 #=========================================================================#
     def trigger( self ):
-        sms = ogsmd.gsm.sms.AbstractSMS("MO")
+        sms = ogsmd.gsm.sms.SMS("MO")
         sms.pdu_mti = 1
         sms.pid = 0
         sms.dcs = 0
@@ -864,7 +864,7 @@ class SimDeleteMessage( SimMediator ):
 class SmsSendMessage( SmsMediator ):
 #=========================================================================#
     def trigger( self ):
-        sms = ogsmd.gsm.sms.AbstractSMS("MO")
+        sms = ogsmd.gsm.sms.SMS("MO")
         sms.pdu_mti = 1
         sms.pid = 0
         sms.dcs = 0
