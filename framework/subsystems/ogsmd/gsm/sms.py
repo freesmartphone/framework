@@ -297,11 +297,10 @@ class AbstractSMS(object):
     def pdu( self ):
         pdubytes = []
         if self.sca:
-            scabcd = bcd_encode( self.sca.number )
-            pdubytes.append( len(scabcd) + 1 )
-            pdubytes.append( 0x80 | (self.sca.type << 4) | self.sca.dialplan )
+            scabcd = encodePDUNumber( self.sca )
+            # SCA has non-standard length
+            scabcd[0] = len( scabcd ) - 1
             pdubytes.extend( scabcd )
-            # FIXME This won't work with alphanumeric "numbers"
         else:
             pdubytes.append( 0 )
 

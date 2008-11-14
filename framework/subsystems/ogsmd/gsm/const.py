@@ -14,6 +14,7 @@ GSM constants, strings, formats, parse patterns, timeouts, you name it.
 """
 
 import re
+import string
 from ogsmd.helpers import BiDict
 
 import logging
@@ -723,6 +724,9 @@ CB_PDU_DCS_LANGUAGE = [ "German", "English", "Italian", "French", "Spanish",
         "Dutch", "Swedish", "Danish", "Portuguese", "Finnish",
         "Norwegian", "Greek", "Turkish", "Hungarian", "Polish", None]
 
+#=========================================================================#
+PDUADDR_DEC_TRANS = string.maketrans("abcde", "*#abc")
+PDUADDR_ENC_TRANS = string.maketrans("*#abc", "abcde")
 
 #=========================================================================#
 CALL_DIRECTION = { \

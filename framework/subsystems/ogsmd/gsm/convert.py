@@ -14,7 +14,8 @@ Module: convert
 GSM conversion functions.
 """
 from datetime import datetime
-from const import GSMALPHABET, GSMEXTBYTE, GSMEXTALPHABET
+from const import GSMALPHABET, GSMEXTBYTE, GSMEXTALPHABET, \
+		PDUADDR_ENC_TRANS, PDUADDR_DEC_TRANS
 from codecs import register, CodecInfo
 
 #=========================================================================#
@@ -55,6 +56,10 @@ def decodePDUNumber(bs):
 
     else:
         number = bcd_decode(number)
+        # Every occurence of the padding semi-octet should be removed
+        number = number.replace("f", "")
+        # Decode special "digits"
+        number = number.translate(PDUADDR_DEC_TRANS)
     return (num_type, num_plan, number)
 
 #=========================================================================#
@@ -67,8 +72,10 @@ def encodePDUNumber(num):
         if (len(num.number)*7)%8 <= 4:
             length -= 1
     else:
-        enc = bcd_encode(num.number)
-        length = len(num.number)
+        # Encode special "digits"
+        number = num.number.translate(PDUADDR_ENC_TRANS)
+        enc = bcd_encode(number)
+        length = len(number)
     return flatten( [length, 0x80 | num.type << 4 | num.dialplan, enc] )
 
 #=========================================================================#
@@ -83,6 +90,9 @@ def bcd_decode(bs):
 def bcd_encode(number):
 #=========================================================================#
     bcd = []
+    if type(number) is str:
+        # Need to encode with base 16 for the special "digits"
+        number = [int(i, 16) for i in number]
     for i in range(0, len(number)-1, 2):
         bcd.append( int(number[i]) | int(number[i+1]) << 4 )
     if len(number)%2 == 1:
