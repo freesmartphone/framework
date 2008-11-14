@@ -1,6 +1,9 @@
 2008-11-14	Michael Lauer	<mickey@openmoko.org>
 
 	* Implement org.freesmartphone.GSM.Network.GetCountryCode() -> ss
+    * [odeviced] Added kernel26 option called 'fb_blank' (default=1).
+      If you suffer from the Om bug WSOD (white screen of death), try
+      setting this option to 0.
 
 2008-11-02	Michael Lauer	<mickey@openmoko.org>
 
