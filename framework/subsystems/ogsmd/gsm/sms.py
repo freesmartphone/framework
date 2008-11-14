@@ -140,6 +140,8 @@ def parse_userdata( sms, ud_len, bytes ):
 
     if not sms.dcs_alphabet is None:
         sms.ud = userdata.decode( sms.dcs_alphabet )
+    else:
+        sms.ud = userdata
 
 class PDUAddress:
     @classmethod
@@ -420,6 +422,8 @@ class CellBroadcast(AbstractSMS):
         if not self.dcs_alphabet is None:
             # \n is the padding character in CB messages so strip it
             self.ud = userdata.decode( self.dcs_alphabet ).strip("\n")
+        else:
+            self.ud = userdata
 
 
     def _getDCS( self ):
