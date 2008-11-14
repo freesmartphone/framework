@@ -378,27 +378,29 @@ class AbstractSMS(object):
 
     def serviceCenter( self ):
         pass
-    def repr( self ):
+    def __repr__( self ):
         if self.pdu_mti == 0:
-            return """AbstractSMS:
+            return """MT SMS:
 ServiceCenter: %s
 TimeStamp: %s
-PID: %i
+PID: 0x%x
 DCS: 0x%x
 Number: %s
 Headers: %s
+Alphabet: %s
 Message: %s
-""" % (self.sca, self.scts, self.pid, self.dcs, self.oa, self.udh, self.ud)
+""" % (self.sca, self.scts, self.pid, self.dcs, self.oa, self.udh, self.dcs_alphabet, repr(self.ud))
         else:
-            return """AbstractSMS:
+            return """MO SMS:
 ServiceCenter: %s
 Valid: %s
-PID: %i
+PID: 0x%x
 DCS: 0x%x
 Number: %s
 Headers: %s
+Alphabet: %s
 Message: %s
-""" % (self.sca, self.pdu_vpf, self.pid, self.dcs, self.oa, self.udh, self.ud)
+""" % (self.sca, self.pdu_vpf, self.pid, self.dcs, self.oa, self.udh, self.dcs_alphabet, repr(self.ud))
 
 class CellBroadcast(AbstractSMS):
     def __init__(self, pdu):
@@ -501,14 +503,14 @@ class CellBroadcast(AbstractSMS):
 
     dcs = property( _getDCS, _setDCS )
 
-    def repr(self):
+    def __repr__(self):
         return """CellBroadcast
 SN: %i
 MID: %i
 Page: %i
 Alphabet: %s
 Language: %s
-Message: %s""" % (self.sn, self.mid, self.page, self.dcs_alphabet, self.dcs_language, self.ud)
+Message: %s""" % (self.sn, self.mid, self.page, self.dcs_alphabet, self.dcs_language, repr(self.ud))
 
 if __name__ == "__main__":
     import sys
@@ -568,19 +570,20 @@ if __name__ == "__main__":
                 print "ERROR: Reencoded SMS doesn't match"
                 print "Orig PDU: ", pdu
                 print "ReencPDU: ", genpdu
-                print sms.repr()
+                print repr(sms)
                 sms = decodeSMS(genpdu, dir)
-            print sms.repr()
+            print repr(sms)
         except SMSError, e:
             print "%s, PDU was: %s\n" % (e, pdu)
 
     for pdu in pdus_MT:
         testpdu(pdu, "MT")
+
     for pdu in pdus_MO:
         testpdu(pdu, "MO")
 
     for pdu in pdus_CB:
         cb = CellBroadcast(pdu)
-        print cb.repr()
+        print repr(cb)
 
 # vim: expandtab shiftwidth=4 tabstop=4
