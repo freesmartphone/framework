@@ -280,7 +280,7 @@ class QueuedVirtualChannel( VirtualChannel ):
         if "timeout" in kwargs:
             self.timeout = kwargs["timeout"]
         else:
-            self.timeout = 5 # default timeout in seconds
+            self.timeout = 10 # default timeout in seconds
 
         logger.info( "%s: Creating channel with timeout = %d seconds", self, self.timeout )
 
