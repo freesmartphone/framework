@@ -15,6 +15,9 @@ from ogsmd.gsm.convert import *
 from ogsmd.gsm.const import CB_PDU_DCS_LANGUAGE
 import math
 
+class SMSError(Exception):
+    pass
+
 #    ** Dekodieren
 #    smsobject = decodeSMS( pdu )
 #    print "von", smsobject.sender(), "um", smsobject.arrivalTime(), "via" smsobject.serviceCenter(), ...
@@ -29,7 +32,10 @@ import math
 
 def decodeSMS( pdu, direction ):
     # first convert the string into a bytestream
-    bytes = [ int( pdu[i:i+2], 16 ) for i in range(0, len(pdu), 2) ]
+    try:
+        bytes = [ int( pdu[i:i+2], 16 ) for i in range(0, len(pdu), 2) ]
+    except ValueError:
+        raise SMSError, "PDU malformed"
 
     sms = AbstractSMS( direction )
 
@@ -551,15 +557,18 @@ if __name__ == "__main__":
 
 
     def testpdu(pdu, dir):
-        sms = decodeSMS(pdu, dir)
-        genpdu = sms.pdu()
-        if pdu != genpdu:
-            print "ERROR: Reencoded SMS doesn't match"
-            print "Orig PDU: ", pdu
-            print "ReencPDU: ", genpdu
+        try:
+            sms = decodeSMS(pdu, dir)
+            genpdu = sms.pdu()
+            if pdu != genpdu:
+                print "ERROR: Reencoded SMS doesn't match"
+                print "Orig PDU: ", pdu
+                print "ReencPDU: ", genpdu
+                print sms.repr()
+                sms = decodeSMS(genpdu, dir)
             print sms.repr()
-            sms = decodeSMS(genpdu, dir)
-        print sms.repr()
+        except SMSError, e:
+            print "%s, PDU was: %s\n" % (e, pdu)
 
     for pdu in pdus_MT:
         testpdu(pdu, "MT")
