@@ -434,8 +434,8 @@ class Device( resource.Resource ):
     @dbus.service.method( DBUS_INTERFACE_SIM, "ssa{sv}", "i",
                           async_callbacks=( "dbus_ok", "dbus_error" ) )
     @resource.checkedmethod
-    def StoreMessage( self, number, contents, featuremap, dbus_ok, dbus_error ):
-        mediator.SimStoreMessage( self, dbus_ok, dbus_error, number=number, contents=contents, featuremap=featuremap )
+    def StoreMessage( self, number, contents, properties, dbus_ok, dbus_error ):
+        mediator.SimStoreMessage( self, dbus_ok, dbus_error, number=number, contents=contents, properties=properties )
 
     @dbus.service.method( DBUS_INTERFACE_SIM, "i", "i",
                           async_callbacks=( "dbus_ok", "dbus_error" ) )
@@ -463,8 +463,8 @@ class Device( resource.Resource ):
     @dbus.service.method( DBUS_INTERFACE_SMS, "ssa{sv}", "i",
                           async_callbacks=( "dbus_ok", "dbus_error" ) )
     @resource.checkedmethod
-    def SendMessage( self, number, contents, featuremap, dbus_ok, dbus_error ):
-        mediator.SmsSendMessage( self, dbus_ok, dbus_error, number=number, contents=contents, featuremap=featuremap )
+    def SendMessage( self, number, contents, properties, dbus_ok, dbus_error ):
+        mediator.SmsSendMessage( self, dbus_ok, dbus_error, number=number, contents=contents, properties=properties )
 
     @dbus.service.signal( DBUS_INTERFACE_SMS, "ssa{sv}" )
     def IncomingMessage( self, address, text, features ):

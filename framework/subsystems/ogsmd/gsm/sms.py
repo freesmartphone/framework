@@ -294,10 +294,27 @@ class SMS(object):
 
     dcs = property( _getDCS, _setDCS )
 
-    def _getFeatureMap( self ):
-        map = {}
-        map["direction"] = self.direction
+    def _getType( self ):
         if self.direction == "MT":
+            map = TP_MTI_INCOMING
+        elif self.direction == "MO":
+            map = TP_MTI_OUTGOING
+        return map[self.pdu_mti]
+
+    def _setType( self, smstype ):
+        if TP_MTI_INCOMING.has_key(smstype):
+            self.direction = "MT"
+            self.pdu_mti = TP_MTI_INCOMING[smstype]
+        elif TP_MTI_OUTGOING.has_key(smstype):
+            self.direction = "MO"
+            self.pdu_mti = TP_MTI_OUTGOING[smstype]
+
+    type = property( _getType, _setType )
+
+    def _getProperties( self ):
+        map = {}
+        map["type"] = self.type
+        if self.type == "sms-deliver":
             # FIXME Return correct time with timezoneinfo
             map["timestamp"] = self.scts[0].ctime() + " %+05i" % (self.scts[1]*100)
         if 0 in self.udh:
@@ -311,15 +328,15 @@ class SMS(object):
 
         return map
 
-    def _setFeatureMap( self, featureMap ):
-        for k,v in featureMap.items():
+    def _setProperties( self, properties ):
+        for k,v in properties.items():
             if k == "csm_id":
-                if "csm_num" in featureMap and "csm_seq" in featureMap:
-                    self.udh[0] = [ v, featureMap["csm_num"], featureMap["csm_seq"] ]
+                if "csm_num" in properties and "csm_seq" in properties:
+                    self.udh[0] = [ v, properties["csm_num"], properties["csm_seq"] ]
             if k == "port":
                 self.udh[4] = [v]
 
-    featureMap = property( _getFeatureMap, _setFeatureMap )
+    properties = property( _getProperties, _setProperties )
 
     def _getUdhi( self ):
         return self.udh

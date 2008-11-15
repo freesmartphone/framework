@@ -770,7 +770,7 @@ class SimRetrieveMessagebook( SimMediator ):
                     # Now we decode the actual PDU
 
                     sms = ogsmd.gsm.sms.SMS.decode( line, direction )
-                    result.append( ( index, status, str(sms.oa), sms.ud, sms.featureMap ) )
+                    result.append( ( index, status, str(sms.oa), sms.ud, sms.properties ) )
             self._ok( result )
         else:
             SimMediator.responseFromChannel( self, request, response )
@@ -800,7 +800,7 @@ class SimRetrieveMessage( SimMediator ):
                 else:
                     # Now we decode the actual PDU
                     sms = ogsmd.gsm.sms.SMS.decode( line, direction )
-                    result = ( status, str(sms.oa), sms.ud, sms.featureMap )
+                    result = ( status, str(sms.oa), sms.ud, sms.properties )
 
             self._ok( *result )
 
@@ -823,7 +823,7 @@ class SimStoreMessage( SimMediator ):
         # Use PDUAddress
         sms.oa = ogsmd.gsm.sms.PDUAddress.guess( self.number )
         sms.ud = self.contents
-        sms.featureMap = self.featuremap
+        sms.properties = self.properties
         pdu = sms.pdu()
         self._commchannel.enqueue( '+CMGW=%i\r%s' % ( len(pdu)/2-1, pdu), self.responseFromChannel, self.errorFromChannel, timeout=const.TIMEOUT["SIMACCESS"])
 
@@ -871,7 +871,7 @@ class SmsSendMessage( SmsMediator ):
         # Use PDUAddress
         sms.oa = ogsmd.gsm.sms.PDUAddress.guess( self.number )
         sms.ud = self.contents
-        sms.featureMap = self.featuremap
+        sms.properties = self.properties
         pdu = sms.pdu()
         self._commchannel.enqueue( '+CMGS=%i\r%s' % ( len(pdu)/2-1, pdu), self.responseFromChannel, self.errorFromChannel, timeout=const.TIMEOUT["NETWORK"])
 
