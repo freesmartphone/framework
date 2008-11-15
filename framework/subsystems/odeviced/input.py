@@ -115,6 +115,8 @@ class Input( dbus.service.Object, asyncworker.AsyncWorker ):
         events = [ data[i:i+input_event_size] for i in range( 0, len(data), input_event_size ) ]
         for e in events:
             timestamp, microseconds, typ, code, value = struct.unpack( input_event_struct, e )
+            # We need more then just second accuracy
+            timestamp = timestamp + microseconds/1000000.0
             if typ != 0x00: # ignore EV_SYN (synchronization event)
                 self.enqueue( timestamp, typ, code, value )
                 if __debug__: logger.debug( "read %d bytes from fd %d ('%s'): %s" % ( len( data ), source, self.input[source], (typ, code, value) ) )
@@ -146,7 +148,7 @@ class Input( dbus.service.Object, asyncworker.AsyncWorker ):
 
     def callbackKeyHeldTimeout( self, typ, code ):
         timestamp, timeout = self.events[ ( typ, code ) ]
-        self.Event( self.watches[ ( typ, code ) ], "held", int( time.time() ) - timestamp )
+        self.Event( self.watches[ ( typ, code ) ], "held", int( time.time() - timestamp ) )
         return True # call me again, after another second
     #
     # dbus signals
