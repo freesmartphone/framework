@@ -562,6 +562,10 @@ class Device( resource.Resource ):
     @dbus.service.signal( DBUS_INTERFACE_NETWORK, "ss" )
     def IncomingUssd( self, mode, message ):
         logger.info( "org.freesmartphone.GSM.Network.IncomingUssd: %s: %s", mode, message )
+
+    @dbus.service.signal( DBUS_INTERFACE_NETWORK, "ss" )
+    def CipherStatus( self, gsm, gprs ):
+        logger.info( "org.freesmartphone.GSM.Network.CypherStatus: %s: %s", gsm, gprs )
     #
     # dbus org.freesmartphone.GSM.Call
     #

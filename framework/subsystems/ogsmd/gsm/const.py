@@ -803,6 +803,12 @@ NETWORK_USSD_MODE = { \
 }
 
 #=========================================================================#
+NETWORK_CIPHER_STATUS = { \
+    0: "disabled",
+    1: "enabled",
+}
+
+#=========================================================================#
 # PDU TP definitions follow here according to the appearance in GSM 03.40
 # chapter 9.2.3
 TP_MTI_INCOMING = { \

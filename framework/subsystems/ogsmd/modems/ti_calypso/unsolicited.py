@@ -7,7 +7,7 @@ The Open Device Daemon - Python Implementation
 GPLv2 or later
 """
 
-__version__ = "0.8.2"
+__version__ = "0.8.3"
 
 from framework.config import config
 from ogsmd.modems.abstract.unsolicited import AbstractUnsolicitedResponseDelegate
@@ -244,9 +244,10 @@ class UnsolicitedResponseDelegate( AbstractUnsolicitedResponseDelegate ):
 
     # %CPRI: 1,2
     def percentCPRI( self, righthandside ):
-        enabled, cipher = safesplit( righthandside, ',' )
-        logger.warning( "unhandled percentCPRI notice: %s" % righthandside )
-        # FIXME: self._object.EncryptionStatus ...
+        gsm, gprs = safesplit( righthandside, ',' )
+        cipher_gsm = const.NETWORK_CIPHER_STATUS.get( int(gsm), "unknown" )
+        cipher_gprs = const.NETWORK_CIPHER_STATUS.get( int(gprs), "unknown" )
+        self._object.CipherStatus( cipher_gsm, cipher_gprs )
 
     # %CSSN: 1,0,A11502010802013B300D04010F0408AA510C0683C16423
     def percentCSSN( self, righthandside ):
