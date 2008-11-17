@@ -175,6 +175,7 @@ class SMS(object):
         self.pdu_rd = False
         self.pdu_mms = False
         self.udh = {}
+        self.ud = ""
         self.mr = 0
         self.pid = 0
         self.dcs_alphabet = "gsm_default"
