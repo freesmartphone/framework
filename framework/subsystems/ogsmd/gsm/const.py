@@ -75,7 +75,7 @@ def groupDictIfMatch( pattern, string ):
 
 #=========================================================================#
 TIMEOUT = { \
-  "SIMAUTH": 10,
+  "SIMAUTH": 15,
   "SIMACCESS": 10,
   "NETWORK": 10,
   "CFUN": 10,
