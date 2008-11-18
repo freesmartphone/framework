@@ -141,6 +141,8 @@ class IdleNotifier( dbus.service.Object ):
             raise InvalidState( "valid states are: %s" % self.validStates )
         elif timeout is not None:
             self.timeouts[state] = timeout
+            config.setValue(MODULE_NAME, state, timeout)
+            config.sync()
 
     @dbus.service.method( DBUS_INTERFACE, "s", "" )
     def SetState( self, state ):
