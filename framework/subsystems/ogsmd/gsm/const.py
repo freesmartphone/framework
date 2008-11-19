@@ -1034,6 +1034,7 @@ def phonebookTupleToNumber( nstring, ntype ):
     """
 
     # FIXME unknown types seen so far: 185, 208, 255
+    # type128: network TR TCELL appears to use it as 4 digit intracompany calls
     if ntype not in ( 129, 145 ):
         logger.warning( "Out-of-spec GSM number type seen: %s. Please report." % ntype )
 
