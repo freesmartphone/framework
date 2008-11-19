@@ -46,19 +46,19 @@ class Resource( resource.Resource ):
     #
     def _enable( self, on_ok, on_error ):
         logger.info( "enabling" )
-        self._doit( "enabling" )
+        self._doit( "enabling", on_ok, on_error )
 
     def _disable( self, on_ok, on_error ):
         logger.info( "disabling" )
-        self._doit( "disabling" )
+        self._doit( "disabling", on_ok, on_error )
 
     def _suspend( self, on_ok, on_error ):
         logger.info( "suspending" )
-        self._doit( "suspending" )
+        self._doit( "suspending", on_ok, on_error )
 
     def _resume( self, on_ok, on_error ):
         logger.info("resuming")
-        self._doit( "resuming" )
+        self._doit( "resuming", on_ok, on_error )
 
     def _doit( self, category, on_ok, on_error ):
         action = self.catmap[ category ]
