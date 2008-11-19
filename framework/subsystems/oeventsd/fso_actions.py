@@ -302,14 +302,34 @@ class ExternalDBusAction(DBusAction):
     A dbus action on the freesmartphone audio device
     """
     def __init__(self, bus, service, obj, interface, method, *args):
-        dbusBus = None
-        self.bus = bus
-        if bus == "system":
-                dbusBus = dbus.SystemBus()
-        else:
-                dbusBus = dbus.SessionBus()
-        logger.info(str(args))
-        super(ExternalDBusAction, self).__init__(dbusBus, service, obj, interface, method, *args)
+        """Create the DBus action
+
+        arguments:
+        - bus       the DBus bus name (or a string : 'system' | 'session')
+        - service   the DBus name of the service
+        - obj       the DBus path of the object
+        - interface the Dbus interface of the signal
+        - method    the DBus name of the method
+        - args      the arguments for the method
+
+        """
+        # some arguments checking
+        if isinstance(bus, str):
+            if bus == 'system':
+                bus = dbus.SystemBus()
+            elif bus == 'session':
+                bus = dbus.SessionBus()
+            else:
+                raise TypeError("Bad dbus bus : %s" % bus)
+        if not obj:
+            obj = None
+
+        assert isinstance(service, str), "service is not str"
+        assert obj is None or isinstance(obj, str), "obj is not str or None"
+        assert isinstance(interface, str), "interface is not str"
+        assert isinstance(signal, str), "signal is not str"
+        
+        super(ExternalDBusAction, self).__init__(bus, service, obj, interface, method, *args)
 
     def __repr__( self ):
         return "ExternalDBusAction(bus = %s, service = %s, obj = %s, itf = %s, method = %s)" % (self.bus, self.service, self.obj, self.interface, self.method)
