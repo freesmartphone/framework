@@ -104,12 +104,6 @@ class Controller( daemon.Daemon ):
             logger.error( "can't launch without at least one subsystem. Exiting." )
             sys.exit( -1 )
 
-        logger.info( "================== objects registered ===================" )
-        objectnames = Controller.objects.keys()
-        objectnames.sort()
-        for obj in objectnames:
-            logger.info( "%s [%s]" % ( obj, Controller.objects[obj].interface ) )
-
     def launch( self ):
         if self.options.values.daemonize:
             self.start() # daemonize, then run self.run()
