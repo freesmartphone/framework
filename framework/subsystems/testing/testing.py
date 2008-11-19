@@ -22,7 +22,7 @@ import gobject
 import logging
 logger = logging.getLogger( MODULE_NAME )
 
-DBUS_INTERFACE_NETWORK = "org.freesmartphone.Testing"
+DBUS_INTERFACE = "org.freesmartphone.Testing"
 DBUS_OBJECT_PATH = "/org/freesmartphone/Testing"
 
 #============================================================================#
@@ -34,24 +34,57 @@ class Resource( resource.Resource ):
         dbus.service.Object.__init__( self, bus, self.path )
         resource.Resource.__init__( self, bus, "TEST" )
         logger.info("%s %s at %s initialized.", self.__class__.__name__, __version__, self.path )
+
+        # default behaviour: everything works
+        self.catmap = { "enabling":"ok",
+                        "disabling":"ok",
+                        "suspending":"ok",
+                        "resuming":"ok" }
+
     #
     # framework.Resource
     #
     def _enable( self, on_ok, on_error ):
         logger.info( "enabling" )
-        on_ok()
+        self._doit( "enabling" )
 
     def _disable( self, on_ok, on_error ):
         logger.info( "disabling" )
-        on_ok()
+        self._doit( "disabling" )
 
     def _suspend( self, on_ok, on_error ):
         logger.info( "suspending" )
-        on_ok()
+        self._doit( "suspending" )
 
     def _resume( self, on_ok, on_error ):
         logger.info("resuming")
-        on_ok()
+        self._doit( "resuming" )
+
+    def _doit( self, category, on_ok, on_error ):
+        action = self.catmap[ category ]
+        if action == "ok":
+            on_ok()
+        elif action == "error":
+            on_error( "unspecified" )
+        elif action == "veto":
+            on_error( resource.SuspendVeto( "not allowed to suspend this resource" ) )
+        else:
+            foobar
+    #
+    # dbus interface
+    #
+    @dbus.service.method( DBUS_INTERFACE, "", "",
+                          async_callbacks=( "dbus_ok", "dbus_error" ) )
+    def SetResourceBehaviour( self, category, behaviour, dbus_ok, dbus_error ):
+        try:
+            value = self.catmap[category]
+        except KeyError:
+            dbus_error( "unknown category, valid categories are: %s" % self.catmap.keys() )
+        else:
+            if behaviour not in "ok error veto".split():
+                dbus_error( "unknown behaviour. valid behaviours are: ok error veto" )
+            self.catmap[category] = str( behaviour )
+            dbus_ok()
 
 #============================================================================#
 def factory(prefix, controller):

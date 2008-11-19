@@ -51,6 +51,11 @@ class ResourceNotEnabled( dbus.DBusException ):
     _dbus_error_name = "org.freesmartphone.Resource.NotEnabled"
 
 #----------------------------------------------------------------------------#
+class ResourceSuspendVeto( dbus.DBusException ):
+#----------------------------------------------------------------------------#
+    _dbus_error_name = "org.freesmartphone.Resource.SuspendVeto"
+
+#----------------------------------------------------------------------------#
 class Resource( dbus.service.Object ):
 #----------------------------------------------------------------------------#
     """
