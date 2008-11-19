@@ -13,7 +13,7 @@ Module: resource
 """
 
 MODULE_NAME = "frameworkd.resource"
-__version__ = "0.3.0"
+__version__ = "0.3.1"
 
 from framework.patterns import decorator
 
@@ -49,6 +49,16 @@ def checkedsyncmethod(f, *args, **kw):
 class ResourceNotEnabled( dbus.DBusException ):
 #----------------------------------------------------------------------------#
     _dbus_error_name = "org.freesmartphone.Resource.NotEnabled"
+
+#----------------------------------------------------------------------------#
+class ResourceError( dbus.DBusException ):
+#----------------------------------------------------------------------------#
+    _dbus_error_name = "org.freesmartphone.Resource.Error"
+
+#----------------------------------------------------------------------------#
+class ResourceSuspendVeto( dbus.DBusException ):
+#----------------------------------------------------------------------------#
+    _dbus_error_name = "org.freesmartphone.Resource.SuspendVeto"
 
 #----------------------------------------------------------------------------#
 class Resource( dbus.service.Object ):
@@ -116,30 +126,36 @@ class Resource( dbus.service.Object ):
 
     # callback factory
     def cbFactory( self, next, dbus_callback, *args ):
-        def status_callback( self=self, next=next, dbus_callback=dbus_callback, *args ):
+        def status_callback( next=next, dbus_callback=dbus_callback, self=self, args=args ):
+            #print "args are: %s" % repr(args)
+            #import inspect
+            #print inspect.getargspec( dbus_callback )
             self._updateResourceStatus( next )
-            dbus_callback( *args )
+            if len( args ):
+                dbus_callback( *args )
+            else:
+                dbus_callback()
         return status_callback
 
     # The DBus methods update the resource status and call the python implementation
     @dbus.service.method( DBUS_INTERFACE, "", "", async_callbacks=( "dbus_ok", "dbus_error" ) )
     def Enable( self, dbus_ok, dbus_error ):
         ok_callback = self.cbFactory( "enabled", dbus_ok )
-        err_callback = self.cbFactory( self._resourceStatus, dbus_error, "could not enable resource" )
+        err_callback = self.cbFactory( self._resourceStatus, dbus_error, ResourceError( "could not enable resource" ) )
         self._updateResourceStatus( "enabling" )
         self._enable( ok_callback, err_callback )
 
     @dbus.service.method( DBUS_INTERFACE, "", "", async_callbacks=( "dbus_ok", "dbus_error" ) )
     def Disable( self, dbus_ok, dbus_error ):
         ok_callback = self.cbFactory( "disabled", dbus_ok )
-        err_callback = self.cbFactory( self._resourceStatus, dbus_error, "could not disable resource" )
+        err_callback = self.cbFactory( self._resourceStatus, dbus_error, ResourceError( "could not disable resource" ) )
         self._updateResourceStatus( "disabling" )
         self._disable( ok_callback, err_callback )
 
     @dbus.service.method( DBUS_INTERFACE, "", "", async_callbacks=( "dbus_ok", "dbus_error" ) )
     def Suspend( self, dbus_ok, dbus_error ):
         ok_callback = self.cbFactory( "suspended", dbus_ok )
-        err_callback = self.cbFactory( self._resourceStatus, dbus_error, "could not suspend resource" )
+        err_callback = self.cbFactory( self._resourceStatus, dbus_error, ResourceError( "could not suspend resource" ) )
         # FIXME: What do we do if status is disabling?
         if self._resourceStatus == "disabled":
             dbus_ok()
@@ -150,7 +166,7 @@ class Resource( dbus.service.Object ):
     @dbus.service.method( DBUS_INTERFACE, "", "", async_callbacks=( "dbus_ok", "dbus_error" ) )
     def Resume( self, dbus_ok, dbus_error ):
         ok_callback = self.cbFactory( "enabled", dbus_ok )
-        err_callback = self.cbFactory( self._resourceStatus, dbus_error, "could not resume resource" )
+        err_callback = self.cbFactory( self._resourceStatus, dbus_error, ResourceError( "could not resume resource" ) )
         if self._resourceStatus == "disabled":
             dbus_ok()
         else:
