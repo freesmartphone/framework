@@ -293,3 +293,24 @@ class SuspendAction(DBusAction):
         interface = 'org.freesmartphone.Usage'
         super(SuspendAction, self).__init__(bus, service, obj, interface, 'Suspend')
 
+#============================================================================#
+class ExternalDBusAction(DBusAction):
+#============================================================================#
+    function_name = "ExternalDBusAction"
+
+    """
+    A dbus action on the freesmartphone audio device
+    """
+    def __init__(self, bus, service, obj, interface, method, *args):
+        dbusBus = None
+        self.bus = bus
+        if bus == "system":
+                dbusBus = dbus.SystemBus()
+        else:
+                dbusBus = dbus.SessionBus()
+        logger.info(str(args))
+        super(ExternalDBusAction, self).__init__(dbusBus, service, obj, interface, method, *args)
+
+    def __repr__( self ):
+        return "ExternalDBusAction(bus = %s, service = %s, obj = %s, itf = %s, method = %s)" % (self.bus, self.service, self.obj, self.interface, self.method)
+
