@@ -1,6 +1,3 @@
 
-# Those values are just here to test the preferences service,
-# They are not actually used yet
-
 ring-volume: 0
-
+message-volume: 0
