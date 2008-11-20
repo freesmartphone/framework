@@ -41,6 +41,9 @@
 * Deep Sleep Mode is broken. If you suffer from permament recamping (+CREG: 0, then +CREG: 1,...), then you
   need to issue the (completely undocumented) command AT%SLEEP=2 (disable deep sleep). AT%SLEEP=4 enables deep sleep.
 
+* Sometimes on outgoing calls %CPI with message type of 9 (setup MO call) wont get sent. For outgoing call progress
+  detection one should rather rely on %CPI with message type 3 (call proceed)
+
 === GSM standards violations ===
 
 * None found yet
