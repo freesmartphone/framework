@@ -208,8 +208,14 @@ class UnsolicitedResponseDelegate( AbstractUnsolicitedResponseDelegate ):
         if line:
             info["line"] = int( line )
 
+        # Always report the direction
+        if direction == "0":
+            info.update ( { "direction": "outgoing" } )
+        elif direction == "1":
+            info.update ( { "direction": "incoming" } )
+
         if msgType == "0": # setup (MT)
-            info.update ( { "status": "incoming", "direction": "incoming" } )
+            info.update ( { "status": "incoming" } )
         elif msgType == "6": # connected (MO & MT)
             info.update( { "status": "active" } )
         elif msgType == "1": # disconnected (MO & MT)
@@ -218,8 +224,10 @@ class UnsolicitedResponseDelegate( AbstractUnsolicitedResponseDelegate ):
         elif msgType == "8": # network reject (MO)
             info.update( { "status": "release", "reason": "no service" } )
         elif msgType == "9": # request (MO)
-            info.update( { "status": "outgoing", "direction": "outgoing" } )
-        if msgType in ( "01689" ):
+            info.update( { "status": "outgoing" } )
+        elif msgType == "3": # Sometimes setup is not sent?!
+            info.update( { "status": info["direction"] } )
+        if msgType in ( "013689" ):
             self._mediator.callHandler.statusChangeFromNetwork( int(callId), info )
 
     # %CSSN: 1,0,A11502010802013B300D04010F0408AA510C0683C16423
