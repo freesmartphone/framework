@@ -22,6 +22,7 @@ from .unsolicited import UnsolicitedResponseDelegate
 
 from ogsmd.gsm.decor import logged
 from ogsmd.gsm.channel import AtCommandChannel
+from ogsmd.helpers import writeToFile
 
 import subprocess
 
@@ -111,3 +112,18 @@ class TiCalypso( AbstractModem ):
                     'usepeerdns' ]
         else:
             return []
+
+    def prepareForSuspend( self, ok_callback, error_callback ):
+        """overridden for internal purposes"""
+
+        # FIXME still no error handling here
+
+        def post_ok( ok_callback=ok_callback ):
+            writeToFile( "/sys/devices/platform/neo1973-pm-gsm.0/flowcontrolled", "1" )
+            ok_callback()
+
+        AbstractModem.prepareForSuspend( self, post_ok, error_callback )
+
+    def recoverFromSuspend( self, ok_callback, error_callback ):
+        writeToFile( "/sys/devices/platform/neo1973-pm-gsm.0/flowcontrolled", "0" )
+        AbstractModem.recoverFromSuspend( self, ok_callback, error_callback )

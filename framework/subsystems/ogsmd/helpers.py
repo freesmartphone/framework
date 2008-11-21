@@ -12,8 +12,24 @@ Module: helpers
 
 """
 
-# A split function which is quote sign aware
+import logging
+logger = logging.getLogger('ogsmd')
+
+#========================================================================#
+def writeToFile( path, value ):
+#========================================================================#
+    logger.debug( "(writing '%s' to '%s')" % ( value, path ) )
+    try:
+        f = open( path, 'w' )
+    except IOError, e:
+        logger.warning( "(could not write to '%s': %s)" % ( path, e ) )
+    else:
+        f.write( "%s\n" % value )
+
+#=========================================================================#
 def safesplit( string, delim, max=-1 ):
+#=========================================================================#
+    """A split function which is quote sign aware"""
     items = string.split(delim)
     safeitems = []
     safeitem = ""
@@ -26,7 +42,6 @@ def safesplit( string, delim, max=-1 ):
         return safeitems[:max] + [delim.join(safeitems[max:])]
     else:
         return safeitems
-
 
 #=========================================================================#
 class BiDict( object ):
