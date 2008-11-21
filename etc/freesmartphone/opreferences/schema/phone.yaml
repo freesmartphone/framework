@@ -7,6 +7,16 @@ ring-volume:
     profilable: yes
     default: 10
 
+ring-loop:
+    type: int
+    profilable: yes
+    default: 0
+
+ring-length:
+    type: int
+    profilable: yes
+    default: 0
+
 message-tone:
     type: str
     profilable: yes
@@ -15,4 +25,14 @@ message-volume:
     type: int
     profilable: yes
     default: 10
+
+message-loop:
+    type: int
+    profilable: yes
+    default: 0
+
+message-length:
+    type: int
+    profilable: yes
+    default: 0
 

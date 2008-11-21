@@ -11,7 +11,7 @@ Module: audio
 """
 
 MODULE_NAME = "odeviced.audio"
-__version__ = "0.4.3"
+__version__ = "0.5.0"
 
 from framework.config import config
 from framework.patterns import asyncworker
@@ -151,12 +151,19 @@ class GStreamerPlayer( Player ):
             return True
 
     def _onMessage( self, bus, message, name ):
-        pipeline, status, repeat, ok_cb, error_cb = self.pipelines[name]
+        pipeline, status, loop, length, ok_cb, error_cb = self.pipelines[name]
+        logger.debug( "GST message received while file status = %s" % status )
         t = message.type
         if t == gst.MESSAGE_EOS:
-            logger.debug( "G: EOS" )
-            pipeline.set_state(gst.STATE_NULL)
-            del self.pipelines[name]
+            # shall we restart?
+            if loop:
+                logger.debug( "G: EOS -- restarting stream" )
+                pipeline.seek_simple( gst.FORMAT_TIME, gst.SEEK_FLAG_FLUSH, 0 )
+            else:
+                logger.debug( "G: EOS" )
+                self._updateSoundStatus( name, "stopped" )
+                pipeline.set_state( gst.STATE_NULL )
+                del self.pipelines[name]
 
         elif t == gst.MESSAGE_ERROR:
             pipeline.set_state(gst.STATE_NULL)
@@ -168,27 +175,47 @@ class GStreamerPlayer( Player ):
         elif t == gst.MESSAGE_STATE_CHANGED:
             previous, current, pending = message.parse_state_changed()
             logger.debug( "G: STATE NOW: (%s) -> %s -> (%s)" % ( previous, current, pending ) )
-            if previous == gst.STATE_PAUSED and current == gst.STATE_PLAYING:
+
+            if ( previous, current, pending ) == ( gst.STATE_READY, gst.STATE_PAUSED, gst.STATE_PLAYING ):
                 self._updateSoundStatus( name, "playing" )
                 ok_cb()
-            elif previous == gst.STATE_PAUSED and current == gst.STATE_PLAYING:
-                self._updateSoundStatus( name, "paused" )
-                # ok_cb()
-            elif previous == gst.STATE_PAUSED and current == gst.STATE_READY:
+                if length:
+                    logger.debug( "adding timeout for %s of %d seconds" % ( name, length ) )
+                    gobject.timeout_add_seconds( length, self._playTimeoutReached, name )
+            elif ( previous, current, pending ) == ( gst.STATE_PLAYING, gst.STATE_PAUSED, gst.STATE_READY ):
                 self._updateSoundStatus( name, "stopped" )
                 pipeline.set_state( gst.STATE_NULL )
                 del self.pipelines[name]
                 # ok_cb()
+            else: # uninteresting state change
+                pass
         else:
             logger.debug( "G: UNHANDLED: %s" % t )
 
+    def _playTimeoutReached( self, name ):
+        try:
+            pipeline, status, loop, length, ok_cb, error_cb = self.pipelines[name]
+        except KeyError: # might have vanished in the meantime?
+            logger.warning( "audio pipeline for %s has vanished before timer could fire" % name )
+            return False
+        previous, current, next = pipeline.get_state()
+        logger.debug( "custom player timeout for %s reached, state is %s" % ( name, current ) )
+        if loop:
+            pipeline.set_state( gst.STATE_NULL )
+            del self.pipelines[name]
+            self.task_play( lambda: None, lambda foo: None, name, loop, length )
+            #pipeline.seek_simple( gst.FORMAT_TIME, gst.SEEK_FLAG_FLUSH, 0 )
+        else:
+            self.task_stop( lambda: None, lambda foo: None, name )
+        return False # don't call us again, mainloop
+
     def _updateSoundStatus( self, name, newstatus ):
-        pipeline, status, repeat, ok_cb, error_cb = self.pipelines[name]
+        pipeline, status, loop, length, ok_cb, error_cb = self.pipelines[name]
         if newstatus != status:
-            self.pipelines[name] = pipeline, newstatus, repeat, ok_cb, error_cb
+            self.pipelines[name] = pipeline, newstatus, loop, length, ok_cb, error_cb
             self._object.SoundStatus( name, newstatus, {} )
 
-    def task_play( self, ok_cb, error_cb, name, repeat ):
+    def task_play( self, ok_cb, error_cb, name, loop, length ):
         if name in self.pipelines:
             error_cb( AlreadyPlaying( name ) )
         else:
@@ -218,7 +245,7 @@ class GStreamerPlayer( Player ):
                     bus = pipeline.get_bus()
                     bus.add_signal_watch()
                     bus.connect( "message", self._onMessage, name )
-                    self.pipelines[name] = ( pipeline, "unknown", repeat, ok_cb, error_cb )
+                    self.pipelines[name] = ( pipeline, "unknown", loop, length, ok_cb, error_cb )
                     pipeline.set_state( gst.STATE_PLAYING )
 
     def task_stop( self, ok_cb, error_cb, name ):
@@ -355,10 +382,10 @@ class Audio( dbus.service.Object ):
     #
     # dbus sound methods
     #
-    @dbus.service.method( DBUS_INTERFACE, "s", "",
+    @dbus.service.method( DBUS_INTERFACE, "sii", "",
                           async_callbacks=( "dbus_ok", "dbus_error" ) )
-    def PlaySound( self, name, dbus_ok, dbus_error ):
-        self.player.enqueueTask( dbus_ok, dbus_error, "play", name, False )
+    def PlaySound( self, name, loop, length, dbus_ok, dbus_error ):
+        self.player.enqueueTask( dbus_ok, dbus_error, "play", name, loop, length )
 
     @dbus.service.method( DBUS_INTERFACE, "s", "",
                           async_callbacks=( "dbus_ok", "dbus_error" ) )
