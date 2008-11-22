@@ -13,7 +13,7 @@ Module: generic
 """
 
 MODULE_NAME = "ousaged"
-__version__ = "0.5.1"
+__version__ = "0.5.2"
 
 DBUS_INTERFACE_PREFIX = "org.freesmartphone.Usage"
 DBUS_PATH_PREFIX = "/org/freesmartphone/Usage"
@@ -285,18 +285,22 @@ class GenericUsageControl( dbus.service.Object ):
     @tasklet.tasklet
     def _suspend( self ):
         """The actual suspending tasklet"""
-        logger.info( "suspending all resources" )
+        logger.info( "suspending all resources..." )
         for resource in self.resources.values():
             logger.debug( "suspending %s", resource.name )
             yield resource._suspend()
+        logger.info( "...completed - triggering kernel suspend" )
+
+        # FIXME return 'ok' to the caller
 
         # FIXME Play apmd and then use the sysfs interface
         os.system( "apm -s" )
 
-        logger.info( "resuming all resources" )
+        logger.info( "kernel has resumed - resuming resources..." )
         for resource in self.resources.values():
             logger.debug( "resuming %s", resource.name )
             yield resource._resume()
+        logger.info( "...completed." )
 
     def _nameOwnerChangedHandler( self, name, old_owner, new_owner ):
         if old_owner and not new_owner:
