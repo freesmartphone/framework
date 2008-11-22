@@ -14,6 +14,8 @@ This module provides communication channel abstractions that
 transport their data over a (virtual) serial line.
 """
 
+__version__ = "0.9.9"
+
 from ogsmd.gsm.decor import logged
 import parser
 
@@ -156,6 +158,8 @@ class VirtualChannel( object ):
             gobject.source_remove( self.watchReadyToSend )
         if self.watchReadyToRead:
             gobject.source_remove( self.watchReadyToRead )
+        if self.watchHUP:
+            gobject.source_remove( self.watchHUP )
         if self.serial.isOpen():
             self.serial.close()
         self.connected = self.serial.isOpen()
