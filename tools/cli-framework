@@ -94,6 +94,12 @@ gps = getObject( "org.freesmartphone.ogpsd", "/org/freedesktop/Gypsy" )
 # usage device object
 usage = getObject( "org.freesmartphone.ousaged", "/org/freesmartphone/Usage" )
 
+# network
+network = getInterface( \
+    "org.freesmartphone.onetworkd",
+    "/org/freesmartphone/Network",
+    "org.freesmartphone.Network" )
+
 # testing
 testing = getInterface( \
     "org.freesmartphone.testing",
