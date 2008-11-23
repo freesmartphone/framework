@@ -15,6 +15,7 @@ __version__ = "0.0.0"
 
 from network import theNetwork
 from helpers import isValidAddress, writeToFile
+import dhcp
 
 import dbus
 import dbus.service
@@ -54,9 +55,9 @@ class ConnectionSharing( dbus.service.Object ):
     #
     # dbus org.freesmartphone.Network
     #
-    @dbus.service.method( DBUS_INTERFACE_NETWORK, "ss", "",
+    @dbus.service.method( DBUS_INTERFACE_NETWORK, "s", "",
                           async_callbacks=( "dbus_ok", "dbus_error" ) )
-    def ShareConnection( self, interface, address, dbus_ok, dbus_error ):
+    def StartConnectionSharingWithInterface( self, interface, dbus_ok, dbus_error ):
         """
 
         This should be roughly equivalent to:
@@ -66,6 +67,9 @@ class ConnectionSharing( dbus.service.Object ):
         iptables -I OUTPUT 1 -s 192.168.0.202 -j ACCEPT
         iptables -A POSTROUTING -t nat -j MASQUERADE -s 192.168.0.0/24
         echo 1 > /proc/sys/net/ipv4/ip_forward
+
+        <prepare udhcpd configuration>
+        <launch udhcpd>
         """
 
         try:
@@ -85,7 +89,7 @@ class ConnectionSharing( dbus.service.Object ):
         # FIXME use dhcp daemon
 
         commands = []
-        commands.append( "iptables -I INPUT 1 -s %s -j ACCEPT" % target_address )
+        commands.append( "iptables -I INPUT 1 -s 192.168.0.0/24 -j ACCEPT" )
         commands.append( "iptables -I OUTPUT 1 -s %s -j ACCEPT" % source_address )
         commands.append( "iptables -A POSTROUTING -t nat -j MASQUERADE -s 192.168.0.0/24" )
 
@@ -97,7 +101,19 @@ class ConnectionSharing( dbus.service.Object ):
                 dbus_error( InternalError( "%s gave returncode %d" % ( command, result ) ) )
                 return
         writeToFile( "/proc/sys/net/ipv4/ip_forward", "1" )
+
+
+        dhcp.prepareDaemonConfigurationForInterface( iface )
+        dhcp.launchDaemon()
+
         dbus_ok()
+
+    def StopConnectionSharing( self, interface, dbus_ok, dbus_error ):
+
+        """
+        stop dhcpd daemons
+        clear iptables
+        """
 
 #============================================================================#
 def factory(prefix, controller):

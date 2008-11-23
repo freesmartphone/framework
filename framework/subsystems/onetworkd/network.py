@@ -51,6 +51,9 @@ class Interface( object ):
     def __init__( self, name ):
         self._name = name
 
+    def name( self ):
+        return self.name
+
     def ipAddress4( self ):
         s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         return socket.inet_ntoa(fcntl.ioctl(
