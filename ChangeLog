@@ -1,3 +1,29 @@
+2008-11-23	Michael Lauer	<mickey@openmoko.org>
+
+	* [ogsmd] Added reinit method to abstract modem class,
+	   added hook for handling a HUP in the low level channel class,
+	   added reinitializing the TI Calypso modem class whenever
+	   a HUP on any MUXer channel has been detected (which means
+	   that the gsm0710muxd has probably been killed).
+	   NOTE: We now survive a killall gsm0710muxd transparently!
+
+2008-11-21	Michael Lauer	<mickey@openmoko.org>
+
+	* [odeviced] Fixed a couple of problems in the Audio problem and support new features
+	  such as a loop parameter and an optional length override (time in seconds).
+	  NOTE: Some codecs (i.e. machine emulators such as siddec) can not find out
+	  when a song ends, hence it will play forever until you stop it (or give
+	  it a length override, which is now possible).
+	  WARNING: API breakage in org.freesmartphone.Device.Audio.PlaySound()
+	* [oeventsd]: catch up with API breakage in odeviced/audio
+	* [rules]: override length for SID ring and message tunes
+
+This fixes FSO ticket #247 and the message notification tone only working
+
+for the first time in ms4(.1)
+
+NOTE: More stress-tests for the audio API necessary
+
 2008-11-19	Tobias Gruetzmacher	<tobias-lists@23.gs>
 
 	* Support audio file options in org.freesmartphone.Device.Audio

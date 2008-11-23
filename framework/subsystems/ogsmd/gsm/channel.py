@@ -14,7 +14,7 @@ This module provides communication channel abstractions that
 transport their data over a (virtual) serial line.
 """
 
-__version__ = "0.9.9"
+__version__ = "0.9.9.1"
 
 from ogsmd.gsm.decor import logged
 import parser
@@ -188,6 +188,10 @@ class VirtualChannel( object ):
         """Override, if special handling is necessary after reading."""
         pass
 
+    def _hookHandleHupCondition( self ):
+        """Override, if special handling is necessary on HUP."""
+        pass
+
     #
     # private API
     #
@@ -196,11 +200,11 @@ class VirtualChannel( object ):
         """Called, if there is a HUP condition on the source."""
         assert source == self.serial.fd, "HUP on bogus source"
         assert condition == gobject.IO_HUP, "HUP on bogus condition"
-        logger.info( "%s: HUP on socket, trying to recover", self )
-        self.close()
-        time.sleep( 1 )
-        self.open()
-        return True
+        logger.info( "%s: HUP on socket" % self )
+
+        self._hookHandleHupCondition()
+
+        return True # gobject, call me again
 
     def _readyToRead( self, source, condition ):
         """Called, if data is available on the source."""
@@ -215,11 +219,11 @@ class VirtualChannel( object ):
             inWaiting = 0
             # should we really continue here?
         data = self.serial.read( inWaiting )
-        logger.debug( "%s: got %d bytes from: %s", self, len(data), repr(data) )
+        logger.debug( "%s: got %d bytes from: %s" % ( self, len(data), repr(data) ) )
         self.readyToRead( data )
 
         self._hookPostReading()
-        return True
+        return True # gobject, call me again
 
     def _readyToSend( self, source, condition ):
         """Called, if source is ready to receive data."""
@@ -231,7 +235,7 @@ class VirtualChannel( object ):
         self.watchReadyToSend = None
         self._hookPostSending()
 
-        return False
+        return False # gobject, don't call me again
 
     def _slowButCorrectWrite( self, data ):
         """

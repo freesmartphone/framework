@@ -95,6 +95,12 @@ class CalypsoModemChannel( AbstractModemChannel ):
 
         return True
 
+    #
+    # TI Calypso has a deep sleep mode, effective after 8 seconds,
+    # from which we need to wake up by sending a special character
+    # (plus a small waiting time)
+    #
+
     def _hookPreReading( self ):
         if CalypsoModemChannel.modem_communication_timestamp:
             CalypsoModemChannel.modem_communication_timestamp = time.time()
@@ -114,6 +120,16 @@ class CalypsoModemChannel( AbstractModemChannel ):
     def _hookPostSending( self ):
         if CalypsoModemChannel.modem_communication_timestamp:
             CalypsoModemChannel.modem_communication_timestamp = time.time()
+
+    #
+    # Since we are using a multiplexer, a hang-up condition on one channel is a good indication
+    # that the underlying multiplexer died. In this case, we need to completely reinit
+    #
+
+    def _hookHandleHupCondition( self ):
+        logger.warning( "HUP condition on modem channel. The multiplexer is probably dead. Launching reinit..." )
+        logger.debug( "Closing the modem..." )
+        self._modem.reinit()
 
 #=========================================================================#
 class CallChannel( CalypsoModemChannel ):

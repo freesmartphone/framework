@@ -13,12 +13,16 @@ Module: modem
 
 # FIXME: The modem should really be a sigleton
 
+__version__ = "0.9.9.1"
+MODULE_NAME = "ogsmd.modem.abstract"
+
+
 from ogsmd.gsm.decor import logged
 
 import gobject
 
 import logging
-logger = logging.getLogger( "ogsmd.modem.abstract" )
+logger = logging.getLogger( MODULE_NAME )
 
 #=========================================================================#
 class AbstractModem( object ):
@@ -69,6 +73,17 @@ class AbstractModem( object ):
         for channel in self._channels.values():
             # FIXME: We're throwing away the result here :/
             channel.close()
+
+    def reinit( self ):
+        """
+        Closes and reopens the communication channels, also triggering
+        resending the initialization commands on every channel.
+        """
+        self.close()
+        for channel in self._channels.values():
+            channel._sendCommands( "init" ) # just enqueues them for later
+        # FIXME no error handling yet
+        self.open( lambda: None, lambda foo: None )
 
     def data( self, key, defaultValue=None ):
         return self._data.get( key, defaultValue )
