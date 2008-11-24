@@ -1,6 +1,6 @@
 #!/usr/bin/python -N
 """
-framework tests
+Framework Test Framework (sic!)
 
 (C) 2008 Guillaume 'Charlie' Chereau <charlie@openmoko.org>
 (C) 2008 Michael 'Mickey' Lauer <mlauer@vanille-media.de>
@@ -24,10 +24,12 @@ from framework.patterns.tasklet import Tasklet, Sleep
 config = ConfigParser.ConfigParser()
 config.readfp(open('tests.conf'))
 
+#=========================================================================#
 def taskletTest(func):
+#=========================================================================#
     """decorator that turn a test into a tasklet
-    
-    The decorator will also take care of starting and stopping the mainloop 
+
+    The decorator will also take care of starting and stopping the mainloop
     """
     def ret(*args):
         loop = gobject.MainLoop()
@@ -50,12 +52,14 @@ def taskletTest(func):
     ret.__name__ = func.__name__
     ret.__doc__ = func.__doc__
     return ret
-    
+
+#=========================================================================#
 def request(*conds):
+#=========================================================================#
     """This decorator can be used to skip some tests if a test condition if not satisfy
-    
+
     It is useful for testing without sim card, or operator to answer questions, etc...
-    
+
     You can call it with two arguments :
      option : string of the form <section>.<option>
      value  : the value of the config option
@@ -69,7 +73,7 @@ def request(*conds):
     # If we call with a single condition, turn it into a list of conditions
     if isinstance(conds[0], str):
         conds = (conds,)
-        
+
     # Now we check all the conditions one bye one
     # I a single condition fails, then we skip the test
     skipped = False
@@ -102,28 +106,30 @@ def request(*conds):
         ret.__doc__ = "%s : SKIPPED (need %s)" % (func.__doc__ or func.__name__, conds)
         return ret
     return _request
-    
-    
-    
+
+#=========================================================================#
 class TestTest(unittest.TestCase):
+#=========================================================================#
     """Test the test system itself"""
     def setUp(self):
         self.setup =True
-        
+
     def tearDown(self):
         pass
-    
+
     def test_setup(self):
         """Test that we did set up the test"""
         assert self.setup
-        
+
     @taskletTest
     def test_tasklet(self):
         """Test a tasklet test"""
         yield Sleep(1)
         yield True
-        
+
+#=========================================================================#
 def check_debug_mode():
+#=========================================================================#
     """Exit the program if we are not in debug mode"""
     try:
         assert False
@@ -133,8 +139,10 @@ def check_debug_mode():
         print 'You need to run this in debug mode (-N option on neo)'
         import sys
         sys.exit(-1)
-        
+
+#=========================================================================#
 class Operator(object):
+#=========================================================================#
     """Class used to communicate with the test operator during the tests"""
     def query(self, question):
         """Ask a y/n question to the operator"""
@@ -150,11 +158,12 @@ class Operator(object):
 
 operator = Operator()
 
-    
 # We check for the debug mode
 check_debug_mode()
-        
+
+#=========================================================================#
 if __name__ == '__main__':
+#=========================================================================#
     # This list all the modules containing the tests we want to run
     # TODO: provide command line arguments like in Mikey ogsmd test script
     modules = ['test', 'opreferencesd', 'sim', 'opimd', 'ogsmd2', 'oevents']
