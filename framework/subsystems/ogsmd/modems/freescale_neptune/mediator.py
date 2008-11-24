@@ -31,6 +31,25 @@ del mediator
 # add overrides here
 
 #=========================================================================#
+class DeviceGetInfo( DeviceMediator ):
+#=========================================================================#
+    """
+    EZX not implementing any of +CGMR;+CGMM;+CGMI -- only +CGSN is supported
+    """
+    def trigger( self ):
+        self._commchannel.enqueue( "+CGSN", self.responseFromChannel, self.errorFromChannel )
+
+    @logged
+    def responseFromChannel( self, request, response ):
+        if response[-1] != "OK":
+            DeviceMediator.responseFromChannel( self, request, response )
+        else:
+            result = { "manufacturer": "Motorola",
+                       "model": "Neptune Freescale Modem",
+                       "imei": self._rightHandSide( response[0] ).strip( '"' ) }
+            self._ok( result )
+
+#=========================================================================#
 class SimSendAuthCode( SimMediator ):
 #=========================================================================#
     """
