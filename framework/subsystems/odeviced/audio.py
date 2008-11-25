@@ -11,7 +11,7 @@ Module: audio
 """
 
 MODULE_NAME = "odeviced.audio"
-__version__ = "0.5.0.1"
+__version__ = "0.5.1.1"
 
 from framework.config import config
 from framework.patterns import asyncworker
@@ -32,37 +32,37 @@ except ImportError:
 #----------------------------------------------------------------------------#
 class UnknownFormat( dbus.DBusException ):
 #----------------------------------------------------------------------------#
-    _dbus_error_name = "org.freesmartphone.Audio.UnknownFormat"
+    _dbus_error_name = "org.freesmartphone.Device.Audio.UnknownFormat"
 
 #----------------------------------------------------------------------------#
 class PlayerError( dbus.DBusException ):
 #----------------------------------------------------------------------------#
-    _dbus_error_name = "org.freesmartphone.Audio.PlayerError"
+    _dbus_error_name = "org.freesmartphone.Device.Audio.PlayerError"
 
 #----------------------------------------------------------------------------#
 class NotPlaying( dbus.DBusException ):
 #----------------------------------------------------------------------------#
-    _dbus_error_name = "org.freesmartphone.Audio.NotPlaying"
+    _dbus_error_name = "org.freesmartphone.Device.Audio.NotPlaying"
 
 #----------------------------------------------------------------------------#
 class AlreadyPlaying( dbus.DBusException ):
 #----------------------------------------------------------------------------#
-    _dbus_error_name = "org.freesmartphone.Audio.AlreadyPlaying"
+    _dbus_error_name = "org.freesmartphone.Device.Audio.AlreadyPlaying"
 
 #----------------------------------------------------------------------------#
 class ScenarioInvalid( dbus.DBusException ):
 #----------------------------------------------------------------------------#
-    _dbus_error_name = "org.freesmartphone.Audio.ScenarioInvalid"
+    _dbus_error_name = "org.freesmartphone.Device.Audio.ScenarioInvalid"
 
 #----------------------------------------------------------------------------#
 class ScenarioStackUnderflow( dbus.DBusException ):
 #----------------------------------------------------------------------------#
-    _dbus_error_name = "org.freesmartphone.Audio.ScenarioStackUnderflow"
+    _dbus_error_name = "org.freesmartphone.Device.Audio.ScenarioStackUnderflow"
 
 #----------------------------------------------------------------------------#
 class DeviceFailed( dbus.DBusException ):
 #----------------------------------------------------------------------------#
-    _dbus_error_name = "org.freesmartphone.Audio.DeviceFailed"
+    _dbus_error_name = "org.freesmartphone.Device.Audio.DeviceFailed"
 
 #----------------------------------------------------------------------------#
 class Player( asyncworker.AsyncWorker ):
