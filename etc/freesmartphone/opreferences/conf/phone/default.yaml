@@ -1,8 +1,10 @@
-
-
 ring-tone: "Arkanoid_PSID.sid"
 ring-volume: 10
+# SID tunes have no concept of length
+ring-length: 60
 
 message-tone: "Arkanoid_PSID.sid;tune=3"
 message-volume: 10
+# SID tunes have no concept of length
+message-length: 3
 
