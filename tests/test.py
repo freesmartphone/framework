@@ -14,12 +14,15 @@ GPLv2 or later
 # cases. It is not easily done using unittest.
 # We can use the framewok tasklet module to simplify things a little.
 
+import framework
+from framework.patterns.tasklet import Tasklet, Sleep
+
+import types
 import unittest
 import gobject
 import ConfigParser
 
-import framework
-from framework.patterns.tasklet import Tasklet, Sleep
+import dbus
 
 config = ConfigParser.ConfigParser()
 config.readfp(open('tests.conf'))
@@ -126,6 +129,29 @@ class TestTest(unittest.TestCase):
         """Test a tasklet test"""
         yield Sleep(1)
         yield True
+
+#=========================================================================#
+def testDbusValueIsInteger( value ):
+#=========================================================================#
+        assert type( value ) == dbus.Int16 or \
+               type( value ) == dbus.Int32 or \
+               type( value ) == dbus.Int64, "value type not an integer"
+
+#=========================================================================#
+def testDbusDictionaryWithStringValues( result ):
+#=========================================================================#
+    assert type( result ) is dbus.Dictionary, "wrong type returned"
+    for key, value in result.items():
+        assert type( key ) == dbus.String, "key type in dictionary not a string"
+        assert type( value ) == dbus.String, "value type in dictionary not a string"
+
+#=========================================================================#
+def testDbusDictionaryWithIntegerValues( result ):
+#=========================================================================#
+    assert type( result ) is dbus.Dictionary, "wrong type returned"
+    for key, value in result.items():
+        assert type( key ) == dbus.String, "key type in dictionary not a string"
+        testDBusValueIsInteger( value )
 
 #=========================================================================#
 def check_debug_mode():

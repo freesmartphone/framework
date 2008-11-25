@@ -104,7 +104,7 @@ class AbstractMediator( object ):
             elif code == 16:
                 e = error.SimAuthFailed( "SIM Authorization code not accepted" )
             elif code in ( 21, 22 ): # invalid phonebook index, phonebook entry not found
-                e = error.SimNotFound()
+                e = error.SimInvalidIndex()
             elif code == 30:
                 e = error.NetworkNotPresent()
             elif code in ( 32, 262 ): # 32 if SIM card is not activated
