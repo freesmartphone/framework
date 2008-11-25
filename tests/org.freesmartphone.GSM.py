@@ -196,60 +196,98 @@ class GsmSimTest( unittest.TestCase ):
     # * SendRestrictedSimCommand
     # * GetHomeZones
 
-    def test_010_ListPhonebooks( self ):
-        """org.fresmartphone.GSM.SIM.ListPhonebooks"""
+    #def test_010_ListPhonebooks( self ):
+        #"""org.fresmartphone.GSM.SIM.ListPhonebooks"""
 
-        result = self.sim.ListPhonebooks()
-        assert type( result ) is dbus.Array, "wrong type returned"
-        for value in result:
-            assert type( value ) is dbus.String, "wrong type returned"
+        #result = self.sim.ListPhonebooks()
+        #assert type( result ) is dbus.Array, "wrong type returned"
+        #for value in result:
+            #assert type( value ) is dbus.String, "wrong type returned"
 
-    def test_011_GetPhonebookInfo( self ):
-        """org.freesmartphone.GSM.SIM.GetPhonebookInfo"""
+    #def test_011_GetPhonebookInfo( self ):
+        #"""org.freesmartphone.GSM.SIM.GetPhonebookInfo"""
 
-        for phonebook in self.sim.ListPhonebooks():
-            result = self.sim.GetPhonebookInfo( phonebook )
-            assert type( result ) is dbus.Dictionary, "wrong type returned"
-            for key in result.keys():
-                assert type( key ) is dbus.String, "wrong type returned"
-            for value in result.values():
-                testDbusValueIsInteger( value )
-            assert "min_index" in result, "mandatory entry missing"
-            assert "max_index" in result, "mandatory entry missing"
-            assert "name_length" in result, "mandatory entry missing"
-            assert "number_length" in result, "mandatory entry missing"
+        #for phonebook in self.sim.ListPhonebooks():
+            #result = self.sim.GetPhonebookInfo( phonebook )
+            #assert type( result ) is dbus.Dictionary, "wrong type returned"
+            #for key in result.keys():
+                #assert type( key ) is dbus.String, "wrong type returned"
+            #for value in result.values():
+                #testDbusValueIsInteger( value )
+            #assert "min_index" in result, "mandatory entry missing"
+            #assert "max_index" in result, "mandatory entry missing"
+            #assert "name_length" in result, "mandatory entry missing"
+            #assert "number_length" in result, "mandatory entry missing"
 
-    def test_010_RetrieveEntry( self ):
-        """org.freesmartphone.GSM.SIM.RetrieveEntry"""
+    #def test_010_RetrieveEntry( self ):
+        #"""org.freesmartphone.GSM.SIM.RetrieveEntry"""
 
-        for phonebook in self.sim.ListPhonebooks():
-            info = self.sim.GetPhonebookInfo( phonebook )
+        #for phonebook in self.sim.ListPhonebooks():
+            #info = self.sim.GetPhonebookInfo( phonebook )
 
-            try:
-                result = self.sim.RetrieveEntry( phonebook, info["min_index"]-1 ) # should fail
-            except dbus.DBusException, e:
-                assert e.get_dbus_name() == "org.freesmartphone.GSM.SIM.InvalidIndex", "wrong error returned"
-            else:
-                assert False, "InvalidIndex expected"
+            #try:
+                #result = self.sim.RetrieveEntry( phonebook, info["min_index"]-1 ) # should fail
+            #except dbus.DBusException, e:
+                #assert e.get_dbus_name() == "org.freesmartphone.GSM.SIM.InvalidIndex", "wrong error returned"
+            #else:
+                #assert False, "InvalidIndex expected"
 
-            try:
-                result = self.sim.RetrieveEntry( phonebook, info["max_index"]+1 ) # should fail
-            except dbus.DBusException, e:
-                assert e.get_dbus_name() == "org.freesmartphone.GSM.SIM.InvalidIndex", "wrong error returned"
-            else:
-                assert False, "InvalidIndex expected"
+            #try:
+                #result = self.sim.RetrieveEntry( phonebook, info["max_index"]+1 ) # should fail
+            #except dbus.DBusException, e:
+                #assert e.get_dbus_name() == "org.freesmartphone.GSM.SIM.InvalidIndex", "wrong error returned"
+            #else:
+                #assert False, "InvalidIndex expected"
 
-            result = self.sim.RetrieveEntry( phonebook, info["min_index"] )
-            assert type( result ) == types.TupleType, "wrong type returned"
-            assert len( result ) == 2, "wrong length for struct"
-            assert type( result[0] ) == dbus.String, "type for name not string"
-            assert type( result[1] ) == dbus.String, "type for number not string"
+            #result = self.sim.RetrieveEntry( phonebook, info["min_index"] )
+            #assert type( result ) == types.TupleType, "wrong type returned"
+            #assert len( result ) == 2, "wrong length for struct"
+            #assert type( result[0] ) == dbus.String, "type for name not string"
+            #assert type( result[1] ) == dbus.String, "type for number not string"
 
-            result = self.sim.RetrieveEntry( phonebook, info["max_index"] )
-            assert type( result ) == types.TupleType, "wrong type returned"
-            assert len( result ) == 2, "wrong length for struct"
-            assert type( result[0] ) == dbus.String, "type for name not string"
-            assert type( result[1] ) == dbus.String, "type for number not string"
+            #result = self.sim.RetrieveEntry( phonebook, info["max_index"] )
+            #assert type( result ) == types.TupleType, "wrong type returned"
+            #assert len( result ) == 2, "wrong length for struct"
+            #assert type( result[0] ) == dbus.String, "type for name not string"
+            #assert type( result[1] ) == dbus.String, "type for number not string"
+
+    def test_011_StoreEntry_A( self ):
+        """org.freesmartphone.GSM.SIM.StoreEntry (national)"""
+
+        try:
+            index = self.sim.GetPhonebookInfo( "contacts" )["max_index"]
+        except dbus.DBusException:
+            return
+
+        self.sim.StoreEntry( "contacts", index, "Dr. med. Wurst", "123456789" )
+
+        newname, newnumber = self.sim.RetrieveEntry( "contacts", index )
+        assert newname == "Dr. med. Wurst" and newnumber == "123456789", "could not store entry on SIM"
+
+    #
+    # FIXME what should happen if we give an empty name and/or number?
+    #
+
+    def test_012_StoreEntry_B( self ):
+        """org.freesmartphone.GSM.SIM.StoreEntry (international)"""
+
+        try:
+            index = self.sim.GetPhonebookInfo( "contacts" )["max_index"]
+        except dbus.DBusException:
+            return
+
+        self.sim.StoreEntry( "contacts", index, "Dr. med. Wurst", "+49123456789" )
+        newname, newnumber = self.sim.RetrieveEntry( "contacts", index )
+        assert newname == "Dr. med. Wurst" and newnumber == "+49123456789", "could not store entry on SIM"
+
+    def test_013_DeleteEntry( self ):
+        """org.freesmartphone.GSM.SIM.DeleteEntry"""
+
+        try:
+            index = self.sim.GetPhonebookInfo( "contacts" )["max_index"]
+        except dbus.DBusException:
+            return
+        self.sim.DeleteEntry( "contacts", index )
 
 #=========================================================================#
 if __name__ == "__main__":
