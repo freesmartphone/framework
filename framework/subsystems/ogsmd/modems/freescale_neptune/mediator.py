@@ -34,7 +34,7 @@ del mediator
 class DeviceGetInfo( DeviceMediator ):
 #=========================================================================#
     """
-    EZX not implementing any of +CGMR;+CGMM;+CGMI -- only +CGSN is supported
+    Modem not implementing any of +CGMR;+CGMM;+CGMI -- only +CGSN is supported
     """
     def trigger( self ):
         self._commchannel.enqueue( "+CGSN", self.responseFromChannel, self.errorFromChannel )
@@ -53,7 +53,7 @@ class DeviceGetInfo( DeviceMediator ):
 class SimSendAuthCode( SimMediator ):
 #=========================================================================#
     """
-    EZX violating GSM 07.07 here.
+    Modem violating GSM 07.07 here.
 
     Format seems to be +CPIN=<number>,"<PIN>", where 1 is PIN1, 2 may be PIN2 or PUK1
     """
@@ -74,7 +74,7 @@ class SimSendAuthCode( SimMediator ):
 class NetworkGetStatus( NetworkMediator ):
 #=========================================================================#
     """
-    EZX violating GSM 07.07 here. No matter which answering format you specify
+    Modem violating GSM 07.07 here. No matter which answering format you specify
     with +COPS=..., +COPS? will always return the numerical ID of the provider
     as a string. We might have +ESPN? to the rescue, but that always returns
     an empty string for me. So until this is cleared, we have to use PLNM matching.

@@ -21,7 +21,7 @@ TODO:
  * refactor parameter validation
 """
 
-__version__ = "0.9.9.2"
+__version__ = "0.9.9.3"
 
 from ogsmd.gsm import error, const, convert
 from ogsmd.gsm.decor import logged
@@ -338,9 +338,12 @@ class DeviceGetFeatures( DeviceMediator ):
 
         result = {}
         if "GSM" in response[0]:
-            result["GSM"] = self._rightHandSide( response[1] ).strip( '"' )
+            result["GSM"] = "TA" # Terminal Adapter
+        else:
+            result["GSM"] = "" # Some GSM modems lie about their GSM capabilities
         if "FCLASS" in response[0]:
-            result["FAX"] = response[2]
+            result["FAX"] = self._rightHandSide( response[2] ).strip( '"' )
+        result["GPRS"] = self._rightHandSide( response[1] ).strip( '"' )
         self._ok( result )
 
 #=========================================================================#

@@ -57,7 +57,8 @@ class FreescaleNeptune( AbstractModem ):
 
         self._channels[ "UNSOL" ] = UnsolicitedResponseChannel( self.pathfactory, "/dev/mux0" ) # might also be callchannel, if /dev/mux2 does not want to
         self._channels[ "CALL" ] = MiscChannel( self.pathfactory, "/dev/mux2" )
-        self._channels[ "MISC" ] = MiscChannel( self.pathfactory, "/dev/mux4" ) # needs to parse unsolicited
+        #self._channels[ "MISC" ] = MiscChannel( self.pathfactory, "/dev/mux4" ) # needs to parse unsolicited
+        self._channels[ "MISC" ] = MiscChannel( self.pathfactory, "/dev/mux6" )
 
         # configure channels
         self._channels["UNSOL"].setDelegate( UnsolicitedResponseDelegate( self._object, mediator ) )
