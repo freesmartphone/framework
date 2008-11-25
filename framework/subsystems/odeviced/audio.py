@@ -11,7 +11,7 @@ Module: audio
 """
 
 MODULE_NAME = "odeviced.audio"
-__version__ = "0.5.0"
+__version__ = "0.5.0.1"
 
 from framework.config import config
 from framework.patterns import asyncworker
@@ -221,7 +221,10 @@ class GStreamerPlayer( Player ):
         else:
             # Split options from filename, these may be useful for advanced
             # settings on MOD and SID files.
-            base, ext = name.rsplit( '.', 1 )
+            try:
+                base, ext = name.rsplit( '.', 1 )
+            except ValueError: # no extension provided
+                return error_cb( UnknownFormat( "Can't guess format from extension" ) )
             options = ext.split( ';' )
             ext = options.pop( 0 )
             file = ".".join( [ base, ext ] )
