@@ -21,6 +21,14 @@ dbus.mainloop.glib.DBusGMainLoop( set_as_default=True )
 SIM_PIN = "9797" # FIXME submit via configuration
 
 #=========================================================================#
+def testPhoneNumber( value ):
+#=========================================================================#
+    if value.startswith( '+' ):
+        value = value[1:]
+    for digit in value:
+        assert digit in "0123456789", "wrong digit in phone number"
+
+#=========================================================================#
 class GsmDeviceTest( unittest.TestCase ):
 #=========================================================================#
     """Tests for org.freesmartphone.GSM.Device.*"""
@@ -251,43 +259,64 @@ class GsmSimTest( unittest.TestCase ):
             #assert type( result[0] ) == dbus.String, "type for name not string"
             #assert type( result[1] ) == dbus.String, "type for number not string"
 
-    def test_011_StoreEntry_A( self ):
-        """org.freesmartphone.GSM.SIM.StoreEntry (national)"""
+    #def test_011_StoreEntry_A( self ):
+        #"""org.freesmartphone.GSM.SIM.StoreEntry (national)"""
 
-        try:
-            index = self.sim.GetPhonebookInfo( "contacts" )["max_index"]
-        except dbus.DBusException:
-            return
+        #try:
+            #index = self.sim.GetPhonebookInfo( "contacts" )["max_index"]
+        #except dbus.DBusException:
+            #return
 
-        self.sim.StoreEntry( "contacts", index, "Dr. med. Wurst", "123456789" )
+        #self.sim.StoreEntry( "contacts", index, "Dr. med. Wurst", "123456789" )
 
-        newname, newnumber = self.sim.RetrieveEntry( "contacts", index )
-        assert newname == "Dr. med. Wurst" and newnumber == "123456789", "could not store entry on SIM"
+        #newname, newnumber = self.sim.RetrieveEntry( "contacts", index )
+        #assert newname == "Dr. med. Wurst" and newnumber == "123456789", "could not store entry on SIM"
+
+    ##
+    ## FIXME what should happen if we give an empty name and/or number?
+    ##
+
+    #def test_012_StoreEntry_B( self ):
+        #"""org.freesmartphone.GSM.SIM.StoreEntry (international)"""
+
+        #try:
+            #index = self.sim.GetPhonebookInfo( "contacts" )["max_index"]
+        #except dbus.DBusException:
+            #return
+
+        #self.sim.StoreEntry( "contacts", index, "Dr. med. Wurst", "+49123456789" )
+        #newname, newnumber = self.sim.RetrieveEntry( "contacts", index )
+        #assert newname == "Dr. med. Wurst" and newnumber == "+49123456789", "could not store entry on SIM"
+
+    #def test_013_DeleteEntry( self ):
+        #"""org.freesmartphone.GSM.SIM.DeleteEntry"""
+
+        #try:
+            #index = self.sim.GetPhonebookInfo( "contacts" )["max_index"]
+        #except dbus.DBusException:
+            #return
+        #self.sim.DeleteEntry( "contacts", index )
 
     #
-    # FIXME what should happen if we give an empty name and/or number?
+    # FIXME add message book testing
     #
 
-    def test_012_StoreEntry_B( self ):
-        """org.freesmartphone.GSM.SIM.StoreEntry (international)"""
+    def test_020_GetServiceCenterNumber( self ):
+        """org.freesmartphone.GSM.SIM.GetServiceCenterNumber"""
 
-        try:
-            index = self.sim.GetPhonebookInfo( "contacts" )["max_index"]
-        except dbus.DBusException:
-            return
+        result = self.sim.GetServiceCenterNumber()
+        assert type( result ) == dbus.String, "expected a string"
+        testPhoneNumber( result )
 
-        self.sim.StoreEntry( "contacts", index, "Dr. med. Wurst", "+49123456789" )
-        newname, newnumber = self.sim.RetrieveEntry( "contacts", index )
-        assert newname == "Dr. med. Wurst" and newnumber == "+49123456789", "could not store entry on SIM"
+    def test_021_SetServiceCenterNumber( self ):
+        """org.freesmartphone.GSM.SIM.SetServiceCenterNumber"""
 
-    def test_013_DeleteEntry( self ):
-        """org.freesmartphone.GSM.SIM.DeleteEntry"""
+        NEW = "+49123456789"
 
-        try:
-            index = self.sim.GetPhonebookInfo( "contacts" )["max_index"]
-        except dbus.DBusException:
-            return
-        self.sim.DeleteEntry( "contacts", index )
+        old = self.sim.GetServiceCenterNumber()
+        new = self.sim.SetServiceCenterNumber( NEW )
+        assert self.sim.GetServiceCenterNumber() == NEW, "can't change SMS service center number"
+        self.sim.SetServiceCenterNumber( old )
 
 #=========================================================================#
 if __name__ == "__main__":
