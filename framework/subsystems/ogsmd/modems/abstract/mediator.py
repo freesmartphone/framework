@@ -21,7 +21,7 @@ TODO:
  * refactor parameter validation
 """
 
-__version__ = "0.9.9.3"
+__version__ = "0.9.10.0"
 
 from ogsmd.gsm import error, const, convert
 from ogsmd.gsm.decor import logged
@@ -924,7 +924,7 @@ class NetworkGetStatus( NetworkMediator ):
             else:
                 result["strength"] = const.signalQualityToPercentage( int(safesplit( self._rightHandSide( response[0] ), ',' )[0]) ) # +CSQ: 22,99
 
-        request, response, error = yield( "+CREG?;+COPS=3,0;+COPS?" )
+        request, response, error = yield( "+CREG?;+COPS=3,0;+COPS?;+COPS=3,2;+COPS?" )
         if error is not None:
             self.errorFromChannel( request, error )
         else:
@@ -939,6 +939,10 @@ class NetworkGetStatus( NetworkMediator ):
                     else:
                         result["mode"] = const.REGISTER_MODE[int(values[0])]
                         result["provider"] = values[2].strip( '"' )
+                if len( response ) > 3:
+                    values = safesplit( self._rightHandSide( response[2] ), ',' )
+                    if len( values ) > 2:
+                        result["code"] = int( values[2].strip( '"' ) )
         # UGLY special check for some modems, which return a strength of 0, if you
         # call +CSQ too early after a (re)registration. In that case, we just
         # leave the strength out of the result
