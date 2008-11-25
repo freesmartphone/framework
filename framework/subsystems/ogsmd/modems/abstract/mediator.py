@@ -104,7 +104,7 @@ class AbstractMediator( object ):
             elif code == 16:
                 e = error.SimAuthFailed( "SIM Authorization code not accepted" )
             elif code in ( 21, 22 ): # invalid phonebook index, phonebook entry not found
-                e = error.SimNotFound()
+                e = error.SimInvalidIndex()
             elif code == 30:
                 e = error.NetworkNotPresent()
             elif code in ( 32, 262 ): # 32 if SIM card is not activated
@@ -580,6 +580,11 @@ class SimListPhonebooks( SimMediator ):
             self._ok( result )
         else:
             SimMediator.responseFromChannel( self, request, response )
+
+            #
+            # FIXME: we should try harder here -- if a modem does not support
+            # +CBPS=?, then we could iterate through our list of known phonebooks
+            # and try to select it +CPBS="..." and build the list up from these results
 
 #=========================================================================#
 class SimGetPhonebookInfo( SimMediator ):

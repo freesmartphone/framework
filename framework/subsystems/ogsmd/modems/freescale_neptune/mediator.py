@@ -71,6 +71,18 @@ class SimSendAuthCode( SimMediator ):
             SimMediator.responseFromChannel( self, request, response )
 
 #=========================================================================#
+class SimListPhonebooks( SimMediator ):
+#=========================================================================#
+    """
+    Modem not supporting +CPBS=? here, but supporting the phonebooks "SM" and "ON".
+
+    Workaround until the abstract mediator implements traversing through
+    the list of known phonebooks trying to select them.
+    """
+    def trigger( self ):
+        self._ok( "contacts own".split() )
+
+#=========================================================================#
 class NetworkGetStatus( NetworkMediator ):
 #=========================================================================#
     """
