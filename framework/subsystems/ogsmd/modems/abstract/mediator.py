@@ -581,6 +581,11 @@ class SimListPhonebooks( SimMediator ):
         else:
             SimMediator.responseFromChannel( self, request, response )
 
+            #
+            # FIXME: we should try harder here -- if a modem does not support
+            # +CBPS=?, then we could iterate through our list of known phonebooks
+            # and try to select it +CPBS="..." and build the list up from these results
+
 #=========================================================================#
 class SimGetPhonebookInfo( SimMediator ):
 #=========================================================================#

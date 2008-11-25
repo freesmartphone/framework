@@ -12,30 +12,32 @@ Module: channel
 Freescale Neptune specific modem channels
 """
 
-import time
-import itertools
-import select
 
-from ogsmd.gsm.decor import logged
-from ogsmd.gsm.channel import AtCommandChannel
-from ogsmd.gsm.callback import SimpleCallback
+from ogsmd.modems.abstract.channel import AbstractModemChannel
 from ogsmd.gsm.parser import ThrowStuffAwayParser
 
 #=========================================================================#
-class EzxMuxChannel( AtCommandChannel ):
+class EzxMuxChannel( AbstractModemChannel ):
 #=========================================================================#
     def __init__( self, *args, **kwargs ):
-        AtCommandChannel.__init__( self, *args, **kwargs )
+        AbstractModemChannel.__init__( self, *args, **kwargs )
 
-        self.enqueue( "Z" ) # soft reset
-        self.enqueue( "E0V1" ) # echo off, verbose result on
-        self.enqueue( "+CMEE=1" ) # report mobile equipment errors: in numerical format
-        self.enqueue( "+CRC=1" ) # cellular result codes: enable extended format
-        self.enqueue( "+CMGF=1" ) # message format: disable pdu mode, enable text mode
-        self.enqueue( '+CSCS="8859-1" ') # character set conversion: use 8859-1 (latin 1)
-        self.enqueue( "+CSDH=1" ) # show text mode parameters: show values
+    def _populateCommands( self ):
+        AbstractModemChannel._populateCommands( self ) # default command init
 
-        self.enqueue( '+CPBS="SM"' ) # choose SIM phonebook
+        c = self._commands["init"]
+        # GSM unsolicited
+        c.append( '+CLIP=1' ) # calling line identification presentation enable
+        c.append( '+COLP=1' ) # connected line identification presentation enable
+        c.append( '+CCWA=1' ) # call waiting
+        c.append( "+CSSN=1,1" ) # supplementary service notifications: send unsol. code
+        c.append( '+CTZU=1' ) # timezone update
+        c.append( '+CTZR=1' ) # timezone reporting
+        c.append( '+CREG=2' ) # registration information (NOTE not all modems support =2)
+        c.append( "+CAOC=2" ) # advice of charge: send unsol. code
+        # GPRS unsolicited
+        c.append( "+CGEREP=2,1" )
+        c.append( "+CGREG=2" )
 
 #=========================================================================#
 class MiscChannel( EzxMuxChannel ):
