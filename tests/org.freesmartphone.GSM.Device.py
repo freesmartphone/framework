@@ -37,13 +37,25 @@ class GsmDeviceTest( unittest.TestCase ):
 
     def test_GetInfo( self ):
         """org.freesmartphone.GSM.Device.GetInfo"""
-        info = self.interface.GetInfo()
-        assert type( info ) is dbus.Dictionary, "wrong type returned"
-        for result in info.values():
-            assert type( result ) is dbus.String, "wrong type returned"
-        assert "manufacturer" in info, "mandatory entry missing"
-        assert "imei" in info, "mandatory entry missing"
-        assert len( info["imei"] ) == 15, "wrong length for IMEI"
+        result = self.interface.GetInfo()
+        assert type( result ) is dbus.Dictionary, "wrong type returned"
+        for key in result.keys():
+            assert type( key ) is dbus.String, "wrong type returned"
+        for value in result.values():
+            assert type( value ) is dbus.String, "wrong type returned"
+        assert "manufacturer" in result, "mandatory entry missing"
+        assert "imei" in result, "mandatory entry missing"
+        assert len( result["imei"] ) == 15, "wrong length for IMEI"
+
+    def testGetFeatures( self ):
+        """org.freesmartphone.GSM.Device.GetFeatures"""
+        result = self.interface.GetFeatures()
+        assert type( result ) is dbus.Dictionary, "wrong type returned"
+        for key in result.keys():
+            assert type( key ) is dbus.String, "wrong type returned"
+        for value in result.values():
+            assert type( value ) is dbus.String, "wrong type returned"
+        assert "GSM" in result, "mandatory entry missing"
 
 #=========================================================================#
 if __name__ == "__main__":
