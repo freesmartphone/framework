@@ -35,8 +35,22 @@ class GsmDeviceTest( unittest.TestCase ):
         pass
         #self.usage.ReleaseResource('GSM')
 
-    def test_GetInfo( self ):
+    def test_000_AntennaPower( self ):
+        """org.freesmartphone.GSM.Device.[Get|Set]AntennaPower"""
+
+        self.interface.SetAntennaPower(False)
+        result = self.interface.GetAntennaPower()
+        assert type( result ) is dbus.Boolean, "wrong type returned"
+        assert result == False, "can't turn antenna power off"
+
+        self.interface.SetAntennaPower(True)
+        result = self.interface.GetAntennaPower()
+        assert type( result ) is dbus.Boolean, "wrong type returned"
+        assert result == True, "can't turn antenna power on"
+
+    def test_001_GetInfo( self ):
         """org.freesmartphone.GSM.Device.GetInfo"""
+
         result = self.interface.GetInfo()
         assert type( result ) is dbus.Dictionary, "wrong type returned"
         for key in result.keys():
@@ -47,8 +61,9 @@ class GsmDeviceTest( unittest.TestCase ):
         assert "imei" in result, "mandatory entry missing"
         assert len( result["imei"] ) == 15, "wrong length for IMEI"
 
-    def testGetFeatures( self ):
+    def test_002_GetFeatures( self ):
         """org.freesmartphone.GSM.Device.GetFeatures"""
+
         result = self.interface.GetFeatures()
         assert type( result ) is dbus.Dictionary, "wrong type returned"
         for key in result.keys():
@@ -56,6 +71,10 @@ class GsmDeviceTest( unittest.TestCase ):
         for value in result.values():
             assert type( value ) is dbus.String, "wrong type returned"
         assert "GSM" in result, "mandatory entry missing"
+
+    def test_003_SimBuffersSMS( self ):
+        """org.freesmartphone.GSM.Device.[Get|Set]SimBuffersSms"""
+        result = self.interface.GetSimBuffersSms()
 
 #=========================================================================#
 if __name__ == "__main__":
