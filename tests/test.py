@@ -131,26 +131,31 @@ class TestTest(unittest.TestCase):
         yield True
 
 #=========================================================================#
+def testDbusType( value, type_ ):
+#=========================================================================#
+        assert type( value ) == type_, "expected %s type, got '%s' instead" % ( type_, type( value ) )
+
+#=========================================================================#
 def testDbusValueIsInteger( value ):
 #=========================================================================#
         assert type( value ) == dbus.Int16 or \
                type( value ) == dbus.Int32 or \
-               type( value ) == dbus.Int64, "value type not an integer"
+               type( value ) == dbus.Int64, "expected integer value type, got '%s' instead" % type( value )
 
 #=========================================================================#
 def testDbusDictionaryWithStringValues( result ):
 #=========================================================================#
-    assert type( result ) is dbus.Dictionary, "wrong type returned"
+    assert type( result ) is dbus.Dictionary, "expected dictionary type, got '%s' instead" % type( result )
     for key, value in result.items():
-        assert type( key ) == dbus.String, "key type in dictionary not a string"
-        assert type( value ) == dbus.String, "value type in dictionary not a string"
+        assert type( key ) == dbus.String, "key type in dictionary not a string, got '%s' instead" % type( key )
+        assert type( value ) == dbus.String, "value type in dictionary not a string, got '%s' instead" % type( value )
 
 #=========================================================================#
 def testDbusDictionaryWithIntegerValues( result ):
 #=========================================================================#
-    assert type( result ) is dbus.Dictionary, "wrong type returned"
+    assert type( result ) is dbus.Dictionary, "expected dictionary type, got '%s' instead" % type( result )
     for key, value in result.items():
-        assert type( key ) == dbus.String, "key type in dictionary not a string"
+        assert type( key ) == dbus.String, "key type in dictionary not a string, got '%s' instead" % type( key )
         testDBusValueIsInteger( value )
 
 #=========================================================================#

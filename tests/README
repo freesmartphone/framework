@@ -1,37 +1,42 @@
+#=========================================================================#
 Test suite for the framework
----------------------------------
+#=========================================================================#
+
 The tests directory contains all the tests script. The goal of those scripts is
 to automaticaly perform call to the framework dbus API and check for errors.
 
 We use python unittest module for our test suites. the 'test' module (test.py)
 also provides a few conveniant methods for writting new test cases.
 
-
+#=========================================================================#
 To start all the tests
---------------------------------
+#=========================================================================#
+
 1 - Make sure that the framework is running.
-2 - Edit the file 'tests.conf' to reflect the current conditions of the test. 
+2 - Edit the file 'tests.conf' to reflect the current conditions of the test.
 3 - Run ./test.py
 
 Some tests can take time (specially when they fail due a timeout)
 If a test fails it can mean that the framework is broken, OR that the test
-is broken, that is why the tests should be relatively simple. 
+is broken, that is why the tests should be relatively simple.
 
+#=========================================================================#
 To start only specific tests
--------------------------------
+#=========================================================================#
 Same thing, but run directly the test script implementing the needed tests
 instead of test.py. e.g:
   python -N sim.py
 TODO: make it possible to specify a given test module as an argument of test.py
-  
- 
+
+#=========================================================================#
 To create new tests
--------------------------------
+#=========================================================================#
+
 You need to create a new python module that define a few unittests.
 Then add the name of the module in the `modules` list in test.py (TODO: make it
 a config option.)
 
-the test module provides a few useful decorators for your test :
+The test module provides a few useful decorators for your test :
 * taskletTest : This decorator defines that your test will run into a Tasklet.
 It will automatically start the gobject main loop before you start the test and
 stop it at the end of the test.
@@ -40,6 +45,32 @@ stop it at the end of the test.
 config option is set. For example if a test require the presence of a sim card,
 it should use :
  @request("sim.present", True)
- 
 
+The test module also provides some convenience functions for checking result types:
+    * testDbus...
 
+#=========================================================================#
+Rules for creating new tests:
+#=========================================================================#
+
+* Every test function has the following format:
+
+    def test_<number>_<function_complex>( self ):
+        """<description>"""
+
+  <number> is incremental per class, this defines the order in which the tests
+  are performed. Examples: 000, 001, 012
+
+  <function_complex> is a description of the function complex you are testing
+  Rule of thumb: Use _one_ test for every dbus method and/or signal. Don't take
+  shortcuts and try to test too many functions in one test!
+
+  <description> lists the dbus function that you are testing in the test.
+
+* Test signals and methods individually
+
+* Test return values
+
+* Test error conditions
+
+* Test good values and out-of-bound values
