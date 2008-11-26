@@ -7,10 +7,8 @@ The Open Device Daemon - Python Implementation
 (C) 2008 Openmoko, Inc.
 GPLv2 or later
 
+Package: ogsmd.modems.muxed4line
 Module: channel
-
-This module contains communication channel abstractions that
-transport their data over a (virtual) serial line.
 """
 
 from ogsmd.modems.abstract.channel import AbstractModemChannel
