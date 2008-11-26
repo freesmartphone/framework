@@ -46,7 +46,7 @@ class GsmDeviceTest( unittest.TestCase ):
     #
 
     @REQUIRE( ( "sim.present", True ), ( "sim.locked", True ) )
-    def test_000_AntennaPower_A( self ):
+    def test_000_AntennaPower( self ):
         """org.freesmartphone.GSM.Device.[Get|Set]AntennaPower"""
 
         self.device.SetAntennaPower(False)
@@ -64,7 +64,7 @@ class GsmDeviceTest( unittest.TestCase ):
         assert result == True, "can't turn antenna power on"
 
     @REQUIRE( ( "sim.present", True ), ( "sim.locked", False ) )
-    def test_000_AntennaPower_B( self ):
+    def test_001_AntennaPower( self ):
         """org.freesmartphone.GSM.Device.[Get|Set]AntennaPower"""
 
         self.device.SetAntennaPower(False)
@@ -77,7 +77,7 @@ class GsmDeviceTest( unittest.TestCase ):
         assert type( result ) is dbus.Boolean, "wrong type returned"
         assert result == True, "can't turn antenna power on"
 
-    def test_001_GetInfo( self ):
+    def test_002_GetInfo( self ):
         """org.freesmartphone.GSM.Device.GetInfo"""
 
         result = self.device.GetInfo()
@@ -90,7 +90,7 @@ class GsmDeviceTest( unittest.TestCase ):
         assert "imei" in result, "mandatory entry missing"
         assert len( result["imei"] ) == 15, "wrong length for IMEI"
 
-    def test_002_GetFeatures( self ):
+    def test_003_GetFeatures( self ):
         """org.freesmartphone.GSM.Device.GetFeatures"""
 
         result = self.device.GetFeatures()
@@ -204,6 +204,7 @@ class GsmSimTest( unittest.TestCase ):
     # * SendRestrictedSimCommand
     # * GetHomeZones
 
+    #@REQUIRE( "sim.present", True )
     #def test_010_ListPhonebooks( self ):
         #"""org.fresmartphone.GSM.SIM.ListPhonebooks"""
 
@@ -212,6 +213,7 @@ class GsmSimTest( unittest.TestCase ):
         #for value in result:
             #assert type( value ) is dbus.String, "wrong type returned"
 
+    #@REQUIRE( "sim.present", True )
     #def test_011_GetPhonebookInfo( self ):
         #"""org.freesmartphone.GSM.SIM.GetPhonebookInfo"""
 
@@ -227,6 +229,7 @@ class GsmSimTest( unittest.TestCase ):
             #assert "name_length" in result, "mandatory entry missing"
             #assert "number_length" in result, "mandatory entry missing"
 
+    #@REQUIRE( "sim.present", True )
     #def test_010_RetrieveEntry( self ):
         #"""org.freesmartphone.GSM.SIM.RetrieveEntry"""
 
@@ -259,7 +262,8 @@ class GsmSimTest( unittest.TestCase ):
             #assert type( result[0] ) == dbus.String, "type for name not string"
             #assert type( result[1] ) == dbus.String, "type for number not string"
 
-    #def test_011_StoreEntry_A( self ):
+    #@REQUIRE( "sim.present", True )
+    #def test_011_StoreEntry( self ):
         #"""org.freesmartphone.GSM.SIM.StoreEntry (national)"""
 
         #try:
@@ -276,7 +280,8 @@ class GsmSimTest( unittest.TestCase ):
     ## FIXME what should happen if we give an empty name and/or number?
     ##
 
-    #def test_012_StoreEntry_B( self ):
+    #@REQUIRE( "sim.present", True )
+    #def test_012_StoreEntry( self ):
         #"""org.freesmartphone.GSM.SIM.StoreEntry (international)"""
 
         #try:
@@ -288,6 +293,7 @@ class GsmSimTest( unittest.TestCase ):
         #newname, newnumber = self.sim.RetrieveEntry( "contacts", index )
         #assert newname == "Dr. med. Wurst" and newnumber == "+49123456789", "could not store entry on SIM"
 
+    #@REQUIRE( "sim.present", True )
     #def test_013_DeleteEntry( self ):
         #"""org.freesmartphone.GSM.SIM.DeleteEntry"""
 
@@ -297,33 +303,98 @@ class GsmSimTest( unittest.TestCase ):
             #return
         #self.sim.DeleteEntry( "contacts", index )
 
-    #
-    # FIXME add message book testing
-    #
+    ##
+    ## FIXME add message book testing
+    ##
 
-    def test_020_GetServiceCenterNumber( self ):
-        """org.freesmartphone.GSM.SIM.GetServiceCenterNumber"""
+    #@REQUIRE( "sim.present", True )
+    #def test_020_GetServiceCenterNumber( self ):
+        #"""org.freesmartphone.GSM.SIM.GetServiceCenterNumber"""
 
-        result = self.sim.GetServiceCenterNumber()
-        assert type( result ) == dbus.String, "expected a string"
-        testPhoneNumber( result )
+        #result = self.sim.GetServiceCenterNumber()
+        #assert type( result ) == dbus.String, "expected a string"
+        #testPhoneNumber( result )
 
-    def test_021_SetServiceCenterNumber( self ):
-        """org.freesmartphone.GSM.SIM.SetServiceCenterNumber"""
+    #@REQUIRE( "sim.present", True )
+    #def test_021_SetServiceCenterNumber( self ):
+        #"""org.freesmartphone.GSM.SIM.SetServiceCenterNumber"""
 
-        NEW = "+49123456789"
+        #NEW = "+49123456789"
 
-        old = self.sim.GetServiceCenterNumber()
-        new = self.sim.SetServiceCenterNumber( NEW )
-        assert self.sim.GetServiceCenterNumber() == NEW, "can't change SMS service center number"
-        self.sim.SetServiceCenterNumber( old )
+        #old = self.sim.GetServiceCenterNumber()
+        #new = self.sim.SetServiceCenterNumber( NEW )
+        #assert self.sim.GetServiceCenterNumber() == NEW, "can't change SMS service center number"
+        #self.sim.SetServiceCenterNumber( old )
+
+#=========================================================================#
+class GsmNetworkTest( unittest.TestCase ):
+#=========================================================================#
+    """Tests for org.freesmartphone.GSM.Network.*"""
+
+    def setUp(self):
+        self.bus = dbus.SystemBus()
+        obj = self.bus.get_object( "org.freesmartphone.ogsmd", "/org/freesmartphone/GSM/Device" )
+        self.device = dbus.Interface( obj, "org.freesmartphone.GSM.Device" )
+        self.sim = dbus.Interface( obj, "org.freesmartphone.GSM.SIM" )
+        self.network = dbus.Interface( obj, "org.freesmartphone.GSM.Network" )
+
+    def tearDown( self ):
+        pass
+
+    @REQUIRE( "sim.present", True )
+    def test_000_Register( self ):
+        """org.freesmartphone.GSM.Network.Register"""
+
+        self.device.SetAntennaPower( False )
+        try:
+            self.device.SetAntennaPower( True )
+        except dbus.DBusException, e:
+            self.sim.SendAuthCode( SIM_PIN )
+
+        self.network.Register()
+
+        # FIXME check whether we get the registration signals...
+
+    @REQUIRE( "sim.present", False )
+    def test_001_Register( self ):
+        """org.freesmartphone.GSM.Network.Register"""
+
+        self.device.SetAntennaPower( False )
+        self.device.SetAntennaPower( True )
+        try:
+            self.network.Register()
+        except dbus.DBusException, e:
+            assert e.get_dbus_name() == "org.freesmartphone.GSM.Network.EmergencyOnly"
+
+    @REQUIRE( "sim.present", True )
+    def test_002_GetStatus( self ):
+        """org.freesmartphone.GSM.Network.GetStatus"""
+
+        self.network.Register()
+        result = self.network.GetStatus()
+        assert type( result ) == dbus.Dictionary, "dictionary expected"
+        assert "registration" in result, "mandatory 'registration' tuple missing"
+        assert result["registration"] in "unregistered home busy denied unknown roaming".split(), "unexpected setting for registration"
+        assert "mode" in result, "mandatory 'mode' tuple missing"
+        assert result["mode"] == "automatic"
+
+        for key in result:
+            assert key in "registration mode provider code strength lac cid".split(), "unexpected key '%s'" % key
+
+    def test_003_GetSignalStrength( self ):
+        """org.freesmartphone.GSM.Network:GetSignalStrength"""
+
+        result = self.network.GetSignalStrength()
+        testDbusValueIsInteger( result )
+        assert 0 <= result <= 100, "signal strength value out of bounds"
 
 #=========================================================================#
 if __name__ == "__main__":
 #=========================================================================#
     suites = []
     #suites.append( unittest.defaultTestLoader.loadTestsFromTestCase( GsmDeviceTest ) )
-    suites.append( unittest.defaultTestLoader.loadTestsFromTestCase( GsmSimTest ) )
+    #suites.append( unittest.defaultTestLoader.loadTestsFromTestCase( GsmSimTest ) )
+    suites.append( unittest.defaultTestLoader.loadTestsFromTestCase( GsmNetworkTest ) )
     # FIXME this is not conform with unit tests, but for now we only test this file anyways
     # will fix later
     for suite in suites:
