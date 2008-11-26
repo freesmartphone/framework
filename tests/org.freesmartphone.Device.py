@@ -7,18 +7,14 @@ GPLv2 or later
 """
 
 from test import request as REQUIRE
-from test import taskletTest
 from test import testDbusValueIsInteger, \
                  testDbusDictionaryWithStringValues, \
                  testDbusDictionaryWithIntegerValues, \
-                 testDbusType
+                 testDbusType, \
+                 taskletTest
 import framework.patterns.tasklet as tasklet
 
-import unittest
-import gobject
-import threading
-import types
-import time
+import types, unittest, gobject, threading
 import dbus, dbus.mainloop
 
 dbus.mainloop.glib.DBusGMainLoop( set_as_default=True )
