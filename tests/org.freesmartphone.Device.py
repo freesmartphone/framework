@@ -7,16 +7,24 @@ GPLv2 or later
 """
 
 from test import request as REQUIRE
+from test import taskletTest
+from test import testDbusValueIsInteger, \
+                 testDbusDictionaryWithStringValues, \
+                 testDbusDictionaryWithIntegerValues, \
+                 testDbusType
 import framework.patterns.tasklet as tasklet
 
 import unittest
 import gobject
 import threading
+import types
+import time
 import dbus, dbus.mainloop
 
 dbus.mainloop.glib.DBusGMainLoop( set_as_default=True )
 
 SOUND_RESOURCE = "/usr/share/sounds/Arkanoid_PSID.sid"
+SIGNAL_TIMEOUT = 5
 
 #=========================================================================#
 class DeviceAudioTest( unittest.TestCase ):
@@ -73,16 +81,40 @@ class DeviceAudioTest( unittest.TestCase ):
 
         self.audio.StopSound( SOUND_RESOURCE )
 
-    def test_002_StopAllSounds( self ):
-        """org.freesmartphone.Device.Audio.StopSound"""
+    @taskletTest
+    def test_002_SoundStatus( self ):
+        """org.freesmartphone.Device.Audio.SoundStatus (playing)"""
 
         self.audio.StopAllSounds()
+        self.audio.PlaySound( SOUND_RESOURCE, 0, 0, reply_handler=lambda:None, error_handler=lambda Foo:None )
+
+        try:
+            result = yield ( tasklet.WaitDBusSignal( self.audio, 'SoundStatus', SIGNAL_TIMEOUT ) )
+            testDbusType( result, types.TupleType )
+            assert result[0] == SOUND_RESOURCE, "expected '%s' as key" % SOUND_RESOURCE
+            assert result[1] == "playing", "expected 'playing' as value for sound resource"
+        finally:
+            self.audio.StopAllSounds()
+
+    @taskletTest
+    def test_003_SoundStatus( self ):
+        """org.freesmartphone.Device.Audio.SoundStatus (stopped)"""
+
+        self.audio.StopAllSounds()
+        self.audio.PlaySound( SOUND_RESOURCE, 0, 0 )
+
+        self.audio.StopAllSounds( reply_handler=lambda:None, error_handler=lambda Foo:None )
+
+        result = yield ( tasklet.WaitDBusSignal( self.audio, 'SoundStatus', SIGNAL_TIMEOUT ) )
+        testDbusType( result, types.TupleType )
+        assert result[0] == SOUND_RESOURCE, "expected '%s' as key" % SOUND_RESOURCE
+        assert result[1] == "stopped", "expected 'stopped' as value for sound resource"
 
 #=========================================================================#
 if __name__ == "__main__":
 #=========================================================================#
     suites = []
-    suites.append( unittest.defaultTestLoader.loadTestsFromTestCase( DeviceAudioTest ) )
+    # suites.append( unittest.defaultTestLoader.loadTestsFromTestCase( DeviceAudioTest ) )
     # suites.append( unittest.defaultTestLoader.loadTestsFromTestCase( GsmSimTest ) )
     # FIXME this is not conform with unit tests, but for now we only test this file anyways
     # will fix later
