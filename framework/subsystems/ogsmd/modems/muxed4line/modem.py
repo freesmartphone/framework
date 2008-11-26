@@ -29,11 +29,11 @@ class Muxed4Line( AbstractModem ):
         AbstractModem.__init__( self, *args, **kwargs )
 
         # VC 1
-        self._channels["CALL"] = CallChannel( self.pathfactory, "ogsmd.call" )
+        self._channels["CALL"] = CallChannel( self.pathfactory, "ogsmd.call", modem=self )
         # VC 2
-        self._channels["UNSOL"] = UnsolicitedResponseChannel( self.pathfactory, "ogsmd.unsolicited" )
+        self._channels["UNSOL"] = UnsolicitedResponseChannel( self.pathfactory, "ogsmd.unsolicited", modem=self )
         # VC 3
-        self._channels["MISC"] = MiscChannel( self.pathfactory, "ogsmd.misc" )
+        self._channels["MISC"] = MiscChannel( self.pathfactory, "ogsmd.misc", modem=self )
         # VC 4
         # GPRS
 

@@ -11,14 +11,13 @@ Package: ogsmd.modems.singeline
 Module: channel
 """
 
-from ogsmd.gsm.decor import logged
-from ogsmd.gsm.channel import AtCommandChannel
+from ogsmd.modems.abstract.channel import AbstractModemChannel
 
 #=========================================================================#
-class SingleLineChannel( AtCommandChannel ):
+class SingleLineChannel( AbstractModemChannel ):
 #=========================================================================#
     def __init__( self, *args, **kwargs ):
-        AtCommandChannel.__init__( self, *args, **kwargs )
+        AbstractModemChannel.__init__( self, *args, **kwargs )
 
         if not "timeout" in kwargs:
             kwargs["timeout"] = 60*60
@@ -28,33 +27,19 @@ class SingleLineChannel( AtCommandChannel ):
         Populate the command queues to be sent on modem state changes.
         """
 
-        c = []
-        # reset
-        c.append( 'Z' ) # soft reset
-        c.append( 'E0V1' ) # echo off, verbose result on
-        # error and result reporting reporting
-        c.append( '+CMEE=1' ) # report mobile equipment errors: in numerical format
-        c.append( '+CRC=1' ) # cellular result codes: enable extended format
-        c.append( '+CSCS="8859-1"' ) # character set conversion: use 8859-1 (latin 1)
-        c.append( '+CSDH=1' ) # show text mode parameters: show values
-        # sms
-        c.append( '+CMGF=1' ) # message format: disable pdu mode, enable text mode
-        c.append( '+CSMS=1' ) # GSM Phase 2+ commands: enable
-        # unsolicited
+        AbstractModemChannel._populateCommands( self ) # prepopulated
+
+        c = self._commands["init"]
+        # reenable unsolicited responses, we don't have a seperate channel
+        # so we need to process them here as well
         c.append( '+CLIP=1' ) # calling line identification presentation enable
         c.append( '+COLP=1' ) # connected line identification presentation enable
         c.append( '+CCWA=1' ) # call waiting
         c.append( "+CSSN=1,1" ) # supplementary service notifications: send unsol. code
         c.append( '+CTZU=1' ) # timezone update
         c.append( '+CTZR=1' ) # timezone reporting
-        c.append( '+CREG=2' ) # registration information (TODO not all modems support that)
+        c.append( '+CREG=2' ) # registration information (NOTE not all modems support =2)
         c.append( "+CAOC=2" ) # advice of charge: send unsol. code
-        self._commands["init"] = c
-
-        c = []
-        c.append( "+CNMI=2,1,2,1,1" ) # buffer sms on SIM, report CB directly
-
-        self._commands["sim"] = c
-
-        c = []
-        self._commands["antenna"] = c
+        # GPRS unsolicited
+        c.append( "+CGEREP=2,1" )
+        c.append( "+CGREG=2" )

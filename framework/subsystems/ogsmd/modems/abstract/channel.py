@@ -122,7 +122,7 @@ class AbstractModemChannel( AtCommandChannel ):
         self._commands["init"] = c
 
         c = []
-        c.append( '+CSMS=1' )           # GSM Phase 2+ commands: enable (this seems to fail in PDU mode?)
+        c.append( '+CSMS=1' )           # GSM Phase 2+ commands: enable
 
         def sms_and_cb( self=self ):
             if self._modem.data( "sim-buffers-sms" ):
@@ -140,4 +140,3 @@ class AbstractModemChannel( AtCommandChannel ):
 
         c = []
         self._commands["resume"] = c
-

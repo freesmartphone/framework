@@ -17,19 +17,15 @@ from ..abstract.modem import AbstractModem
 from .channel import SingleLineChannel
 from .unsolicited import UnsolicitedResponseDelegate
 
-from ogsmd.gsm.decor import logged
-from ogsmd.gsm.channel import AtCommandChannel
-
 #=========================================================================#
 class SingleLine( AbstractModem ):
 #=========================================================================#
 
-    @logged
     def __init__( self, *args, **kwargs ):
         AbstractModem.__init__( self, *args, **kwargs )
 
         # The one and only serial line
-        self._channels["SINGLE"] = SingleLineChannel( self.portfactory, "ogsmd" )
+        self._channels["SINGLE"] = SingleLineChannel( self.portfactory, "ogsmd", modem=self )
         # configure channels
         self._channels["SINGLE"].setDelegate( UnsolicitedResponseDelegate( self._object, mediator ) )
 
