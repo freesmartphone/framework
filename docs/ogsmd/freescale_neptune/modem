@@ -4,10 +4,24 @@
 
 * +CFUN=0;+CFUN=1 does _not_ reset the PIN lock
 
+* Giving a valid PIN to unlock starts autoregister
+  (likewise, for an unlocked SIM +CFUN=1 will autoregister)
+
+* Unregistering is generally frowned upon -- if you query the operator too early after unregistering, you'll get garbage:
+  2008.07.02 22:19:38 ogsmd    DEBUG    <MiscChannel via /dev/mux6>: got 31 bytes from: '\r\n+COPS: 0,2,"\x10*Zd\x12\x04I\xdc"\r\n\r\nOK\r\n'      
+  Without antenna off/on, it doesn't seem to be possible to reregister again
+
 === GSM standards violations ===
 
 * +CPIN: PIN entry is +CPIN=%d,"%s". %d being 1 for PIN1
+
 * +CRC: Incoming call alert always RING: %d. +CRC setting is not honored.
+
+* +CGML: format violation, missing a ',' (PDU header)
+
+* +CGMR: format violation, missing a ',' (PDU header)
+
+* +CSCB: format violation, not accepting any parameters but '0' (all) and '1' (none)
 
 === Proprietary commands ===
 
