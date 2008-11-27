@@ -563,7 +563,6 @@ class GsmNetworkTest( unittest.TestCase ):
                 else:
                     assert False, "expected error SIM.Blocked"
                 break
-    '''
 
     @REQUIRE( "sim.present", True )
     def test_012_GetNetworkCountryCode( self ):
@@ -583,6 +582,38 @@ class GsmNetworkTest( unittest.TestCase ):
         assert len( result ) == 2, "expected 2 parameters, got %d" % len( result )
         testPhoneNumber( result[0] )
         testDbusType( result[1], dbus.String )
+
+    '''
+
+    # FIXME: add missing tests for
+    # * GetCallForwarding
+    # * EnableCallForwarding
+    # * DisableCallForwarding
+
+    @REQUIRE( "sim.present", True )
+    def test_030_GetCallingIdentification( self ):
+        """org.freesmartphone.GSM.Network.GetCallingIdentification"""
+
+        result = self.network.GetCallingIdentification()
+        testDbusType( result, dbus.String )
+        assert result in "on off network".split()
+
+    @REQUIRE( "sim.present", True )
+    def test_031_SetCallingIdentification( self ):
+        """org.freesmartphone.GSM.Network.SetCallingIdentification"""
+
+        try:
+            self.network.SetCallingIdentification( "this not valid" )
+        except dbus.DBusException, e:
+            testDbusError( e, "org.freesmartphone.GSM.InvalidParameter" )
+        else:
+            assert False, "expected InvalidParameter"
+
+        old = self.network.GetCallingIdentification()
+        self.network.SetCallingIdentification( old )
+
+    # * SendUssdRequest
+    # * ... signals ...
 
 #=========================================================================#
 if __name__ == "__main__":
