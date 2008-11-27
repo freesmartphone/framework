@@ -1,8 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: iso-8859-15 -*-
 """
-The Open Device Daemon - Python Implementation
-
 (C) 2008 Michael 'Mickey' Lauer <mlauer@vanille-media.de>
 (C) 2008 Openmoko, Inc.
 GPLv2 or later
@@ -11,6 +9,8 @@ Package: ogsmd
 Module: helpers
 
 """
+
+import os, signal
 
 import logging
 logger = logging.getLogger('ogsmd')
@@ -29,7 +29,7 @@ def writeToFile( path, value ):
 #=========================================================================#
 def safesplit( string, delim, max=-1 ):
 #=========================================================================#
-    """A split function which is quote sign aware"""
+    """A split function which is quote sign aware."""
     items = string.split(delim)
     safeitems = []
     safeitem = ""
@@ -46,7 +46,7 @@ def safesplit( string, delim, max=-1 ):
 #=========================================================================#
 class BiDict( object ):
 #=========================================================================#
-    """A bidirectional dictionary"""
+    """A bidirectional dictionary."""
 
     AUTOINVERSE = False
 
@@ -108,6 +108,23 @@ class BiDict( object ):
             return self._d.keys()
         else:
             return self._d.keys() + self._back.keys()
+
+#=========================================================================#
+def processIterator():
+#=========================================================================#
+    for entry in os.listdir( "/proc" ):
+        try:
+            pid = int( entry )
+        except ValueError:
+            continue
+        else:
+            name = open( "/proc/%s/cmdline" % pid ).read().split( '\0' )[0]
+            yield name, pid
+
+#=========================================================================#
+def killall( nameToKill ):
+#=========================================================================#
+    [ os.kill( pid, signal.SIGTERM ) for name, pid in processIterator() if name == nameToKill ]
 
 #=========================================================================#
 if __name__ == "__main__":

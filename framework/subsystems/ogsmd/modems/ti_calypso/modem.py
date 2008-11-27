@@ -11,7 +11,7 @@ Module: modem
 
 """
 
-__version__ = "0.9.9.2"
+__version__ = "0.9.9.3"
 
 import mediator
 
@@ -24,7 +24,7 @@ from ogsmd.gsm.decor import logged
 from ogsmd.gsm.channel import AtCommandChannel
 from ogsmd.helpers import writeToFile
 
-import subprocess
+from ogsmd.helpers import killall
 
 #=========================================================================#
 class TiCalypso( AbstractModem ):
@@ -56,7 +56,7 @@ class TiCalypso( AbstractModem ):
         AbstractModem.close( self )
         # FIXME ok this is a bit hefty. gsm0710muxd has open/close dbus calls,
         # but last time I checked they weren't working.
-        subprocess.call( "killall gsm0710muxd", shell=True )
+        killall( "gsm0710muxd" )
 
     def channel( self, category ):
         """
