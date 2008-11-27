@@ -131,16 +131,22 @@ class TestTest(unittest.TestCase):
         yield True
 
 #=========================================================================#
+def testDbusError( error, expected ):
+#=========================================================================#
+    ename = error.get_dbus_name()
+    assert ename == expected, "expected error '%s', got '%s' instead" % ( expected, ename )
+
+#=========================================================================#
 def testDbusType( value, type_ ):
 #=========================================================================#
-        assert type( value ) == type_, "expected %s type, got '%s' instead" % ( type_, type( value ) )
+    assert type( value ) == type_, "expected %s type, got '%s' instead" % ( type_, type( value ) )
 
 #=========================================================================#
 def testDbusValueIsInteger( value ):
 #=========================================================================#
-        assert type( value ) == dbus.Int16 or \
-               type( value ) == dbus.Int32 or \
-               type( value ) == dbus.Int64, "expected integer value type, got '%s' instead" % type( value )
+    assert type( value ) == dbus.Int16 or \
+            type( value ) == dbus.Int32 or \
+            type( value ) == dbus.Int64, "expected integer value type, got '%s' instead" % type( value )
 
 #=========================================================================#
 def testDbusDictionaryWithStringValues( result ):

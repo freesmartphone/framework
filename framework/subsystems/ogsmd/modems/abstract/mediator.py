@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+##!/usr/bin/env python
 """
 The Open Device Daemon - Python Implementation
 
@@ -21,7 +21,7 @@ TODO:
  * refactor parameter validation
 """
 
-__version__ = "0.9.10.0"
+__version__ = "0.9.10.1"
 
 from ogsmd.gsm import error, const, convert
 from ogsmd.gsm.decor import logged
@@ -1010,7 +1010,7 @@ class NetworkGetCountryCode( NetworkMediator ):
         if response[-1] == "OK" and len( response ) > 1:
             values = self._rightHandSide( response[0] ).split( ',' )
             if len( values ) != 3:
-                self._error( error.NetworkNotFound( "Not registered to an operator" ) )
+                self._error( error.NetworkNotFound( "Not registered to any provider" ) )
             else:
                 mcc = int( values[2].strip( '"' )[:3] )
                 code, name = const.mccToCountryCode( mcc )

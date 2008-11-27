@@ -94,39 +94,39 @@ class SimNotReady( AbstractSimException ):
 #=========================================================================#
 
 class NetworkNotPresent( AbstractNetworkException ):
-    _dbus_error_name = "org.freesmartphone.Network.NotPresent"
+    _dbus_error_name = "org.freesmartphone.GSM.Network.NotPresent"
 
 class NetworkUnauthorized( AbstractNetworkException ):
-    _dbus_error_name = "org.freesmartphone.Network.Unauthorized"
+    _dbus_error_name = "org.freesmartphone.GSM.Network.Unauthorized"
 
 class NetworkNotSupported( AbstractNetworkException ):
-    _dbus_error_name = "org.freesmartphone.Network.NotSupported"
+    _dbus_error_name = "org.freesmartphone.GSM.Network.NotSupported"
 
 class NetworkNotFound( AbstractNetworkException ):
-    _dbus_error_name = "org.freesmartphone.Network.NotFound"
+    _dbus_error_name = "org.freesmartphone.GSM.Network.NotFound"
 
 #=========================================================================#
 # Call exceptions
 #=========================================================================#
 
 class CallNoCarrier( AbstractCallException ):
-    _dbus_error_name = "org.freesmartphone.Call.NoCarrier"
+    _dbus_error_name = "org.freesmartphone.GSM.Call.NoCarrier"
 
 class CallNotFound( AbstractCallException ):
-    _dbus_error_name = "org.freesmartphone.Call.NotFound"
+    _dbus_error_name = "org.freesmartphone.GSM.Call.NotFound"
 
 class CallNotAnEmergencyNumber( AbstractCallException ):
-    _dbus_error_name = "org.freesmartphone.Call.NotAnEmergencyNumber"
+    _dbus_error_name = "org.freesmartphone.GSM.Call.NotAnEmergencyNumber"
 
 #=========================================================================#
 # PDP exceptions
 #=========================================================================#
 
 class PdpNoCarrier( AbstractPdpException ):
-    _dbus_error_name = "org.freesmartphone.PDP.NoCarrier"
+    _dbus_error_name = "org.freesmartphone.GSM.PDP.NoCarrier"
 
 class PdpNotFound( AbstractPdpException ):
-    _dbus_error_name = "org.freesmartphone.PDP.NotFound"
+    _dbus_error_name = "org.freesmartphone.GSM.PDP.NotFound"
 
 class PdpUnauthrized( AbstractPdpException ):
-    _dbus_error_name = "org.freesmartphone.PDP.Unauthorized"
+    _dbus_error_name = "org.freesmartphone.GSM.PDP.Unauthorized"
