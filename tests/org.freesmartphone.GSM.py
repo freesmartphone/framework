@@ -11,6 +11,7 @@ from test import testDbusValueIsInteger, \
                  testDbusDictionaryWithStringValues, \
                  testDbusDictionaryWithIntegerValues, \
                  testDbusType, \
+                 testDbusError, \
                  taskletTest
 import framework.patterns.tasklet as tasklet
 
@@ -127,7 +128,6 @@ class GsmSimTest( unittest.TestCase ):
     #
     # Tests
     #
-    '''
     @REQUIRE( "sim.present", True )
     def test_001_GetSimInfo( self ):
         """org.freesmartphone.GSM.SIM.GetSimInfo"""
@@ -363,6 +363,7 @@ class GsmSimTest( unittest.TestCase ):
         assert self.sim.GetServiceCenterNumber() == NEW, "can't change SMS service center number"
         self.sim.SetServiceCenterNumber( old )
 
+    @REQUIRE( "sim.present", True )
     def test_031_GetMessageBookInfo( self ):
         """org.freesmartphone.GSM.SIM.GetMessagebookInfo"""
 
@@ -372,6 +373,7 @@ class GsmSimTest( unittest.TestCase ):
             assert key in "first last used".split()
             testDbusValueIsInteger( value )
 
+    @REQUIRE( "sim.present", True )
     def test_032_RetrieveMessageBook( self ):
         """org.freesmartphone.GSM.SIM.RetrieveMessagebook"""
 
@@ -399,12 +401,28 @@ class GsmSimTest( unittest.TestCase ):
             for entry in result:
                 index, cat, number, contents, properties = entry
                 assert cat == category, "expected category '%s', got '%s'" % ( category, cat )
-    '''
 
-    #
-    # FIXME add entry-based message book testing
-    #
+    @REQUIRE( "sim.present", True )
+    def test_033_RetrieveMessage( self ):
+        """org.freesmartphone.GSM.SIM.RetrieveMessage"""
 
+        for index in xrange( 1, 255 ):
+            try:
+                entry = self.sim.RetrieveMessage( index )
+            except dbus.DBusException, e:
+                assert e.get_dbus_name() == "org.freesmartphone.GSM.SIM.NotFound", "unexpected error returned"
+            else:
+                testDbusType( entry, types.TupleType )
+                assert len( entry ) == 4, "expected 4 elements for one entry"
+                category, peer, contents, properties = entry
+                assert category in "read unread sent unsent".split(), "unexpected category '%s', valid are 'read unread sent unsent'" % category
+                testDbusType( peer, dbus.String ) # can be number or name (if found on SIM)
+                testDbusType( contents, dbus.String )
+                testDbusType( properties, dbus.Dictionary )
+
+    # FIXME add missing tests for:
+    # * StoreMessage
+    # * SendStoredMessage
 
 #=========================================================================#
 class GsmNetworkTest( unittest.TestCase ):
@@ -516,7 +534,7 @@ class GsmNetworkTest( unittest.TestCase ):
 
     @REQUIRE( "sim.present", True )
     def test_010_ListOperators( self ):
-        """org.freesmartphone.GSM.ListProviders"""
+        """org.freesmartphone.GSM.Network.ListProviders"""
 
         self.network.Register()
         result = self.network.ListProviders( timeout=60000 )
@@ -533,7 +551,7 @@ class GsmNetworkTest( unittest.TestCase ):
 
     @REQUIRE( "sim.present", True )
     def test_011_RegisterWithProvider( self ):
-        """org.freesmartphone.GSM.RegisterWithProvider"""
+        """org.freesmartphone.GSM.Network.RegisterWithProvider"""
 
         result = self.network.ListProviders( timeout=60000 )
         for code, status, longname, shortname in result:
@@ -546,13 +564,33 @@ class GsmNetworkTest( unittest.TestCase ):
                     assert False, "expected error SIM.Blocked"
                 break
     '''
+
+    @REQUIRE( "sim.present", True )
+    def test_012_GetNetworkCountryCode( self ):
+        """org.freesmartphone.GSM.Network.GetNetworkCountryCode"""
+
+        self.network.Unregister()
+        try:
+            self.network.GetNetworkCountryCode()
+        except dbus.DBusException, e:
+            testDbusError( e, "org.freesmartphone.GSM.Network.NotFound" )
+        else:
+            assert False, "expected Network.NotFound"
+
+        self.network.Register()
+        result = self.network.GetNetworkCountryCode()
+        testDbusType( result, types.TupleType )
+        assert len( result ) == 2, "expected 2 parameters, got %d" % len( result )
+        testPhoneNumber( result[0] )
+        testDbusType( result[1], dbus.String )
+
 #=========================================================================#
 if __name__ == "__main__":
 #=========================================================================#
     suites = []
     #suites.append( unittest.defaultTestLoader.loadTestsFromTestCase( GsmDeviceTest ) )
-    suites.append( unittest.defaultTestLoader.loadTestsFromTestCase( GsmSimTest ) )
-    #suites.append( unittest.defaultTestLoader.loadTestsFromTestCase( GsmNetworkTest ) )
+    #suites.append( unittest.defaultTestLoader.loadTestsFromTestCase( GsmSimTest ) )
+    suites.append( unittest.defaultTestLoader.loadTestsFromTestCase( GsmNetworkTest ) )
     # FIXME this is not conform with unit tests, but for now we only test this file anyways
     # will fix later
     for suite in suites:
