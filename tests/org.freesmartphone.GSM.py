@@ -371,10 +371,6 @@ class GsmNetworkTest( unittest.TestCase ):
         except dbus.DBusException, e:
             assert e.get_dbus_name() == "org.freesmartphone.GSM.Network.EmergencyOnly"
 
-    # FIXME add test for
-    # * ListProviders
-    # * RegisterWithProvider
-
     @REQUIRE( "sim.present", True )
     def test_002_GetStatus( self ):
         """org.freesmartphone.GSM.Network.GetStatus (unregistered)"""
@@ -443,7 +439,38 @@ class GsmNetworkTest( unittest.TestCase ):
         result = yield ( tasklet.WaitDBusSignal( self.network, 'Status', SIGNAL_TIMEOUT_MID ) )
         assert result["registration"] == "home"
 
+    @REQUIRE( "sim.present", True )
+    def test_010_ListOperators( self ):
+        """org.freesmartphone.GSM.ListProviders"""
+
+        self.network.Register()
+        result = self.network.ListProviders( timeout=60000 )
+        assert type( result ) == dbus.Array, "array expected, got '%s' instead" % type( result )
+        for value in result:
+            testDbusType( value, dbus.Struct )
+            assert len( value ) == 4, "expected a 4-tuple, got a %d-tuple" % len( value )
+            code, status, longname, shortname = value
+            testDbusValueIsInteger( code )
+            testDbusType( status, dbus.String )
+            testDbusType( longname, dbus.String )
+            testDbusType( shortname, dbus.String )
+            assert status in "forbidden current home".split(), "unexpected status '%s', valid are 'forbidden', 'current', 'home'" % status
+
     '''
+    @REQUIRE( "sim.present", True )
+    def test_011_RegisterWithProvider( self ):
+        """org.freesmartphone.GSM.RegisterWithProvider"""
+
+        result = self.network.ListProviders( timeout=60000 )
+        for code, status, longname, shortname in result:
+            if status == "forbidden":
+                try:
+                    self.network.RegisterWithProvider( code )
+                except dbus.DBusException, e:
+                    assert e.get_dbus_name() == "org.freesmartphone.GSM.SIM.Blocked", "unexpected error"
+                else:
+                    assert False, "expected error SIM.Blocked"
+                break
 
 #=========================================================================#
 if __name__ == "__main__":
