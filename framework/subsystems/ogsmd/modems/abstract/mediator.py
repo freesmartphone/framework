@@ -21,7 +21,7 @@ TODO:
  * refactor parameter validation
 """
 
-__version__ = "0.9.10.1"
+__version__ = "0.9.10.2"
 
 from ogsmd.gsm import error, const, convert
 from ogsmd.gsm.decor import logged
@@ -441,7 +441,9 @@ class SimGetAuthCodeRequired( SimMediator ):
         if response[-1] != "OK":
             SimMediator.responseFromChannel( self, request, response )
         else:
-            self._ok( self._rightHandSide( response[0] ) == "1" )
+            # we only look at the status parameter, we ignore the class parameters
+            values = self._rightHandSide( response[0] ).split( ',' )
+            self._ok( values[0] == "1" )
 
 #=========================================================================#
 class SimSetAuthCodeRequired( SimMediator ):

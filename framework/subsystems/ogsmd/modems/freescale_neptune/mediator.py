@@ -9,6 +9,8 @@ Package: ogsmd.modems.freescale_neptune
 Module: mediator
 """
 
+__version__ = "0.4.0.0"
+
 from ogsmd.modems.abstract import mediator
 from ogsmd.gsm.decor import logged
 from ogsmd.gsm import const
@@ -29,6 +31,22 @@ for key, val in mediator.__dict__.items():
 del mediator
 
 # add overrides here
+
+# FIXME probably not the right place and way to do that
+import re
+
+# modem violating 05.05 here
+# the ',' before the name was not supposed to be optional
+# +CMGL: 6,1,125
+PAT_SMS_PDU_HEADER = re.compile( '(?P<index>\d+),(?P<status>\d+)(?:,"(?P<name>[^"]*)")?,(?P<pdulen>\d+)' )
+
+# modem violating 05.05 here:
+# the ',' before the name was not supposed to be optional
+# +CMGR: 1,155
+PAT_SMS_PDU_HEADER_SINGLE = re.compile( '(?P<status>\d+)(?:,"(?P<name>[^"]*)")?,(?P<pdulen>\d+)' )
+
+const.PAT_SMS_PDU_HEADER = PAT_SMS_PDU_HEADER
+const.PAT_SMS_PDU_HEADER_SINGLE = PAT_SMS_PDU_HEADER_SINGLE
 
 #=========================================================================#
 class DeviceGetInfo( DeviceMediator ):
@@ -411,3 +429,42 @@ def createCallHandler( dbus_object ):
 #=========================================================================#
 callHandler = None
 #=========================================================================#
+
+#
+# CB Mediators
+#
+
+#=========================================================================#
+class CbGetCellBroadcastSubscriptions( CbMediator ): # s
+#=========================================================================#
+    """
+    Modem violating 05.05 here, with +CSCB we can only specify whether
+    CB messages are accepted or not at all.
+    """
+    def trigger( self ):
+        request, response, error = yield( "+CSCB?" )
+        if error is not None:
+            self.errorFromChannel( request, error )
+        else:
+            if response[-1] != "OK":
+                self.responseFromChannel( request, response )
+            else:
+                rhs = self._rightHandSide( response[0] )
+                if rhs == "1":
+                    self._ok( "none" )
+                else:
+                    self._ok( "all" )
+
+#=========================================================================#
+class CbSetCellBroadcastSubscriptions( CbMediator ):
+#=========================================================================#
+    """
+    Modem violating 05.05 here, with +CSCB we can only specify whether
+    CB messages are accepted or not all.
+    """
+    def trigger( self ):
+        if self.channels != "none":
+            message = '0'
+        else:
+            message = '1'
+        self._commchannel.enqueue( "+CSCB=%s" % message, self.responseFromChannel, self.errorFromChannel )
