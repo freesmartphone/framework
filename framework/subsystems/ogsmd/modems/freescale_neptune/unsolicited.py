@@ -34,9 +34,22 @@ class UnsolicitedResponseDelegate( AbstractUnsolicitedResponseDelegate ):
     def plusCCWA( self, righthandside ):
         pass
 
+    # +CESS: 3, 14
+    def plusCESS( self, righthandside ):
+        print "EZX: CESS", righthandside
+
     # +CSSU: 2,,"",128
+    # +CSSU: 10
     def plusCSSU( self, righthandside ):
-        code, index, number, type = safesplit( righthandside, ',' )
+        print "EZX: CSSU", righthandside
+        values = safesplit( righthandside, ',' )
+        if len( values ) == 4:
+            code, index, number, type_ = values
+        else:
+            code = values[0]
+            #
+            # ...
+            #
 
     def plusCIEV( self, righthandside ):
         """
