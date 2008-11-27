@@ -439,8 +439,6 @@ class GsmNetworkTest( unittest.TestCase ):
     def tearDown( self ):
         pass
 
-    '''
-
     @REQUIRE( "sim.present", True )
     def test_000_Register( self ):
         """org.freesmartphone.GSM.Network.Register"""
@@ -583,8 +581,6 @@ class GsmNetworkTest( unittest.TestCase ):
         testPhoneNumber( result[0] )
         testDbusType( result[1], dbus.String )
 
-    '''
-
     # FIXME: add missing tests for
     # * GetCallForwarding
     # * EnableCallForwarding
@@ -616,12 +612,47 @@ class GsmNetworkTest( unittest.TestCase ):
     # * ... signals ...
 
 #=========================================================================#
+class GsmCbTest( unittest.TestCase ):
+#=========================================================================#
+    """Tests for org.freesmartphone.GSM.CB.*"""
+
+    def setUp(self):
+        self.bus = dbus.SystemBus()
+        obj = self.bus.get_object( "org.freesmartphone.ogsmd", "/org/freesmartphone/GSM/Device" )
+        self.device = dbus.Interface( obj, "org.freesmartphone.GSM.Device" )
+        self.sim = dbus.Interface( obj, "org.freesmartphone.GSM.SIM" )
+        self.network = dbus.Interface( obj, "org.freesmartphone.GSM.Network" )
+        self.cb = dbus.Interface( obj, "org.freesmartphone.GSM.CB" )
+
+    def tearDown( self ):
+        pass
+
+    @REQUIRE( "sim.present", True )
+    def test_000_GetCellBroadcastSubscription( self ):
+        """org.freesmartphone.GSM.Network.GetCellBroadcastSubscriptions"""
+
+        result = self.cb.GetCellBroadcastSubscriptions()
+        testDbusType( result, dbus.String )
+
+    @REQUIRE( "sim.present", True )
+    def test_000_GetCellBroadcastSubscriptions( self ):
+        """org.freesmartphone.GSM.Network.GetCellBroadcastSubscriptions"""
+
+        self.cb.SetCellBroadcastSubscriptions( "all" )
+        self.cb.SetCellBroadcastSubscriptions( "221" )
+        self.cb.SetCellBroadcastSubscriptions( "none" )
+        assert self.cb.GetCellBroadcastSubscriptions() == "none", "can't set cell broadcast subscriptions"
+
+    # FIXME unfortunately we can't test incoming cell broadcast subscriptions without a simulated modem
+
+#=========================================================================#
 if __name__ == "__main__":
 #=========================================================================#
     suites = []
     #suites.append( unittest.defaultTestLoader.loadTestsFromTestCase( GsmDeviceTest ) )
     #suites.append( unittest.defaultTestLoader.loadTestsFromTestCase( GsmSimTest ) )
-    suites.append( unittest.defaultTestLoader.loadTestsFromTestCase( GsmNetworkTest ) )
+    #suites.append( unittest.defaultTestLoader.loadTestsFromTestCase( GsmNetworkTest ) )
+    suites.append( unittest.defaultTestLoader.loadTestsFromTestCase( GsmCbTest ) )
     # FIXME this is not conform with unit tests, but for now we only test this file anyways
     # will fix later
     for suite in suites:
