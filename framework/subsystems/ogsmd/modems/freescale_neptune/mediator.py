@@ -30,6 +30,22 @@ del mediator
 
 # add overrides here
 
+# FIXME probably not the right place and way to do that
+import re
+
+# modem violating 05.05 here
+# the ',' before the name was not supposed to be optional
+# +CMGL: 6,1,125
+PAT_SMS_PDU_HEADER = re.compile( '(?P<index>\d+),(?P<status>\d+)(?:,"(?P<name>[^"]*)")?,(?P<pdulen>\d+)' )
+
+# modem violating 05.05 here:
+# the ',' before the name was not supposed to be optional
+# +CMGR: 1,155
+PAT_SMS_PDU_HEADER_SINGLE = re.compile( '(?P<status>\d+)(?:,"(?P<name>[^"]*)")?,(?P<pdulen>\d+)' )
+
+const.PAT_SMS_PDU_HEADER = PAT_SMS_PDU_HEADER
+const.PAT_SMS_PDU_HEADER_SINGLE = PAT_SMS_PDU_HEADER_SINGLE
+
 #=========================================================================#
 class DeviceGetInfo( DeviceMediator ):
 #=========================================================================#

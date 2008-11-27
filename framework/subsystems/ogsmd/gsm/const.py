@@ -50,8 +50,11 @@ PAT_SMS_PDU_HEADER = re.compile( '(?P<index>\d+),(?P<status>\d+),(?:"(?P<name>[^
 # +CMGR: "REC READ","Alice-Team",,"08/05/13,09:12:15+08",208,133
 PAT_SMS_TEXT_HEADER_SINGLE = re.compile( '"(?P<status>[^"]+)","(?P<number>[^"]+)",(?:"(?P<name>[^"]+)")?,(?:"(?P<timestamp>[^"]+)")?,(?P<ntype>\d+),(?P<textlen>\d+)' )
 
+# +CMGR: 1,"",155
 PAT_SMS_PDU_HEADER_SINGLE = re.compile( '(?P<status>\d+),(?:"(?P<name>[^"]*)")?,(?P<pdulen>\d+)' )
 
+# "foo"
+# ""
 PAT_STRING = re.compile( r'''"([^"]+?)"''' )
 
 # call forwarding
