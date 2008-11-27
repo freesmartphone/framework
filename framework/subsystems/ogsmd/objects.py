@@ -17,7 +17,7 @@ Attributes:
 """
 
 MODULE_NAME = "ogsmd.objects"
-__version__ = "0.9.4"
+__version__ = "0.9.5"
 
 from framework import resource
 
@@ -517,7 +517,7 @@ class Device( resource.Resource ):
     def RegisterWithProvider( self, operator_code, dbus_ok, dbus_error ):
         mediator.NetworkRegisterWithProvider( self, dbus_ok, dbus_error, operator_code=operator_code )
 
-    @dbus.service.method( DBUS_INTERFACE_NETWORK, "", "s",
+    @dbus.service.method( DBUS_INTERFACE_NETWORK, "", "ss",
                           async_callbacks=( "dbus_ok", "dbus_error" ) )
     @resource.checkedmethod
     def GetNetworkCountryCode( self, dbus_ok, dbus_error ):

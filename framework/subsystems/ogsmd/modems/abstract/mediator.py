@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+##!/usr/bin/env python
 """
 The Open Device Daemon - Python Implementation
 
@@ -21,7 +21,7 @@ TODO:
  * refactor parameter validation
 """
 
-__version__ = "0.9.10.0"
+__version__ = "0.9.10.1"
 
 from ogsmd.gsm import error, const, convert
 from ogsmd.gsm.decor import logged
@@ -1003,8 +1003,20 @@ class NetworkRegisterWithProvider( NetworkMediator ):
 #=========================================================================#
 class NetworkGetCountryCode( NetworkMediator ):
 #=========================================================================#
-    def __init__( self, dbus_object, dbus_ok, dbus_error, **kwargs ):
-        dbus_error( error.UnsupportedCommand( self.__class__.__name__ ) )
+    def trigger( self ):
+        self._commchannel.enqueue( "+COPS=3,2;+COPS?", self.responseFromChannel, self.errorFromChannel )
+
+    def responseFromChannel( self, request, response ):
+        if response[-1] != "OK":
+            NetworkMediator.responseFromChannel( self, request, response )
+        else:
+            values = safesplit( self._rightHandSide( response[0] ), ',' )
+            if len( values ) > 2:
+                mcc = int( values[2].strip( '"' )[:3] )
+                code, name = const.mccToCountryCode( mcc )
+                self._ok( code, name )
+            else:
+                self._error( error.NetworkNotFound( "Not registered to any provider." ) )
 
 #=========================================================================#
 class NetworkGetCallForwarding( NetworkMediator ): # a{sv}
