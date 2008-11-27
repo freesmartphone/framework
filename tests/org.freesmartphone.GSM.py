@@ -31,7 +31,7 @@ def testPhoneNumber( value ):
     if value.startswith( '+' ):
         value = value[1:]
     for digit in value:
-        assert digit in "0123456789", "wrong digit in phone number"
+        assert digit in "0123456789", "wrong digit '%s' in phone number '%s'" % ( digit, value )
 
 #=========================================================================#
 class GsmDeviceTest( unittest.TestCase ):
@@ -127,7 +127,7 @@ class GsmSimTest( unittest.TestCase ):
     #
     # Tests
     #
-
+    '''
     @REQUIRE( "sim.present", True )
     def test_001_GetSimInfo( self ):
         """org.freesmartphone.GSM.SIM.GetSimInfo"""
@@ -214,13 +214,42 @@ class GsmSimTest( unittest.TestCase ):
         """org.fresmartphone.GSM.SIM.ListPhonebooks"""
 
         result = self.sim.ListPhonebooks()
-        assert type( result ) is dbus.Array, "wrong type returned"
+        testDbusType( result, dbus.Array )
         for value in result:
-            assert type( value ) is dbus.String, "wrong type returned"
+            testDbusType( value, dbus.String )
 
     @REQUIRE( "sim.present", True )
-    def test_011_GetPhonebookInfo( self ):
+    def test_011_RetrievePhonebook( self ):
+        """org.fresmartphone.GSM.SIM.RetrievePhonebook"""
+
+        try:
+            self.sim.RetrievePhonebook( "this/phonebook/not/there" )
+        except dbus.DBusException, e:
+            assert e.get_dbus_name() == "org.freesmartphone.GSM.InvalidParameter"
+        else:
+            assert False, "InvalidParameter expected"
+
+        for phonebook in self.sim.ListPhonebooks():
+            result = self.sim.RetrievePhonebook( phonebook )
+            testDbusType( result, dbus.Array )
+
+            for entry in result:
+                testDbusType( entry, dbus.Struct )
+                assert len( entry ) == 3, "wrong length for struct"
+                testDbusValueIsInteger( entry[0] )
+                assert type( entry[1] ) == dbus.String, "type for name not string"
+                assert type( entry[2] ) == dbus.String, "type for number not string"
+
+    @REQUIRE( "sim.present", True )
+    def test_012_GetPhonebookInfo( self ):
         """org.freesmartphone.GSM.SIM.GetPhonebookInfo"""
+
+        try:
+            self.sim.GetPhonebookInfo( "this/phonebook/not/there" )
+        except dbus.DBusException, e:
+            assert e.get_dbus_name() == "org.freesmartphone.GSM.InvalidParameter"
+        else:
+            assert False, "InvalidParameter expected"
 
         for phonebook in self.sim.ListPhonebooks():
             result = self.sim.GetPhonebookInfo( phonebook )
@@ -235,8 +264,15 @@ class GsmSimTest( unittest.TestCase ):
             assert "number_length" in result, "mandatory entry missing"
 
     @REQUIRE( "sim.present", True )
-    def test_010_RetrieveEntry( self ):
+    def test_013_RetrieveEntry( self ):
         """org.freesmartphone.GSM.SIM.RetrieveEntry"""
+
+        try:
+            self.sim.RetrieveEntry( "this/phonebook/not/there", 1 ) # should faile
+        except dbus.DBusException, e:
+            assert e.get_dbus_name() == "org.freesmartphone.GSM.InvalidParameter"
+        else:
+            assert False, "InvalidParameter expected"
 
         for phonebook in self.sim.ListPhonebooks():
             info = self.sim.GetPhonebookInfo( phonebook )
@@ -268,7 +304,7 @@ class GsmSimTest( unittest.TestCase ):
             assert type( result[1] ) == dbus.String, "type for number not string"
 
     @REQUIRE( "sim.present", True )
-    def test_011_StoreEntry( self ):
+    def test_014_StoreEntry( self ):
         """org.freesmartphone.GSM.SIM.StoreEntry (national)"""
 
         try:
@@ -308,10 +344,6 @@ class GsmSimTest( unittest.TestCase ):
             return
         self.sim.DeleteEntry( "contacts", index )
 
-    #
-    # FIXME add message book testing
-    #
-
     @REQUIRE( "sim.present", True )
     def test_020_GetServiceCenterNumber( self ):
         """org.freesmartphone.GSM.SIM.GetServiceCenterNumber"""
@@ -330,6 +362,49 @@ class GsmSimTest( unittest.TestCase ):
         new = self.sim.SetServiceCenterNumber( NEW )
         assert self.sim.GetServiceCenterNumber() == NEW, "can't change SMS service center number"
         self.sim.SetServiceCenterNumber( old )
+
+    def test_031_GetMessageBookInfo( self ):
+        """org.freesmartphone.GSM.SIM.GetMessagebookInfo"""
+
+        result = self.sim.GetMessagebookInfo()
+        testDbusType( result, dbus.Dictionary )
+        for key, value in result.items():
+            assert key in "first last used".split()
+            testDbusValueIsInteger( value )
+
+    def test_032_RetrieveMessageBook( self ):
+        """org.freesmartphone.GSM.SIM.RetrieveMessagebook"""
+
+        try:
+            index = self.sim.RetrieveMessagebook( "this_no_messagebook" )
+        except dbus.DBusException, e:
+            assert e.get_dbus_name() == "org.freesmartphone.GSM.InvalidParameter", "wrong error returned"
+        else:
+            assert False, "expected InvalidParameter"
+
+        result = self.sim.RetrieveMessagebook( "all" )
+        testDbusType( result, dbus.Array )
+        for entry in result:
+            testDbusType( entry, dbus.Struct )
+            assert len( entry ) == 5, "expected 5 elements for one entry"
+            index, category, peer, contents, properties = entry
+            testDbusValueIsInteger( index )
+            assert category in "read unread sent unsent".split(), "unexpected category '%s', valid are 'read unread sent unsent'" % category
+            testDbusType( peer, dbus.String ) # can be number or name (if found on SIM)
+            testDbusType( contents, dbus.String )
+            testDbusType( properties, dbus.Dictionary )
+
+        for category in "read unread sent unsent".split():
+            result = self.sim.RetrieveMessagebook( category )
+            for entry in result:
+                index, cat, number, contents, properties = entry
+                assert cat == category, "expected category '%s', got '%s'" % ( category, cat )
+    '''
+
+    #
+    # FIXME add entry-based message book testing
+    #
+
 
 #=========================================================================#
 class GsmNetworkTest( unittest.TestCase ):
@@ -456,7 +531,6 @@ class GsmNetworkTest( unittest.TestCase ):
             testDbusType( shortname, dbus.String )
             assert status in "forbidden current home".split(), "unexpected status '%s', valid are 'forbidden', 'current', 'home'" % status
 
-    '''
     @REQUIRE( "sim.present", True )
     def test_011_RegisterWithProvider( self ):
         """org.freesmartphone.GSM.RegisterWithProvider"""
@@ -471,14 +545,14 @@ class GsmNetworkTest( unittest.TestCase ):
                 else:
                     assert False, "expected error SIM.Blocked"
                 break
-
+    '''
 #=========================================================================#
 if __name__ == "__main__":
 #=========================================================================#
     suites = []
     #suites.append( unittest.defaultTestLoader.loadTestsFromTestCase( GsmDeviceTest ) )
-    #suites.append( unittest.defaultTestLoader.loadTestsFromTestCase( GsmSimTest ) )
-    suites.append( unittest.defaultTestLoader.loadTestsFromTestCase( GsmNetworkTest ) )
+    suites.append( unittest.defaultTestLoader.loadTestsFromTestCase( GsmSimTest ) )
+    #suites.append( unittest.defaultTestLoader.loadTestsFromTestCase( GsmNetworkTest ) )
     # FIXME this is not conform with unit tests, but for now we only test this file anyways
     # will fix later
     for suite in suites:
