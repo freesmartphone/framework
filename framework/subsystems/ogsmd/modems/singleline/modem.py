@@ -17,6 +17,8 @@ from ..abstract.modem import AbstractModem
 from .channel import SingleLineChannel
 from .unsolicited import UnsolicitedResponseDelegate
 
+from framework.config import config
+
 #=========================================================================#
 class SingleLine( AbstractModem ):
 #=========================================================================#
@@ -34,5 +36,4 @@ class SingleLine( AbstractModem ):
             return self._channels["SINGLE"]
 
     def portfactory( self, name ):
-        # FIXME read from configuration
-        return "/dev/ttySAC0"
+        return config.getValue("ogsmd", "serial", default="/dev/ttySAC0")
