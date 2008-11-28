@@ -12,7 +12,13 @@ Module: calling
 New style abstract call handling
 """
 
+__version__ = "0.9.1.0"
+MODULE_NAME = "ogsmd.callhandler"
+
 from ogsmd.gsm import error, const
+
+import logging
+logger = logging.getLogger( MODULE_NAME )
 
 #=========================================================================#
 class CallHandler( object ):
@@ -29,27 +35,55 @@ class CallHandler( object ):
     def __init__( self, dbus_object ):
         self._object = dbus_object
         self._calls = {}
-        self._calls[1] = { "status":"release" }
-        self._calls[2] = { "status":"release" }
+        self._calls[1] = { "status": "release" }
+        self._calls[2] = { "status": "release" }
 
-    def _updateStatus( self, callId ):
-        """send dbus signal indicating call status for a callId"""
-        self._object.CallStatus( callId, self._calls[callId]["status"], self._calls[callId] )
+        self.unsetHook()
+
+    def setHook( self, hook ):
+        self._hook = hook
+
+    def unsetHook( self ):
+        self._hook = lambda *args, **kwargs: None
+
+    def isBusy( self ):
+        return self._calls[1]["status"] != "release" or self._calls[2]["status"] != "release"
+
+    def status( self ):
+        return self._calls[1]["status"], self._calls[2]["status"]
+
+    #
+    # called from mediators
+    #
 
     def initiate( self, dialstring, commchannel ):
-        return self.feedUserInput( "initiate", dialstring, commchannel )
+        result = self.feedUserInput( "initiate", dialstring, commchannel )
+        self._hook( "initiate", result )
+        return result
 
     def activate( self, index, commchannel ):
-        return self.feedUserInput( "activate", index=index, channel=commchannel )
+        result = self.feedUserInput( "activate", index=index, channel=commchannel )
+        self._hook( "activate", result )
+        return result
 
     def release( self, index, commchannel ):
-        return self.feedUserInput( "release", index=index, channel=commchannel )
+        result = self.feedUserInput( "release", index=index, channel=commchannel )
+        self._hook( "release", result )
+        return result
 
     def releaseAll( self, commchannel ):
-        return self.feedUserInput( "dropall", channel=commchannel )
+        result = self.feedUserInput( "dropall", channel=commchannel )
+        self._hook( "dropall", result )
+        return result
 
     def hold( self, commchannel ):
-        return self.feedUserInput( "hold", channel=commchannel )
+        result = self.feedUserInput( "hold", channel=commchannel )
+        self._hook( "hold", result )
+        return result
+
+    #
+    # called from unsolicited response delegates
+    #
 
     def ring( self ):
         for callId, info in self._calls.items():
@@ -59,16 +93,33 @@ class CallHandler( object ):
                 # FIXME is the above comment really true?
 
     def statusChangeFromNetwork( self, callId, info ):
+        lastStatus = self._calls[callId].copy()
         self._calls[callId].update( info )
+
         if self._calls[callId]["status"] == "release":
-            self._calls[callId] = { "status":"release" }
-        self._updateStatus( callId )
+            # release signal always without properties
+            self._calls[callId] = { "status": "release" }
+
+        if self._calls[callId]["status"] != "incoming":
+            # suppress sending the same signal twice
+            if lastStatus != self._calls[callId]:
+                self._updateStatus( callId )
+        else:
+            self._updateStatus( callId )
 
     def statusChangeFromNetworkByStatus( self, status, info ):
         calls = [call for call in self._calls.items() if call[1]["status"] == status]
         if not len(calls) == 1:
             raise error.InternalException( "non-unique call state '%'" % status )
         self.statusChangeFromNetwork( calls[0][0], info )
+
+    #
+    # internal
+    #
+
+    def _updateStatus( self, callId ):
+        """send dbus signal indicating call status for a callId"""
+        self._object.CallStatus( callId, self._calls[callId]["status"], self._calls[callId] )
 
     def feedUserInput( self, action, *args, **kwargs ):
         # simple actions

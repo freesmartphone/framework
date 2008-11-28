@@ -1,6 +1,13 @@
+2008-11-28	Michael Lauer	<mickey@openmoko.org>
+
+	* [ogsmd] Revamped callhandling. Refactored the state-based call handler
+	  from TI Calypso (and Freescale Neptune) into a generic class that will
+	  be used from all modem abstractions. Ported singleline to use the new
+	  call handler. More tests needed for TI Calypso and Freescale Neptune.
+
 2008-11-27	Michael Lauer	<mickey@openmoko.org>
 
-	* [tests] Start with dbus API tests
+	* [tests] Started with dbus API tests
 
 2008-11-23	Michael Lauer	<mickey@openmoko.org>
 

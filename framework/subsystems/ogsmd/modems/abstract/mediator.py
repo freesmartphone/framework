@@ -22,6 +22,7 @@ TODO:
 """
 
 __version__ = "0.9.10.2"
+MODULE_NAME = "ogsmd.modems.abstract.mediator"
 
 from .calling import CallHandler
 
@@ -32,6 +33,9 @@ import ogsmd.gsm.sms
 
 import gobject
 import re, time
+
+import logging
+logger = logging.getLogger( MODULE_NAME )
 
 #=========================================================================#
 class AbstractMediator( object ):
@@ -1165,7 +1169,9 @@ class CallListCalls( NetworkMediator ): # a(isa{sv})
                 if not line: # some modems might include empty lines here, one for every (not present) call...
                     continue
                 gd = const.groupDictIfMatch( const.PAT_CLCC, line )
-                assert gd is not None, "parsing error"
+                if gd is None:
+                    logger.warning( "+CLCC parsing error for line '%s'" % line )
+                    continue
                 index = int( gd["id"] )
                 stat = int( gd["stat"] )
                 direction = const.CALL_DIRECTION[ int( gd["dir"] ) ]

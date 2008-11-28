@@ -17,10 +17,9 @@ from ogsmd.modems.abstract.channel import AbstractModemChannel
 class SingleLineChannel( AbstractModemChannel ):
 #=========================================================================#
     def __init__( self, *args, **kwargs ):
-        AbstractModemChannel.__init__( self, *args, **kwargs )
-
         if not "timeout" in kwargs:
             kwargs["timeout"] = 60*60
+        AbstractModemChannel.__init__( self, *args, **kwargs )
 
     def _populateCommands( self ):
         """

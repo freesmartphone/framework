@@ -36,4 +36,4 @@ class SingleLine( AbstractModem ):
             return self._channels["SINGLE"]
 
     def portfactory( self, name ):
-        return config.getValue("ogsmd", "serial", default="/dev/ttySAC0")
+        return config.getValue( "ogsmd", "serial", default="/dev/ttySAC0" )

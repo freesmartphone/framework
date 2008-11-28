@@ -11,12 +11,19 @@ Package: ogsmd.modems.abstract
 Module: unsolicited
 """
 
+__version__ = "0.9.9.0"
+
 import calling
 
 from ogsmd.gsm.decor import logged
 from ogsmd.gsm import const, convert
 from ogsmd.helpers import safesplit
 import ogsmd.gsm.sms
+
+import logging
+logger = logging.getLogger( "ogsmd.modems.abstract.unsolicited" )
+
+import gobject
 
 #=========================================================================#
 class AbstractUnsolicitedResponseDelegate( object ):
@@ -26,9 +33,12 @@ class AbstractUnsolicitedResponseDelegate( object ):
         self._object = dbus_object
         self._mediator = mediator
         self._callHandler = calling.CallHandler.getInstance( dbus_object )
+        self._callHandler.setHook( self._cbCallHandlerAction )
 
         self.lac = None
         self.cid = None
+
+        self._syncTimeout = None
 
     def _sendStatus( self ):
         self._object.Status( self.operator, self.register, self.strength )
@@ -67,8 +77,8 @@ class AbstractUnsolicitedResponseDelegate( object ):
         """
         number, ntype, rest = safesplit( righthandside, ',', 2 )
         number = number.replace( '"', '' )
-        BROKEN = "PLEASE FIX ME"
-        self._mediator.Call.clip( self._object, const.phonebookTupleToNumber( number, int(ntype ) ) )
+        logger.warning( "plusCLIP not handled -- please fix me" )
+        #self._mediator.Call.clip( self._object, const.phonebookTupleToNumber( number, int(ntype ) ) )
 
     # +CMT: "004D00690063006B006500790020007000720069",22
     # 0791947107160000000C9194712716464600008001301131648003D9B70B
@@ -89,8 +99,9 @@ class AbstractUnsolicitedResponseDelegate( object ):
         """
         storage, index = safesplit( righthandside, ',' )
         if storage != '"SM"':
-            assert False, "unhandled +CMTI message notification"
-        self._object.IncomingStoredMessage( int(index) )
+            logger.warning( "unhandled +CMTI message notification" )
+        else:
+            self._object.IncomingStoredMessage( int(index) )
 
     # +CREG: 1,"000F","032F"
     def plusCREG( self, righthandside ):
@@ -111,19 +122,17 @@ class AbstractUnsolicitedResponseDelegate( object ):
         Incoming call
         """
         if calltype == "VOICE":
-            self._mediator.Call.ring( self._object, calltype )
-        elif category == "UnsolicitedMediator":
-            return self._channels["UNSOL"]
+            self._syncCallStatus( "RING" )
+            self._startTimeoutIfNeeded()
         else:
-            assert False, "unhandled call type"
+            logger.warning( "unhandled call type, ignoring for now. Please fix me..." )
 
     # +CMS ERROR: 322
     def plusCMS_ERROR( self, righthandside ):
         """
         Incoming unsolicited error
 
-        This is pretty rare in general, I've only seen 322 so far
-        when we are using SMS in SIM-buffered mode.
+        Seen, when we are using SMS in SIM-buffered mode.
         """
         errornumber = int( righthandside )
         if errornumber == 322:
@@ -134,9 +143,6 @@ class AbstractUnsolicitedResponseDelegate( object ):
         """
         Incoming USSD result
         """
-
-        # FIXME needs to be adjusted for PDU mode
-
         values = safesplit( righthandside, ',' )
         if len( values ) == 1:
             mode = const.NETWORK_USSD_MODE[int(values[0])]
@@ -146,7 +152,7 @@ class AbstractUnsolicitedResponseDelegate( object ):
             message = convert.ucs2hexToUnicode(values[1].strip( '" ' ) )
             self._object.IncomingUssd( mode, message )
         else:
-            assert False, "unknown format"
+            logger.warning( "Ignoring unknown format: '%s'" % righthandside )
     #
     # helpers
     #
@@ -159,4 +165,55 @@ class AbstractUnsolicitedResponseDelegate( object ):
         self._object.Status( status ) # send dbus signal
 
     def statusERR( self, values ):
-        print "error... ignoring"
+        logger.warning( "statusERR... ignoring" )
+
+    def _startTimeoutIfNeeded( self ):
+        if self._syncTimeout is None:
+            self._syncTimeout = gobject.timeout_add_seconds( 1, self._cbSyncTimeout )
+
+    def _syncCallStatus( self, initiator ):
+       self._mediator.CallListCalls( self._object, self._syncCallStatus_ok, self._syncCallStatus_err )
+
+    def _syncCallStatus_ok( self, calls ):
+        seen = []
+        for callid, status, properties in calls:
+            seen.append( callid )
+            self._callHandler.statusChangeFromNetwork( callid, {"status": status} )
+        # synthesize remaining calls
+        if not 1 in seen:
+            self._callHandler.statusChangeFromNetwork( 1, {"status": "release"} )
+        if not 2 in seen:
+            self._callHandler.statusChangeFromNetwork( 2, {"status": "release"} )
+
+    def _syncCallStatus_err( self, request, error ):
+        logger.warning( "+CLCC didn't succeed -- ignoring" )
+
+    def _cbSyncTimeout( self, *args, **kwargs ):
+        """
+        Called by the glib mainloop while anything call-related happens.
+        """
+        logger.debug( "sync timeout while GSM is not idle" )
+        self._syncCallStatus( "SYNC TIMEOUT" )
+
+        if self._callHandler.isBusy():
+            logger.debug( "call handler is busy" )
+            return True # glib mainloop: please call me again
+        else:
+            logger.debug( "call handler is not busy" )
+            self._syncTimeout = None
+            return False # glib mainloop: don't call me again
+
+    def _cbCallHandlerAction( self, action, result ):
+        """
+        Called by the call handler once a user-initiated action has been performed.
+        """
+        self._syncCallStatus( "MEDIATOR ACTION" )
+        logger.debug( "call handler action %s w/ result %s" % ( action, result ) )
+        if result is not False:
+            if action == "initiate":
+                first, second = self._callHandler.status()
+                if first == "release":
+                    self._callHandler.statusChangeFromNetwork( 1, {"status": "outgoing"} )
+                else:
+                    self._callHandler.statusChangeFromNetwork( 2, {"status": "outgoing"} )
+            self._startTimeoutIfNeeded()

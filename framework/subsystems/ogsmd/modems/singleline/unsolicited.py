@@ -13,4 +13,7 @@ Module: unsolicited
 from ..abstract.unsolicited import AbstractUnsolicitedResponseDelegate
 
 class UnsolicitedResponseDelegate( AbstractUnsolicitedResponseDelegate ):
-    pass
+
+    def __init__( self, *args, **kwargs ):
+        AbstractUnsolicitedResponseDelegate.__init__( self, *args, **kwargs )
+
