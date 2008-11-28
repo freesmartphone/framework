@@ -10,7 +10,7 @@ Module: subsystem
 """
 
 MODULE_NAME = "frameworkd.subsystem"
-__version__ = "1.0.0"
+__version__ = "1.0.1"
 
 from .config import config, DBUS_BUS_NAME_PREFIX
 
@@ -69,7 +69,7 @@ class Subsystem( object ):
                         logger.info( "skipping module %s.%s as requested via config file." % ( self.name, modulename ) )
                         continue
                     module = __import__(
-                        name = ".".join( ["framework.subsystems", self.name, modulename] ),
+                        name = "%s.%s" % ( self.name, modulename ),
                         fromlist = ["factory"],
                         level = 0
                     )

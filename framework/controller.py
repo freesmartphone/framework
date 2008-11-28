@@ -48,6 +48,7 @@ class Controller( daemon.Daemon ):
         return cls.objects[name]
 
     def __init__( self, path, options ):
+        sys.path.append( path ) # to enable 'from <subsystemname> import ...' and 'import <subsystemname>'
         self.launchTime = time.time()
         self.options = options
         daemon.Daemon.__init__( self, "/tmp/frameworkd.pid" )
