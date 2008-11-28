@@ -31,7 +31,7 @@ class AbstractModem( object ):
     instance = None
 
     @logged
-    def __init__( self, object, bus, *args, **kwargs ):
+    def __init__( self, dbus_object, bus, *args, **kwargs ):
         """
         Initialize
         """
@@ -40,7 +40,7 @@ class AbstractModem( object ):
         AbstractModem.instance = self
 
         self._channels = {}                     # container for channel instances
-        self._object = object                   # dbus object
+        self._object = dbus_object              # dbus object
         self._bus = bus                         # dbus bus
         self._simPinState = "unknown"           # SIM PIN state
         self._simReady = "unknown"              # SIM data access state

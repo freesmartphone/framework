@@ -16,7 +16,6 @@ class UnsolicitedResponseDelegate( AbstractUnsolicitedResponseDelegate ):
 
     def __init__( self, *args, **kwargs ):
         AbstractUnsolicitedResponseDelegate.__init__( self, *args, **kwargs )
-        self._mediator.createCallHandler( self._object )
 
     #
     # GSM standards
@@ -141,12 +140,12 @@ class UnsolicitedResponseDelegate( AbstractUnsolicitedResponseDelegate ):
         seen = []
         for callid, status, properties in calls:
             seen.append( callid )
-            self._mediator.callHandler.statusChangeFromNetwork( callid, {"status": status} )
+            self._callHandler.statusChangeFromNetwork( callid, {"status": status} )
         # synthesize remaning calls
         if not 1 in seen:
-            self._mediator.callHandler.statusChangeFromNetwork( 1, {"status": "release"} )
+            self._callHandler.statusChangeFromNetwork( 1, {"status": "release"} )
         if not 2 in seen:
-            self._mediator.callHandler.statusChangeFromNetwork( 2, {"status": "release"} )
+            self._callHandler.statusChangeFromNetwork( 2, {"status": "release"} )
 
     def _syncCallStatus_err( self, request, error ):
         print "EZX: AT ERROR FROM CLCC", error

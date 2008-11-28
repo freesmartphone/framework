@@ -23,6 +23,8 @@ TODO:
 
 __version__ = "0.9.10.2"
 
+from .calling import CallHandler
+
 from ogsmd.gsm import error, const, convert
 from ogsmd.gsm.decor import logged
 from ogsmd.helpers import safesplit
@@ -1128,8 +1130,6 @@ class NetworkSendUssdRequest( NetworkMediator ): # s
 # Call Mediators
 #
 
-from .call import Call
-
 #=========================================================================#
 class CallEmergency( CallMediator ):
 #=========================================================================#
@@ -1137,7 +1137,7 @@ class CallEmergency( CallMediator ):
         if self.number in const.EMERGENCY_NUMBERS:
             # FIXME once we have a priority queue, insert these with maximum priority
             self._commchannel.enqueue( 'H' ) # hang up (just in case)
-            self._commchannel.enqueue( '+CFUN=1;+COPS=0', timeout=const.TIMEOUT["COPS"] ) # turn antenna on and register (just in case)
+            self._commchannel.enqueue( '+CFUN=1;+COPS=0,0', timeout=const.TIMEOUT["COPS"] ) # turn antenna on and register (just in case)
             self._commchannel.enqueue( 'D%s;' % self.number ) # dial emergency number
         else:
             self._error( error.CallNotAnEmergencyNumber( "valid emergency numbers are %s" % const.EMERGENCY_NUMBERS ) )
@@ -1201,15 +1201,11 @@ class CallSendDtmf( CallMediator ):
         else:
             CallMediator.responseFromChannel( self, request, response )
 
-#
-# FIXME following methods are bad, incomplete, and not working at all
-# Need to backport from TI Calypso and substitute %CPI w/ +CCLC synthesizing call events
-#
-
 #=========================================================================#
 class CallInitiate( CallMediator ):
 #=========================================================================#
     def trigger( self ):
+        # check parameters
         if self.calltype not in const.PHONE_CALL_TYPES:
             self._error( error.InvalidParameter( "invalid call type. Valid call types are: %s" % const.PHONE_CALL_TYPES ) )
             return
@@ -1217,64 +1213,53 @@ class CallInitiate( CallMediator ):
             if digit not in const.PHONE_NUMBER_DIGITS:
                 self._error( error.InvalidParameter( "invalid number digit. Valid number digits are: %s" % const.PHONE_NUMBER_DIGITS ) )
                 return
+        # do the work
         if self.calltype == "voice":
             dialstring = "%s;" % self.number
         else:
             dialstring = self.number
-        # for now, restrict to only one active call
-        if not len( Call.calls ) < 2:
-            self._error( error.CallNoCarrier( "can't have more than two outgoing calls" ) )
-        else:
-            c = Call( self._object, direction="outgoing", calltype=self.calltype )
-            self._ok( c( dialstring ) )
 
-#=========================================================================#
-class CallActivate( CallMediator ):
-#=========================================================================#
-    def trigger( self ):
-        if not len( Call.calls ):
-            # no calls yet in system
-            self._error( error.CallNotFound( "no call to activate" ) )
-        elif len( Call.calls ) == 1:
-            c = Call.calls[0]
-            # one call in system
-            if c.status() == "incoming":
-                self._ok()
-                c.accept()
-            elif c.status() == "held":
-                self._error( error.InternalException( "server does not support held calls yet" ) )
-            else:
-                self._error( error.CallNotFound( "call already active" ) )
+        line = CallHandler.getInstance().initiate( dialstring, self._commchannel )
+        if line is None:
+            self._error( error.CallNoCarrier( "unable to dial" ) )
         else:
-            self._error( error.InternalException( "server does not support multiple calls yet" ) )
+            self._ok( line )
 
 #=========================================================================#
 class CallRelease( CallMediator ):
 #=========================================================================#
     def trigger( self ):
-        print Call.calls
-        if not len( Call.calls ):
-            # no calls yet in system
-            self._error( error.CallNotFound( "no call to release" ) )
-        elif len( Call.calls ) == 1:
-            c = Call.calls[0]
-            # one call in system
-            # FIXME use polymorphie here
-            if c.status() == "outgoing":
-                self._ok()
-                c.cancel()
-            elif c.status() == "active":
-                self._ok()
-                c.hangup()
-            elif c.status() == "incoming":
-                self._ok()
-                c.reject()
-            elif c.status() == "held":
-                self._error( error.InternalException( "server does not support held calls yet" ) )
-            else:
-                self._error( error.InternalException( "call with unknown status: %s" % c.status() ) )
+        if CallHandler.getInstance().release( self.index, self._commchannel ) is not None:
+            self._ok()
         else:
-            self._error( error.InternalException( "server does not support multiple calls yet" ) )
+            self._error( error.CallNotFound( "no such call to release" ) )
+
+#=========================================================================#
+class CallReleaseAll( CallMediator ):
+#=========================================================================#
+    def trigger( self ):
+        # need to use misc channel here, so that it can also work during outgoing call
+        # FIXME might rather want to consider using the state machine after all (see below)
+        CallHandler.getInstance().releaseAll( self._object.modem.channel( "MiscMediator" ) )
+        self._ok()
+
+#=========================================================================#
+class CallActivate( CallMediator ):
+#=========================================================================#
+    def trigger( self ):
+        if CallHandler.getInstance().activate( self.index, self._commchannel ) is not None:
+            self._ok()
+        else:
+            self._error( error.CallNotFound( "no such call to activate" ) )
+
+#=========================================================================#
+class CallHoldActive( CallMediator ):
+#=========================================================================#
+    def trigger( self ):
+        if CallHandler.getInstance().hold( self._commchannel ) is not None:
+            self._ok()
+        else:
+            self._error( error.CallNotFound( "no such call to hold" ) )
 
 #
 # PDP Mediators

@@ -60,7 +60,7 @@ class Device( resource.Resource ):
         """
         Destruct.
         """
-        device = None
+        pass
 
     #
     # dbus org.freesmartphone.Resource [inherited from framework.Resource]

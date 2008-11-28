@@ -11,6 +11,8 @@ Package: ogsmd.modems.abstract
 Module: unsolicited
 """
 
+import calling
+
 from ogsmd.gsm.decor import logged
 from ogsmd.gsm import const, convert
 from ogsmd.helpers import safesplit
@@ -23,6 +25,8 @@ class AbstractUnsolicitedResponseDelegate( object ):
     def __init__( self, dbus_object, mediator ):
         self._object = dbus_object
         self._mediator = mediator
+        self._callHandler = calling.CallHandler.getInstance( dbus_object )
+
         self.lac = None
         self.cid = None
 
@@ -63,6 +67,7 @@ class AbstractUnsolicitedResponseDelegate( object ):
         """
         number, ntype, rest = safesplit( righthandside, ',', 2 )
         number = number.replace( '"', '' )
+        BROKEN = "PLEASE FIX ME"
         self._mediator.Call.clip( self._object, const.phonebookTupleToNumber( number, int(ntype ) ) )
 
     # +CMT: "004D00690063006B006500790020007000720069",22

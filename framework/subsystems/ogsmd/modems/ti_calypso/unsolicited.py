@@ -24,7 +24,6 @@ class UnsolicitedResponseDelegate( AbstractUnsolicitedResponseDelegate ):
 #=========================================================================#
     def __init__( self, *args, **kwargs ):
         AbstractUnsolicitedResponseDelegate.__init__( self, *args, **kwargs )
-        self._mediator.createCallHandler( self._object )
 
         self.fullReadyness = "unknown"
         self.subsystemReadyness = { "PHB": False, "SMS": False }
@@ -103,7 +102,7 @@ class UnsolicitedResponseDelegate( AbstractUnsolicitedResponseDelegate ):
     # +CRING is only used to trigger a status update
     def plusCRING( self, calltype ):
         pass
-        # self._mediator.callHandler.ring()
+        # self._callHandler.ring()
 
     # +CLIP is not used on TI Calypso. See %CPI
     def plusCLIP( self, righthandside ):
@@ -128,7 +127,7 @@ class UnsolicitedResponseDelegate( AbstractUnsolicitedResponseDelegate ):
         else:
             logger.info( "unhandled +CSSU code '%s'" % code )
         if info:
-            self._mediator.callHandler.statusChangeFromNetworkByStatus( "incoming", info )
+            self._callHandler.statusChangeFromNetworkByStatus( "incoming", info )
 
     #
     # TI Calypso proprietary
@@ -149,7 +148,7 @@ class UnsolicitedResponseDelegate( AbstractUnsolicitedResponseDelegate ):
         if ie[0:8]+ie[10:30] == "A10E020102011030068101428F01":
             info["held"] = bool( int( ie[30:32], 16 ) )
         if info:
-            self._mediator.callHandler.statusChangeFromNetwork( int(callId)+1, info )
+            self._callHandler.statusChangeFromNetwork( int(callId)+1, info )
 
     # %CPI: 1,0,0,0,1,0,"+491772616464",145,,,0
     def percentCPI( self, righthandside ):
@@ -248,7 +247,7 @@ class UnsolicitedResponseDelegate( AbstractUnsolicitedResponseDelegate ):
         elif msgType == "3": # Sometimes setup is not sent?!
             info.update( { "status": info["direction"] } )
         if msgType in ( "013689" ):
-            self._mediator.callHandler.statusChangeFromNetwork( int(callId), info )
+            self._callHandler.statusChangeFromNetwork( int(callId), info )
 
     # %CPRI: 1,2
     def percentCPRI( self, righthandside ):
