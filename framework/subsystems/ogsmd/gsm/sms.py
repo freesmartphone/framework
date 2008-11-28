@@ -82,7 +82,7 @@ class PDUAddress:
                 length -= 1
         else:
             # Encode special "digits"
-            number = self.number.translate(PDUADDR_ENC_TRANS)
+            number = str(self.number).translate(PDUADDR_ENC_TRANS)
             enc = bcd_encode(number)
             length = len(number)
         return flatten( [length, 0x80 | self.type << 4 | self.dialplan, enc] )
