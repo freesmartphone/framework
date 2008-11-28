@@ -15,12 +15,17 @@ from ogsmd.gsm.decor import logged
 from ogsmd.gsm.channel import AtCommandChannel
 import gobject
 
+import logging
+logger = logging.getLogger( 'ogsmd' )
+
+
 #=========================================================================#
 class AbstractModemChannel( AtCommandChannel ):
 #=========================================================================#
 
     def __init__( self, *args, **kwargs ):
         AtCommandChannel.__init__( self, *args, **kwargs )
+        self.callback = None
 
         # NOTE: might make it a weak-reference, so that garbage collection
         #       does not get disturbed by the cirular modem/channel reference
@@ -140,3 +145,13 @@ class AbstractModemChannel( AtCommandChannel ):
 
         c = []
         self._commands["resume"] = c
+
+    def setIntermediateResponseCallback( self, callback ):
+        assert self.callback is None, "callback already set"
+        self.callback = callback
+
+    def handleUnsolicitedResponse( self, response ):
+        if self.callback is not None:
+            self.callback( response )
+        else:
+            logger.warning( "UNHANDLED INTERMEDIATE: %s", response )
