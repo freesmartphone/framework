@@ -89,6 +89,10 @@ class Device( resource.Resource ):
             from modems.sierra.modem import Sierra as Modem
             global mediator
             import modems.sierra.mediator as mediator
+        elif self.modemtype == "option":
+            from modems.option.modem import Option as Modem
+            global mediator
+            import modems.option.mediator as mediator
         else:
             logger.error( "Unsupported modem type %s", self.modemtype )
             return
