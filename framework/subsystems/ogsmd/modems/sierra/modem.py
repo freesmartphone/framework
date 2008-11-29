@@ -29,7 +29,7 @@ class Sierra( AbstractModem ):
         AbstractModem.__init__( self, *args, **kwargs )
 
         # The one and only serial line
-        self._channels["SINGLE"] = SierraChannel( self.pathfactory, "/dev/ttyUSB0" )
+        self._channels["SINGLE"] = SierraChannel( self.pathfactory, "/dev/ttyUSB0", modem=self )
         # configure channels
         self._channels["SINGLE"].setDelegate( UnsolicitedResponseDelegate( self._object, mediator ) )
 
