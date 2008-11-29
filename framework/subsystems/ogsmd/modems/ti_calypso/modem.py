@@ -6,12 +6,13 @@ The Open Device Daemon - Python Implementation
 (C) 2008 Openmoko, Inc.
 GPLv2 or later
 
-Package: ogsmd.modems.muxed4line
+Package: ogsmd.modems.ti_calypso
 Module: modem
 
 """
 
 __version__ = "0.9.9.3"
+MODULE_NAME = "ogsmd.modems.ti_calypso"
 
 import mediator
 

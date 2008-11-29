@@ -14,6 +14,7 @@ MODULE_NAME = "ogsmd.device"
 __version__ = "0.9.5"
 
 from framework import resource
+from modems import allModems
 
 import dbus
 import dbus.service
@@ -69,6 +70,12 @@ class Device( resource.Resource ):
         """
         Enable (inherited from Resource)
         """
+        if self.modemtype not in allModems():
+            estring = "Modem %s not in available modems: %s" % ( self.modemtype, allModems() )
+            logger.error( estring )
+            on_error( resource.ResourceError( estring ) )
+            return
+
         if self.modemtype == "singleline":
             from modems.singleline.modem import SingleLine as Modem
             global mediator
@@ -94,8 +101,8 @@ class Device( resource.Resource ):
             global mediator
             import modems.option.mediator as mediator
         else:
-            logger.error( "Unsupported modem type %s", self.modemtype )
-            return
+            assert False, "must never reach this"
+            sys.exit( -1 )
 
         self.modem = Modem( self, self.bus )
         self.modem.open( on_ok, on_error )
@@ -622,7 +629,7 @@ class Device( resource.Resource ):
 def factory( prefix, controller ):
 #=========================================================================#
     sys.path.append( os.path.dirname( os.path.dirname( __file__ ) ) )
-    modemtype = controller.config.get( "ogsmd", "modemtype" )
+    modemtype = controller.config.getValue( "ogsmd", "modemtype", "unspecified" )
     device = Device( controller.bus, modemtype )
     return [ device ]
 

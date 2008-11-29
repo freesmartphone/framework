@@ -10,6 +10,9 @@ Package: ogsmd.modems.muxed4line
 Module: modem
 """
 
+__version__ = "1.0.0"
+MODULE_NAME = "ogsmd.modems.muxed4line"
+
 import mediator
 
 from ogsmd.modems.abstract.modem import AbstractModem

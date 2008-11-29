@@ -16,7 +16,6 @@ Module: modem
 __version__ = "0.9.9.1"
 MODULE_NAME = "ogsmd.modem.abstract"
 
-
 from ogsmd.gsm.decor import logged
 
 import gobject

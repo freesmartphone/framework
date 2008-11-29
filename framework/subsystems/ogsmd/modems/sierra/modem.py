@@ -3,12 +3,14 @@
 The Open Device Daemon - Python Implementation
 
 (C) 2008 Michael 'Mickey' Lauer <mlauer@vanille-media.de>
-(C) 2008 Openmoko, Inc.
 GPLv2 or later
 
 Package: ogsmd.modems.sierra
 Module: modem
 """
+
+__version__ = "0.1.0"
+MODULE_NAME = "ogsmd.modems.sierra"
 
 import mediator
 

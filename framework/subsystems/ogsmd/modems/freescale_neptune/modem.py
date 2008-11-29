@@ -12,6 +12,7 @@ Freescale Neptune modem class
 """
 
 __version__ = "0.1.0"
+MODULE_NAME = "ogsmd.modems.freescale_neptune"
 
 import mediator
 

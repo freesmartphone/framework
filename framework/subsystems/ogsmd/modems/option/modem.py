@@ -7,9 +7,12 @@ The Open Device Daemon - Python Implementation
 (C) 2008 Openmoko, Inc.
 GPLv2 or later
 
-Package: ogsmd.modems.sierra
+Package: ogsmd.modems.option
 Module: modem
 """
+
+__version__ = "0.1.0"
+MODULE_NAME = "ogsmd.modems.option"
 
 import mediator
 
@@ -68,5 +71,4 @@ class Option( AbstractModem ):
                     ]
         else:
             return []
-
 

@@ -10,6 +10,9 @@ Package: ogsmd.modems.singleline
 Module: modem
 """
 
+__version__ = "1.0.0"
+MODULE_NAME = "singleline"
+
 import mediator
 
 from ..abstract.modem import AbstractModem
