@@ -12,7 +12,7 @@ Module: mediator
 __version__ = "0.5.0.0"
 MODULE_NAME = "ogsmd.modems.freescale_neptune.mediator"
 
-from ogsmd.modems.abstract import *
+from ogsmd.modems.abstract.mediator import *
 from ogsmd.gsm.decor import logged
 from ogsmd.gsm import const
 from ogsmd.helpers import safesplit

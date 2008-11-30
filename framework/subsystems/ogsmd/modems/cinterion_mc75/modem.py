@@ -1,52 +1,44 @@
 #!/usr/bin/env python
 """
-The Open Device Daemon - Python Implementation
+The Open GSM Daemon -- Python Implementation
 
 (C) 2008 Michael 'Mickey' Lauer <mlauer@vanille-media.de>
 (C) 2008 Openmoko, Inc.
 GPLv2 or later
 
-Package: ogsmd.modems.muxed4line
+Package: ogsmd.modems.cinterion_mc75
 Module: modem
 """
 
-__version__ = "1.0.0"
-MODULE_NAME = "ogsmd.modems.muxed4line"
+__version__ = "0.0.0"
+MODULE_NAME = "ogsmd.modems.cinterion_mc75"
 
 import mediator
 
 from ogsmd.modems.abstract.modem import AbstractModem
 
-from .channel import CallChannel, UnsolicitedResponseChannel, MiscChannel
+from .channel import UnsolicitedResponseChannel, MiscChannel
 from .unsolicited import UnsolicitedResponseDelegate
 
-from ogsmd.gsm.decor import logged
-from ogsmd.gsm.channel import AtCommandChannel
-
 #=========================================================================#
-class Muxed4Line( AbstractModem ):
+class CinterionMc75( AbstractModem ):
 #=========================================================================#
 
-    @logged
     def __init__( self, *args, **kwargs ):
         AbstractModem.__init__( self, *args, **kwargs )
 
         # VC 1
-        self._channels["CALL"] = CallChannel( self.pathfactory, "ogsmd.call", modem=self )
+        self._channels["MISC"] = MiscChannel( self.pathfactory, "ogsmd.misc", modem=self )
         # VC 2
         self._channels["UNSOL"] = UnsolicitedResponseChannel( self.pathfactory, "ogsmd.unsolicited", modem=self )
         # VC 3
-        self._channels["MISC"] = MiscChannel( self.pathfactory, "ogsmd.misc", modem=self )
-        # VC 4
         # GPRS
 
         # configure channels
         self._channels["UNSOL"].setDelegate( UnsolicitedResponseDelegate( self._object, mediator ) )
 
     def channel( self, category ):
-        if category == "CallMediator":
-            return self._channels["CALL"]
-        elif category == "UnsolicitedMediator":
+        if category == "UnsolicitedMediator":
             return self._channels["UNSOL"]
         else:
             return self._channels["MISC"]

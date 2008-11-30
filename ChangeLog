@@ -1,3 +1,7 @@
+2008-11-30	Michael Lauer	<mickey@openmoko.org>
+
+	* [ogsmd] Start with CINTERION MC75 support
+
 2008-11-28	Michael Lauer	<mickey@openmoko.org>
 
 	* [ogsmd] Revamped callhandling. Refactored the state-based call handler

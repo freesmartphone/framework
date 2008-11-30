@@ -18,6 +18,7 @@ theModem = None
 theMediator = None
 
 modemmap = { \
+    "cinterion_mc75":    "CinterionMc75",
     "freescale_neptune": "FreescaleNeptune",
     "muxed4line":        "Muxed4Line",
     "option":            "Option",
@@ -53,6 +54,9 @@ def modemFactory( modemtype ):
     elif modemtype == "option":
         from option.modem import Option as Modem
         import option.mediator as mediator
+    elif modemtype == "cinterion_mc75":
+        from cinterion_mc75.modem import CinterionMc75 as Modem
+        import cinterion_mc75.mediator as mediator
     else:
         assert False, "must never reach this"
         sys.exit( -1 )

@@ -79,12 +79,12 @@ class TiCalypso( AbstractModem ):
         Overridden for internal purposes.
         """
         muxer = self._bus.get_object( "org.pyneo.muxer", "/org/pyneo/Muxer" )
-        return str( muxer.AllocChannel( name ) )
+        return str( muxer.AllocChannel( name, dbus_interface="org.freesmartphone.GSM.MUX" ) )
 
     def dataPort( self ):
         # FIXME remove duplication and just use pathfactory
         muxer = self._bus.get_object( "org.pyneo.muxer", "/org/pyneo/Muxer" )
-        return muxer.AllocChannel( "ogsmd.gprs" )
+        return muxer.AllocChannel( "ogsmd.gprs", dbus_interface="org.freesmartphone.GSM.MUX" )
 
     def dataOptions( self, category ):
         if category == "ppp":

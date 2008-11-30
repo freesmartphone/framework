@@ -46,7 +46,7 @@ class CalypsoModemChannel( AbstractModemChannel ):
         This is actually an ugly hack which is unfortunately
         necessary since the TI multiplexer obviously has problems
         wrt. to initialization (swallowing first bunch of commands now and then...)
-        To work around this, we send '\x1a\r\n' until we actually get an
+        To work around this, we send 'ATE0\r\n' until we actually get an
         'OK' from the modem. We try this for 5 times, then we reopen
         the serial line. If after 10 times we still have no response,
         we assume that the modem is broken and fail.
@@ -54,7 +54,7 @@ class CalypsoModemChannel( AbstractModemChannel ):
         for i in itertools.count():
             logger.debug( "(modem init... try #%d)", i+1 )
             select.select( [], [self.serial.fd], [], 0.5 )
-            self.serial.write( "\x1a\r\n" )
+            self.serial.write( "ATE0\r\n" )
             r, w, x = select.select( [self.serial.fd], [], [], 0.5 )
             if r:
                 try:
