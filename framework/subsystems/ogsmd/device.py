@@ -14,7 +14,7 @@ MODULE_NAME = "ogsmd.device"
 __version__ = "0.9.5"
 
 from framework import resource
-from modems import allModems
+from modems import modemFactory, allModems
 
 import dbus
 import dbus.service
@@ -70,42 +70,15 @@ class Device( resource.Resource ):
         """
         Enable (inherited from Resource)
         """
-        if self.modemtype not in allModems():
+
+        Modem, mediator = modemFactory( self.modemtype )
+        if Modem is None:
             estring = "Modem %s not in available modems: %s" % ( self.modemtype, allModems() )
             logger.error( estring )
             on_error( resource.ResourceError( estring ) )
-            return
-
-        if self.modemtype == "singleline":
-            from modems.singleline.modem import SingleLine as Modem
-            global mediator
-            import modems.singleline.mediator as mediator
-        elif self.modemtype == "muxed4line":
-            from modems.muxed4line.modem import Muxed4Line as Modem
-            global mediator
-            import modems.muxed4line.mediator as mediator
-        elif self.modemtype == "ti_calypso":
-            from modems.ti_calypso.modem import TiCalypso as Modem
-            global mediator
-            import modems.ti_calypso.mediator as mediator
-        elif self.modemtype == "freescale_neptune":
-            from modems.freescale_neptune.modem import FreescaleNeptune as Modem
-            global mediator
-            import modems.freescale_neptune.mediator as mediator
-        elif self.modemtype == "sierra":
-            from modems.sierra.modem import Sierra as Modem
-            global mediator
-            import modems.sierra.mediator as mediator
-        elif self.modemtype == "option":
-            from modems.option.modem import Option as Modem
-            global mediator
-            import modems.option.mediator as mediator
         else:
-            assert False, "must never reach this"
-            sys.exit( -1 )
-
-        self.modem = Modem( self, self.bus )
-        self.modem.open( on_ok, on_error )
+            self.modem = Modem( self, self.bus )
+            self.modem.open( on_ok, on_error )
 
     def _disable( self, on_ok, on_error ):
         """
