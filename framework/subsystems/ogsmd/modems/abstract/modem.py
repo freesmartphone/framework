@@ -23,6 +23,8 @@ import gobject
 import logging
 logger = logging.getLogger( MODULE_NAME )
 
+FALLBACK_TIMEOUT = 30
+
 #=========================================================================#
 class AbstractModem( object ):
 #=========================================================================#
@@ -52,6 +54,16 @@ class AbstractModem( object ):
         # FIXME: Might be bad as default, since not all modems necessarily support that
         self._data["sms-direct-cb"] = "2,2,2,1,1" # what about a,3,c,d,e?
         self._data["sms-direct-nocb"] = "2,2,0,0,0" # dito
+
+        self._timeouts = { \
+            "SIMAUTH":      15,
+            "SIMACCESS":    10,
+            "NETWORK":      10,
+            "CFUN":         10,
+            "COPS":         30,
+            "COPS=?":       80,
+            "RING":         04,
+            }
 
     def open( self, on_ok, on_error ):
         """
@@ -89,6 +101,9 @@ class AbstractModem( object ):
 
     def setData( self, key, value ):
         self._data[key] = value
+
+    def timeout( self, category ):
+        return self._timeouts.get( category, FALLBACK_TIMEOUT )
 
     def channel( self, category ):
         """

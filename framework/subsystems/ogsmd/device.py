@@ -14,7 +14,7 @@ MODULE_NAME = "ogsmd.device"
 __version__ = "0.9.5"
 
 from framework import resource
-from modems import modemFactory, allModems
+from modems import modemFactory, allModems, setCurrentModem
 
 import dbus
 import dbus.service
@@ -71,6 +71,7 @@ class Device( resource.Resource ):
         Enable (inherited from Resource)
         """
 
+        global mediator
         Modem, mediator = modemFactory( self.modemtype )
         if Modem is None:
             estring = "Modem %s not in available modems: %s" % ( self.modemtype, allModems() )
@@ -78,6 +79,7 @@ class Device( resource.Resource ):
             on_error( resource.ResourceError( estring ) )
         else:
             self.modem = Modem( self, self.bus )
+            setCurrentModem( self.modem )
             self.modem.open( on_ok, on_error )
 
     def _disable( self, on_ok, on_error ):
@@ -87,6 +89,7 @@ class Device( resource.Resource ):
         if self.modem is not None:
             self.modem.close()
             self.modem = None
+            self.modem.setCurrentModem( self.modem )
         on_ok()
 
     def _suspend( self, on_ok, on_error ):

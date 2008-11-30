@@ -29,6 +29,7 @@ from .calling import CallHandler
 from ogsmd.gsm import error, const, convert
 from ogsmd.gsm.decor import logged
 from ogsmd.helpers import safesplit
+from ogsmd.modems import currentModem
 import ogsmd.gsm.sms
 
 import gobject
@@ -289,7 +290,7 @@ class DeviceGetInfo( DeviceMediator ):
 class DeviceGetAntennaPower( DeviceMediator ):
 #=========================================================================#
     def trigger( self ):
-        self._commchannel.enqueue( "+CFUN?", self.responseFromChannel, self.errorFromChannel, timeout=const.TIMEOUT["CFUN"] )
+        self._commchannel.enqueue( "+CFUN?", self.responseFromChannel, self.errorFromChannel, timeout=currentModem().timeout("CFUN") )
 
     @logged
     def responseFromChannel( self, request, response ):
@@ -302,7 +303,7 @@ class DeviceGetAntennaPower( DeviceMediator ):
 class DeviceSetAntennaPower( DeviceMediator ):
 #=========================================================================#
     def trigger( self ):
-        self._commchannel.enqueue( "+CPIN?", self.intermediateResponse, self.errorFromChannel, timeout=const.TIMEOUT["SIMAUTH"] )
+        self._commchannel.enqueue( "+CPIN?", self.intermediateResponse, self.errorFromChannel, timeout=currentModem().timeout("SIMAUTH") )
 
     def intermediateResponse( self, request, response ):
         if not response[-1] == "OK":
@@ -312,7 +313,7 @@ class DeviceSetAntennaPower( DeviceMediator ):
             if pin_state != self._object.modem._simPinState:
                 self._object.AuthStatus( pin_state )
 
-        self._commchannel.enqueue( "+CFUN=%d" % self.power, self.responseFromChannel, self.errorFromChannel, timeout=const.TIMEOUT["CFUN"] )
+        self._commchannel.enqueue( "+CFUN=%d" % self.power, self.responseFromChannel, self.errorFromChannel, timeout=currentModem().timeout("CFUN") )
 
     @logged
     def responseFromChannel( self, request, response ):
@@ -321,7 +322,7 @@ class DeviceSetAntennaPower( DeviceMediator ):
         else:
             DeviceMediator.responseFromChannel( self, request, response )
 
-        self._commchannel.enqueue( "+CPIN?", self.intermediateResponse2, self.errorFromChannel, timeout=const.TIMEOUT["SIMAUTH"] )
+        self._commchannel.enqueue( "+CPIN?", self.intermediateResponse2, self.errorFromChannel, timeout=currentModem().timeout("SIMAUTH") )
 
     def intermediateResponse2( self, request, response ):
         if not response[-1] == "OK":
@@ -390,7 +391,7 @@ class DeviceSetSimBuffersSms( DeviceMediator ):
 class SimGetAuthStatus( SimMediator ):
 #=========================================================================#
     def trigger( self ):
-        self._commchannel.enqueue( "+CPIN?", self.responseFromChannel, self.errorFromChannel, timeout=const.TIMEOUT["SIMAUTH"] )
+        self._commchannel.enqueue( "+CPIN?", self.responseFromChannel, self.errorFromChannel, timeout=currentModem().timeout("SIMAUTH") )
 
     @logged
     def responseFromChannel( self, request, response ):
@@ -403,7 +404,7 @@ class SimGetAuthStatus( SimMediator ):
 class SimSendAuthCode( SimMediator ):
 #=========================================================================#
     def trigger( self ):
-        self._commchannel.enqueue( '+CPIN="%s"' % self.code, self.responseFromChannel, self.errorFromChannel, timeout=const.TIMEOUT["SIMAUTH"] )
+        self._commchannel.enqueue( '+CPIN="%s"' % self.code, self.responseFromChannel, self.errorFromChannel, timeout=currentModem().timeout("SIMAUTH") )
 
     @logged
     def responseFromChannel( self, request, response ):
@@ -419,7 +420,7 @@ class SimSendAuthCode( SimMediator ):
 class SimUnlock( SimMediator ):
 #=========================================================================#
     def trigger( self ):
-        self._commchannel.enqueue( '+CPIN="%s","%s"' % ( self.puk, self.new_pin ), self.responseFromChannel, self.errorFromChannel, timeout=const.TIMEOUT["SIMAUTH"] )
+        self._commchannel.enqueue( '+CPIN="%s","%s"' % ( self.puk, self.new_pin ), self.responseFromChannel, self.errorFromChannel, timeout=currentModem().timeout("SIMAUTH") )
 
     @logged
     def responseFromChannel( self, request, response ):
@@ -435,7 +436,7 @@ class SimUnlock( SimMediator ):
 class SimChangeAuthCode( SimMediator ):
 #=========================================================================#
     def trigger( self ):
-        self._commchannel.enqueue( '+CPWD="SC","%s","%s"' % ( self.old_pin, self.new_pin ), self.responseFromChannel, self.errorFromChannel, timeout=const.TIMEOUT["SIMAUTH"] )
+        self._commchannel.enqueue( '+CPWD="SC","%s","%s"' % ( self.old_pin, self.new_pin ), self.responseFromChannel, self.errorFromChannel, timeout=currentModem().timeout("SIMAUTH") )
 
 #=========================================================================#
 class SimGetAuthCodeRequired( SimMediator ):
@@ -638,7 +639,7 @@ class SimRetrievePhonebook( SimMediator ):
             if minimum is None: # don't know yet
                 SimGetPhonebookInfo( self._object, self.tryAgain, self.reportError, category=self.category )
             else:
-                self._commchannel.enqueue( '+CPBS="%s";+CPBR=%d,%d' % ( self.pbcategory, minimum, maximum ), self.responseFromChannel, self.errorFromChannel, timeout=const.TIMEOUT["SIMACCESS"] )
+                self._commchannel.enqueue( '+CPBS="%s";+CPBR=%d,%d' % ( self.pbcategory, minimum, maximum ), self.responseFromChannel, self.errorFromChannel, timeout=currentModem().timeout("SIMACCESS") )
 
     @logged
     def responseFromChannel( self, request, response ):
@@ -660,7 +661,7 @@ class SimRetrievePhonebook( SimMediator ):
         if minimum is None: # still?
             raise error.InternalException( "can't get valid phonebook indices for phonebook %s from modem" % self.pbcategory )
         else:
-            self._commchannel.enqueue( '+CPBS="%s";+CPBR=%d,%d' % ( self.pbcategory, minimum, maximum ), self.responseFromChannel, self.errorFromChannel, timeout=const.TIMEOUT["SIMACCESS"] )
+            self._commchannel.enqueue( '+CPBS="%s";+CPBR=%d,%d' % ( self.pbcategory, minimum, maximum ), self.responseFromChannel, self.errorFromChannel, timeout=currentModem().timeout("SIMACCESS") )
 
     def reportError( self, result ):
         self._error( result )
@@ -674,7 +675,7 @@ class SimDeleteEntry( SimMediator ):
         except KeyError:
             self._error( error.InvalidParameter( "valid categories are %s" % const.PHONEBOOK_CATEGORY.keys() ) )
         else:
-            self._commchannel.enqueue( '+CPBS="%s";+CPBW=%d,,,' % ( self.pbcategory, self.index ), self.responseFromChannel, self.errorFromChannel, timeout=const.TIMEOUT["SIMACCESS"] )
+            self._commchannel.enqueue( '+CPBS="%s";+CPBW=%d,,,' % ( self.pbcategory, self.index ), self.responseFromChannel, self.errorFromChannel, timeout=currentModem().timeout("SIMACCESS") )
 
 #=========================================================================#
 class SimStoreEntry( SimMediator ):
@@ -687,7 +688,7 @@ class SimStoreEntry( SimMediator ):
         else:
             number, ntype = const.numberToPhonebookTuple( self.number )
             name = convert.UnicodeToucs2hex( self.name.strip('"') )
-            self._commchannel.enqueue( '+CPBS="%s";+CPBW=%d,"%s",%d,"%s"' % ( self.pbcategory, self.index, number, ntype, name ), self.responseFromChannel, self.errorFromChannel, timeout=const.TIMEOUT["SIMACCESS"] )
+            self._commchannel.enqueue( '+CPBS="%s";+CPBW=%d,"%s",%d,"%s"' % ( self.pbcategory, self.index, number, ntype, name ), self.responseFromChannel, self.errorFromChannel, timeout=currentModem().timeout("SIMACCESS") )
 
 #=========================================================================#
 class SimRetrieveEntry( SimMediator ):
@@ -698,7 +699,7 @@ class SimRetrieveEntry( SimMediator ):
         except KeyError:
             self._error( error.InvalidParameter( "valid categories are %s" % const.PHONEBOOK_CATEGORY.keys() ) )
         else:
-            self._commchannel.enqueue( '+CPBS="%s";+CPBR=%d' % ( self.pbcategory, self.index ), self.responseFromChannel, self.errorFromChannel, timeout=const.TIMEOUT["SIMACCESS"] )
+            self._commchannel.enqueue( '+CPBS="%s";+CPBR=%d' % ( self.pbcategory, self.index ), self.responseFromChannel, self.errorFromChannel, timeout=currentModem().timeout("SIMACCESS") )
 
     @logged
     def responseFromChannel( self, request, response ):
@@ -761,7 +762,7 @@ class SimRetrieveMessagebook( SimMediator ):
         except KeyError:
             self._error( error.InvalidParameter( "valid categories are %s" % const.SMS_PDU_STATUS_IN.keys() ) )
         else:
-            self._commchannel.enqueue( '+CMGL=%i' % category, self.responseFromChannel, self.errorFromChannel, timeout=const.TIMEOUT["SIMACCESS"] )
+            self._commchannel.enqueue( '+CMGL=%i' % category, self.responseFromChannel, self.errorFromChannel, timeout=currentModem().timeout("SIMACCESS") )
 
     @logged
     def responseFromChannel( self, request, response ):
@@ -795,7 +796,7 @@ class SimRetrieveMessagebook( SimMediator ):
 class SimRetrieveMessage( SimMediator ):
 #=========================================================================#
     def trigger( self ):
-        self._commchannel.enqueue( '+CMGR=%d' % self.index, self.responseFromChannel, self.errorFromChannel, timeout=const.TIMEOUT["SIMACCESS"] )
+        self._commchannel.enqueue( '+CMGR=%d' % self.index, self.responseFromChannel, self.errorFromChannel, timeout=currentModem().timeout("SIMACCESS") )
 
     @logged
     def responseFromChannel( self, request, response ):
@@ -841,7 +842,7 @@ class SimStoreMessage( SimMediator ):
         sms.ud = self.contents
         sms.properties = self.properties
         pdu = sms.pdu()
-        self._commchannel.enqueue( '+CMGW=%i\r%s' % ( len(pdu)/2-1, pdu), self.responseFromChannel, self.errorFromChannel, timeout=const.TIMEOUT["SIMACCESS"])
+        self._commchannel.enqueue( '+CMGW=%i\r%s' % ( len(pdu)/2-1, pdu), self.responseFromChannel, self.errorFromChannel, timeout=currentModem().timeout("SIMACCESS") )
 
     def responseFromChannel( self, request, response ):
         if response[-1] != "OK":
@@ -853,7 +854,7 @@ class SimStoreMessage( SimMediator ):
 class SimSendStoredMessage( SimMediator ):
 #=========================================================================#
     def trigger( self ):
-        self._commchannel.enqueue( "+CMSS=%d" % self.index, self.responseFromChannel, self.errorFromChannel, timeout=const.TIMEOUT["SIMACCESS"] )
+        self._commchannel.enqueue( "+CMSS=%d" % self.index, self.responseFromChannel, self.errorFromChannel, timeout=currentModem().timeout("SIMACCESS") )
 
     def responseFromChannel( self, request, response ):
         if response[-1] != "OK":
@@ -870,7 +871,7 @@ class SimSendStoredMessage( SimMediator ):
 class SimDeleteMessage( SimMediator ):
 #=========================================================================#
     def trigger( self ):
-        self._commchannel.enqueue( "+CMGD=%d" % self.index, self.responseFromChannel, self.errorFromChannel, timeout=const.TIMEOUT["SIMACCESS"] )
+        self._commchannel.enqueue( "+CMGD=%d" % self.index, self.responseFromChannel, self.errorFromChannel, timeout=currentModem().timeout("SIMACCESS") )
 
 #
 # SMS Mediators
@@ -889,7 +890,7 @@ class SmsSendMessage( SmsMediator ):
         sms.ud = self.contents
         sms.properties = self.properties
         pdu = sms.pdu()
-        self._commchannel.enqueue( '+CMGS=%i\r%s' % ( len(pdu)/2-1, pdu), self.responseFromChannel, self.errorFromChannel, timeout=const.TIMEOUT["NETWORK"])
+        self._commchannel.enqueue( '+CMGS=%i\r%s' % ( len(pdu)/2-1, pdu), self.responseFromChannel, self.errorFromChannel, timeout=currentModem().timeout("NETWORK"))
 
     def responseFromChannel( self, request, response ):
         if response[-1] != "OK":
@@ -910,13 +911,13 @@ class SmsSendMessage( SmsMediator ):
 class NetworkRegister( NetworkMediator ):
 #=========================================================================#
     def trigger( self ):
-        self._commchannel.enqueue( "+COPS=0,0", self.responseFromChannel, self.errorFromChannel, timeout=const.TIMEOUT["COPS"] )
+        self._commchannel.enqueue( "+COPS=0,0", self.responseFromChannel, self.errorFromChannel, timeout=currentModem().timeout("COPS") )
 
 #=========================================================================#
 class NetworkUnregister( NetworkMediator ):
 #=========================================================================#
     def trigger( self ):
-        self._commchannel.enqueue( "+COPS=2,0", self.responseFromChannel, self.errorFromChannel, timeout=const.TIMEOUT["COPS"] )
+        self._commchannel.enqueue( "+COPS=2,0", self.responseFromChannel, self.errorFromChannel, timeout=currentModem().timeout("COPS") )
 
 #=========================================================================#
 class NetworkGetStatus( NetworkMediator ):
@@ -979,7 +980,7 @@ class NetworkGetSignalStrength( NetworkMediator ): # i
 class NetworkListProviders( NetworkMediator ): # a{sv}
 #=========================================================================#
     def trigger( self ):
-        self._commchannel.enqueue( "+COPS=?", self.responseFromChannel, self.errorFromChannel, timeout=const.TIMEOUT["COPS=?"] )
+        self._commchannel.enqueue( "+COPS=?", self.responseFromChannel, self.errorFromChannel, timeout=currentModem().timeout("COPS=?") )
 
     @logged
     def responseFromChannel( self, request, response ):
@@ -1006,7 +1007,7 @@ class NetworkListProviders( NetworkMediator ): # a{sv}
 class NetworkRegisterWithProvider( NetworkMediator ):
 #=========================================================================#
     def trigger( self ):
-        self._commchannel.enqueue( '+COPS=1,2,"%d"' % self.operator_code, self.responseFromChannel, self.errorFromChannel, timeout=const.TIMEOUT["COPS"] )
+        self._commchannel.enqueue( '+COPS=1,2,"%d"' % self.operator_code, self.responseFromChannel, self.errorFromChannel, timeout=currentModem().timeout("COPS") )
 
 #=========================================================================#
 class NetworkGetCountryCode( NetworkMediator ):
@@ -1033,7 +1034,7 @@ class NetworkGetCallForwarding( NetworkMediator ): # a{sv}
         except KeyError:
             self._error( error.InvalidParameter( "valid reasons are %s" % const.CALL_FORWARDING_REASON.keys() ) )
         else:
-            self._commchannel.enqueue( "+CCFC=%d,2" % reason, self.responseFromChannel, self.errorFromChannel, timeout=const.TIMEOUT["CCFC"] )
+            self._commchannel.enqueue( "+CCFC=%d,2" % reason, self.responseFromChannel, self.errorFromChannel, timeout=currentModem().timeout("NETWORK") )
 
     @logged
     def responseFromChannel( self, request, response ):
@@ -1074,9 +1075,9 @@ class NetworkEnableCallForwarding( NetworkMediator ):
         number, ntype = const.numberToPhonebookTuple( self.number )
 
         if self.reason == "no reply" and self.timeout > 0:
-            self._commchannel.enqueue( """+CCFC=%d,3,"%s",%d,%d,,,%d""" % ( reason, number, ntype, class_, self.timeout ), self.responseFromChannel, self.errorFromChannel, timeout=const.TIMEOUT["CCFC"] )
+            self._commchannel.enqueue( """+CCFC=%d,3,"%s",%d,%d,,,%d""" % ( reason, number, ntype, class_, self.timeout ), self.responseFromChannel, self.errorFromChannel, timeout=currentModem().timeout("NETWORK") )
         else:
-            self._commchannel.enqueue( """+CCFC=%d,3,"%s",%d,%d""" % ( reason, number, ntype, class_ ), self.responseFromChannel, self.errorFromChannel, timeout=const.TIMEOUT["CCFC"] )
+            self._commchannel.enqueue( """+CCFC=%d,3,"%s",%d,%d""" % ( reason, number, ntype, class_ ), self.responseFromChannel, self.errorFromChannel, timeout=currentModem().timeout("NETWORK") )
 
 #=========================================================================#
 class NetworkDisableCallForwarding( NetworkMediator ):
@@ -1092,7 +1093,7 @@ class NetworkDisableCallForwarding( NetworkMediator ):
         except KeyError:
             self._error( error.InvalidParameter( "valid classes are %s" % const.CALL_FORWARDING_CLASS.keys() ) )
 
-        self._commchannel.enqueue( "+CCFC=%d,4,,,%d" % ( reason, class_ ), self.responseFromChannel, self.errorFromChannel, timeout=const.TIMEOUT["CCFC"] )
+        self._commchannel.enqueue( "+CCFC=%d,4,,,%d" % ( reason, class_ ), self.responseFromChannel, self.errorFromChannel, timeout=currentModem().timeout("NETWORK") )
 
 #=========================================================================#
 class NetworkGetCallingIdentification( NetworkMediator ): # s
@@ -1141,7 +1142,7 @@ class CallEmergency( CallMediator ):
         if self.number in const.EMERGENCY_NUMBERS:
             # FIXME once we have a priority queue, insert these with maximum priority
             self._commchannel.enqueue( 'H' ) # hang up (just in case)
-            self._commchannel.enqueue( '+CFUN=1;+COPS=0,0', timeout=const.TIMEOUT["COPS"] ) # turn antenna on and register (just in case)
+            self._commchannel.enqueue( '+CFUN=1;+COPS=0,0', timeout=currentModem().timeout("COPS") ) # turn antenna on and register (just in case)
             self._commchannel.enqueue( 'D%s;' % self.number ) # dial emergency number
         else:
             self._error( error.CallNotAnEmergencyNumber( "valid emergency numbers are %s" % const.EMERGENCY_NUMBERS ) )

@@ -78,18 +78,6 @@ def groupDictIfMatch( pattern, string ):
     return match.groupdict() if match is not None else None
 
 #=========================================================================#
-TIMEOUT = { \
-  "SIMAUTH": 15,
-  "SIMACCESS": 10,
-  "NETWORK": 10,
-  "CFUN": 10,
-  "COPS": 30,
-  "COPS=?": 80,
-  "RING": 4,
-  "CCFC": 10,
-}
-
-#=========================================================================#
 #        "112"      // GSM 02.30, Europe
 #        "911"      // GSM 02.30, US and Canada
 #        "08"       // GSM 02.30, Mexico

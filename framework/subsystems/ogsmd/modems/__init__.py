@@ -33,6 +33,8 @@ def modemFactory( modemtype ):
     if modemtype not in modemmap:
         return None, None
 
+    global theMediator
+
     if modemtype == "singleline":
         from singleline.modem import SingleLine as Modem
         import singleline.mediator as mediator
@@ -56,8 +58,18 @@ def modemFactory( modemtype ):
         sys.exit( -1 )
 
     global theMediator
-    global theModem
-    theModem = Modem
     theMediator = mediator
 
-    return theModem, theMediator
+    return Modem, theMediator
+
+def currentModem():
+    global theModem
+    if theModem is not None:
+        return theModem
+    else:
+        logger.error( "current modem requested before set: exiting" )
+        sys.exit( -1 )
+
+def setCurrentModem( modem ):
+    global theModem
+    theModem = modem
