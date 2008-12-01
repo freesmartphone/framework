@@ -18,6 +18,10 @@
 	  before suspending, after resuming, before shutting down, before rebooting.
 	  This fixes FSO ticket #287.
 
+2008-12-01	Michael Lauer	<mickey@openmoko.org>
+
+	* [ogsmd] Implement org.freesmartphone.GSM.Device.[Get|Set]SpeakerVolume
+
 2008-11-30	Michael Lauer	<mickey@openmoko.org>
 
 	* [ogsmd] Start with CINTERION MC75 support

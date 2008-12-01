@@ -383,6 +383,30 @@ class DeviceSetSimBuffersSms( DeviceMediator ):
         commchannel = self._object.modem.communicationChannel( "UnsolicitedMediator" )
         commchannel.enqueue( "+CNMI=%s" % params, self.responseFromChannel, self.errorFromChannel )
 
+#=========================================================================#
+class DeviceGetSpeakerVolume( DeviceMediator ):
+#=========================================================================#
+    def trigger( self ):
+        self._commchannel.enqueue( "+CLVL?", self.responseFromChannel, self.errorFromChannel )
+
+    @logged
+    def responseFromChannel( self, request, response ):
+        if response[-1] == "OK" and response[0].startswith( "+CLVL" ):
+            value = int( self._rightHandSide( response[0] ) ) * 100 / 255
+            self._ok( value )
+        else:
+            DeviceMediator.responseFromChannel( self, request, response )
+
+#=========================================================================#
+class DeviceSetSpeakerVolume( DeviceMediator ):
+#=========================================================================#
+    def trigger( self ):
+        if 0 <= self.modem_volume <= 100:
+            value = self.modem_volume * 255 / 100
+            self._commchannel.enqueue( "+CLVL=%d" % value, self.responseFromChannel, self.errorFromChannel )
+        else:
+            self._error( error.InvalidParameter( "Volume needs to be within [ 0, 100 ]." ) )
+
 #
 # SIM Mediators
 #

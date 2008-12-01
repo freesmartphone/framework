@@ -11,7 +11,7 @@ Module: device
 """
 
 MODULE_NAME = "ogsmd.device"
-__version__ = "0.9.5"
+__version__ = "0.9.6"
 
 from framework import resource
 from modems import modemFactory, allModems, setCurrentModem
@@ -148,6 +148,18 @@ class Device( resource.Resource ):
     @resource.checkedmethod
     def SetSimBuffersSms( self, sim_buffers_sms, dbus_ok, dbus_error ):
         mediator.DeviceSetSimBuffersSms( self, dbus_ok, dbus_error, sim_buffers_sms=sim_buffers_sms )
+
+    @dbus.service.method( DBUS_INTERFACE_DEVICE, "", "i",
+                          async_callbacks=( "dbus_ok", "dbus_error" ) )
+    @resource.checkedmethod
+    def GetSpeakerVolume( self, dbus_ok, dbus_error ):
+        mediator.DeviceGetSpeakerVolume( self, dbus_ok, dbus_error )
+
+    @dbus.service.method( DBUS_INTERFACE_DEVICE, "i", "",
+                          async_callbacks=( "dbus_ok", "dbus_error" ) )
+    @resource.checkedmethod
+    def SetSpeakerVolume( self, modem_volume, dbus_ok, dbus_error ):
+        mediator.DeviceSetSpeakerVolume( self, dbus_ok, dbus_error, modem_volume=modem_volume )
 
     #
     # dbus org.freesmartphone.GSM.SIM
