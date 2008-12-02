@@ -37,7 +37,9 @@ logger = logging.getLogger( "tasklet" )
 # - better stack printing in case of error
 
 def tasklet(func):
-    """Decorator that turns a generator function into a tasklet instance"""
+    """
+    A decorator that turns a generator function into a tasklet instance.
+    """
     def ret(*args, **kargs):
         return Tasklet( generator=func(*args, **kargs) )
     ret.__dict__ = func.__dict__

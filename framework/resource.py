@@ -109,7 +109,7 @@ class Resource( dbus.service.Object ):
                 usaged = self._resourceBus.get_object( "org.freesmartphone.ousaged", "/org/freesmartphone/Usage" )
             except dbus.exceptions.DBusException:
                 logger.warning( "Can't register resource %s since ousaged is not present. Enabling device", name )
-                gobject.idle_add( self.Enable, lambda: None, lambda dummy: None )
+                gobject.idle_add( self.Enable, lambda: False, lambda dummy: False )
             else:
                 usaged = dbus.Interface( usaged, "org.freesmartphone.Usage" )
                 def on_reply( *arg ):
@@ -117,6 +117,7 @@ class Resource( dbus.service.Object ):
                 def on_error( err ):
                     logger.error( "An error occured when registering: %s", err )
                 usaged.RegisterResource( self._resourceName, self, reply_handler=on_reply, error_handler=on_error )
+            return False # mainloop: don't call me again
 
         gobject.idle_add( on_idle, self )
 

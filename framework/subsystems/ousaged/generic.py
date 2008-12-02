@@ -13,13 +13,14 @@ Module: generic
 """
 
 MODULE_NAME = "ousaged"
-__version__ = "0.5.2"
+__version__ = "0.6.0"
 
 DBUS_INTERFACE_PREFIX = "org.freesmartphone.Usage"
 DBUS_PATH_PREFIX = "/org/freesmartphone/Usage"
 
 import framework.patterns.tasklet as tasklet
 
+import gobject
 import dbus
 import dbus.service
 
@@ -284,17 +285,31 @@ class GenericUsageControl( dbus.service.Object ):
 
     @tasklet.tasklet
     def _suspend( self ):
-        """The actual suspending tasklet"""
+        """
+        The actual suspending tasklet, phase 1 (suspending resources)
+        """
         logger.info( "suspending all resources..." )
         for resource in self.resources.values():
             logger.debug( "suspending %s", resource.name )
             yield resource._suspend()
-        logger.info( "...completed - triggering kernel suspend" )
+        logger.info( "...completed" )
 
-        # FIXME return 'ok' to the caller
+        # FIXME is this additional indirection necessary?
+        gobject.idle_add( self._suspend2 )
 
-        # FIXME Play apmd and then use the sysfs interface
-        os.system( "apm -s" )
+    def _suspend2( self ):
+        self._kernelSuspendAndResume().start()
+        return False
+
+    @tasklet.tasklet
+    def _kernelSuspendAndResume( self ):
+        """
+        The actual resuming tasklet.
+        """
+        # FIXME might want to traverse /etc/apm.d/... and launch them scripts
+
+        logger.info( "triggering kernel suspend" )
+        open( "/sys/power/state", "w" ).write( "mem\n" )
 
         logger.info( "kernel has resumed - resuming resources..." )
         for resource in self.resources.values():

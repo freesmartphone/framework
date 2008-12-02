@@ -2,12 +2,17 @@
 
 	* [onetworkd] Simple connection sharing now works. See
 	  org.freesmartphone.Network.StartConnectionSharingWithInterface(s) -> ()
+	  This fixes FSO ticket #244.
 	* [odeviced] Add two new resources: 'CPU' and 'Display':
 	  Requesting the CPU resource will prevent the idle notifier from falling
 	  into the 'suspend' state, requesting the Display resource will prevent
 	  the idle notifier from falling into the 'idle_dim' (and following) state(s).
 	  With these two resource, it now takes only one additional rule to prevent
 	  the system from suspending while on a call or a musicplayer is playing.
+	* [ousaged] org.freesmartphone.Usage.Suspend() now returns a value instead
+	  of timing out (call did not return before the actual suspend was triggered).
+	  As an inherent result, the suspend now occurs asynchronous.
+	  This fixes FSO ticket #215.
 
 2008-11-30	Michael Lauer	<mickey@openmoko.org>
 
