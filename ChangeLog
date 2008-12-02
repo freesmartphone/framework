@@ -1,3 +1,8 @@
+2008-12-02	Michael Lauer	<mickey@openmoko.org>
+
+	* [onetworkd] Simple connection sharing now works. See
+	  org.freesmartphone.Network.StartConnectionSharingWithInterface(s) -> ()
+
 2008-11-30	Michael Lauer	<mickey@openmoko.org>
 
 	* [ogsmd] Start with CINTERION MC75 support

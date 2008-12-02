@@ -11,7 +11,7 @@ Module: network
 """
 
 MODULE_NAME = "onetworkd"
-__version__ = "0.0.0"
+__version__ = "0.0.1"
 
 import gobject
 
@@ -52,7 +52,7 @@ class Interface( object ):
         self._name = name
 
     def name( self ):
-        return self.name
+        return self._name
 
     def ipAddress4( self ):
         s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)

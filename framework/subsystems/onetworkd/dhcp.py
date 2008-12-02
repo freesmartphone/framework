@@ -13,7 +13,7 @@ Support for the Dynamic Host Configuration Protocol
 """
 
 MODULE_NAME = "onetworkd"
-__version__ = "0.0.0"
+__version__ = "0.0.1"
 
 from helpers import readFromFile, writeToFile
 
@@ -23,6 +23,7 @@ import logging
 logger = logging.getLogger( MODULE_NAME )
 
 ETC_RESOLV_CONF = "/etc/resolv.conf"
+ETC_UDHCPD_CONF = "/etc/udhcpd.conf"
 
 #============================================================================#
 def launchDaemon():
@@ -38,19 +39,15 @@ def prepareDaemonConfigurationForInterface( iface ):
 
     nameservers = ""
     resolv_conf = readFromFile( ETC_RESOLV_CONF ).split( '\n' )
-    for line in resolv.conf:
+    for line in resolv_conf:
         if line.startswith( "nameserver" ):
-            nameservers += ( line.strip().split( ' ' ) )
+            nameserver = line.strip().split( ' ' )[1]
+            nameservers += nameserver
             nameservers += " "
 
     conf_file = daemon_conf_file_template % ( name, nameservers, address )
 
-    writeToFile( ETC_RESOLV_CONF, conf_file )
-
-
-#============================================================================#
-daemon_conf_file_name = "/etc/udhcpd.conf"
-#============================================================================#
+    writeToFile( ETC_UDHCPD_CONF, conf_file )
 
 #============================================================================#
 daemon_conf_file_template = """# freesmartphone.org /etc/udhcpd.conf

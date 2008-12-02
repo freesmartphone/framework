@@ -11,7 +11,7 @@ Module: sharing
 """
 
 MODULE_NAME = "onetworkd"
-__version__ = "0.0.0"
+__version__ = "0.0.1"
 
 from network import theNetwork
 from helpers import isValidAddress, writeToFile
@@ -79,14 +79,6 @@ class ConnectionSharing( dbus.service.Object ):
             return
 
         source_address = iface.ipAddress4()
-
-        if not isValidAddress( address ):
-            dbus_error( NoAddress( "%s is not a valid IPv4 address." % address ) )
-            return
-
-        target_address = address
-
-        # FIXME use dhcp daemon
 
         commands = []
         commands.append( "iptables -I INPUT 1 -s 192.168.0.0/24 -j ACCEPT" )
