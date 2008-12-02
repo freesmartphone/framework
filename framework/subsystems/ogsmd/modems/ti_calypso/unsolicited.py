@@ -24,6 +24,7 @@ class UnsolicitedResponseDelegate( AbstractUnsolicitedResponseDelegate ):
 #=========================================================================#
     def __init__( self, *args, **kwargs ):
         AbstractUnsolicitedResponseDelegate.__init__( self, *args, **kwargs )
+        self._callHandler.unsetHook() # we have special call handling that doesn't need stock hooks
 
         self.fullReadyness = "unknown"
         self.subsystemReadyness = { "PHB": False, "SMS": False }

@@ -13,4 +13,6 @@ Module: unsolicited
 from ogsmd.modems.abstract.unsolicited import AbstractUnsolicitedResponseDelegate
 
 class UnsolicitedResponseDelegate( AbstractUnsolicitedResponseDelegate ):
-    pass
+    def __init__( self, *args, **kwargs ):
+        AbstractUnsolicitedResponseDelegate.__init__( self, *args, **kwargs )
+        self._callHandler.unsetHook() # we have special call handling that doesn't need stock hooks
