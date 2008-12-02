@@ -2,6 +2,12 @@
 
 	* [onetworkd] Simple connection sharing now works. See
 	  org.freesmartphone.Network.StartConnectionSharingWithInterface(s) -> ()
+	* [odeviced] Add two new resources: 'CPU' and 'Display':
+	  Requesting the CPU resource will prevent the idle notifier from falling
+	  into the 'suspend' state, requesting the Display resource will prevent
+	  the idle notifier from falling into the 'idle_dim' (and following) state(s).
+	  With these two resource, it now takes only one additional rule to prevent
+	  the system from suspending while on a call or a musicplayer is playing.
 
 2008-11-30	Michael Lauer	<mickey@openmoko.org>
 

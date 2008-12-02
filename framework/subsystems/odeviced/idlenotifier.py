@@ -20,10 +20,11 @@ GPLv2 or later
 """
 
 MODULE_NAME = "odeviced.idlenotifier"
-__version__ = "0.9.9.3"
+__version__ = "0.9.10.0"
 
 from helpers import DBUS_INTERFACE_PREFIX, DBUS_PATH_PREFIX, readFromFile, writeToFile
 from framework.config import config
+from framework import resource
 
 import gobject
 import dbus.service
@@ -32,18 +33,25 @@ import itertools, os, sys
 import logging
 logger = logging.getLogger( MODULE_NAME )
 
-#----------------------------------------------------------------------------#
+#=========================================================================#
 class InvalidState( dbus.DBusException ):
-#----------------------------------------------------------------------------#
+#=========================================================================#
     _dbus_error_name = "org.freesmartphone.IdleNotifier.InvalidState"
 
-#----------------------------------------------------------------------------#
+#=========================================================================#
 class IdleNotifier( dbus.service.Object ):
-#----------------------------------------------------------------------------#
+#=========================================================================#
     """A Dbus Object implementing org.freesmartphone.Device.IdleNotifier"""
     DBUS_INTERFACE = DBUS_INTERFACE_PREFIX + ".IdleNotifier"
 
+    _instance = None
+
+    @classmethod
+    def instance( klass ):
+        return klass._instance
+
     def __init__( self, bus, config, index, extranodes ):
+        self.__class__._instance = self
         self.interface = self.DBUS_INTERFACE
         self.path = DBUS_PATH_PREFIX + "/IdleNotifier/%s" % index
         dbus.service.Object.__init__( self, bus, self.path )
@@ -77,10 +85,7 @@ class IdleNotifier( dbus.service.Object ):
 
         logger.info( "opened %d input file descriptors" % len( self.input ) )
 
-        # override default timeouts with configuration (if set)
-        for key in self.timeouts:
-            self.timeouts[key] = config.getInt( MODULE_NAME, key, self.timeouts[key] )
-            logger.debug( "setting %s timeout to %d" % ( key, self.timeouts[key] ) )
+        self.readTimeoutsFromConfig()
 
         # states without timeout
         self.timeouts["busy"] = -1
@@ -90,16 +95,50 @@ class IdleNotifier( dbus.service.Object ):
         if len( self.input ):
             self.launchStateMachine()
 
+    def readTimeoutsFromConfig( self ):
+        # override default timeouts with configuration (if set)
+        for key in self.timeouts:
+            self.timeouts[key] = config.getInt( MODULE_NAME, key, self.timeouts[key] )
+            logger.debug( "setting %s timeout to %d" % ( key, self.timeouts[key] ) )
+
+    def prohibitStateTransitionTo( self, state ):
+        # stop falling into in the future
+        self.timeouts[state] = 0
+        # check whether said state would be the next state
+        if state == self.nextState( self.state ):
+            # kill timeout
+            if self.timeout is not None:
+                gobject.source_remove( self.timeout )
+        # then, check whether we _are_ in that state
+        if state == self.state:
+            # kill timeout
+            if self.timeout is not None:
+                gobject.source_remove( self.timeout )
+            # and go into the previous state
+            self.onState( self.previousState( self.state ) )
+
+    def allowStateTransitionTo( self, state ):
+        self.readTimeoutsFromConfig()
+        # stop timer
+        if self.timeout is not None:
+            gobject.source_remove( self.timeout )
+        # relaunch timer
+        self.onState( self.state )
+
     def launchStateMachine( self ):
         for i in self.input:
             gobject.io_add_watch( i, gobject.IO_IN, self.onInputActivity )
         self.timeout = gobject.timeout_add_seconds( 2, self.onState, "idle" )
 
+    def previousState( self, state ):
+        index = self.states.index( state )
+        nextIndex = ( index - 1 ) % len(self.states)
+        return self.states[nextIndex]
+
     def nextState( self, state ):
         index = self.states.index( state )
         nextIndex = ( index + 1 ) % len(self.states)
         return self.states[nextIndex]
-
 
     def onInputActivity( self, source, condition ):
         data = os.read( source, 512 )
@@ -116,6 +155,8 @@ class IdleNotifier( dbus.service.Object ):
         timeout = self.timeouts[ nextState ]
         if timeout > 0:
             self.timeout = gobject.timeout_add_seconds( timeout, self.onState, nextState )
+        else:
+            logger.debug( "Timeout for %s disabled, not falling into this state next." % nextState )
 
     #
     # dbus signals
@@ -156,10 +197,100 @@ class IdleNotifier( dbus.service.Object ):
                 gobject.source_remove( self.timeout )
             self.onState( state )
 
+#=========================================================================#
+class CpuResource( resource.Resource ):
+#=========================================================================#
+    def __init__( self, bus ):
+        """
+        Init.
+        """
+        self.path = "/org/freesmartphone/Device/CPU"
+        dbus.service.Object.__init__( self, bus, self.path )
+        resource.Resource.__init__( self, bus, "CPU" )
+        logger.info( "%s %s initialized." % ( self.__class__.__name__, __version__ ) )
+
+    #
+    # dbus org.freesmartphone.Resource [inherited from framework.Resource]
+    #
+    def _enable( self, on_ok, on_error ):
+        """
+        Enable (inherited from Resource)
+        """
+        IdleNotifier.instance().prohibitStateTransitionTo( "suspend" )
+        on_ok()
+
+    def _disable( self, on_ok, on_error ):
+        """
+        Disable (inherited from Resource)
+        """
+        IdleNotifier.instance().allowStateTransitionTo( "suspend" )
+        on_ok()
+
+    def _suspend( self, on_ok, on_error ):
+        """
+        Suspend (inherited from Resource)
+        """
+        # should actually trigger an error, since suspending CPU is not allowed
+        on_ok()
+
+    def _resume( self, on_ok, on_error ):
+        """
+        Resume (inherited from Resource)
+        """
+        # should actually trigger an error, since suspending CPU is not allowed
+        on_ok()
+
+#=========================================================================#
+class DisplayResource( resource.Resource ):
+#=========================================================================#
+    def __init__( self, bus ):
+        """
+        Init.
+        """
+        self.path = "/org/freesmartphone/Device/Display"
+        dbus.service.Object.__init__( self, bus, self.path )
+        resource.Resource.__init__( self, bus, "Display" )
+        logger.info( "%s %s initialized." % ( self.__class__.__name__, __version__ ) )
+
+    #
+    # dbus org.freesmartphone.Resource [inherited from framework.Resource]
+    #
+    def _enable( self, on_ok, on_error ):
+        """
+        Enable (inherited from Resource)
+        """
+        IdleNotifier.instance().prohibitStateTransitionTo( "idle_dim" )
+        # FIXME should we do something else here?
+        on_ok()
+
+    def _disable( self, on_ok, on_error ):
+        """
+        Disable (inherited from Resource)
+        """
+        IdleNotifier.instance().allowStateTransitionTo( "idle_dim" )
+        # FIXME should we do something else here?
+        on_ok()
+
+    def _suspend( self, on_ok, on_error ):
+        """
+        Suspend (inherited from Resource)
+        """
+        # FIXME should we do something here?
+        on_ok()
+
+    def _resume( self, on_ok, on_error ):
+        """
+        Resume (inherited from Resource)
+        """
+        # FIXME should we do something here?
+        on_ok()
+
 #----------------------------------------------------------------------------#
 def factory( prefix, controller ):
 #----------------------------------------------------------------------------#
-    return [ IdleNotifier( controller.bus, controller.config, 0, [] ) ]
+    return [ IdleNotifier( controller.bus, controller.config, 0, [] ),
+             CpuResource( controller.bus ),
+             DisplayResource( controller.bus ) ]
 
 if __name__ == "__main__":
     import dbus
