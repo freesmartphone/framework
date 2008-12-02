@@ -24,7 +24,7 @@ import gobject
 import dbus
 import dbus.service
 
-import time, os
+import time, os, subprocess
 
 import logging
 logger = logging.getLogger( MODULE_NAME )
@@ -288,6 +288,8 @@ class GenericUsageControl( dbus.service.Object ):
         """
         The actual suspending tasklet, phase 1 (suspending resources)
         """
+        self.SystemAction( "suspend" ) # send as early as possible
+
         logger.info( "suspending all resources..." )
         for resource in self.resources.values():
             logger.debug( "suspending %s", resource.name )
@@ -309,6 +311,7 @@ class GenericUsageControl( dbus.service.Object ):
         # FIXME might want to traverse /etc/apm.d/... and launch them scripts
 
         logger.info( "triggering kernel suspend" )
+        subprocess.call( "echo apm -s", shell=True )
         open( "/sys/power/state", "w" ).write( "mem\n" )
 
         logger.info( "kernel has resumed - resuming resources..." )
@@ -316,6 +319,8 @@ class GenericUsageControl( dbus.service.Object ):
             logger.debug( "resuming %s", resource.name )
             yield resource._resume()
         logger.info( "...completed." )
+
+        gobject.idle_add( lambda self=self:self.SystemAction( "resume" ) and False ) # send as late as possible
 
     def _nameOwnerChangedHandler( self, name, old_owner, new_owner ):
         if old_owner and not new_owner:
@@ -375,7 +380,9 @@ class GenericUsageControl( dbus.service.Object ):
         else:
             resource.release( sender ).start_dbus( dbus_ok, dbus_error )
 
-    @dbus.service.method( DBUS_INTERFACE, "so", "", sender_keyword='sender', async_callbacks=( "dbus_ok", "dbus_error" ) )
+    @dbus.service.method( DBUS_INTERFACE, "so", "",
+                          sender_keyword='sender',
+                          async_callbacks=( "dbus_ok", "dbus_error" ) )
     def RegisterResource( self, resourcename, path, sender, dbus_ok, dbus_error ):
         """
         Register a new resource from a client.
@@ -391,13 +398,36 @@ class GenericUsageControl( dbus.service.Object ):
             self._addResource( resource )
             dbus_ok()
 
-    @dbus.service.method( DBUS_INTERFACE, "", "", async_callbacks=( "dbus_ok", "dbus_error" ) )
+    @dbus.service.method( DBUS_INTERFACE, "", "",
+                          async_callbacks=( "dbus_ok", "dbus_error" ) )
     def Suspend( self, dbus_ok, dbus_error ):
         """
-        Suspend all the resources.
+        Suspend all resources and the system.
         """
         # Call the _suspend task connected to the dbus callbacks
         self._suspend().start_dbus( dbus_ok, dbus_error )
+
+    @dbus.service.method( DBUS_INTERFACE, "", "",
+                          async_callbacks=( "dbus_ok", "dbus_error" ) )
+    def Shutdown( self, dbus_ok, dbus_error ):
+        """
+        Shutdown the system.
+        """
+        self.SystemAction( "shutdown" ) # send signal
+        dbus_ok()
+        # FIXME this is not a clean shutdown
+        subprocess.call( "shutdown -h now &", shell=True )
+
+    @dbus.service.method( DBUS_INTERFACE, "", "",
+                          async_callbacks=( "dbus_ok", "dbus_error" ) )
+    def Reboot( self, dbus_ok, dbus_error ):
+        """
+        Reboot the system.
+        """
+        # FIXME should we cleanly shutdown resources here -- will it matter?
+        self.SystemAction( "reboot" ) # send signal
+        dbus_ok()
+        subprocess.call( "reboot &", shell=True )
 
     #
     # dbus signals
@@ -408,6 +438,10 @@ class GenericUsageControl( dbus.service.Object ):
 
     @dbus.service.signal( DBUS_INTERFACE, "sb" )
     def ResourceAvailable( self, resourcename, state ):
+        pass
+
+    @dbus.service.signal( DBUS_INTERFACE, "s" )
+    def SystemAction( self, action ):
         pass
 
 #----------------------------------------------------------------------------#
