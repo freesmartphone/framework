@@ -127,7 +127,7 @@ class Daemon( object ):
         Handle SIGTERM.
         """
         # reinstantiate original SIGTERM handler
-        signal( self.sigtermhandler )
+        signal( signal, self.sigtermhandler )
         self.shutdown()
         self.stop()
 
