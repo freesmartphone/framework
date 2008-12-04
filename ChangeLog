@@ -1,3 +1,8 @@
+2008-12-04	Michael Lauer	<mickey@openmoko.org>
+
+	* Add necessary methods for a clean system -> subsystems -> objects shutdown.
+	* [ousaged] Disable resource on shutdown.
+
 2008-12-02	Michael Lauer	<mickey@openmoko.org>
 
 	* [onetworkd] Simple connection sharing now works. See
