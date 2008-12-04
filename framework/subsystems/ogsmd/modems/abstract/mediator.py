@@ -407,6 +407,26 @@ class DeviceSetSpeakerVolume( DeviceMediator ):
         else:
             self._error( error.InvalidParameter( "Volume needs to be within [ 0, 100 ]." ) )
 
+#=========================================================================#
+class DeviceGetMicrophoneMuted( DeviceMediator ):
+#=========================================================================#
+    def trigger( self ):
+        self._commchannel.enqueue( "+CMUT?", self.responseFromChannel, self.errorFromChannel )
+
+    @logged
+    def responseFromChannel( self, request, response ):
+        if response[-1] == "OK" and response[0].startswith( "+CMUT" ):
+            value = int( self._rightHandSide( response[0] ) )
+            self._ok( value == 1 )
+        else:
+            DeviceMediator.responseFromChannel( self, request, response )
+
+#=========================================================================#
+class DeviceSetMicrophoneMuted( DeviceMediator ):
+#=========================================================================#
+    def trigger( self ):
+            self._commchannel.enqueue( "+CMUT=%d" % self.muted, self.responseFromChannel, self.errorFromChannel )
+
 #
 # SIM Mediators
 #

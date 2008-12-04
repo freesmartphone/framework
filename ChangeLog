@@ -1,7 +1,8 @@
 2008-12-04	Michael Lauer	<mickey@openmoko.org>
 
-	* Add necessary methods for a clean system -> subsystems -> objects shutdown.
-	* [ousaged] Disable resource on shutdown.
+	* Added necessary methods for a clean system -> subsystems -> objects shutdown.
+	* [ousaged] Disabled resource on shutdown.
+	* [ogsmd] Implemented org.freesmartphone.GSM.Device.[Get|Set]MicrophoneMuted
 
 2008-12-02	Michael Lauer	<mickey@openmoko.org>
 
