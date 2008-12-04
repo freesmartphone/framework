@@ -59,6 +59,7 @@ class IdleNotifier( dbus.service.Object ):
 
         self.state = "awake"
         self.timeouts = { \
+                        "none": -1, # dummy state
                         "idle": 10,
                         "idle_dim": 20,
                         "idle_prelock": 12,

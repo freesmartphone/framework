@@ -121,6 +121,15 @@ class Resource( dbus.service.Object ):
 
         gobject.idle_add( on_idle, self )
 
+    def shutdown( self ):
+        """
+        Called by the subsystem during system shutdown.
+        """
+        if self._resourceStatus in "enabled enabling".split():
+            # no error handling, either it works or not
+            #self._disable( lambda: None, lambda Foo: None )
+            self.Disable( lambda: None, lambda Foo: None )
+
     def _updateResourceStatus( self, nextStatus ):
         logger.info( "setting resource status for %s from %s to %s" % ( self._resourceName, self._resourceStatus, nextStatus ) )
         self._resourceStatus = nextStatus
