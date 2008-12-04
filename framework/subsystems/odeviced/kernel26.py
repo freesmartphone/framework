@@ -8,7 +8,7 @@ GPLv2 or later
 """
 
 MODULE_NAME = "odeviced.kernel26"
-__version__ = "0.9.8"
+__version__ = "0.9.8.1"
 
 from helpers import DBUS_INTERFACE_PREFIX, DBUS_PATH_PREFIX, readFromFile, writeToFile, cleanObjectName
 from framework.config import config
@@ -128,6 +128,12 @@ class LED( dbus.service.Object ):
         self.triggers = readFromFile( "%s/trigger" % self.node ).split()
         logger.debug( "available triggers %s" % self.triggers )
         # initial status = off
+        self.SetBrightness( 0 )
+
+    def shutdown( self ):
+        """
+        Called upon subsystem shutdown.
+        """
         self.SetBrightness( 0 )
 
     #
