@@ -49,6 +49,17 @@ class Subsystem( object ):
         self.launchTime = time.time() - self.launchTime
         logger.info( "subsystem %s took %.2f seconds to startup" % ( self.name, self.launchTime ) )
 
+    def shutdown( self ):
+        """
+        Shutdown the subsystems, giving objects a chance
+        to clean up behind them.
+        """
+        for o in self._objects.values():
+            try:
+                o.shutdown()
+            except AttributeError: # objects do not have to support this method
+                pass
+
     def objects( self ):
         return self._objects
 

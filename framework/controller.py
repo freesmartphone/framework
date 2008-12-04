@@ -151,8 +151,9 @@ class Controller( daemon.Daemon ):
         """
         Quit the mainloop.
         """
-        # FIXME notify all subsystems to clean up their resources
         logger.info( "shutting down..." )
+        for subsystem in self._subsystems.values():
+            subsystem.shutdown()
         self.mainloop.quit()
 
     #

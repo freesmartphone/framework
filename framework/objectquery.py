@@ -16,6 +16,7 @@ from .introspection import process_introspection_data
 from .config import DBUS_INTERFACE_PREFIX
 from framework.patterns import tasklet
 
+import gobject
 import dbus, dbus.service
 
 import os, sys, logging, logging.handlers
@@ -64,6 +65,10 @@ class Framework( dbus.service.Object ):
     def _getInterfaceForObject( self, object, interface ):
         obj = self.bus.get_object( "org.freesmartphone.frameworkd", object )
         return dbus.Interface( obj, interface )
+
+    def _shutdownFramework( self ):
+        self.controller.shutdown()
+        return False
 
     #
     # dbus methods
@@ -186,7 +191,11 @@ class Framework( dbus.service.Object ):
 
     @dbus.service.method( DBUS_INTERFACE_FRAMEWORK, "s", "as" )
     def ListObjectsInSubsystem( self, subsystem ):
-        pass
+        raise dbus.DBusException( "not yet implemented" )
+
+    @dbus.service.method( DBUS_INTERFACE_FRAMEWORK, "", "" )
+    def Shutdown( self ):
+        gobject.idle_add( self._shutdownFramework )
 
 #----------------------------------------------------------------------------#
 def factory( prefix, controller ):
