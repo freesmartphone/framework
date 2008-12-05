@@ -8,7 +8,7 @@ GPLv2 or later
 """
 
 MODULE_NAME = "odeviced.kernel26"
-__version__ = "0.9.8.1"
+__version__ = "0.9.9.0"
 
 from helpers import DBUS_INTERFACE_PREFIX, DBUS_PATH_PREFIX, readFromFile, writeToFile, cleanObjectName
 from framework.config import config
@@ -26,6 +26,16 @@ logger = logging.getLogger( MODULE_NAME )
 FBIOBLANK = 0x4611
 FB_BLANK_UNBLANK = 0
 FB_BLANK_POWERDOWN = 4
+
+#----------------------------------------------------------------------------#
+class UnsupportedTrigger( dbus.DBusException ):
+#----------------------------------------------------------------------------#
+    _dbus_error_name = "org.freesmartphone.Device.Display.UnsupportedTrigger"
+
+#----------------------------------------------------------------------------#
+class InvalidParameter( dbus.DBusException ):
+#----------------------------------------------------------------------------#
+    _dbus_error_name = "org.freesmartphone.InvalidParameter"
 
 #----------------------------------------------------------------------------#
 class Display( dbus.service.Object ):
@@ -125,10 +135,11 @@ class LED( dbus.service.Object ):
         dbus.service.Object.__init__( self, bus, self.path )
         logger.info( "%s %s initialized. Serving %s at %s" % ( self.__class__.__name__, __version__, self.interface, self.path ) )
         self.node = node
-        self.triggers = readFromFile( "%s/trigger" % self.node ).split()
-        logger.debug( "available triggers %s" % self.triggers )
         # initial status = off
         self.SetBrightness( 0 )
+        # store available triggers for later
+        self.triggers = readFromFile( "%s/trigger" % self.node ).split()
+        logger.debug( "available triggers %s" % self.triggers )
 
     def shutdown( self ):
         """
@@ -156,14 +167,31 @@ class LED( dbus.service.Object ):
 
     @dbus.service.method( DBUS_INTERFACE, "ii", "" )
     def SetBlinking( self, delay_on, delay_off ):
-        # FIXME: raise exception if blinking is not supported
-        # FIXME: do we want to implement it manually in that case?
-        #if "trigger" in self.triggers:
+        # validate parameters
+        if "timer" not in self.triggers:
+            raise UnsupportedTrigger( "Timer trigger not available. Available triggers are %s" % self.triggers )
+        # do it
+        else:
             writeToFile( "%s/trigger" % self.node, "timer" )
             writeToFile( "%s/delay_on" % self.node, str( abs( delay_on ) ) )
             writeToFile( "%s/delay_off" % self.node, str( abs( delay_off ) ) )
-        #else:
-        #    raise Exception
+
+    @dbus.service.method( DBUS_INTERFACE, "ss", "" )
+    def SetNetworking( self, interface, mode ):
+        # validate parameters
+        if "netdev" not in self.triggers:
+            raise UnsupportedTrigger( "Netdev trigger not available. Available triggers are %s" % self.triggers )
+        interfaces = os.listdir( "/sys/class/net" )
+        if interface not in interfaces:
+            raise InvalidParameter( "Interface %s not known. Available interfaces are %s" % ( interface, interfaces ) )
+        modes = mode.strip().split()
+        for m in modes:
+            if m not in "link rx tx".split():
+                raise InvalidParameter( "Mode element %s not known. Available elements are 'link rx tx'" % m )
+        # do it
+        writeToFile( "%s/trigger" % self.node, "netdev" )
+        writeToFile( "%s/device_name" % self.node, str( interface.strip() ) )
+        writeToFile( "%s/mode" % self.node, str( mode.strip() ) )
 
 #----------------------------------------------------------------------------#
 class PowerSupply( dbus.service.Object ):

@@ -1,3 +1,7 @@
+2008-12-05	Michael Lauer	<mickey@openmoko.org>
+
+	* [odeviced] Implemented org.freesmartphone.Device.LED.SetNetworking(s,s) -> ()
+
 2008-12-04	Michael Lauer	<mickey@openmoko.org>
 
 	* Added necessary methods for a clean system -> subsystems -> objects shutdown.
