@@ -13,9 +13,11 @@ Module: const
 GSM constants, strings, formats, parse patterns, timeouts, you name it.
 """
 
+from framework import config
+from ogsmd.helpers import BiDict
+
 import re
 import string
-from ogsmd.helpers import BiDict
 
 import logging
 logger = logging.getLogger( "ogsmd" )
@@ -1097,6 +1099,32 @@ def mccToCountryCode( mcc ):
         code, name = "+???", "<??? unknown ???>"
     return code, name
 
+codeToOperatorCache = {}
+codeToOperatorFile = "%s/ogsmd/mobile_network_code" % config.rootdir
+
+#=========================================================================#
+def codeToOperator( mccmni ):
+#=========================================================================#
+    """
+    Returns a country code and name for an MCC given from the modem.
+    """
+    global coreToOperatorCache
+    code = str(mccmni)
+    try:
+        operator = codeToOperatorCache[code]
+    except KeyError:
+        mcc, mni = code[:3], code[3:]
+        for line in file( codeToOperatorFile, "r" ):
+            if line.startswith( mcc ):
+                tokens = line.split()
+                if tokens[1] == mni:
+                    operator = tokens[2]
+                    codeToOperatorCache[code] = operator
+                    return operator
+        operator = "%s-%s" % ( mcc, mni )
+        codeToOperatorCache[code] = operator
+    return operator
+
 #=========================================================================#
 if __name__ == "__main__":
 #=========================================================================#
@@ -1122,4 +1150,7 @@ if __name__ == "__main__":
     print "OK"
     assert mccToCountryCode( 262 ) == ( "+49", "Germany" )
     assert mccToCountryCode( 700 ) == ( "+???", "<??? unknown ???>" )
+    print "OK"
+    assert codeToOperatorCache( "26203" ) == "E-Plus"
+    assert codeToOperatorCache( "111222" ) == "E-Plus"
     print "OK"
