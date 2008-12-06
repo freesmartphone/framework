@@ -21,7 +21,7 @@ TODO:
  * refactor parameter validation
 """
 
-__version__ = "0.9.10.2"
+__version__ = "0.9.10.3"
 MODULE_NAME = "ogsmd.modems.abstract.mediator"
 
 from .calling import CallHandler
@@ -967,6 +967,8 @@ class NetworkUnregister( NetworkMediator ):
 class NetworkGetStatus( NetworkMediator ):
 #=========================================================================#
     def trigger( self ):
+
+        # query strength
         request, response, error = yield( "+CSQ" )
         result = {}
         if error is not None:
@@ -977,23 +979,42 @@ class NetworkGetStatus( NetworkMediator ):
             else:
                 result["strength"] = const.signalQualityToPercentage( int(safesplit( self._rightHandSide( response[0] ), ',' )[0]) ) # +CSQ: 22,99
 
-        request, response, error = yield( "+CREG?;+COPS=3,0;+COPS?;+COPS=3,2;+COPS?" )
+        # query registration status and lac/cid
+        request, response, error = yield( "+CREG?" )
+        if error is not None:
+            self.errorFromChannel( request, error )
+        elif response[-1] != "OK" or len( response ) == 1:
+            pass
+        else:
+            oldreg = safesplit( self._rightHandSide( response[-2] ), ',' )[0]
+            request, response, error = yield( "+CREG=2;+CREG?;+CREG=%s" % oldreg )
+
+            if error is not None:
+                self.errorFromChannel( request, error )
+            elif response[-1] != "OK" or len( response ) == 1:
+                pass
+            else:
+                result[ "registration"] = const.REGISTER_STATUS[int(safesplit( self._rightHandSide( response[-2] ), ',' )[1])]
+                values = safesplit( self._rightHandSide( response[-2] ), ',' )
+                if len( values ) == 4: # have lac and cid now
+                    result["lac"] = values[2].strip( '"' )
+                    result["cid"] = values[3].strip( '"' )
+
+        # query operator name and numerical code
+        request, response, error = yield( "+COPS=3,0;+COPS?;+COPS=3,2;+COPS?" )
         if error is not None:
             self.errorFromChannel( request, error )
         else:
-            if response[-1] != "OK" or len( response ) == 1:
+            if response[-1] != "OK" or len( response ) != 3:
                 pass
             else:
-                result[ "registration"] = const.REGISTER_STATUS[int(safesplit( self._rightHandSide( response[0] ), ',' )[1])] # +CREG: 0,1
-                if len( response ) > 2:
-                    values = safesplit( self._rightHandSide( response[1] ), ',' )
-                    if len( values ) < 3:
-                        result["mode"] = const.REGISTER_MODE[int(values[0])]
-                    else:
-                        result["mode"] = const.REGISTER_MODE[int(values[0])]
-                        result["provider"] = values[2].strip( '"' )
-                if len( response ) > 3:
-                    values = safesplit( self._rightHandSide( response[2] ), ',' )
+                values = safesplit( self._rightHandSide( response[-3] ), ',' )
+                if len( values ) < 3:
+                    result["mode"] = const.REGISTER_MODE[int(values[0])]
+                else:
+                    result["mode"] = const.REGISTER_MODE[int(values[0])]
+                    result["provider"] = values[2].strip( '"' )
+                    values = safesplit( self._rightHandSide( response[-2] ), ',' )
                     if len( values ) > 2:
                         result["code"] = int( values[2].strip( '"' ) )
         # UGLY special check for some modems, which return a strength of 0, if you

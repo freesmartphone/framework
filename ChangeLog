@@ -1,3 +1,7 @@
+2008-12-06	Michael Lauer	<mickey@openmoko.org>
+
+	* [ogsmd] Added 'cid' and 'lac' results to org.freesmartphone.GSM.Network.GetStatus()
+
 2008-12-05	Michael Lauer	<mickey@openmoko.org>
 
 	* [odeviced] Implemented org.freesmartphone.Device.LED.SetNetworking(s,s) -> ()
