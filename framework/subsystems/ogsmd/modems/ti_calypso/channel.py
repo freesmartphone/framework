@@ -54,7 +54,7 @@ class CalypsoModemChannel( AbstractModemChannel ):
         for i in itertools.count():
             logger.debug( "(modem init... try #%d)", i+1 )
             select.select( [], [self.serial.fd], [], 0.5 )
-            self.serial.write( "ATE0\r\n" )
+            self.serial.write( "ATE0Q0V1\r\n" )
             r, w, x = select.select( [self.serial.fd], [], [], 0.5 )
             if r:
                 try:
@@ -175,7 +175,9 @@ class UnsolicitedResponseChannel( CalypsoModemChannel ):
         c = self._commands["init"]
         # GSM unsolicited
         c.append( '+CLIP=1' ) # calling line identification presentation enable
-        c.append( '+COLP=1' ) # connected line identification presentation enable
+        c.append( '+COLP=0' ) # connected line identification presentation: disable
+        # DO NOT enable +COLP=1 on the Calypso, it will raise the chance to drop into FSO #211
+        #c.append( '+COLP=1' ) # connected line identification presentation: enable
         c.append( '+CCWA=1' ) # call waiting
         c.append( "+CSSN=1,1" ) # supplementary service notifications: send unsol. code
         c.append( '+CTZU=1' ) # timezone update

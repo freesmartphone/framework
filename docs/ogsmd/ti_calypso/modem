@@ -31,6 +31,7 @@
 
 * Cancelling certain commands (ATH for a start) will render a virtual channel unusable. Calypso moves into
   a CMS ERROR 512 state in that case. You will have to restart the modem once this happens.
+  * Sending +COLP=1 seems to have a negative effect on this issue. DO NOT USE +COLP=1.
 
 * Shutting down an ongoing GPRS connection can take ages. Need to better interface with pppd here.
   * We should issue ATH here (first check whether there is no call ongoing though).
