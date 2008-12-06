@@ -11,7 +11,7 @@ Module: device
 """
 
 MODULE_NAME = "ogsmd.device"
-__version__ = "0.9.7.1"
+__version__ = "0.9.8.0"
 
 from framework import resource
 from modems import modemFactory, allModems, setCurrentModem
@@ -253,6 +253,12 @@ class Device( resource.Resource ):
     @resource.checkedmethod
     def GetHomeZones( self, dbus_ok, dbus_error ):
         mediator.SimGetHomeZones( self, dbus_ok, dbus_error )
+
+    @dbus.service.method( DBUS_INTERFACE_SIM, "", "s",
+                          async_callbacks=( "dbus_ok", "dbus_error" ) )
+    @resource.checkedmethod
+    def GetIssuer( self, dbus_ok, dbus_error ):
+        mediator.SimGetIssuer( self, dbus_ok, dbus_error )
 
     ### SIM phonebook
     @dbus.service.method( DBUS_INTERFACE_SIM, "", "as",

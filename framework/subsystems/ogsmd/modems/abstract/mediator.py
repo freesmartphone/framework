@@ -21,7 +21,7 @@ TODO:
  * refactor parameter validation
 """
 
-__version__ = "0.9.10.3"
+__version__ = "0.9.11.0"
 MODULE_NAME = "ogsmd.modems.abstract.mediator"
 
 from .calling import CallHandler
@@ -614,6 +614,33 @@ class SimGetHomeZones( SimMediator ): # a(siii)
                 for i in xrange( 4 ):
                     self.addHomeZone( payload[34+52*i:34+52*(i+1)], i+1, result )
                 self._ok( result )
+
+#=========================================================================#
+class SimGetIssuer( SimMediator ): # s
+#=========================================================================#
+    def trigger( self ):
+        self._commchannel.enqueue( "+CRSM=176,28486,0,0,17", self.responseFromChannel, self.errorFromChannel )
+
+    def responseFromChannel( self, request, response ):
+        if response[-1] != "OK":
+            SimMediator.responseFromChannel( self, request, response )
+        try:
+            sw1, sw2, payload = safesplit( self._rightHandSide( response[0] ), "," )
+        except ValueError: # response did not include a payload
+            self._error( error.SimNotFound( "Elementary record not present or unreadable" ) )
+        else:
+            if int(sw1) != 144 or int(sw2) != 0: # command succeeded as per GSM 11.11, 9.4.1
+                self._error( error.SimNotFound( "Elementary record not present or unreadable" ) )
+            else:
+                nameraw = payload[2:]
+                name = ""
+                for index in xrange( 0, 24, 2 ):
+                    c = int(nameraw[index:index+2],16)
+                    if 32 < c < 128:
+                        name += chr(c)
+                    else:
+                        break
+                self._ok( name )
 
 #=========================================================================#
 class SimListPhonebooks( SimMediator ):
