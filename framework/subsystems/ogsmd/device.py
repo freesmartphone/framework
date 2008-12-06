@@ -11,7 +11,7 @@ Module: device
 """
 
 MODULE_NAME = "ogsmd.device"
-__version__ = "0.9.7"
+__version__ = "0.9.7.1"
 
 from framework import resource
 from modems import modemFactory, allModems, setCurrentModem
@@ -89,7 +89,7 @@ class Device( resource.Resource ):
         if self.modem is not None:
             self.modem.close()
             self.modem = None
-            self.modem.setCurrentModem( self.modem )
+            setCurrentModem( self.modem )
         on_ok()
 
     def _suspend( self, on_ok, on_error ):
