@@ -4,7 +4,8 @@
 	* [ogsmd] Implemented org.freesmartphone.GSM.SIM.GetIssuer()
 	  NOTE: Clients can now show the Mobile Virtual Network Operator instead of the
 	  actual service provider, if they want to. See e.g. FSO ticket #271.
-	* [ogsmd] Added codeToOperator function and a mcc,mni database
+	* [ogsmd] Added codeToOperator function and a mobile network operator database
+	* [ogsmd] [FREESCALE NEPTUNE] Query our MNO database to show the alphanumeric operator name.
 
 2008-12-05	Michael Lauer	<mickey@openmoko.org>
 

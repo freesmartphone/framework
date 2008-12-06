@@ -9,7 +9,7 @@ Package: ogsmd.modems.freescale_neptune
 Module: mediator
 """
 
-__version__ = "0.5.0.0"
+__version__ = "0.5.1.0"
 MODULE_NAME = "ogsmd.modems.freescale_neptune.mediator"
 
 from ogsmd.modems.abstract.mediator import *
@@ -98,9 +98,10 @@ class NetworkGetStatus( NetworkMediator ):
     Modem violating GSM 07.07 here. No matter which answering format you specify
     with +COPS=..., +COPS? will always return the numerical ID of the provider
     as a string. We might have +ESPN? to the rescue, but that always returns
-    an empty string for me. So until this is cleared, we have to use PLNM matching.
+    an empty string for me. So until this is cleared, we have to use code matching
+    with our database (mobile_network_code).
 
-    Oh, by the way, +CREG? is not implemented either.
+    Oh, by the way, +CREG? is not implemented either. *sigh*
     """
     def trigger( self ):
         request, response, error = yield( "+CSQ" )
@@ -128,7 +129,10 @@ class NetworkGetStatus( NetworkMediator ):
                     result["mode"] = const.REGISTER_MODE[int(values[0])]
                     roaming = self._object.modem.data( "roaming", False )
                     result["registration"] = "roaming" if roaming else "home"
-                    result[ "provider"] = values[2].strip( '"' )
+
+                    mccmni = values[2].strip( '"' ).replace( '-', '' )
+                    result["code"] = int( mccmni )
+                    result["provider"] = const.codeToOperator( mccmni )
 
         self._ok( result )
 
