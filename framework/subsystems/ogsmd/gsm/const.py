@@ -16,8 +16,7 @@ GSM constants, strings, formats, parse patterns, timeouts, you name it.
 from framework import config
 from ogsmd.helpers import BiDict
 
-import re
-import string
+import re, string, os.path
 
 import logging
 logger = logging.getLogger( "ogsmd" )
@@ -1114,13 +1113,14 @@ def codeToOperator( mccmni ):
         operator = codeToOperatorCache[code]
     except KeyError:
         mcc, mni = code[:3], code[3:]
-        for line in file( codeToOperatorFile, "r" ):
-            if line.startswith( mcc ):
-                tokens = line.split()
-                if tokens[1] == mni:
-                    operator = tokens[2]
-                    codeToOperatorCache[code] = operator
-                    return operator
+        if os.path.exists( codeToOperatorFile ):
+            for line in file( codeToOperatorFile, "r" ):
+                if line.startswith( mcc ):
+                    tokens = line.split()
+                    if tokens[1] == mni:
+                        operator = tokens[2]
+                        codeToOperatorCache[code] = operator
+                        return operator
         operator = "%s-%s" % ( mcc, mni )
         codeToOperatorCache[code] = operator
     return operator
