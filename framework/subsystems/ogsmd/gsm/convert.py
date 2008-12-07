@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: iso-8859-15 -*-
 """
-The Open Device Daemon - Python Implementation
+The Open GSM Daemon - Python Implementation
 
 (C) 2006 Adam Sampson <ats@offog.org>
 (C) 2008 Michael 'Mickey' Lauer <mlauer@vanille-media.de>

@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 """
-The Open Device Daemon - Python Implementation
+The Open GSM Daemon - Python Implementation
 
 (C) 2007-2008 M. Dietrich.
 (C) 2008 Michael 'Mickey' Lauer <mlauer@vanille-media.de>
