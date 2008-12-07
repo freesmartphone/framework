@@ -14,70 +14,6 @@ Module: parser
 DEBUG = False
 
 #=========================================================================#
-class SimpleLowlevelAtParser( object ):
-#=========================================================================#
-    """
-    A really simple lowlevel AT response parser.
-
-    Requirements:
-    * Support feeding data from the channel in chunks of arbitrary lengths          [ok]
-    * Support solicited and unsolicited responses (on the same channel)             [ok]
-    * Support single (e.g. +CGMR) and multi requests (+CGMR;+CGMM;+CGMI;+CGSN)      [ok]
-    * Handle one-line and multi-line responses                                      [ok]
-    * Handle multiline requests by supporting continuation '\r\n> '                 [ok, but see NOTE]
-
-    Todo:
-    * Detect echo mode and adjust itself (or warn)
-    * Handle intermediate responses
-    * Handle multiline answers with empty lines (e.g. SMS)
-    * Handle multiline unsolicited responses (e.g. +CBM)
-    * Seamless handover to binary mode parsers
-    """
-
-    def __init__( self, response, unsolicited ):
-        self.response = response
-        self.unsolicited = unsolicited
-
-        self.lines = []
-        self.curline = ""
-
-    def feed( self, bytes, haveCommand ):
-        # NOTE: the continuation query relies on '\r\n> ' not being
-        # fragmented... question: is that always correct? If not,
-        # we better keep the state. We could also enhance the signature
-        # to support handing a haveContinuation parameter over to here.
-        if bytes == "\r\n> ":
-            self.response( [] )
-            self.lines = []
-            self.curline = ""
-            return
-        for b in bytes:
-            if b == '\r' or b == '\n':
-                if self.curline:
-                    if not haveCommand:
-                        self.unsolicited( [self.curline] )
-                        self.curline = ""
-                        self.lines = []
-                    else:
-                        self.lines.append( self.curline )
-                        if self.curline == "OK" \
-                            or self.curline == "ERROR" \
-                            or self.curline.startswith( "+CME ERROR" ) \
-                            or self.curline.startswith( "+CMS ERROR" ) \
-                            or self.curline.startswith( "+EXT ERROR" ) \
-                            or self.curline.startswith( "BUSY" ) \
-                            or self.curline.startswith( "CONNECT" ) \
-                            or self.curline.startswith( "NO ANSWER" ) \
-                            or self.curline.startswith( "NO CARRIER" ) \
-                            or self.curline.startswith( "NO DIALTONE" ):
-                            self.response( self.lines )
-                            self.lines = []
-                        self.curline = ""
-            else:
-                # yes, this is slow. We're going to profile and optimize, once it's stable...
-                self.curline += b
-
-#=========================================================================#
 class StateBasedLowlevelAtParser( object ):
 #=========================================================================#
     """
@@ -93,7 +29,6 @@ class StateBasedLowlevelAtParser( object ):
 
     Todo:
     * Detect echo mode and adjust itself (or warn)
-    * Handle intermediate responses
     * Handle multiline answers with empty lines (e.g. in SMS)
     * Seamless handover to binary mode parsers / data connections
     """
@@ -246,17 +181,9 @@ class StateBasedLowlevelAtParser( object ):
             if DEBUG: print "PARSER DEBUG: unsolicited message with empty line. Ignoring."
             return self.state_inline
 
-#
-# Choose parser and cleanup namespace
-#
-USE_EXPERIMENTAL_PARSER = True
-
-if USE_EXPERIMENTAL_PARSER:
-    LowlevelAtParser = StateBasedLowlevelAtParser
-else:
-    LowlevelAtParser = SimpleLowlevelAtParser
-#del SimpleLowlevelAtParser
-#del StateBasedLowlevelAtParser
+#=========================================================================#
+LowlevelAtParser = StateBasedLowlevelAtParser
+#=========================================================================#
 
 #=========================================================================#
 class ThrowStuffAwayParser( StateBasedLowlevelAtParser ):
