@@ -10,8 +10,8 @@ GPLv2 or later
 import logging
 logger = logging.getLogger('ogsmd')
 
-# FUNCTION_DEBUG = False
-FUNCTION_DEBUG = True
+import os
+FUNCTION_DEBUG = os.environ.get( "FSO_EXCESSIVE_DEBUG", False )
 
 colorclasses = { "MiscChannel": 38, "CallChannel": 35, "UnsolicitedResponseChannel": 31 }
 
