@@ -217,6 +217,21 @@ class ThrowStuffAwayParser( StateBasedLowlevelAtParser ):
             return self.state_inline
 
 #=========================================================================#
+class KaiserAtViolationParser( StateBasedLowlevelAtParser ):
+#=========================================================================#
+    """
+    This parser is written for the HTC Kaiser which is blatantly
+    violating v.250 by sending 0\r instead of OK\r\n as the response
+    terminal symbol.
+    """
+
+    def feed( self, bytes, haveCommand ):
+        if bytes.endswith( "\r\n0\r" ):
+            bytes = "%sOK\r\n" % bytes[:-2]
+
+        StateBasedLowlevelAtParser.feed( self, bytes, haveCommand )
+
+#=========================================================================#
 if __name__ == "__main__":
 #=========================================================================#
     import sys, random, time
