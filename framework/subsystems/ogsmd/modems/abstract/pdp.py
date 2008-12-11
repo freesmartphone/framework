@@ -34,6 +34,7 @@ class Pdp( AbstractMediator ):
     def __init__( self, dbus_object, **kwargs ):
         AbstractMediator.__init__( self, dbus_object, None, None, **kwargs )
         self._callchannel = self._object.modem.communicationChannel( "PdpMediator" )
+        self._netchannel = self._object.modem.communicationChannel( "NetworkMediator" )
 
         self.state = "release" # initial state
         self.ppp = None
@@ -147,6 +148,10 @@ class Pdp( AbstractMediator ):
         # FIXME find a better way to restore the default route
         os.system( "ifdown %s" % self.default_route )
         os.system( "ifup %s" % self.default_route )
+
+        # release context just to be sure that the next ppp setup will find the
+        # data port in command mode
+        self._netchannel.enqueue( "+CGACT=0", lambda a,b:None, lambda a,b:None )
 
     def _defaultRoute( self ):
         f = open( "/proc/net/route", 'r' )

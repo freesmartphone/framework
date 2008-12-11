@@ -3,6 +3,7 @@
 	* [ogsmd] Implemented org.freesmartphone.GSM.PDP.NetworkStatus()
 	* [ogsmd] Implemented org.freesmartphone.GSM.PDP.GetNetworkStatus()
 	* [ogsmd] Implemented org.freesmartphone.GSM.Network.TimeZoneReport()
+	* [ogsmd] Refactor PDP handling
 
 2008-12-06	Michael Lauer	<mickey@openmoko.org>
 
