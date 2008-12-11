@@ -14,7 +14,7 @@ This module provides communication channel abstractions that
 transport their data over a (virtual) serial line.
 """
 
-__version__ = "0.9.9.1"
+__version__ = "0.9.9.2"
 
 from ogsmd.gsm.decor import logged
 import parser
@@ -435,6 +435,7 @@ class QueuedVirtualChannel( VirtualChannel ):
         Called, when an unsolicited response has been parsed.
         """
         self.handleUnsolicitedResponse( response )
+        return not self.q.empty() # parser needs to know the current status
 
     #@logged
     def _handleResponseToRequest( self, response ):
@@ -451,6 +452,7 @@ class QueuedVirtualChannel( VirtualChannel ):
         # relaunch
         if not self.watchReadyToSend:
             self.watchReadyToSend = gobject.io_add_watch( self.serial.fd, gobject.IO_OUT, self._readyToSend )
+        return not self.q.empty() # parser needs to know the current status
 
     #@logged
     def _handleCommandTimeout( self ):
