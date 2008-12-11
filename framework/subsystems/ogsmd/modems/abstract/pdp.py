@@ -19,7 +19,7 @@ from .mediator import AbstractMediator
 from .overlay import OverlayFile
 
 import gobject
-import os, signal, copy
+import os, subprocess, signal, copy
 
 import logging
 logger = logging.getLogger( "ogsmd.pdp" )
@@ -36,7 +36,7 @@ class Pdp( AbstractMediator ):
         self._callchannel = self._object.modem.communicationChannel( "PdpMediator" )
 
         self.state = "release" # initial state
-        self.cpid = -1
+        self.ppp = None
         self.overlays = []
 
     #
@@ -92,7 +92,7 @@ class Pdp( AbstractMediator ):
         self.overlays = []
 
     def _activate( self ):
-        if self.cpid >= 0:
+        if self.ppp is not None and self.ppp.poll() is None:
             raise Exception( "already active" )
 
         self.port = str( self._object.modem.dataPort() )
@@ -100,30 +100,17 @@ class Pdp( AbstractMediator ):
             raise Exception( "no device" )
 
         logger.debug( "activate got port %s" % self.port )
-        ppp_arguments = [ self.__class__.PPP_BINARY, self.port ] + self.ppp_options
-        logger.info( "launching ppp with commandline %s" % ppp_arguments )
+        ppp_commandline = [ self.__class__.PPP_BINARY, self.port ] + self.ppp_options
+        logger.info( "launching ppp as commandline %s" % ppp_commandline )
 
         self._prepareFiles()
 
-        self.cpid, fdin, fdout, fderr = gobject.spawn_async(
-            ppp_arguments,
-            standard_input = False,
-            standard_output = True,
-            standard_error = True,
-            flags = gobject.SPAWN_DO_NOT_REAP_CHILD )
+        self.ppp = subprocess.Popen( ppp_commandline )
 
-        # FIXME launch watchdog here -- if the ppp is not getting launched, we have allocated
-        # a virtual channel that never gets freed (need to open and close it)
-
-        self.fds = fdin, fdout, fderr
-
-        self.output_sources = [ gobject.io_add_watch( fdout, gobject.IO_IN, self._spawnedProcessOutput ),
-                                gobject.io_add_watch( fderr, gobject.IO_IN, self._spawnedProcessOutput ) ]
-        self.childwatch_source = gobject.child_watch_add( self.cpid, self._spawnedProcessDone )
         # FIXME bad polling here
         self.timeout_source = gobject.timeout_add_seconds( 2, self._pollInterface )
 
-        logger.info( "pppd launched, pid %d. See logread -f for output." % self.cpid )
+        logger.info( "pppd launched, pid %d. See logread -f for output." % self.ppp.pid )
 
         # FIXME that's premature. we might adopt the following states:
         # "setup", "active", "shutdown", "release"
@@ -136,49 +123,25 @@ class Pdp( AbstractMediator ):
             self._object.ContextStatus( 1, newstate, {} )
 
     def _deactivate( self ):
-        if self.cpid < 0:
-            raise Exception('already inactive')
+        if self.ppp.poll() is not None:
+            return
 
-        logger.info( "shutting down pppd, pid %d." % self.cpid )
+        logger.info( "shutting down pppd, pid %d." % self.ppp.pid )
 
-        os.kill( self.cpid, signal.SIGINT )
+        os.kill( self.ppp.pid, signal.SIGTERM )
+        #os.kill( self.ppp.pid, signal.SIGKILL )
 
-        # control flow will continue in self._spawnedProcessDone
-        #p, r = waitpid(self.cpid, 0)
+        logger.debug( "waiting for process to quit..." )
+        self.ppp.wait()
 
-    def _spawnedProcessOutput( self, source, condition ):
-        """Gets called when ppp outputs anything."""
-        data = os.read( source, 512 )
-        logger.debug( "got output from ppp: %s" % repr(data) )
-        return True
+        self._spawnedProcessDone()
 
-    def _spawnedProcessDone( self, pid, condition ):
-        """Gets called from mainloop when ppp exits."""
-
-        # FIXME find a way to distinguish between a planned shutdown
-        # (our kill) and an unexpected shutdown
-        #
-        # Exit codes:
-        # 8 - connect script failed
-        # 5 - normal abort due to SIGINT
-        #
-
-        for source in [ self.childwatch_source, self.timeout_source ] + self.output_sources:
-            if source is not None:
-                gobject.source_remove( source )
-        for fd in self.fds:
-            if fd is not None:
-                os.close( fd )
-
-        exitcode = (condition >> 8) & 0xFF
-        exitsignal = condition & 0xFF
-        logger.info( "pppd exited with code %d and signal %d" % ( exitcode, exitsignal ) )
+    def _spawnedProcessDone( self ):
+        logger.info( "pppd exited with code %d" % self.ppp.returncode )
 
         # FIXME check whether this was a planned exit or not, if not, try to recover
 
         self._updateState( "release" )
-
-        self.cpid = -1
         self._recoverFiles()
 
         # FIXME find a better way to restore the default route
@@ -245,19 +208,7 @@ exec /usr/sbin/chat -v\
 """
 
     PPP_DAEMON_SETUP[ PPP_DISCONNECT_CHAT_FILENAME ] = r"""#!/bin/sh -e
-exec /usr/sbin/chat -v\
-    'ABORT' 'OK'\
-    'ABORT' 'BUSY'\
-    'ABORT' 'DELAYED'\
-    'ABORT' 'NO ANSWER'\
-    'ABORT' 'NO CARRIER'\
-    'ABORT' 'NO DIALTONE'\
-    'ABORT' 'VOICE'\
-    'ABORT' 'ERROR'\
-    'ABORT' 'RINGING'\
-    'TIMEOUT' '60'\
-    '' '\k\k\k\d+++ATH'\
-    'NO CARRIER-AT-OK' ''
+echo disconnect script running...
 """
 
     PPP_DAEMON_SETUP["/etc/ppp/ip-up.d/08setupdns"] = """#!/bin/sh -e

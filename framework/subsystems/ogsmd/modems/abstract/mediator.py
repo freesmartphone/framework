@@ -1444,10 +1444,13 @@ class PdpActivateContext( PdpMediator ):
 class PdpDeactivateContext( PdpMediator ):
 #=========================================================================#
     def trigger( self ):
-        self._commchannel.enqueue( '+CGACT=0', self.responseFromChannel, self.errorFromChannel )
+        # the right way... leading to a hanging pppd :(
+        #self._commchannel.enqueue( '+CGACT=0', self.responseFromChannel, self.errorFromChannel )
+        # the workaround
+        global pdpConnection
+        if pdpConnection is not None and pdpConnection.isActive():
+            pdpConnection.deactivate()
         self._ok()
-
-        # FIXME do we want to wait and honor the result?
 
 #=========================================================================#
 class PdpGetContextStatus( PdpMediator ):
