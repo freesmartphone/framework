@@ -11,7 +11,7 @@ Package: ogsmd.modems.abstract
 Module: unsolicited
 """
 
-__version__ = "0.9.9.0"
+__version__ = "0.9.9.1"
 
 import calling
 
@@ -69,6 +69,34 @@ class AbstractUnsolicitedResponseDelegate( object ):
         else:
             assert False, "unhandled +CBM cell broadcast notification"
         self._object.IncomingCellBroadcast( channel, data )
+
+        # +CGREG: 2
+        # +CGREG: 1,"000F","5B4F
+    def plusCGREG( self, righthandside ):
+        """
+        Gprs Registration Status Update
+        """
+        values = safesplit( righthandside, ',' )
+        status = {}
+        status["registration"] = const.REGISTER_STATUS[int(values[0])]
+        if len( values ) == 3:
+            status["lac"] = values[1].strip( '"' )
+            status["cid"] = values[2].strip( '"' )
+        self._object.NetworkStatus( status )
+
+    # +CREG: 1,"000F","032F"
+    def plusCREG( self, righthandside ):
+        """
+        Network Registration Status Update
+        """
+        values = safesplit( righthandside, ',' )
+        self.register = const.REGISTER_STATUS[int(values[0])]
+        if len( values ) == 3:
+            self.lac = values[1].strip( '"' )
+            self.cid = values[2].strip( '"' )
+
+        self._mediator.NetworkGetStatus( self._object, self.statusOK, self.statusERR )
+
 
     # +CLIP: "+496912345678",145,,,,0
     def plusCLIP( self, righthandside ):

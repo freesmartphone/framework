@@ -1,3 +1,7 @@
+2008-12-11	Michael Lauer	<mickey@openmoko.org>
+
+	* [ogsmd] Implemented org.freesmartphone.GSM.PDP.NetworkStatus()
+
 2008-12-06	Michael Lauer	<mickey@openmoko.org>
 
 	* [ogsmd] Added 'cid' and 'lac' results to org.freesmartphone.GSM.Network.GetStatus()

@@ -579,6 +579,10 @@ class Device( resource.Resource ):
     def ContextStatus( self, index, status, properties ):
         logger.info( "org.freesmartphone.GSM.PDP.ContextStatus: %s %s %s", index, status, properties )
 
+    @dbus.service.signal( DBUS_INTERFACE_PDP, "a{sv}" )
+    def NetworkStatus( self, status ):
+        logger.info( "org.freesmartphone.GSM.PDP.NetworkStatus: %s", status )
+
     #
     # dbus org.freesmartphone.GSM.CB
     #
