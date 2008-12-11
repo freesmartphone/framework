@@ -557,6 +557,12 @@ class Device( resource.Resource ):
     def SetCurrentGprsClass( self, class_, dbus_ok, dbus_error ):
         mediator.PdpSetCurrentGprsClass( self, dbus_ok, dbus_error, class_=class_ )
 
+    @dbus.service.method( DBUS_INTERFACE_PDP, "", "a{sv}",
+                          async_callbacks=( "dbus_ok", "dbus_error" ) )
+    @resource.checkedmethod
+    def GetNetworkStatus( self, dbus_ok, dbus_error ):
+        mediator.PdpGetNetworkStatus( self, dbus_ok, dbus_error )
+
     @dbus.service.method( DBUS_INTERFACE_PDP, "sss", "",
                           async_callbacks=( "dbus_ok", "dbus_error" ) )
     @resource.checkedmethod

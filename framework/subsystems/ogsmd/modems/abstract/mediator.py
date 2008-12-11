@@ -1400,6 +1400,33 @@ class PdpSetCurrentGprsClass( PdpMediator ):
         self._commchannel.enqueue( '+CGCLASS="%s"' % self.class_, self.responseFromChannel, self.errorFromChannel )
 
 #=========================================================================#
+class PdpGetNetworkStatus( PdpMediator ):
+#=========================================================================#
+    def trigger( self ):
+        result = {}
+        # query registration status and lac/cid
+        request, response, error = yield( "+CGREG?" )
+        if error is not None:
+            self.errorFromChannel( request, error )
+        elif response[-1] != "OK" or len( response ) == 1:
+            pass
+        else:
+            oldreg = safesplit( self._rightHandSide( response[-2] ), ',' )[0]
+            request, response, error = yield( "+CGREG=2;+CGREG?;+CGREG=%s" % oldreg )
+
+            if error is not None:
+                self.errorFromChannel( request, error )
+            elif response[-1] != "OK" or len( response ) == 1:
+                pass
+            else:
+                result[ "registration"] = const.REGISTER_STATUS[int(safesplit( self._rightHandSide( response[-2] ), ',' )[1])]
+                values = safesplit( self._rightHandSide( response[-2] ), ',' )
+                if len( values ) == 4: # have lac and cid now
+                    result["lac"] = values[2].strip( '"' )
+                    result["cid"] = values[3].strip( '"' )
+        self._ok( result )
+
+#=========================================================================#
 class PdpActivateContext( PdpMediator ):
 #=========================================================================#
     def trigger( self ):

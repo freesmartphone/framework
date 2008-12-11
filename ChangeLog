@@ -1,6 +1,7 @@
 2008-12-11	Michael Lauer	<mickey@openmoko.org>
 
 	* [ogsmd] Implemented org.freesmartphone.GSM.PDP.NetworkStatus()
+	* [ogsmd] Implemented org.freesmartphone.GSM.PDP.GetNetworkStatus()
 
 2008-12-06	Michael Lauer	<mickey@openmoko.org>
 
