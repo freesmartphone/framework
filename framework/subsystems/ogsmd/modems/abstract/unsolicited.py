@@ -166,6 +166,14 @@ class AbstractUnsolicitedResponseDelegate( object ):
         if errornumber == 322:
             self._object.MemoryFull()
 
+    # +CTZV: 35 (observed in Taipei, UTC+7)
+    # +CTZV: 105 (observed in UTC-4)
+    def plusCTZV( self, righthandside ):
+        """
+        Incoming Timezone Report
+        """
+        self._object.TimeZoneReport( const.ctzvToTimeZone( righthandside ) )
+
     # +CUSD: 0," Aktuelles Guthaben: 10.00 EUR.",0'
     def plusCUSD( self, righthandside ):
         """

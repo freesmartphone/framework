@@ -11,7 +11,7 @@ Module: device
 """
 
 MODULE_NAME = "ogsmd.device"
-__version__ = "0.9.8.0"
+__version__ = "0.9.10.0"
 
 from framework import resource
 from modems import modemFactory, allModems, setCurrentModem
@@ -463,6 +463,10 @@ class Device( resource.Resource ):
     @dbus.service.signal( DBUS_INTERFACE_NETWORK, "ss" )
     def CipherStatus( self, gsm, gprs ):
         logger.info( "org.freesmartphone.GSM.Network.CypherStatus: %s: %s", gsm, gprs )
+
+    @dbus.service.signal( DBUS_INTERFACE_NETWORK, "i" )
+    def TimeZoneReport( self, timezone ):
+        logger.info( "org.freesmartphone.GSM.Network.TimeZoneReport: %d" )
     #
     # dbus org.freesmartphone.GSM.Call
     #

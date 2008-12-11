@@ -1126,6 +1126,25 @@ def codeToOperator( mccmni ):
     return operator
 
 #=========================================================================#
+def ctzvToTimeZone( ctzv ):
+#=========================================================================#
+    """
+    Computes the timezone offset out of a value from +CTZV
+
+    <DieterS> Lets try again: 0x19 -> swap the BCD digits: 0x91, high bit is minus -> -11 this is -2:45
+    <wpwrak> dieter: i think if you try enough variations, you can produce any number ;-)
+    <DieterS> Now the same for a real world example: 105  = 0x69 swap 0x96, high bit set, minus 16, this minus 4 hours
+    <DieterS> Werner: Sure, but one can also read the GSM spec ;-)
+    <wpwrak> dieter: that's cheating :)
+    <DieterS> Start with 04.08, check 03.40  and look at 02.42
+    <DieterS> So it's is really simple ;-)
+    """
+    bcd = hex( int( ctzv ) & 0xf7 )[2:][::-1]
+    sign = int( ctzv ) & 0x08 == 8
+    value = int(bcd[0]) * 10 + int(bcd[1])
+    return -value if sign else value
+
+#=========================================================================#
 if __name__ == "__main__":
 #=========================================================================#
     # FIXME use Python unit testing framework
@@ -1154,3 +1173,6 @@ if __name__ == "__main__":
     assert codeToOperatorCache( "26203" ) == "E-Plus"
     assert codeToOperatorCache( "111222" ) == "E-Plus"
     print "OK"
+    assert ctzvToTimeZone( "25" ) == -11 # UTC-2:45
+    assert ctvzToTimeZone( "35" ) == 32  # UTC+8
+    assert ctvzToTimeZone( "105" ) == -15 # UTC-4
