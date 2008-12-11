@@ -13,7 +13,7 @@ Module: channel
 TI Calypso specific modem channels
 """
 
-__version__ = "0.9.9.1"
+__version__ = "0.9.9.2"
 
 from framework.config import config
 
@@ -130,6 +130,27 @@ class CalypsoModemChannel( AbstractModemChannel ):
         logger.warning( "HUP condition on modem channel. The multiplexer is probably dead. Launching reinit..." )
         logger.debug( "Closing the modem..." )
         self._modem.reinit()
+
+    #
+    # Do not send the reinit commands right after suspend, give us a bit time
+    # to drain the buffer queue, as we might have been waken from GSM
+    # FIXME At the end of the day, this is a workaround that tries to reduce
+    # the possibilities of unsolicited responses woven in solicited responses.
+    # We need to be crystal-clear here in realizing that this is a bandaid not
+    # only for a conceptual problem with the AT protocol, but also our imperfect
+    # AT lowlevel parser. If we would give the parser a list for every valid answer
+    # forevery request, we would be able to identify unsolicited responses woven
+    # in solicited reponses with much more confidence.
+    # Note to self: Remember this for the forthcoming reimplementation of ogsmsd in Vala :)
+    # :M:
+
+    def resume( self, ok_callback, error_callback ):
+        logger.debug( "TI Calypso specific resume handling... sending reinit in 5 seconds..." )
+        def done( request, response, self=self, ok_callback=ok_callback ):
+            return False # mainloop: don't call me again
+        # FIXME clean timer if we suspend again before having the commands sent
+        gobject.timeout_add_seconds( 10, self._sendCommandsNotifyDone, "resume", done )
+        ok_callback( self )
 
 #=========================================================================#
 class CallChannel( CalypsoModemChannel ):
