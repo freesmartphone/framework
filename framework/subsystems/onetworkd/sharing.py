@@ -86,9 +86,9 @@ class ConnectionSharing( dbus.service.Object ):
         commands.append( "iptables -A POSTROUTING -t nat -j MASQUERADE -s 192.168.0.0/24" )
 
         for command in commands:
-            logging.debug( "issuing command '%s'" % command )
+            logger.debug( "issuing command '%s'" % command )
             result = subprocess.call( command.split( ' ' ) )
-            logging.debug( "command result = %d" % result )
+            logger.debug( "command result = %d" % result )
             if result != 0:
                 dbus_error( InternalError( "%s gave returncode %d" % ( command, result ) ) )
                 return
