@@ -1444,22 +1444,29 @@ class PdpActivateContext( PdpMediator ):
 class PdpDeactivateContext( PdpMediator ):
 #=========================================================================#
     def trigger( self ):
-        global pdpConnection
-        if pdpConnection is not None and pdpConnection.isActive():
-            pdpConnection.deactivate()
-            self._ok()
-        else:
-            self._error( error.PdpNotFound( "there is no active pdp context" ) )
+        self._commchannel.enqueue( '+CGACT=0', self.responseFromChannel, self.errorFromChannel )
+        self._ok()
+
+        # FIXME do we want to wait and honor the result?
 
 #=========================================================================#
 class PdpGetContextStatus( PdpMediator ):
 #=========================================================================#
     def trigger( self ):
-        global pdpConnection
-        if pdpConnection is None:
-            self._ok( "release" )
+        self._commchannel.enqueue( '+CGACT?', self.responseFromChannel, self.errorFromChannel )
+
+    def responseFromChannel( self, request, response ):
+        if ( response[-1] == "OK" ):
+            if len( response ) < 2:
+                self._ok( "release" ) # rather 'unknown'?
+            else:
+                # FIXME support more than one context
+                # (once we see the first modem that supports it)
+                number, status = self._rightHandSide( response[-2] ).split( ',' )
+                self._ok( "active" if status == '1' else "release" )
         else:
-            self._ok( pdpConnection.status() )
+            DeviceMediator.responseFromChannel( self, request, response )
+
 #
 # CB Mediators
 #
