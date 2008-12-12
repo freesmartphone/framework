@@ -1,9 +1,17 @@
+2008-12-12	Michael Lauer	<mickey@openmoko.org>
+
+	* [ogsmd] Implemented org.freesmartphone.GSM.Phone.[Start|Stop]AutoRegister()
+	  and its signal org.freesmartphone.GSM.Phone.ServiceStatus()
+	  This is a convenient way to ensure that ogsmd always tries to unlock the SIM
+	  and register with a provider, if necessary.
+	  (Corresponding functionality for Gprs is under discussion).
+
 2008-12-11	Michael Lauer	<mickey@openmoko.org>
 
 	* [ogsmd] Implemented org.freesmartphone.GSM.PDP.NetworkStatus()
 	* [ogsmd] Implemented org.freesmartphone.GSM.PDP.GetNetworkStatus()
 	* [ogsmd] Implemented org.freesmartphone.GSM.Network.TimeZoneReport()
-	* [ogsmd] Refactor PDP handling
+	* [ogsmd] Refactored PDP handling for more stability
 
 2008-12-06	Michael Lauer	<mickey@openmoko.org>
 

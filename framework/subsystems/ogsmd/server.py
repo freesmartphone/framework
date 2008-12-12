@@ -11,16 +11,15 @@ Module: server
 """
 
 MODULE_NAME = "ogsmd.server"
-__version__ = "0.1.0"
+__version__ = "0.2.0"
 
 from framework import resource
+from framework.patterns import tasklet
 
 import dbus
 import dbus.service
 from dbus import DBusException
 
-from gobject import timeout_add, idle_add
-import weakref
 import math
 import sys, os
 import types
@@ -32,10 +31,11 @@ from device import DBUS_INTERFACE_DEVICE, \
                    DBUS_OBJECT_PATH_DEVICE, \
                    DBUS_BUS_NAME_DEVICE, \
                    DBUS_INTERFACE_SIM, \
+                   DBUS_INTERFACE_NETWORK, \
                    DBUS_INTERFACE_CB
 
-DBUS_INTERFACE_NETWORK = "org.freesmartphone.Network"
 DBUS_INTERFACE_HZ = "org.freesmartphone.GSM.HZ"
+DBUS_INTERFACE_PHONE = "org.freesmartphone.GSM.Phone"
 DBUS_OBJECT_PATH_SERVER = "/org/freesmartphone/GSM/Server"
 
 HOMEZONE_DEBUG = False
@@ -60,12 +60,18 @@ class Server( dbus.service.Object ):
         self.homezones = None
         self.zone = "unknown"
         self.setupSignals()
+        self._autoRegister = False
+        self._service = "unknown"
+        self.pin = None
 
     def setupSignals( self ):
         device = self.bus.get_object( DBUS_BUS_NAME_DEVICE, DBUS_OBJECT_PATH_DEVICE )
         self.fso_cb = dbus.Interface( device, DBUS_INTERFACE_CB )
         self.fso_cb.connect_to_signal( "IncomingCellBroadcast", self.onIncomingCellBroadcast )
         self.fso_sim = dbus.Interface( device, DBUS_INTERFACE_SIM )
+        self.fso_network = dbus.Interface( device, DBUS_INTERFACE_NETWORK )
+        self.fso_network.connect_to_signal( "Status", self.onIncomingGsmNetworkStatus )
+        self.fso_device = dbus.Interface( device, DBUS_INTERFACE_DEVICE )
 
     def __del__( self ):
         server = None
@@ -108,6 +114,20 @@ class Server( dbus.service.Object ):
         maxdist = math.sqrt( zr ) * 10
         return dist < maxdist
 
+    def onIncomingGsmNetworkStatus( self, status ):
+        reg = status["registration"]
+        if reg in "home roaming".split():
+            self._updateServiceStatus( "online" )
+        else:
+            self._updateServiceStatus( "offline" )
+        if reg in "unregistered denied".split() and self._autoRegister:
+            self.Register( self.pin, lambda:None, lambda Foo:None )
+
+    def _updateServiceStatus( self, status ):
+        if self._service != status:
+            self._service = status
+            self.ServiceStatus( status )
+
     #
     # dbus org.freesmartphone.GSM.HZ
     #
@@ -136,31 +156,43 @@ class Server( dbus.service.Object ):
         self.fso_sim.GetHomeZones( reply_handler=gotHomezones, error_handler=lambda error:None )
 
     #
-    # dbus org.freesmartphone.Network
+    # dbus org.freesmartphone.GSM.Phone
     #
-    @dbus.service.method( DBUS_INTERFACE_HZ, "", "s",
+    @dbus.service.method( DBUS_INTERFACE_PHONE, "s", "",
                           async_callbacks=( "dbus_ok", "dbus_error" ) )
-    def GetHomeZoneStatus( self, dbus_ok, dbus_error ):
-        dbus_ok( self.zone )
+    def StartAutoRegister( self, pin, dbus_ok, dbus_error ):
+        self.pin = pin
+        self._autoRegister = True
+        dbus_ok()
 
-    @dbus.service.signal( DBUS_INTERFACE_HZ, "s" )
-    def HomeZoneStatus( self, zone ):
-        self.zone = zone
-        logger.info( "home zone status now %s" % zone )
+        self.fso_network.GetStatus( reply_handler=self.onIncomingGsmNetworkStatus, error_handler=lambda Foo:None )
 
-    @dbus.service.method( DBUS_INTERFACE_HZ, "", "as",
+    @dbus.service.method( DBUS_INTERFACE_PHONE, "", "",
                           async_callbacks=( "dbus_ok", "dbus_error" ) )
-    def GetKnownHomeZones( self, dbus_ok, dbus_error ):
+    def StopAutoRegister( self, dbus_ok, dbus_error ):
+        self._autoRegister = False
+        dbus_ok()
 
-        def gotHomezones( homezones, self=self, dbus_ok=dbus_ok ):
-            logger.info( "got SIM homezones: %s", homezones )
-            self.homezones = homezones
-            # debug code, if you have no homezones on your SIM. To test, use:
-            # gsm.DebugInjectString("UNSOL","+CBM: 16,221,0,1,1\r\n347747555093\r\r\r\n")
-            if HOMEZONE_DEBUG: self.homezones = [ ( "city", 347747, 555093, 1000 ), ( "home", 400000, 500000, 1000 ) ]
-            dbus_ok( [ zone[0] for zone in self.homezones ] )
+    @dbus.service.method( DBUS_INTERFACE_PHONE, "s", "",
+                          async_callbacks=( "dbus_ok", "dbus_error" ) )
+    def Register( self, pin, dbus_ok, dbus_error ):
 
-        self.fso_sim.GetHomeZones( reply_handler=gotHomezones, error_handler=lambda error:None )
+        @tasklet.tasklet
+        def worker( self, pin ):
+            try:
+                yield tasklet.WaitDBus( self.fso_device.SetAntennaPower, True )
+            except dbus.DBusException, e: # may be locked
+                if e.get_dbus_name() != "org.freesmartphone.GSM.SIM.AuthFailed":
+                    raise
+                else:
+                    yield tasklet.WaitDBus( self.fso_sim.SendAuthCode, pin )
+
+            yield tasklet.WaitDBus( self.fso_network.Register )
+        worker( self, pin ).start_dbus( dbus_ok, dbus_error )
+
+    @dbus.service.signal( DBUS_INTERFACE_PHONE, "s" )
+    def ServiceStatus( self, service ):
+       logger.info( "service status now %s" % service )
 
 #=========================================================================#
 def factory( prefix, controller ):
