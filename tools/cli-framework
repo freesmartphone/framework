@@ -112,11 +112,17 @@ frameworkiface = getInterface( \
     "/org/freesmartphone/Framework",
     "org.freesmartphone.Framework" )
 
-# ogsmd server
+# homezone
 hz = getInterface( \
     "org.freesmartphone.ogsmd",
     "/org/freesmartphone/GSM/Server",
     "org.freesmartphone.GSM.HZ" )
+
+# gsm phone
+gsmphone = getInterface( \
+    "org.freesmartphone.ogsmd",
+    "/org/freesmartphone/GSM/Server",
+    "org.freesmartphone.GSM.Phone" )
 
 # odeviced objects
 devaudio = getInterface( \
