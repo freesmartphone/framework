@@ -11,7 +11,7 @@ Module: audio
 """
 
 MODULE_NAME = "odeviced.audio"
-__version__ = "0.5.1.1"
+__version__ = "0.5.1.2"
 
 from framework.config import config
 from framework.patterns import asyncworker
@@ -239,7 +239,7 @@ class GStreamerPlayer( Player ):
                 # however it should still be faster than creating the pipeline from
                 # individual elements in python, since it's all happening in compiled code
                 try:
-                    pipeline = gst.parse_launch( "filesrc location=%s ! %s ! alsasink" % ( file, decoder ) )
+                    pipeline = gst.parse_launch( 'filesrc location="%s" ! %s ! alsasink' % ( file, decoder ) )
                 except gobject.GError, e:
                     logger.exception( "could not instanciate pipeline: %s" % e )
                     return error_cb( PlayerError( "Could not instanciate pipeline due to an internal error." ) )
