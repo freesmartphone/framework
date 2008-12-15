@@ -320,29 +320,40 @@ class UBXDevice( GPSDevice ):
 
     def parse( self, data ):
         self.buffer += data
+        buffer_offset = 0
         # Minimum packet length is 8
-        while len(self.buffer) >= 8:
+        while len(self.buffer) >= buffer_offset + 8:
             # Find the beginning of a UBX message
-            start = self.buffer.find( chr( SYNC1 ) + chr( SYNC2 ) )
-            if start > 0 or (start == -1 and len(self.buffer) > 1):
+            start = self.buffer.find( chr( SYNC1 ) + chr( SYNC2 ), buffer_offset )
+
+            if buffer_offset == 0 and start != 0:
                 logger.debug( "Discarded data not UBX %s" % repr(self.buffer[:start]) )
                 self.buffer = self.buffer[start:]
                 continue
 
-            (cl, id, length) = struct.unpack("<xxBBH", self.buffer[:6])
-            if len(self.buffer) < length + 8:
+            if start == -1 or start + 8 > len(self.buffer):
                 return
 
-            if self.checksum(self.buffer[2:length+6]) != struct.unpack("<BB", self.buffer[length+6:length+8]):
-                logger.warning( "UBX packed class 0x%x, id 0x%x, length %i failed checksum" % (cl, id, length) )
-                self.buffer = self.buffer[2:]
+            (cl, id, length) = struct.unpack("<BBH", self.buffer[start+2:start+6])
+            if len(self.buffer) < start + length + 8:
+                buffer_offset = start + 2
                 continue
 
-            # Now we got a valid UBX packet, decode it
-            self.decode(cl, id, length, self.buffer[6:length+6])
+            if self.checksum(self.buffer[start+2:start+length+6]) != struct.unpack("<BB", self.buffer[start+length+6:start+length+8]):
+                buffer_offset = start + 2
+                continue
+
+            if start != 0:
+                logger.warning(" UBX packet ignored %s" % repr(self.buffer[:start]) )
+                self.buffer = self.buffer[start:]
+                buffer_offset = 0
+                continue
+
+            self.decode(cl, id, length, self.buffer[start+6:start+length+6])
 
             # Discard packet
-            self.buffer = self.buffer[length+8:]
+            self.buffer = self.buffer[start+length+8:]
+            buffer_offset = 0
 
     def send( self, clid, length, payload ):
         logger.debug( "Sending UBX packet of type %s: %s" % ( clid, payload ) )
