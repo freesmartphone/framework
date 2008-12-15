@@ -114,8 +114,7 @@ class StateBasedLowlevelAtParser( object ):
         if b == '\r':
             return self.state_inline_multipleR
         if b == '\n':
-            if s:
-                return self.lineCompleted( True )
+            return self.lineCompleted( True )
 
     def lineCompleted( self, multipleR = False ):
         # FIXME update self.haveCommand for next command
