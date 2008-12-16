@@ -13,6 +13,9 @@ Module: fso_actions
 
 """
 
+__VERSION__ = "0.3.0"
+MODULE_NAME = "oeventsd"
+
 import framework.patterns.tasklet as tasklet
 
 from action import Action, DBusAction
@@ -23,10 +26,11 @@ import dbus
 import os, subprocess, shlex
 
 import logging
-logger = logging.getLogger('oeventsd')
+logger = logging.getLogger( MODULE_NAME )
 
-
+#============================================================================#
 class SetProfile( Action ):
+#============================================================================#
     function_name = 'SetProfile'
 
     def __init__( self, profile ):
@@ -35,7 +39,7 @@ class SetProfile( Action ):
     @tasklet.tasklet
     def __trigger( self ):
         # We store the current profile
-        # XXX: we should use profile push and pop instead
+        # FIXME: we should use profile push and pop instead
         prefs = dbus.SystemBus().get_object(
             'org.freesmartphone.opreferencesd',
             '/org/freesmartphone/Preferences'
@@ -49,13 +53,12 @@ class SetProfile( Action ):
         self.__trigger().start()
 
     def untrigger( self, **kargs ):
-        # TODO: how do we handle the case where we untrigger the action
+        # FIXME: how do we handle the case where we untrigger the action
         #       before we finish the trigger tasklet ?
         SetProfile( self.backup_profile ).trigger()
 
     def __repr__( self ):
         return "SetProfile(%s)" % self.profile
-
 
 #============================================================================#
 class AudioAction(Action):
@@ -129,7 +132,7 @@ class DisplayBrightnessAction(DBusAction):
     """
     A dbus action on a Display device
     """
-    # FIXME device specific, needs to go away from here / made generic (parametric? just take the first?)
+    # FIXME: device specific, needs to go away from here / made generic (parametric? just take the first?)
     function_name = 'SetDisplayBrightness'
 
     def __init__(self, target, brightness):
@@ -146,7 +149,7 @@ class VibratorAction(Action):
     A dbus action on the Openmoko Neo Vibrator device
     """
     function_name = 'Vibration'
-    # FIXME device specific, needs to go away from here / made generic (parametric? just take the first?)
+    # FIXME: device specific, needs to go away from here / made generic (parametric? just take the first?)
     def __init__(self, target = 'neo1973_vibrator'):
         self.target = target
     def trigger(self, **kargs):
@@ -198,7 +201,7 @@ class RingToneAction(Action):
         self.sound_path = os.path.join( installprefix, "share/sounds/", ring_tone )
 
         logger.info( "Start ringing : tone=%s, volume=%s, loop=%d, length=%d", ring_tone, ring_volume, ring_loop, ring_length )
-        # XXX: We don't set the ringing volume.
+        # FIXME: We don't set the ringing volume.
         #      Here we only disable the ringing action if the volume is 0
         self.audio_action = AudioAction(self.sound_path, ring_loop, ring_length) if ring_volume != 0 else None
         self.vibrator_action = VibratorAction()
@@ -277,8 +280,9 @@ class CommandAction(Action):
     def trigger(self, **kargs):
         logger.info( "CommandAction %s", self.cmd )
 
-        # FIXME check return value
-        result = subprocess.call( shlex.split( self.cmd ) )
+        # FIXME if we are interested in tracking the process, then we
+        # should use glib's spawn async and add a chile watch
+        subprocess.Popen( shlex.split( self.cmd ) )
 
     def __repr__(self):
         return "CommandAction(%s)" % self.cmd
@@ -339,3 +343,7 @@ class ExternalDBusAction(DBusAction):
     def __repr__( self ):
         return "ExternalDBusAction(bus = %s, service = %s, obj = %s, itf = %s, method = %s)" % (self.bus, self.service, self.obj, self.interface, self.method)
 
+#============================================================================#
+if __name__ == "__main__":
+#============================================================================#
+    pass
