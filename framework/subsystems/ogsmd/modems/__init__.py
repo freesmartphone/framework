@@ -18,6 +18,7 @@ theModem = None
 theMediator = None
 
 modemmap = { \
+    "ericsson_F3507g":   "EricssonF3507g",
     "cinterion_mc75":    "CinterionMc75",
     "freescale_neptune": "FreescaleNeptune",
     "muxed4line":        "Muxed4Line",
@@ -57,6 +58,9 @@ def modemFactory( modemtype ):
     elif modemtype == "cinterion_mc75":
         from cinterion_mc75.modem import CinterionMc75 as Modem
         import cinterion_mc75.mediator as mediator
+    elif modemtype == "ericsson_F3507g":
+        from ericsson_F3507g.modem import EricssonF3507g as Modem
+        import ericsson_F3507g.mediator as mediator
     else:
         assert False, "must never reach this"
         sys.exit( -1 )
