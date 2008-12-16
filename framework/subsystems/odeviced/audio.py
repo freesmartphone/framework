@@ -227,7 +227,7 @@ class GStreamerPlayer( Player ):
                 return error_cb( UnknownFormat( "Can't guess format from extension" ) )
             options = ext.split( ';' )
             ext = options.pop( 0 )
-            file = ".".join( [ base, ext ] )
+            file = ".".join( [ base, ext ] ).replace( ' ', r'\ ' )
             try:
                 decoder = GStreamerPlayer.decoderMap[ ext ]
             except KeyError:
