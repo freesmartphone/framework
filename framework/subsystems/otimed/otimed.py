@@ -1,17 +1,23 @@
 #!/usr/bin/env python
+# -*- coding: UTF-8 -*-
 """
 The Time Deamon - Python Implementation
 
 (C) 2008 Guillaume 'Charlie' Chereau
+(C) 2008 Jan 'Shoragan' Lübbe <jluebbe@lasnet.de>
 (C) 2008 Openmoko, Inc.
 GPLv2 or later
 
 Package: otimed
-Module: otime
+Module: otimed
 """
 
-__version__ = "0.1.0"
+__version__ = "0.2.0"
 
+from datetime import datetime, timedelta
+from math import sqrt
+import socket
+import struct
 import time
 
 # All the dbus modules
@@ -20,50 +26,129 @@ import dbus.service
 import dbus.mainloop.glib
 import gobject
 
-
 import logging
-logger = logging.getLogger('otimed')
+logger = logging.getLogger( 'otimed' )
 
+def getOutput(cmd):
+    from subprocess import Popen, PIPE
+    return Popen(cmd, shell=True, stdout=PIPE).communicate()[0]
+
+def toSeconds( delta ):
+    return delta.days*24*60*60+delta.seconds+delta.microseconds*0.000001
 
 #============================================================================#
-class Time(dbus.service.Object):
+class TimeSource( object ):
 #============================================================================#
-    def __init__(self, bus):
-        self.path = "/org/freesmartphone/Time"
-        super(Time, self).__init__(bus, self.path)
-        self.interface = "org.freesmartphone.Time"
+    def __init__( self, bus ):
+        self.offset = None
         self.bus = bus
-        
-        self.last_emitted = None
-        gobject.timeout_add_seconds(1, self.time_changed)
 
-    @dbus.service.method("org.freesmartphone.Time", in_signature='i', out_signature='iiiiiiiii')
-    def GetLocalTime(self, seconds = None):
-        """seconds -> (year, mon, day, hour, min, sec, wday, yday, isdst)
-           
-           Convert seconds since Epoch to a time tuple expressing local time.   
-           When `seconds` is not passed in, convert the current time instead.
-        """ 
-        logger.debug("GetLocalTime")
-        return time.localtime(seconds)
-        
-    @dbus.service.signal('org.freesmartphone.Time', signature='iiiiiiiii')
-    def Minute(self, year, mon, day, hour, min, sec, wday, yday, isdst):
-        """signal used to notify a minute change in the local time"""
-        logger.debug("Minute %d:%d", hour, min)
-        
-    def time_changed(self):
-        local_time = time.localtime()
-        if local_time[:5] != self.last_emitted:
-            self.last_emitted = local_time[:5]
-            self.Minute(*local_time)
+#============================================================================#
+class GPSTimeSource( TimeSource ):
+#============================================================================#
+    def __init__( self, bus ):
+        TimeSource.__init__( self, bus )
+        self.invalidTimeout = None
+        self.bus.add_signal_receiver(
+            self._handleTimeChanged,
+            "TimeChanged",
+            "org.freedesktop.Gypsy.Time",
+            None,
+            None
+        )
+
+    def _handleTimeChanged( self, t ):
+        self.offset = datetime.utcfromtimestamp( t ) - datetime.utcnow()
+        if not self.invalidTimeout is None:
+            gobject.source_remove( self.invalidTimeout )
+            self.invalidTimeout = gobject.timeout_add_seconds( 300, self._handleInvaildTimeout )
+        logger.debug( "GPS: offset=%f", toSeconds( self.offset ) )
+
+    def _handleInvaildTimeout( self ):
+        self.offset = None
+        self.invalidTimeout = None
+        logger.debug( "GPS: timeout" )
+        return False
+
+#============================================================================#
+class NTPTimeSource( TimeSource ):
+#============================================================================#
+    def __init__( self, bus, server = "134.169.172.1", interval = 70 ):
+        TimeSource.__init__( self, bus )
+        self.server = server
+        self.interval = interval
+        self.updateTimeout = gobject.timeout_add_seconds( self.interval, self._handleUpdateTimeout )
+
+    def _handleUpdateTimeout( self ):
+        logger.debug( "NTP: requesting timestamp" )
+        self.offset = None
+        # FIXME do everything async
+        epoch = 2208988800L
+        client = socket.socket( socket.AF_INET, socket.SOCK_DGRAM )
+        data = '\x1b' + 47 * '\0'
+        client.sendto( data, ( self.server, 123 ))
+        data, address = client.recvfrom( 1024 )
+        if data:
+            s, f = struct.unpack( '!12I', data )[10:12]
+            s -= epoch
+            t = s + f/(2.0**32)
+            self.offset = datetime.utcfromtimestamp( t ) - datetime.utcnow()
+            logger.debug( "NTP: offset=%f", toSeconds( self.offset ) )
+        else:
+            self.offset = None
+            logger.warning( "NTP: no timestamp received" )
+        # reenable timeout
         return True
 
+#============================================================================#
+class Time( dbus.service.Object ):
+#============================================================================#
+    def __init__( self, bus ):
+        self.path = "/org/freesmartphone/Time"
+        super( Time, self ).__init__( bus, self.path )
+        self.interface = "org.freesmartphone.Time"
+        self.bus = bus
+
+        self.sources = []
+        self.sources.append( GPSTimeSource( self.bus ) )
+        self.sources.append( NTPTimeSource( self.bus ) )
+
+        self.interval = 80
+        self.updateTimeout = gobject.timeout_add_seconds( self.interval, self._handleUpdateTimeout )
+
+    def _handleUpdateTimeout( self ):
+        logger.debug( "checking time sources" )
+        offsets = []
+        for source in self.sources:
+            if not source.offset is None:
+                offsets.append( toSeconds( source.offset ) )
+
+        if not offsets:
+            logger.debug( "no working time source" )
+            return True
+
+        n = len( offsets )
+        mean = sum( offsets ) / n
+        sd = sqrt( sum( (x-mean)**2 for x in offsets ) / n )
+        logger.info( "offsets: n=%i mean=%f sd=%f", n, mean, sd )
+
+        if sd < 15.0 < mean:
+            logger.info( "adjusting clock by %f seconds" % mean )
+            d = timedelta( seconds=mean )
+            for source in self.sources:
+                if not source.offset is None:
+                    source.offset = source.offset - d
+            t = datetime.utcnow() + d
+            getOutput( "date -u -s %s" % t.strftime( "%m%d%H%M%Y.%S" ) )
+            getOutput( "hwclock --systohc" )
+
+        # reenable timeout
+        return True
 
 #============================================================================#
-def factory(prefix, controller):
+def factory( prefix, controller ):
 #============================================================================#
     """This is the magic function that will be called by the framework module manager"""
-    time_service = Time(controller.bus)
+    time_service = Time( controller.bus )
     return [time_service]
 

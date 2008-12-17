@@ -1,3 +1,7 @@
+2008-12-17	Jan Luebbe      <jluebbe@debian.org>
+
+	* [otimed] Add simple timesync to NTP and GPS
+
 2008-12-12	Michael Lauer	<mickey@openmoko.org>
 
 	* [ogsmd] Implemented org.freesmartphone.GSM.Phone.[Start|Stop]AutoRegister()
