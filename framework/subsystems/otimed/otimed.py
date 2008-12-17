@@ -73,21 +73,29 @@ class GPSTimeSource( TimeSource ):
 #============================================================================#
 class NTPTimeSource( TimeSource ):
 #============================================================================#
-    def __init__( self, bus, server = "134.169.172.1", interval = 70 ):
+    def __init__( self, bus, server = "134.169.172.1", interval = 600 ):
         TimeSource.__init__( self, bus )
         self.server = server
         self.interval = interval
+        self.socket = socket.socket( socket.AF_INET, socket.SOCK_DGRAM )
+        self.socket.bind( ('', 123) )
+        self.socket.setblocking( False )
         self.updateTimeout = gobject.timeout_add_seconds( self.interval, self._handleUpdateTimeout )
+        self.dataWatch = gobject.io_add_watch( self.socket.makefile(), gobject.IO_IN, self._handleData )
+        self._handleUpdateTimeout()
 
     def _handleUpdateTimeout( self ):
         logger.debug( "NTP: requesting timestamp" )
         self.offset = None
         # FIXME do everything async
-        epoch = 2208988800L
-        client = socket.socket( socket.AF_INET, socket.SOCK_DGRAM )
         data = '\x1b' + 47 * '\0'
-        client.sendto( data, ( self.server, 123 ))
-        data, address = client.recvfrom( 1024 )
+        self.socket.sendto( data, ( self.server, 123 ))
+        # reenable timeout
+        return True
+
+    def _handleData( self, source, condition ):
+        epoch = 2208988800L
+        data, address = self.socket.recvfrom( 1024 )
         if data:
             s, f = struct.unpack( '!12I', data )[10:12]
             s -= epoch
@@ -97,8 +105,6 @@ class NTPTimeSource( TimeSource ):
         else:
             self.offset = None
             logger.warning( "NTP: no timestamp received" )
-        # reenable timeout
-        return True
 
 #============================================================================#
 class Time( dbus.service.Object ):
@@ -113,7 +119,7 @@ class Time( dbus.service.Object ):
         self.sources.append( GPSTimeSource( self.bus ) )
         self.sources.append( NTPTimeSource( self.bus ) )
 
-        self.interval = 80
+        self.interval = 90
         self.updateTimeout = gobject.timeout_add_seconds( self.interval, self._handleUpdateTimeout )
 
     def _handleUpdateTimeout( self ):
