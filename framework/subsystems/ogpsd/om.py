@@ -9,24 +9,23 @@ Open GPS Daemon
 GPLv2 or later
 """
 
-DEVICE_POWER_PATH = "/sys/devices/platform/s3c2440-i2c/i2c-adapter/i2c-0/0-0073/neo1973-pm-gps.0/pwron"
+__version__ = "0.9.9.1"
+MODULE_NAME = "ogpsd"
+
+DEVICE_POWER_PATH = "/sys/bus/platform/devices/neo1973-pm-gps.0/pwron"
 
 from ubx import UBXDevice
 from ubx import CLIDPAIR
 
 from framework.persist import persist
-
 import helpers
-import os
-import sys
-import marshal
-import time
+
 import gobject
-from datetime import datetime
-from datetime import timedelta
+import os, sys, marshal, time
+from datetime import datetime, timedelta
 
 import logging
-logger = logging.getLogger('ogpsd')
+logger = logging.getLogger( MODULE_NAME )
 
 class GTA02Device( UBXDevice ):
     """GTA02 specific GPS device"""
