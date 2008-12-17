@@ -11,8 +11,10 @@ Module: modem
 
 """
 
-__version__ = "0.9.9.3"
+__version__ = "0.9.9.4"
 MODULE_NAME = "ogsmd.modems.ti_calypso"
+
+SYSFS_CALYPSO_FLOW_CONTROL_PATH = "/sys/bus/platform/devices/neo1973-pm-gsm.0/flowcontrolled"
 
 import mediator
 
@@ -120,11 +122,11 @@ class TiCalypso( AbstractModem ):
         # FIXME still no error handling here
 
         def post_ok( ok_callback=ok_callback ):
-            writeToFile( "/sys/devices/platform/neo1973-pm-gsm.0/flowcontrolled", "1" )
+            writeToFile( SYSFS_CALYPSO_FLOW_CONTROL_PATH, "1" )
             ok_callback()
 
         AbstractModem.prepareForSuspend( self, post_ok, error_callback )
 
     def recoverFromSuspend( self, ok_callback, error_callback ):
-        writeToFile( "/sys/devices/platform/neo1973-pm-gsm.0/flowcontrolled", "0" )
+        writeToFile( SYSFS_CALYPSO_FLOW_CONTROL_PATH, "0" )
         AbstractModem.recoverFromSuspend( self, ok_callback, error_callback )
