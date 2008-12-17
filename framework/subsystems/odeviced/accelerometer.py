@@ -8,7 +8,7 @@ GPLv2 or later
 from __future__ import with_statement
 
 MODULE_NAME = "odeviced.accelerometer"
-__version__ = "0.2.1"
+__version__ = "0.2.2"
 
 from framework.config import config
 
@@ -103,8 +103,9 @@ class InputDevAccelerometer(Accelerometer):
         # now return (x, y, z)
         return (self._unpack()[4], self._unpack()[4], self._unpack()[4])
 
-
+#============================================================================#
 class Gta02Accelerometer(InputDevAccelerometer):
+#============================================================================#
     """Read values from gta02.  for now we use just one.
     >>> g = Gta02Accelerometer()
     >>> g.sample_rate = 400
@@ -115,8 +116,8 @@ class Gta02Accelerometer(InputDevAccelerometer):
     100
     """
 
-    INPUT_DEV = '/dev/input/event3'
-    SYS_SAMPLE_RATE = '/sys/devices/platform/spi_s3c24xx_gpio.1/spi0.1/sample_rate'
+    INPUT_DEV = "/dev/input/event3"
+    SYS_SAMPLE_RATE = "/sys/bus/platform/devices/lis302dl.2/sample_rate"
 
     def __init__(self, device=None, sample_rate=None):
         if device is None:
@@ -151,8 +152,9 @@ import dbus.service
 from helpers import DBUS_INTERFACE_PREFIX, DBUS_PATH_PREFIX
 from gobject import idle_add
 
+#============================================================================#
 class FSOSubsystem(dbus.service.Object):
-
+#============================================================================#
     DBUS_INTERFACE = DBUS_INTERFACE_PREFIX + ".Accelerometer"
     DBUS_PATH = DBUS_PATH_PREFIX + "/Accelerometer"
 
@@ -175,8 +177,9 @@ class FSOSubsystem(dbus.service.Object):
     def SetSampleRate(self, sample_rate):
         self.accelerometer.sample_rate = sample_rate
 
-
+#============================================================================#
 def factory(prefix, controller):
+#============================================================================#
     # FIXME I would let the FSOSubsystem object deal with chosing the device type
     device_map = {'gta02': Gta02Accelerometer,
                   'mock': MockAccelerometer}
@@ -186,7 +189,9 @@ def factory(prefix, controller):
     return [f, ]
 
 
+#============================================================================#
 def _doctest():
+#============================================================================#
     try:
         import doctest
     except ImportError:
@@ -194,6 +199,7 @@ def _doctest():
     else:
         doctest.testmod()
 
-
+#============================================================================#
 if __name__ == '__main__':
+#============================================================================#
     _doctest()
