@@ -8,7 +8,7 @@ GPLv2 or later
 """
 
 MODULE_NAME = "odeviced.kernel26"
-__version__ = "0.9.9.0"
+__version__ = "0.9.9.1"
 
 from helpers import DBUS_INTERFACE_PREFIX, DBUS_PATH_PREFIX, readFromFile, writeToFile, cleanObjectName
 from framework.config import config
@@ -212,8 +212,9 @@ class PowerSupply( dbus.service.Object ):
         try:
             s.bind( ( os.getpid(), 1 ) )
         except socket.error, e:
-            logger.exception( "Could not bind to netlink kobject. Power supply reporting will not work." )
+            logger.warning( "Could not bind to netlink object. Power supply reporting might not work." )
         else:
+            logger.info( "Successfully bound to netlink object." )
             self.ueventsockWatch = gobject.io_add_watch( s.fileno(), gobject.IO_IN, self.onUeventActivity )
         capacityCheckTimeout = config.getInt( MODULE_NAME, "capacity_check_timeout", 60*5 )
         self.capacityWatch = gobject.timeout_add_seconds( capacityCheckTimeout, self.onCapacityCheck )
