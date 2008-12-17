@@ -11,7 +11,7 @@ Module: powercontrol_neo
 """
 
 MODULE_NAME = "odeviced.powercontrol_neo"
-__version__ = "0.7.1"
+__version__ = "0.7.2"
 
 from helpers import readFromFile, writeToFile
 from powercontrol import GenericPowerControl, ResourceAwarePowerControl
@@ -31,7 +31,7 @@ except ImportError:
 class NeoBluetoothPowerControl( ResourceAwarePowerControl ):
 #----------------------------------------------------------------------------#
     def __init__( self, bus, node ):
-        super( NeoBluetoothPowerControl, self ).__init__( bus, "Bluetooth", node )
+        ResourceAwarePowerControl.__init__( self, bus, "Bluetooth", node )
         self.powernode = "%s/%s" % ( self.node, "power_on" )
         self.resetnode = "%s/%s" % ( self.node, "reset" )
 
@@ -46,16 +46,16 @@ class NeoBluetoothPowerControl( ResourceAwarePowerControl ):
 
 #----------------------------------------------------------------------------#
 class NeoUsbHostPowerControl( GenericPowerControl ):
-    # WARNING If it's a ResourceAwarePowerControl and there is no ousaged
+    # WARNING: If it's a ResourceAwarePowerControl and there is no ousaged
     # running on startup, then it will break USBeth by automagically switching
     # to USB host mode (which may not be what you want...)
 #----------------------------------------------------------------------------#
     def __init__( self, bus, node ):
-        super( NeoUsbHostPowerControl, self ).__init__( bus, "UsbHost", node )
-        # node to provide 5V/100mA to USB gadgets, only present on Neo FreeRunner
-        self.powernode = "/sys/devices/platform/neo1973-pm-host.0/hostmode"
+        GenericPowerControl.__init__( self, bus, "UsbHost", node )
         # mode switching
-        self.modenode = "/sys/devices/platform/s3c2410-ohci/usb_mode"
+        self.modenode = "%s/%s" % ( node, "usb_mode" )
+        # node to provide 5V/100mA to USB gadgets, only present on Neo FreeRunner
+        self.powernode = "%s/../neo1973-pm-host.0/hostmode" % node
 
     def setPower( self, power ):
         if power:
@@ -68,7 +68,7 @@ class NeoUsbHostPowerControl( GenericPowerControl ):
 class NeoWifiPowerControl( ResourceAwarePowerControl ):
 #----------------------------------------------------------------------------#
     def __init__( self, bus, node ):
-        super( NeoWifiPowerControl, self ).__init__( bus, "WiFi", node )
+        ResourceAwarePowerControl.__init__( self, bus, "WiFi", node )
 
     def setPower( self, power ):
         wireless.wifiSetOn( "eth0", 1 if power else 0 )
@@ -88,15 +88,16 @@ def factory( prefix, controller ):
             objects.append( NeoBluetoothPowerControl( bus, "%s/%s" % ( dirname, "neo1973-pm-bt.0" ) ) )
             walk.lookForBT = False # only have one BT interface
         if walk.lookForUSB and "s3c2410-ohci" in fnames: # works both for 1973 and FreeRunner
-            objects.append( NeoUsbHostPowerControl( bus, "%s/%s" % ( dirname, "neo1973-pm-host.0" ) ) )
+            objects.append( NeoUsbHostPowerControl( bus, "%s/%s" % ( dirname, "s3c2410-ohci" ) ) )
             walk.lookForUSB = False # only have one USB host
 
     objects = []
     # scan for device nodes
-    devicespath = "/sys/devices/platform"
+
+    devicespath = "/sys/bus/platform/devices"
     walk.lookForBT = True
     walk.lookForUSB = True
-    os.path.walk( devicespath, walk, objects )
+    walk( objects, devicespath, os.listdir( devicespath ) )
 
     # check for network interfaces
     if ( wireless is not None ) and "eth0" in os.listdir( "/sys/class/net"):
