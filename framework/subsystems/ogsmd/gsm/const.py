@@ -803,19 +803,21 @@ NETWORK_CIPHER_STATUS = { \
 #=========================================================================#
 # PDU TP definitions follow here according to the appearance in GSM 03.40
 # chapter 9.2.3
-TP_MTI_INCOMING = { \
+TP_MTI_INCOMING = BiDict( { \
     "sms-deliver" : 0,
     "sms-submit-report" : 1,
     "sms-status-report" : 2,
     "reserved" : 3,
-}
+} )
+TP_MTI_INCOMING.AUTOINVERSE = True
 
-TP_MTI_OUTGOING = { \
+TP_MTI_OUTGOING = BiDict( { \
     "sms-deliver-report" : 0,
     "sms-submit" : 1,
     "sms-command" : 2,
     "reserved" : 3,
-}
+} )
+TP_MTI_OUTGOING.AUTOINVERSE = True
 
 #=========================================================================#
 TP_VPF = { \

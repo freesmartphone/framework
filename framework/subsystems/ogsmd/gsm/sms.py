@@ -12,7 +12,7 @@ Module: pdu
 
 """
 from ogsmd.gsm.convert import *
-from ogsmd.gsm.const import CB_PDU_DCS_LANGUAGE
+from ogsmd.gsm.const import CB_PDU_DCS_LANGUAGE, TP_MTI_INCOMING, TP_MTI_OUTGOING
 import math
 
 class SMSError(Exception):
@@ -90,64 +90,79 @@ class PDUAddress:
 
 class SMS(object):
     @classmethod
-    def decode( cls, pdu, direction ):
+    def decode( cls, pdu, smstype ):
         # first convert the string into a bytestream
         try:
             bytes = [ int( pdu[i:i+2], 16 ) for i in range(0, len(pdu), 2) ]
         except ValueError:
             raise SMSError, "PDU malformed"
 
-        sms = cls( direction )
-
+        sms = cls( smstype )
         offset = 0
-        # SCA - Service Center address
-        sca_len = bytes[offset]
-        offset += 1
-        if sca_len > 0:
-            sms.sca = PDUAddress.decode( bytes[offset:offset+sca_len] )
-        else:
-            sms.sca = False
 
-        offset += sca_len
+        if sms.type == "sms-deliver" or sms.type == "sms-submit":
+            # SCA - Service Center address
+            sca_len = bytes[offset]
+            offset += 1
+            if sca_len > 0:
+                sms.sca = PDUAddress.decode( bytes[offset:offset+sca_len] )
+            else:
+                sms.sca = False
+            offset += sca_len
+
         # PDU type
         pdu_type = bytes[offset]
 
         sms.pdu_mti = pdu_type & 0x03
-        sms.pdu_rp = pdu_type & 0x80 != 0
-        sms.pdu_udhi = pdu_type & 0x40 != 0
-        sms.pdu_srr = pdu_type & 0x20 != 0
-        sms.pdu_sri = sms.pdu_srr
-        sms.pdu_vpf =  (pdu_type & 0x18)>>3
-        sms.pdu_rd = pdu_type & 0x04 != 0
-        sms.pdu_mms = sms.pdu_rd
+        if sms.type == "sms-deliver" or sms.type == "sms-submit":
+            sms.pdu_rp = pdu_type & 0x80 != 0
+            sms.pdu_udhi = pdu_type & 0x40 != 0
+            sms.pdu_srr = pdu_type & 0x20 != 0
+            sms.pdu_sri = sms.pdu_srr
+            sms.pdu_vpf =  (pdu_type & 0x18)>>3
+            sms.pdu_rd = pdu_type & 0x04 != 0
+            sms.pdu_mms = sms.pdu_rd
+        elif sms.type == "sms-submit-report":
+            sms.pdu_udhi = pdu_type & 0x04 != 0
 
         offset += 1
-        if sms.pdu_mti == 1:
+        if sms.type == "sms-submit":
             # MR - Message Reference
             sms.mr = bytes[offset]
             offset += 1
 
         # OA/DA - Originating or Destination Address
         # WARNING, the length is coded in digits of the number, not in octets occupied!
-        oa_len = 1 + (bytes[offset] + 1) / 2
-        offset += 1
-        sms.oa = PDUAddress.decode( bytes[offset:offset+oa_len] )
-        sms.da = sms.oa
+        if sms.type == "sms-submit" or sms.type == "sms-deliver":
+            oa_len = 1 + (bytes[offset] + 1) / 2
+            offset += 1
+            sms.oa = PDUAddress.decode( bytes[offset:offset+oa_len] )
+            sms.da = sms.oa
 
-        offset += oa_len
-        # PID - Protocol identifier
-        sms.pid = bytes[offset]
+            offset += oa_len
+            # PID - Protocol identifier
+            sms.pid = bytes[offset]
 
-        offset += 1
-        # DCS - Data Coding Scheme
-        sms.dcs = bytes[offset]
+            offset += 1
+            # DCS - Data Coding Scheme
+            sms.dcs = bytes[offset]
 
-        offset += 1
-        if sms.pdu_mti == 0:
+            offset += 1
+
+        if sms.type == "sms-submit-report":
+            pi = bytes[offset]
+            offset += 1
+
+            sms.pdu_pidi = pi & 0x01 != 0
+            sms.pdu_dcsi = pi & 0x02 != 0
+            sms.pdu_udli = pi & 0x04 != 0
+
+
+        if sms.type == "sms-deliver" or sms.type == "sms-submit-report":
             # SCTS - Service Centre Time Stamp
             sms.scts = decodePDUTime( bytes[offset:offset+7] )
             offset += 7
-        else:
+        elif sms.type == "sms-submit":
             # VP - Validity Period FIXME
             if sms.pdu_vpf == 2:
                 # Relative
@@ -158,14 +173,17 @@ class SMS(object):
                 sms.vp = decodePDUTime( bytes[offset:offset+7] )
                 offset += 7
 
+        if sms.type == "sms-submit-report" and not sms.pdu_udli:
+            return sms
+
         # UD - User Data
         ud_len = bytes[offset]
         offset += 1
         sms._parse_userdata( ud_len, bytes[offset:] )
         return sms
 
-    def __init__( self, direction ):
-        self.direction = direction
+    def __init__( self, type ):
+        self.type = type
         self.sca = False
         self.pdu_udhi = False
         self.pdu_srr = False
@@ -296,19 +314,15 @@ class SMS(object):
     dcs = property( _getDCS, _setDCS )
 
     def _getType( self ):
-        if self.direction == "MT":
-            map = TP_MTI_INCOMING
-        elif self.direction == "MO":
-            map = TP_MTI_OUTGOING
-        return map[self.pdu_mti]
+        return self.mtimap[self.pdu_mti]
 
     def _setType( self, smstype ):
         if TP_MTI_INCOMING.has_key(smstype):
-            self.direction = "MT"
-            self.pdu_mti = TP_MTI_INCOMING[smstype]
+            self.mtimap = TP_MTI_INCOMING
         elif TP_MTI_OUTGOING.has_key(smstype):
-            self.direction = "MO"
-            self.pdu_mti = TP_MTI_OUTGOING[smstype]
+            self.mtimap = TP_MTI_OUTGOING
+
+        self.pdu_mti = self.mtimap[smstype]
 
     type = property( _getType, _setType )
 
@@ -349,13 +363,14 @@ class SMS(object):
 
     def pdu( self ):
         pdubytes = []
-        if self.sca:
-            scabcd = self.sca.pdu()
-            # SCA has non-standard length
-            scabcd[0] = len( scabcd ) - 1
-            pdubytes.extend( scabcd )
-        else:
-            pdubytes.append( 0 )
+        if self.type == "sms-deliver" or self.type == "sms-submit":
+            if self.sca:
+                scabcd = self.sca.pdu()
+                # SCA has non-standard length
+                scabcd[0] = len( scabcd ) - 1
+                pdubytes.extend( scabcd )
+            else:
+                pdubytes.append( 0 )
 
         pdu_type = self.pdu_mti
         if self.pdu_rp:
@@ -372,36 +387,45 @@ class SMS(object):
 
         pdubytes.append( pdu_type )
 
-        if self.pdu_mti == 1:
+        if self.type == "sms-submit":
             pdubytes.append( self.mr )
 
-        pdubytes.extend( self.oa.pdu() )
+        if self.type == "sms-deliver" or self.type == "sms-submit":
+            pdubytes.extend( self.oa.pdu() )
 
-        pdubytes.append( self.pid )
+        if self.type == "sms-deliver" or self.type == "sms-submit":
+            pdubytes.append( self.pid )
 
-        # We need to check whether we can encode the message with the
-        # GSM default charset now, because self.dcs might change
-        if not self.dcs_alphabet is None:
-            try:
-                pduud = self.ud.encode( self.dcs_alphabet )
-            except UnicodeError:
-                self.dcs_alphabet = "utf_16_be"
-                pduud = self.ud.encode( self.dcs_alphabet )
-        else:
-            pduud = self.ud
+        if self.type == "sms-deliver" or self.type == "sms-submit":
+            # We need to check whether we can encode the message with the
+            # GSM default charset now, because self.dcs might change
+            if not self.dcs_alphabet is None:
+                try:
+                    pduud = self.ud.encode( self.dcs_alphabet )
+                except UnicodeError:
+                    self.dcs_alphabet = "utf_16_be"
+                    pduud = self.ud.encode( self.dcs_alphabet )
+            else:
+                pduud = self.ud
 
-        pdubytes.append( self.dcs )
+        if self.type == "sms-deliver" or self.type == "sms-submit":
+            pdubytes.append( self.dcs )
 
-        if self.pdu_mti == 0:
+        if self.type == "sms-submit-report":
+            pdubytes.append( 0 )
+
+        if self.type == "sms-deliver" or self.type == "sms-submit-report":
             pdubytes.extend( encodePDUTime( self.scts ) )
-        else:
+        elif self.type == "sms-submit":
             if self.pdu_vpf == 2:
                 pdubytes.append( self.vp )
             elif self.pdu_vpf == 3:
                 pdubytes.append( encodePDUTime( self.vp ) )
 
-        # User data
+        if self.type == "sms-submit-report" and not self.pdu_udli:
+            return "".join( [ "%02X" % (i) for i in pdubytes ] )
 
+        # User data
         if self.udhi:
             pduudh = flatten([ (k, len(v), v) for k,v in self.udh.items() ])
             pduudhlen = len(pduudh)
@@ -431,8 +455,9 @@ class SMS(object):
     def serviceCenter( self ):
         pass
     def __repr__( self ):
-        if self.pdu_mti == 0:
-            return """MT SMS:
+        if self.type == "sms-deliver":
+            return """SMS:
+Type: %s
 ServiceCenter: %s
 TimeStamp: %s
 PID: 0x%x
@@ -441,9 +466,10 @@ Number: %s
 Headers: %s
 Alphabet: %s
 Message: %s
-""" % (self.sca, self.scts, self.pid, self.dcs, self.oa, self.udh, self.dcs_alphabet, repr(self.ud))
-        else:
-            return """MO SMS:
+""" % (self.type, self.sca, self.scts, self.pid, self.dcs, self.oa, self.udh, self.dcs_alphabet, repr(self.ud))
+        elif self.type == "sms-submit":
+            return """SMS:
+Type: %s
 ServiceCenter: %s
 Valid: %s
 PID: 0x%x
@@ -452,7 +478,12 @@ Number: %s
 Headers: %s
 Alphabet: %s
 Message: %s
-""" % (self.sca, self.pdu_vpf, self.pid, self.dcs, self.oa, self.udh, self.dcs_alphabet, repr(self.ud))
+""" % (self.type, self.sca, self.pdu_vpf, self.pid, self.dcs, self.oa, self.udh, self.dcs_alphabet, repr(self.ud))
+        elif self.type == "sms-submit-report":
+            return """SMS:
+Type: %s
+TimeStamp: %s
+""" % (self.type, self.scts)
 
 class CellBroadcast(SMS):
     @classmethod
@@ -650,10 +681,13 @@ if __name__ == "__main__":
             print "%s, PDU was: %s\n" % (e, pdu)
 
     for pdu in pdus_MT:
-        testpdu(pdu, "MT")
+        testpdu(pdu, "sms-deliver")
 
     for pdu in pdus_MO:
-        testpdu(pdu, "MO")
+        testpdu(pdu, "sms-submit")
+
+    for pdu in pdus_ACKPDU:
+        testpdu(pdu, "sms-submit-report")
 
     for pdu in pdus_CB:
         cb = CellBroadcast.decode(pdu)

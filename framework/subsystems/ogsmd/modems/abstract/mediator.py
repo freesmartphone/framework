@@ -854,9 +854,9 @@ class SimRetrieveMessagebook( SimMediator ):
                     index = int(header.groupdict()["index"])
                     status = const.SMS_PDU_STATUS_OUT[int(header.groupdict()["status"])]
                     if "read" in status:
-                      direction = "MT"
+                      direction = "sms-deliver"
                     else:
-                      direction = "MO"
+                      direction = "sms-submit"
                     length = int(header.groupdict()["pdulen"])
                 else:
                     # Now we decode the actual PDU
@@ -885,9 +885,9 @@ class SimRetrieveMessage( SimMediator ):
                     header = const.PAT_SMS_PDU_HEADER_SINGLE.match( self._rightHandSide(line) )
                     status = const.SMS_PDU_STATUS_OUT[int(header.groupdict()["status"])]
                     if "read" in status:
-                      direction = "MT"
+                      direction = "sms-deliver"
                     else:
-                      direction = "MO"
+                      direction = "sms-submit"
                     length = int(header.groupdict()["pdulen"])
                 else:
                     # Now we decode the actual PDU
@@ -908,7 +908,7 @@ class SimSetServiceCenterNumber( SimMediator ):
 class SimStoreMessage( SimMediator ):
 #=========================================================================#
     def trigger( self ):
-        sms = ogsmd.gsm.sms.SMS("MO")
+        sms = ogsmd.gsm.sms.SMS("sms-submit")
         sms.pdu_mti = 1
         sms.pid = 0
         sms.dcs = 0
@@ -956,7 +956,7 @@ class SimDeleteMessage( SimMediator ):
 class SmsSendMessage( SmsMediator ):
 #=========================================================================#
     def trigger( self ):
-        sms = ogsmd.gsm.sms.SMS("MO")
+        sms = ogsmd.gsm.sms.SMS("sms-submit")
         sms.pdu_mti = 1
         sms.pid = 0
         sms.dcs = 0

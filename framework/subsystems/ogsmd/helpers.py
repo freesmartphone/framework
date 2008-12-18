@@ -109,6 +109,12 @@ class BiDict( object ):
         else:
             return self._d.keys() + self._back.keys()
 
+    def has_key( self, k ):
+        if not self.AUTOINVERSE:
+            return self._d.has_key(k)
+        else:
+            return self._d.has_key(k) + self._back.has_key(k)
+
 #=========================================================================#
 def processIterator():
 #=========================================================================#        

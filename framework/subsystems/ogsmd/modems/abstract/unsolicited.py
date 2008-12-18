@@ -130,7 +130,7 @@ class AbstractUnsolicitedResponseDelegate( object ):
         header = safesplit( righthandside, ',' )
         length = int(header[1])
         # Now we decode the actual PDU
-        sms = ogsmd.gsm.sms.SMS.decode( pdu, "MT" )
+        sms = ogsmd.gsm.sms.SMS.decode( pdu, "sms-deliver" )
         self._object.IncomingMessage( str(sms.oa), sms.ud, sms.featureMap )
 
     # +CMTI: "SM",7
