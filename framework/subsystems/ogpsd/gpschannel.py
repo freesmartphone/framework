@@ -10,6 +10,8 @@ Open GPS Daemon - Parse NMEA/UBX data
 GPLv2 or later
 """
 
+from framework.config import config
+
 import os
 import sys
 import serial
@@ -111,13 +113,13 @@ class FileChannel ( GPSChannel ):
 class SerialChannel( GPSChannel ):
     """Serial reader"""
 
-    def __init__( self, path, baud = 9600, rtscts = False):
+    def __init__( self, path, rtscts = False):
         super(SerialChannel, self).__init__()
 
         # set up serial port object and open it
         self.serial = serial.Serial()
         self.serial.port = path
-        self.serial.baudrate = baud
+        self.serial.baudrate = config.getValue( "ogpsd.serialchannel", "baudrate", 9600)
         self.serial.rtscts = rtscts
         self.serial.xonxoff = False
         self.serial.bytesize = serial.EIGHTBITS
