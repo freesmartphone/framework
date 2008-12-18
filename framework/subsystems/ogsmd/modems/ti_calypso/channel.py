@@ -215,7 +215,6 @@ class UnsolicitedResponseChannel( CalypsoModemChannel ):
         c.append( "%CPRI=1" ) # gsm cipher indication: send unsol. code
         c.append( "%CNIV=1" )
         c.append( "%CGEREP=1" )
-        c.append( "%CGREG=3" )
         c.append( "%CSTAT=1" )
         c.append( '@ST="-26"' ) # audio side tone: set to minimum
         c.append( "%N028B" ) # Long Echo Cancellation: active, -6db
@@ -246,7 +245,6 @@ class UnsolicitedResponseChannel( CalypsoModemChannel ):
         c.append( "%CSQ=0" )
         c.append( "%CPRI=0" )
         c.append( "%CGEREP=0" )
-        c.append( "%CGREG=0" )
         c.append( "%CBHZ=0" ) # home zone cell broadcast: disable
 
         c = self._commands["resume"]
@@ -260,7 +258,6 @@ class UnsolicitedResponseChannel( CalypsoModemChannel ):
         c.append( "%CPRI=1" ) # gsm cipher indication: send unsol. code
         c.append( "%CNIV=1" )
         c.append( "%CGEREP=1" )
-        c.append( "%CGREG=3" )
 
         def homezone( self=self ):
             return "%CBHZ=1" if self._modem.data( "homezone-enabled", False ) else "%CBHZ=0"
