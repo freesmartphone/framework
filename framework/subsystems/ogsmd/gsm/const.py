@@ -1120,9 +1120,9 @@ def parseNetworks( filename ):
         line = line.decode( "UTF-8" ).rstrip()
         if not line: # empty line, flush and reset
             if network:
-                networks[( network["MCC"], network["MNC"] )] = network
-                del network["MCC"]
-                del network["MNC"]
+                networks[( network["mcc"], network["mnc"] )] = network
+                del network["mcc"]
+                del network["mnc"]
             common_header = []
             common = {}
             network_header = []
@@ -1132,7 +1132,7 @@ def parseNetworks( filename ):
             continue
         if line[0] == "#": # header
             data = line[1:].split("\t")
-            data = [x.strip() for x in data]
+            data = [x.strip().lower() for x in data]
             if data[0]:
                 common_header = data
             elif data[1]:
@@ -1146,13 +1146,13 @@ def parseNetworks( filename ):
                 common = dict( zip( common_header, data ) )
             elif data[1]: # new network, flush old
                 if network:
-                    networks[( network["MCC"], network["MNC"] )] = network
-                    del network["MCC"]
-                    del network["MNC"]
+                    networks[( network["mcc"], network["mnc"] )] = network
+                    del network["mcc"]
+                    del network["mnc"]
                 if not common: raise "Missing common info near line %i" % linenumber
                 if not network_header: raise "Missing network header near line %i" % linenumber
                 network = dict( zip( network_header, data[1:] ) )
-                if not (network["MCC"]+network["MNC"]).isdigit(): raise "Invaild MCC or MNC near line %i" % linenumber
+                if not (network["mcc"]+network["mnc"]).isdigit(): raise "Invaild MCC or MNC near line %i" % linenumber
                 network.update( common )
             elif data[2]:
                 if not common: raise "Missing common info near line %i" % linenumber

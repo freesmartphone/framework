@@ -16,6 +16,7 @@ __version__ = "0.2.0"
 
 from datetime import datetime, timedelta
 from math import sqrt
+import shutil
 import socket
 import struct
 import time
@@ -35,6 +36,15 @@ def getOutput(cmd):
 
 def toSeconds( delta ):
     return delta.days*24*60*60+delta.seconds+delta.microseconds*0.000001
+
+def drop_dbus_result( *args ):
+    if args:
+        logger.warning( "unhandled dbus result: %s", args )
+
+def log_dbus_error( desc ):
+    def dbus_error( e, desc = desc ):
+        logger.error( "%s (%s %s: %s)" % ( desc, e.__class__.__name__, e.get_dbus_name(), e.get_dbus_message() ) )
+    return dbus_error
 
 #============================================================================#
 class TimeSource( object ):
@@ -111,6 +121,62 @@ class NTPTimeSource( TimeSource ):
             logger.warning( "NTP: no timestamp received" )
 
 #============================================================================#
+class ZoneSource( object ):
+#============================================================================#
+    def __init__( self, bus ):
+        self.zone = None
+        self.mccmnc = None
+        self.isocode = None
+        self.bus = bus
+        self.bus.add_signal_receiver(
+            self._handleNetworkStatusChanged,
+            "Status",
+            "org.freesmartphone.GSM.Network",
+            None,
+            None
+        )
+        proxy = bus.get_object( "org.freesmartphone.ogsmd", "/org/freesmartphone/GSM/Server" )
+        self.gsmdata = dbus.Interface( proxy, "org.freesmartphone.GSM.Data" )
+
+    def _handleNetworkStatusChanged( self, status ):
+        if "code" in status:
+            code = str( status["code"] )
+            if self.mccmnc == code:
+                return
+            self.mccmnc = code
+            mcc = code[:3]
+            mnc = code[3:]
+            logger.debug( "GSM: MCC=%s MNC=%s", mcc, mnc )
+            self.gsmdata.GetNetworkInfo(
+                mcc, mnc,
+                reply_handler=self._handleNetworkInfoReply,
+                error_handler=log_dbus_error( "error while calling org.freesmartphone.GSM.Data.GetNetworkInfo" )
+            )
+        else:
+            self.zone = None
+            logger.debug( "GSM: no network code" )
+
+    def _handleNetworkInfoReply( self, info ):
+        if "iso" in info:
+            if self.isocode == info["iso"]:
+                return
+            self.isocode = info["iso"]
+            logger.debug( "GSM: ISO-Code %s", info["iso"] )
+            for line in open( "/usr/share/zoneinfo/zone.tab", "r" ):
+                data = line.rstrip().split( "\t" )
+                if self.isocode == data[0]:
+                    self.zone = data[2]
+                    break
+            logger.info( "GSM: Zone %s", self.zone )
+            try:
+                shutil.copyfile( "/usr/share/zoneinfo/"+self.zone, "/etc/localtime" )
+            except:
+                logger.warning( "failed to install time zone file to /etc/localtime" )
+        else:
+            self.zone = None
+            logger.debug( "GSM: no ISO-Code for this network" )
+
+#============================================================================#
 class Time( dbus.service.Object ):
 #============================================================================#
     def __init__( self, bus ):
@@ -119,9 +185,11 @@ class Time( dbus.service.Object ):
         self.interface = "org.freesmartphone.Time"
         self.bus = bus
 
-        self.sources = []
-        self.sources.append( GPSTimeSource( self.bus ) )
-        self.sources.append( NTPTimeSource( self.bus ) )
+        self.timesources = []
+        self.timesources.append( GPSTimeSource( self.bus ) )
+        self.timesources.append( NTPTimeSource( self.bus ) )
+
+        self.zonesource = ZoneSource( self.bus )
 
         self.interval = 90
         self.updateTimeout = gobject.timeout_add_seconds( self.interval, self._handleUpdateTimeout )
@@ -129,7 +197,7 @@ class Time( dbus.service.Object ):
     def _handleUpdateTimeout( self ):
         logger.debug( "checking time sources" )
         offsets = []
-        for source in self.sources:
+        for source in self.timesources:
             if not source.offset is None:
                 offsets.append( toSeconds( source.offset ) )
 
@@ -145,7 +213,7 @@ class Time( dbus.service.Object ):
         if sd < 15.0 < mean:
             logger.info( "adjusting clock by %f seconds" % mean )
             d = timedelta( seconds=mean )
-            for source in self.sources:
+            for source in self.timesources:
                 if not source.offset is None:
                     source.offset = source.offset - d
             t = datetime.utcnow() + d
