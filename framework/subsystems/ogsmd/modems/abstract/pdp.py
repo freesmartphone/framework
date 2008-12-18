@@ -13,7 +13,7 @@ Module: pdp
 
 """
 
-__version__ = "0.1.1"
+__version__ = "0.1.2"
 
 from .mediator import AbstractMediator
 from .overlay import OverlayFile
@@ -201,11 +201,9 @@ exec /usr/sbin/chat -v\
     'ABORT' 'RINGING'\
     'ABORT' 'VOICE'\
     'TIMEOUT' '5'\
-    '' '+++ATZ'\
-    'OK-\k\k\k\d+++ATH-OK' 'ATE0'\
+    '' '+++AT'\
+    'OK-\k\k\k\d+++ATH-OK' 'ATE0Q0V1'\
     'OK' 'AT+CMEE=2'\
-    'OK' 'AT+CPIN?'\
-    'READY' '\c'\
     'OK' 'AT+CGDCONT=1,"IP","%s"'\
     'TIMEOUT' '180'\
     'OK' 'ATD*99#'\
