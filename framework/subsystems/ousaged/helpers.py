@@ -25,12 +25,16 @@ def writeToFile( path, value ):
         f.write( "%s\n" % value )
 
 #============================================================================#
-def hardwareName( path, value ):
+def hardwareName():
 #============================================================================#
     value = readFromFile( "/proc/cpuinfo" )
     for line in value.split( '\n' ):
-        left, right = line.split( ':' )
-        if left.strip().startswith( "Hardware" ):
-            return right.strip()
+        try:
+            left, right = line.split( ':' )
+        except ValueError:
+            continue
+        else:
+            if left.strip().startswith( "Hardware" ):
+                return right.strip()
     return "unknown"
 

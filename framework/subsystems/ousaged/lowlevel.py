@@ -14,9 +14,12 @@ Low level (device specific) suspend/resume handling.
 """
 
 MODULE_NAME = "ousaged"
-__version__ = "0.0.0"
+__version__ = "0.0.1"
 
 from helpers import readFromFile, writeToFile, hardwareName
+
+import logging
+logger = logging.getLogger( MODULE_NAME )
 
 #============================================================================#
 class GenericResumeReason( object ):
@@ -63,19 +66,24 @@ class OpenmokoResumeReason( object ):
         }
 
     def gather( self ):
-        reasons = readFromFile( SYSFS_RESUME_REASON_PATH )
+        reasons = readFromFile( self.__class__.SYSFS_RESUME_REASON_PATH ).split( '\n' )
         for line in reasons:
             if line.startswith( "*" ):
                 reason = line[2:]
                 break
         else:
+            print "nope"
+            logger.info( "No resume reason marked in %s" % self.__class__.SYSFS_RESUME_REASON_PATH )
             return "unknown"
 
         if reason == "EINT09_PMU":
-            value = readFromFile( SYSFS_RESUME_SUBREASON_PATH )
+            logger.debug( "PMU resume reason marked in %s" % self.__class__.SYSFS_RESUME_REASON_PATH )
+
+            value = readFromFile( self.__class__.SYSFS_RESUME_SUBREASON_PATH )
             try:
                 subreason = self._intmap2[value]
             except KeyError:
+                logger.debug( "Unknown subreason for PMU resume" )
                 return "PMU"
             else:
                 return subreason
