@@ -13,13 +13,15 @@
 
 === GSM standards violations ===
 
+* Phonenumber format needs '+' in addition to ntype = 145
+
 * +CPIN: PIN entry is +CPIN=%d,"%s". %d being 1 for PIN1
 
 * +CRC: Incoming call alert always RING: %d. +CRC setting is not honored.
 
-* +CGML: format violation, missing a ',' (PDU header)
+* +CMGL: format violation, missing a ',' (PDU header)
 
-* +CGMR: format violation, missing a ',' (PDU header)
+* +CMGR: format violation, missing a ',' (PDU header)
 
 * +CSCB: format violation, not accepting any parameters but '0' (all) and '1' (none)
 
