@@ -13,7 +13,7 @@ Module: pdp
 
 """
 
-__version__ = "0.1.2"
+__version__ = "0.1.3"
 
 from .mediator import AbstractMediator
 from .overlay import OverlayFile
@@ -30,6 +30,14 @@ class Pdp( AbstractMediator ):
     """
     Encapsulates the state of (all) PDP connections on a modem
     """
+
+    _instance = None
+
+    @classmethod
+    def getInstance( klass, dbus_object=None ):
+        if klass._instance is None and dbus_object is not None:
+            klass._instance = Pdp( dbus_object )
+        return klass._instance
 
     def __init__( self, dbus_object, **kwargs ):
         AbstractMediator.__init__( self, dbus_object, None, None, **kwargs )

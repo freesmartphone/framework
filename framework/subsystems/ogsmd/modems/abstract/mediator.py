@@ -24,8 +24,6 @@ TODO:
 __version__ = "0.9.11.0"
 MODULE_NAME = "ogsmd.modems.abstract.mediator"
 
-from .calling import CallHandler
-
 from ogsmd.gsm import error, const, convert
 from ogsmd.gsm.decor import logged
 from ogsmd.helpers import safesplit
@@ -259,6 +257,12 @@ class DebugMediator( AbstractMediator, AbstractYieldSupport ):
         # this is a bit ugly, but how should we get the channel elsewhere?
         self._commchannel = self._object.modem.communicationChannel( "DebugMediator" )
         AbstractYieldSupport.__init__( self, *args, **kwargs )
+
+#
+# import singletons
+#
+from .calling import CallHandler
+from .pdp import Pdp
 
 #
 # Device Mediators
@@ -1364,9 +1368,6 @@ class CallHoldActive( CallMediator ):
 # PDP Mediators
 #
 
-from .pdp import Pdp
-pdpConnection = None
-
 #=========================================================================#
 class PdpListAvailableGprsClasses( PdpMediator ): # as
 #=========================================================================#
@@ -1430,9 +1431,7 @@ class PdpGetNetworkStatus( PdpMediator ):
 class PdpActivateContext( PdpMediator ):
 #=========================================================================#
     def trigger( self ):
-        global pdpConnection
-        if pdpConnection is None:
-            pdpConnection = Pdp( self._object )
+        pdpConnection = Pdp.getInstance( self._object )
         if pdpConnection.isActive():
             self._ok()
         else:
@@ -1447,8 +1446,8 @@ class PdpDeactivateContext( PdpMediator ):
         # the right way... leading to a hanging pppd :(
         #self._commchannel.enqueue( '+CGACT=0', self.responseFromChannel, self.errorFromChannel )
         # the workaround
-        global pdpConnection
-        if pdpConnection is not None and pdpConnection.isActive():
+        pdpConnection = Pdp.getInstance( self._object )
+        if pdpConnection.isActive():
             pdpConnection.deactivate()
         self._ok()
 
