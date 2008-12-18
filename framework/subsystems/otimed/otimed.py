@@ -58,11 +58,15 @@ class GPSTimeSource( TimeSource ):
         )
 
     def _handleTimeChanged( self, t ):
-        self.offset = datetime.utcfromtimestamp( t ) - datetime.utcnow()
+        if t:
+            self.offset = datetime.utcfromtimestamp( t ) - datetime.utcnow()
+            logger.debug( "GPS: offset=%f", toSeconds( self.offset ) )
+        else:
+            self.offset = None
+            logger.debug( "GPS: time invalid", toSeconds( self.offset ) )
         if not self.invalidTimeout is None:
             gobject.source_remove( self.invalidTimeout )
             self.invalidTimeout = gobject.timeout_add_seconds( 300, self._handleInvaildTimeout )
-        logger.debug( "GPS: offset=%f", toSeconds( self.offset ) )
 
     def _handleInvaildTimeout( self ):
         self.offset = None
