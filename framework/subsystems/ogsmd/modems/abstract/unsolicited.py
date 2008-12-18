@@ -11,7 +11,7 @@ Package: ogsmd.modems.abstract
 Module: unsolicited
 """
 
-__version__ = "0.9.9.1"
+__version__ = "0.9.9.2"
 
 import calling
 
@@ -55,20 +55,33 @@ class AbstractUnsolicitedResponseDelegate( object ):
         Cell Broadcast Message
         """
         values = safesplit( righthandside, ',' )
-        if len( values ) == 1:
+        if len( values ) == 1: # PDU MODE
             cb = ogsmd.gsm.sms.CellBroadcast.decode(pdu)
             sn = cb.sn
             channel = cb.mid
             dcs = cb.dcs
             page = cb.page
             data = cb.ud
-        elif len( values ) == 5:
+        elif len( values ) == 5: # TEXT MODE
             sn, mid, dcs, page, pages = values
             channel = int(mid)
             data = pdu
         else:
-            assert False, "unhandled +CBM cell broadcast notification"
+            logger.warning( "unrecognized +CBM cell broadcast notification, please fix me..." )
+            return
         self._object.IncomingCellBroadcast( channel, data )
+
+    # +CGEV: ME DEACT "IP","010.161.025.237",1
+    def plusCGEV( self, righthandside ):
+        """
+        Gprs Context Event
+        """
+        values = safesplit( righthandside, ',' )
+        if len( values ) == 1: # detach, but we're not having an IP context online
+            pass
+        elif len( values ) >= 3: # detach while we were attached
+            pass
+            # FIXME gather pdp context class and stop ppp
 
         # +CGREG: 2
         # +CGREG: 1,"000F","5B4F
