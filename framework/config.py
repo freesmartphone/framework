@@ -103,6 +103,7 @@ logging.info( "Installprefix is %s" % installprefix )
 #
 # compute root dir
 #
+# FIXME should rather be named confdir or rulesdir or something like that
 possible_rootdirs = os.path.abspath(
     config.getValue( "frameworkd", "rootdir", "../etc/freesmartphone:/etc/freesmartphone:/usr/etc/freesmartphone" )
 ).split( ':' )
@@ -111,5 +112,6 @@ for path in possible_rootdirs:
         rootdir = path
         break
 else:
-    raise IOError( "can't find the root directory" )
-logging.info( "Root dir is %s" % rootdir )
+    logging.warning( "can't find the etc directory; defaulting to /etc/freesmartphone" )
+    rootdir = "/etc/freesmartphone"
+logging.info( "Etc directory is %s" % rootdir )
