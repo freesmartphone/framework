@@ -15,6 +15,7 @@ __version__ = "0.2.0"
 
 from framework import resource
 from framework.patterns import tasklet
+from gsm import const
 
 import dbus
 import dbus.service
@@ -34,6 +35,7 @@ from device import DBUS_INTERFACE_DEVICE, \
                    DBUS_INTERFACE_NETWORK, \
                    DBUS_INTERFACE_CB
 
+DBUS_INTERFACE_DATA = "org.freesmartphone.GSM.Data"
 DBUS_INTERFACE_HZ = "org.freesmartphone.GSM.HZ"
 DBUS_INTERFACE_PHONE = "org.freesmartphone.GSM.Phone"
 DBUS_OBJECT_PATH_SERVER = "/org/freesmartphone/GSM/Server"
@@ -127,6 +129,13 @@ class Server( dbus.service.Object ):
         if self._service != status:
             self._service = status
             self.ServiceStatus( status )
+
+    #
+    # dbus org.freesmartphone.GSM.Data
+    #
+    @dbus.service.method( DBUS_INTERFACE_DATA, "ss", "a{sv}" )
+    def GetNetworkInfo( self, mcc, mnc ):
+        return const.NETWORKS.get( ( mcc, mnc ), {} )
 
     #
     # dbus org.freesmartphone.GSM.HZ

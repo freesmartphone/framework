@@ -34,7 +34,7 @@ setup(
         ("../../etc/freesmartphone/opreferences/conf/rules",      ["etc/freesmartphone/opreferences/conf/rules/silent.yaml"]),
         ("../../etc/freesmartphone/oevents",                      ["etc/freesmartphone/oevents/rules.yaml"]),
         ("../../etc/freesmartphone/persist",                      ["etc/freesmartphone/persist/README"]),
-        ("../../etc/freesmartphone/ogsmd",                        ["etc/freesmartphone/ogsmd/mobile_network_code"]),
+        ("../../etc/freesmartphone/ogsmd",                        ["etc/freesmartphone/ogsmd/networks.tab"]),
         ("freesmartphone/examples/", getDir( "examples" ) ),
     ]
 )

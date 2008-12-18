@@ -132,7 +132,13 @@ class NetworkGetStatus( NetworkMediator ):
 
                     mccmni = values[2].strip( '"' ).replace( '-', '' )
                     result["code"] = int( mccmni )
-                    result["provider"] = const.codeToOperator( mccmni )
+                    network = const.NETWORK.get( ( mccmni[:3], mccmni[3:] ), {} )
+                    if "Brand" in network:
+                        result["provider"] = network["Brand"]
+                    elif "Operator" in network:
+                        result["provider"] = network["Operator"]
+                    else:
+                        result["provider"] = "Unknown"
 
         self._ok( result )
 

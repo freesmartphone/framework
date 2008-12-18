@@ -112,8 +112,14 @@ frameworkiface = getInterface( \
     "/org/freesmartphone/Framework",
     "org.freesmartphone.Framework" )
 
-# homezone
-hz = getInterface( \
+# gsm data
+gsmdata = getInterface( \
+    "org.freesmartphone.ogsmd",
+    "/org/freesmartphone/GSM/Server",
+    "org.freesmartphone.GSM.Data" )
+
+# gsm homezone
+gsmhz = getInterface( \
     "org.freesmartphone.ogsmd",
     "/org/freesmartphone/GSM/Server",
     "org.freesmartphone.GSM.HZ" )

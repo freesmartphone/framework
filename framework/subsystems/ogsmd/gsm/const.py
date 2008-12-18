@@ -1100,32 +1100,68 @@ def mccToCountryCode( mcc ):
         code, name = "+???", "<??? unknown ???>"
     return code, name
 
-codeToOperatorCache = {}
-codeToOperatorFile = "%s/ogsmd/mobile_network_code" % config.rootdir
+networksFile = "%s/ogsmd/networks.tab" % config.rootdir
 
 #=========================================================================#
-def codeToOperator( mccmni ):
+def parseNetworks( filename ):
 #=========================================================================#
     """
-    Returns a country code and name for an MCC given from the modem.
+    Parses the networks file and returns a dictionary.
     """
-    global coreToOperatorCache
-    code = str(mccmni)
-    try:
-        operator = codeToOperatorCache[code]
-    except KeyError:
-        mcc, mni = code[:3], code[3:]
-        if os.path.exists( codeToOperatorFile ):
-            for line in file( codeToOperatorFile, "r" ):
-                if line.startswith( mcc ):
-                    tokens = line.split()
-                    if tokens[1] == mni:
-                        operator = tokens[2]
-                        codeToOperatorCache[code] = operator
-                        return operator
-        operator = "%s-%s" % ( mcc, mni )
-        codeToOperatorCache[code] = operator
-    return operator
+    networks = {}
+
+    linenumber = 0
+    common_header = []
+    common = {}
+    network_header = []
+    network = {}
+    for line in open( filename, "r" ):
+        linenumber += 1
+        line = line.decode( "UTF-8" ).rstrip()
+        if not line: # empty line, flush and reset
+            if network:
+                networks[( network["MCC"], network["MNC"] )] = network
+                del network["MCC"]
+                del network["MNC"]
+            common_header = []
+            common = {}
+            network_header = []
+            network = {}
+            continue
+        if line[0] == "%": # comment
+            continue
+        if line[0] == "#": # header
+            data = line[1:].split("\t")
+            data = [x.strip() for x in data]
+            if data[0]:
+                common_header = data
+            elif data[1]:
+                network_header = data[1:]
+        else: # data
+            data = line.split("\t")
+            data = [x.strip() for x in data]
+            if data[0]: # new common, should be flushed already
+                if not common_header: raise "Missing common header near line %i" % linenumber
+                if common or network_header or network: raise "Missing empty line near line %i" % linenumber
+                common = dict( zip( common_header, data ) )
+            elif data[1]: # new network, flush old
+                if network:
+                    networks[( network["MCC"], network["MNC"] )] = network
+                    del network["MCC"]
+                    del network["MNC"]
+                if not common: raise "Missing common info near line %i" % linenumber
+                if not network_header: raise "Missing network header near line %i" % linenumber
+                network = dict( zip( network_header, data[1:] ) )
+                if not (network["MCC"]+network["MNC"]).isdigit(): raise "Invaild MCC or MNC near line %i" % linenumber
+                network.update( common )
+            elif data[2]:
+                if not common: raise "Missing common info near line %i" % linenumber
+                if not network: raise "Missing network info near line %i" % linenumber
+                if len( data[2:] ) != 2 : raise "Missing network info near line %i" % linenumber
+                network[ data[2] ] = data[3]
+    return networks
+
+NETWORKS = parseNetworks( networksFile)
 
 #=========================================================================#
 def ctzvToTimeZone( ctzv ):
@@ -1172,8 +1208,7 @@ if __name__ == "__main__":
     assert mccToCountryCode( 262 ) == ( "+49", "Germany" )
     assert mccToCountryCode( 700 ) == ( "+???", "<??? unknown ???>" )
     print "OK"
-    assert codeToOperatorCache( "26203" ) == "E-Plus"
-    assert codeToOperatorCache( "111222" ) == "E-Plus"
+    assert NETWORKS[( "262", "03" )] == "E-Plus"
     print "OK"
     assert ctzvToTimeZone( "25" ) == -11 # UTC-2:45
     assert ctvzToTimeZone( "35" ) == 32  # UTC+8
