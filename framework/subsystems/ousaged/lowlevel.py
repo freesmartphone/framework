@@ -37,7 +37,7 @@ class OpenmokoResumeReason( object ):
     Resume reason class for Openmoko GTA01 (Neo 1973) and GTA02 (Neo FreeRunner).
     """
     SYSFS_RESUME_REASON_PATH = "/sys/bus/platform/devices/neo1973-resume.0/resume_reason"
-    SYSFS_RESUME_SUBREASON_PATH = "/class/i2c-adapter/i2c-0/0-0073/resume_reason"
+    SYSFS_RESUME_SUBREASON_PATH = "/sys/class/i2c-adapter/i2c-0/0-0073/resume_reason"
 
     def __init__( self ):
 

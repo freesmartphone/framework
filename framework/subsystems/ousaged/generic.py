@@ -13,12 +13,13 @@ Module: generic
 """
 
 MODULE_NAME = "ousaged"
-__version__ = "0.6.0"
+__version__ = "0.7.0"
 
 DBUS_INTERFACE_PREFIX = "org.freesmartphone.Usage"
 DBUS_PATH_PREFIX = "/org/freesmartphone/Usage"
 
 from .resources import ClientResource
+from .lowlevel import resumeReason
 
 import framework.patterns.tasklet as tasklet
 
@@ -114,19 +115,28 @@ class GenericUsageControl( dbus.service.Object ):
         """
         The actual resuming tasklet.
         """
+
         # FIXME might want to traverse /etc/apm.d/... and launch them scripts
-
         logger.info( "triggering kernel suspend" )
-        subprocess.call( "echo apm -s", shell=True )
         open( "/sys/power/state", "w" ).write( "mem\n" )
+        # ---------------> Good Night!
+        reason = resumeReason()
+        # ---------------< Good Morning!
+        logger.info( "kernel has resumed - reason = %s" % reason )
 
-        logger.info( "kernel has resumed - resuming resources..." )
-        for resource in self.resources.values():
-            logger.debug( "resuming %s", resource.name )
-            yield resource._resume()
-        logger.info( "...completed." )
+        if reason == "LowBattery":
+            logger.info( "kernel resumed because of low battery. Emergency Shutdown!" )
+            subprocess.call( "shutdown -h now &", shell=True )
+            # FIXME trigger shutdown quit
+            yield None
+        else:
+            logger.info( "resuming resources..." )
+            for resource in self.resources.values():
+                logger.debug( "resuming %s", resource.name )
+                yield resource._resume()
+            logger.info( "...completed." )
 
-        gobject.idle_add( lambda self=self:self.SystemAction( "resume" ) and False ) # send as late as possible
+            gobject.idle_add( lambda self=self:self.SystemAction( "resume" ) and False ) # send as late as possible
 
     def _nameOwnerChangedHandler( self, name, old_owner, new_owner ):
         if old_owner and not new_owner:
