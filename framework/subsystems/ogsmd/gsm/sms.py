@@ -321,6 +321,8 @@ class SMS(object):
             self.mtimap = TP_MTI_INCOMING
         elif TP_MTI_OUTGOING.has_key(smstype):
             self.mtimap = TP_MTI_OUTGOING
+        else:
+            raise "invalid SMS type", smstype
 
         self.pdu_mti = self.mtimap[smstype]
 
@@ -329,7 +331,7 @@ class SMS(object):
     def _getProperties( self ):
         map = {}
         map["type"] = self.type
-        if self.type == "sms-deliver":
+        if self.type == "sms-deliver" or self.type == "sms-submit-report":
             # FIXME Return correct time with timezoneinfo
             map["timestamp"] = self.scts[0].ctime() + " %+05i" % (self.scts[1]*100)
         if 0 in self.udh:

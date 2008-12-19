@@ -334,7 +334,7 @@ class Device( resource.Resource ):
     def StoreMessage( self, number, contents, properties, dbus_ok, dbus_error ):
         mediator.SimStoreMessage( self, dbus_ok, dbus_error, number=number, contents=contents, properties=properties )
 
-    @dbus.service.method( DBUS_INTERFACE_SIM, "i", "i",
+    @dbus.service.method( DBUS_INTERFACE_SIM, "i", "is",
                           async_callbacks=( "dbus_ok", "dbus_error" ) )
     @resource.checkedmethod
     def SendStoredMessage( self, index, dbus_ok, dbus_error ):
@@ -357,7 +357,7 @@ class Device( resource.Resource ):
     #
     # dbus org.freesmartphone.SMS
     #
-    @dbus.service.method( DBUS_INTERFACE_SMS, "ssa{sv}", "i",
+    @dbus.service.method( DBUS_INTERFACE_SMS, "ssa{sv}", "is",
                           async_callbacks=( "dbus_ok", "dbus_error" ) )
     @resource.checkedmethod
     def SendMessage( self, number, contents, properties, dbus_ok, dbus_error ):

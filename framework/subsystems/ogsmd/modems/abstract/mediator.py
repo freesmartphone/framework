@@ -935,12 +935,13 @@ class SimSendStoredMessage( SimMediator ):
         if response[-1] != "OK":
             SimMediator.responseFromChannel( self, request, response )
         else:
+            timestamp = ""
             result = safesplit( self._rightHandSide(response[0]), ',' )
             mr = result[0]
             if len(result) == 2:
-                # TODO: Handle ackpdu
-                pass
-            self._ok( int(mr) )
+                ackpdu =  ogsmd.gsm.sms.SMS.decode( result[1].strip('"'), "sms-submit-report" )
+                timestamp = ackpdu.properties["timestamp"]
+            self._ok( int(mr), timestamp )
 
 #=========================================================================#
 class SimDeleteMessage( SimMediator ):
@@ -971,12 +972,13 @@ class SmsSendMessage( SmsMediator ):
         if response[-1] != "OK":
             SimMediator.responseFromChannel( self, request, response )
         else:
+            timestamp = ""
             result = safesplit( self._rightHandSide(response[0]), ',' )
             mr = result[0]
             if len(result) == 2:
-                # TODO: Handle ackpdu
-                pass
-            self._ok( int(mr) )
+                ackpdu =  ogsmd.gsm.sms.SMS.decode( result[1].strip('"'), "sms-submit-report" )
+                timestamp = ackpdu.properties["timestamp"]
+            self._ok( int(mr), timestamp )
 
 #
 # Network Mediators
