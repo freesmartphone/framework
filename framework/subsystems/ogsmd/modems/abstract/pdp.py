@@ -13,10 +13,12 @@ Module: pdp
 
 """
 
-__version__ = "0.1.3"
+__version__ = "0.2.0"
 
 from .mediator import AbstractMediator
 from .overlay import OverlayFile
+
+from framework.services import KObjectDispatcher
 
 import gobject
 import os, subprocess, signal, copy
@@ -47,6 +49,11 @@ class Pdp( AbstractMediator ):
         self.state = "release" # initial state
         self.ppp = None
         self.overlays = []
+
+        #KObjectDispatcher.addMatch( "*", "/devices/virtual/net", self._onInterfaceChange )
+
+    def _onInterfaceChange( action, path, **kwargs ):
+        logger.debug( "detected interface change", action, path )
 
     #
     # public
