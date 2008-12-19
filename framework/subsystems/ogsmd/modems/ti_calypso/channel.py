@@ -13,7 +13,7 @@ Module: channel
 TI Calypso specific modem channels
 """
 
-__version__ = "0.9.9.2"
+__version__ = "0.9.9.3"
 
 from framework.config import config
 
@@ -214,7 +214,6 @@ class UnsolicitedResponseChannel( CalypsoModemChannel ):
         c.append( "%CSQ=1" ) # signal strength: send unsol. code
         c.append( "%CPRI=1" ) # gsm cipher indication: send unsol. code
         c.append( "%CNIV=1" )
-        c.append( "%CGEREP=1" )
         c.append( "%CSTAT=1" )
         c.append( '@ST="-26"' ) # audio side tone: set to minimum
         c.append( "%N028B" ) # Long Echo Cancellation: active, -6db
@@ -244,7 +243,6 @@ class UnsolicitedResponseChannel( CalypsoModemChannel ):
         c.append( sms_no_cb )
         c.append( "%CSQ=0" )
         c.append( "%CPRI=0" )
-        c.append( "%CGEREP=0" )
         c.append( "%CBHZ=0" ) # home zone cell broadcast: disable
 
         c = self._commands["resume"]
@@ -257,7 +255,6 @@ class UnsolicitedResponseChannel( CalypsoModemChannel ):
         c.append( "%CSQ=1" ) # signal strength: send unsol. code
         c.append( "%CPRI=1" ) # gsm cipher indication: send unsol. code
         c.append( "%CNIV=1" )
-        c.append( "%CGEREP=1" )
 
         def homezone( self=self ):
             return "%CBHZ=1" if self._modem.data( "homezone-enabled", False ) else "%CBHZ=0"
