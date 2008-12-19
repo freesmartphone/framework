@@ -13,10 +13,8 @@ Module: modem
 
 # FIXME: The modem should really be a sigleton
 
-__version__ = "0.9.9.1"
+__version__ = "0.9.9.2"
 MODULE_NAME = "ogsmd.modem.abstract"
-
-from ogsmd.gsm.decor import logged
 
 import gobject
 
@@ -31,7 +29,6 @@ class AbstractModem( object ):
     """This class abstracts a GSM Modem."""
     instance = None
 
-    @logged
     def __init__( self, dbus_object, bus, *args, **kwargs ):
         """
         Initialize
@@ -64,6 +61,8 @@ class AbstractModem( object ):
             "COPS=?":       80,
             "RING":         04,
             }
+
+        self._data["cancel-outgoing-call"] = "H" # default will kill all connections
 
     def open( self, on_ok, on_error ):
         """

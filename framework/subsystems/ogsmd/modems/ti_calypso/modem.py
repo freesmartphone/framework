@@ -11,7 +11,7 @@ Module: modem
 
 """
 
-__version__ = "0.9.9.4"
+__version__ = "0.9.9.5"
 MODULE_NAME = "ogsmd.modems.ti_calypso"
 
 SYSFS_CALYPSO_FLOW_CONTROL_PATH = "/sys/bus/platform/devices/neo1973-pm-gsm.0/flowcontrolled"
@@ -23,7 +23,6 @@ from ogsmd.modems.abstract.modem import AbstractModem
 from .channel import CallChannel, UnsolicitedResponseChannel, MiscChannel
 from .unsolicited import UnsolicitedResponseDelegate
 
-from ogsmd.gsm.decor import logged
 from ogsmd.gsm.channel import AtCommandChannel
 from ogsmd.helpers import writeToFile
 
@@ -33,7 +32,6 @@ from ogsmd.helpers import killall
 class TiCalypso( AbstractModem ):
 #=========================================================================#
 
-    @logged
     def __init__( self, *args, **kwargs ):
         AbstractModem.__init__( self, *args, **kwargs )
 
@@ -48,6 +46,9 @@ class TiCalypso( AbstractModem ):
 
         # configure channels
         self._channels["UNSOL"].setDelegate( UnsolicitedResponseDelegate( self._object, mediator ) )
+
+        # configure behaviour using special commands
+        self._data["cancel-outgoing-call"] = "%CHLD=I"
 
     def close( self ): # SYNC
         """

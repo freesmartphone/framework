@@ -1,3 +1,10 @@
+2008-12-18	Michael Lauer	<mickey@openmoko.org>
+
+	* [ousaged] Check resume reason and launch emergency shutdown, if we
+	  woke up due to low battery. NOTE: This is only supported on Openmoko
+	  devices now. As there is no standard infrastructure for that in the
+	  kernel, we have to deal with device-specific solutions in lowlevel.py
+
 2008-12-17	Jan Luebbe      <jluebbe@debian.org>
 
 	* [otimed] Add simple timesync to NTP and GPS

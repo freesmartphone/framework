@@ -12,7 +12,7 @@ Module: calling
 New style abstract call handling
 """
 
-__version__ = "0.9.1.0"
+__version__ = "0.9.1.2"
 MODULE_NAME = "ogsmd.callhandler"
 
 from ogsmd.gsm import error, const
@@ -199,7 +199,8 @@ class CallHandler( object ):
 
     def state_outgoing_release( self, action, *args, **kwargs ):
         if action == "release" and kwargs["index"] == 1:
-            kwargs["channel"].cancelCurrentCommand()
+            command = self._object.modem.data( "cancel-outgoing-call" )
+            kwargs["channel"].enqueue( command )
             return True
 
     def state_active_release( self, action, *args, **kwargs ):
