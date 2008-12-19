@@ -210,7 +210,7 @@ class Time( dbus.service.Object ):
         sd = sqrt( sum( (x-mean)**2 for x in offsets ) / n )
         logger.info( "offsets: n=%i mean=%f sd=%f", n, mean, sd )
 
-        if sd < 15.0 < mean:
+        if sd < 15.0 < abs( mean ):
             logger.info( "adjusting clock by %f seconds" % mean )
             d = timedelta( seconds=mean )
             for source in self.timesources:
