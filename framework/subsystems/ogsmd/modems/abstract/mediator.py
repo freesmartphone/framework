@@ -761,7 +761,7 @@ class SimStoreEntry( SimMediator ):
         except KeyError:
             self._error( error.InvalidParameter( "valid categories are %s" % const.PHONEBOOK_CATEGORY.keys() ) )
         else:
-            number, ntype = const.numberToPhonebookTuple( self.number )
+            number, ntype = currentModem().numberToPhonebookTuple( self.number )
             name = convert.UnicodeToucs2hex( self.name.strip('"') )
             self._commchannel.enqueue( '+CPBS="%s";+CPBW=%d,"%s",%d,"%s"' % ( self.pbcategory, self.index, number, ntype, name ), self.responseFromChannel, self.errorFromChannel, timeout=currentModem().timeout("SIMACCESS") )
 
@@ -1170,7 +1170,7 @@ class NetworkEnableCallForwarding( NetworkMediator ):
         except KeyError:
             self._error( error.InvalidParameter( "valid classes are %s" % const.CALL_FORWARDING_CLASS.keys() ) )
 
-        number, ntype = const.numberToPhonebookTuple( self.number )
+        number, ntype = currentModem().numberToPhonebookTuple( self.number )
 
         if self.reason == "no reply" and self.timeout > 0:
             self._commchannel.enqueue( """+CCFC=%d,3,"%s",%d,%d,,,%d""" % ( reason, number, ntype, class_, self.timeout ), self.responseFromChannel, self.errorFromChannel, timeout=currentModem().timeout("NETWORK") )
@@ -1249,7 +1249,7 @@ class CallEmergency( CallMediator ):
 class CallTransfer( CallMediator ):
 #=========================================================================#
     def trigger( self ):
-        number, ntype = const.numberToPhonebookTuple( self.number )
+        number, ntype = currentModem().numberToPhonebookTuple( self.number )
         self._commchannel.enqueue( '+CTFR="%s",%d' % ( number, ntype ), self.responseFromChannel, self.errorFromChannel )
 
 #=========================================================================#

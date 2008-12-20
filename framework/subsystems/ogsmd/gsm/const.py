@@ -1032,28 +1032,13 @@ def phonebookTupleToNumber( nstring, ntype ):
     if ntype not in ( 129, 145 ):
         logger.warning( "Out-of-spec GSM number type seen: %s. Please report." % ntype )
 
-    if ntype == 145: # should not include '+', but sometimes it does
+    if ntype == 145: # should not include '+' then, but on some modems, it does
         if nstring[0] == '+':
             return nstring
         else:
             return "+%s" % nstring
     else:
         return nstring
-
-#=========================================================================#
-def numberToPhonebookTuple( nstring ):
-#=========================================================================#
-    """
-    Returns a phonebook tuple depending on a number.
-    """
-
-    if type( nstring ) != types.StringType():
-        nstring = nstring.encode( "iso-8859-1" ) # as set via +CSCS
-
-    if nstring[0] == '+':
-        return nstring[1:], 145
-    else:
-        return nstring, 129
 
 #=========================================================================#
 def unicodeToString( uni ):
@@ -1199,8 +1184,6 @@ if __name__ == "__main__":
     print "OK"
     assert phonebookTupleToNumber( "123456789", 129 ) == "123456789"
     assert phonebookTupleToNumber( "123456789", 145 ) == "+123456789"
-    assert numberToPhonebookTuple( "123456789" ) == ( "123456789", 129 )
-    assert numberToPhonebookTuple( "+123456789" ) == (  "123456789", 145 )
     print "OK"
     assert textToUnicode( "B\xf6rse" ) != "<??? undecodable ???>"
     assert unicodeToString( u"\xc3\xa4" ) != "<??? unencodable ???>"

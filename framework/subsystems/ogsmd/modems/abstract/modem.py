@@ -102,7 +102,23 @@ class AbstractModem( object ):
         self._data[key] = value
 
     def timeout( self, category ):
+        """
+        Returns a timeout.
+        """
         return self._timeouts.get( category, FALLBACK_TIMEOUT )
+
+    def numberToPhonebookTuple( self, nstring ):
+        """
+        Returns a phonebook tuple.
+        """
+        if type( nstring ) != types.StringType():
+            # even though we set +CSCS="UCS2" (modem charset), the name is always encoded in text format, not PDU.
+            nstring = nstring.encode( "iso-8859-1" )
+
+        if nstring[0] == '+':
+            return nstring[1:], 145
+        else:
+            return nstring, 129
 
     def channel( self, category ):
         """
