@@ -7,7 +7,8 @@
 * Giving a valid PIN to unlock starts autoregister
   (likewise, for an unlocked SIM +CFUN=1 will autoregister)
   
-* Modem needs +EPMS? and +EGML=4 before +CGML (and friends) will work.
+* Modem needs +EPMS? and +EGML=4 before +CGML (and friends) will work. Said commands will only work once after BP initialization though.
+  Afterwards they will return +CMS ERROR 500 (unknown error).
 
 * Unregistering is generally frowned upon -- if you query the operator too early after unregistering, you'll get garbage:
   2008.07.02 22:19:38 ogsmd    DEBUG    <MiscChannel via /dev/mux6>: got 31 bytes from: '\r\n+COPS: 0,2,"\x10*Zd\x12\x04I\xdc"\r\n\r\nOK\r\n'      
