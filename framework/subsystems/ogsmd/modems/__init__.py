@@ -23,6 +23,7 @@ modemmap = { \
     "freescale_neptune": "FreescaleNeptune",
     "muxed4line":        "Muxed4Line",
     "option":            "Option",
+    "qualcomm_msm":      "QualcommMsm",
     "sierra":            "Sierra",
     "singleline":        "SingleLine",
     "ti_calypso":        "TiCalypso",
@@ -61,6 +62,9 @@ def modemFactory( modemtype ):
     elif modemtype == "ericsson_F3507g":
         from ericsson_F3507g.modem import EricssonF3507g as Modem
         import ericsson_F3507g.mediator as mediator
+    elif modemtype == "qualcomm_msm":
+        from qualcomm_msm.modem import QualcommMsm as Modem
+        import qualcomm_msm.mediator as mediator
     else:
         assert False, "must never reach this"
         sys.exit( -1 )
