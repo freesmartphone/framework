@@ -11,13 +11,15 @@ Package: ogsmd.modems.abstract
 Module: channel
 """
 
+__version__ = "0.9.0"
+MODULE_NAME = "ogsmd.modems.abstract.channel"
+
 from ogsmd.gsm.decor import logged
 from ogsmd.gsm.channel import AtCommandChannel
 import gobject
 
 import logging
-logger = logging.getLogger( 'ogsmd' )
-
+logger = logging.getLogger( MODULE_NAME )
 
 #=========================================================================#
 class AbstractModemChannel( AtCommandChannel ):
@@ -45,7 +47,12 @@ class AbstractModemChannel( AtCommandChannel ):
     def modemStateSimUnlocked( self ):
         """
         Called, when the modem signalizes the SIM being unlocked.
+
+        Override this in your concrete class to issue sending
+        org.freesmartphone.GSM.SIM.ReadyStatus( true ) eventually.
         """
+
+        # FIXME we might want to make this a 'pure virtual' method
 
         # don't hammer modem too early with the additional commands
         # FIXME it's actually modem specific whether we can send the command directly

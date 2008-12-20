@@ -21,7 +21,7 @@ TODO:
  * refactor parameter validation
 """
 
-__version__ = "0.9.11.0"
+__version__ = "0.9.11.1"
 MODULE_NAME = "ogsmd.modems.abstract.mediator"
 
 from ogsmd.gsm import error, const, convert
@@ -313,7 +313,7 @@ class DeviceSetAntennaPower( DeviceMediator ):
         if not response[-1] == "OK":
             pin_state = "UNKNOWN"
         else:
-            pin_state = self._rightHandSide( response[0] )
+            pin_state = self._rightHandSide( response[0] ).strip( '"' ) # some modems include "
             if pin_state != self._object.modem._simPinState:
                 self._object.AuthStatus( pin_state )
 
@@ -333,7 +333,7 @@ class DeviceSetAntennaPower( DeviceMediator ):
             # unknown PIN state
             pin_state = "UNKNOWN"
         else:
-            pin_state = self._rightHandSide( response[0] )
+            pin_state = self._rightHandSide( response[0] ).strip( '"' ) # some modems include "
             if pin_state != self._object.modem._simPinState:
                 self._object.AuthStatus( pin_state )
 

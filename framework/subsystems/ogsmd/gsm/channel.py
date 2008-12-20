@@ -14,7 +14,8 @@ This module provides communication channel abstractions that
 transport their data over a (virtual) serial line.
 """
 
-__version__ = "0.9.9.2"
+__version__ = "0.9.9.3"
+MODULE_NAME = "ogsmd.channel"
 
 from ogsmd.gsm.decor import logged
 import parser
@@ -25,7 +26,7 @@ import serial # pyserial
 import Queue, fcntl, os, time, types # stdlib
 
 import logging
-logger = logging.getLogger( "ogsmd" )
+logger = logging.getLogger( MODULE_NAME )
 
 #=========================================================================#
 class PeekholeQueue( Queue.Queue ):
