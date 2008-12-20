@@ -17,6 +17,7 @@ __version__ = "0.9.9.2"
 MODULE_NAME = "ogsmd.modem.abstract"
 
 import gobject
+import types
 
 import logging
 logger = logging.getLogger( MODULE_NAME )

@@ -11,7 +11,7 @@ Module: modem
 Freescale Neptune modem class
 """
 
-__version__ = "0.1.0"
+__version__ = "0.2.0"
 MODULE_NAME = "ogsmd.modems.freescale_neptune"
 
 import mediator
@@ -23,6 +23,8 @@ from .unsolicited import UnsolicitedResponseDelegate
 
 from ogsmd.gsm.decor import logged
 from ogsmd.gsm.channel import AtCommandChannel
+
+import types
 
 #=========================================================================#
 class FreescaleNeptune( AbstractModem ):
@@ -65,6 +67,20 @@ class FreescaleNeptune( AbstractModem ):
 
         # configure channels
         self._channels["UNSOL"].setDelegate( UnsolicitedResponseDelegate( self._object, mediator ) )
+
+    def numberToPhonebookTuple( self, nstring ):
+        """
+        Modem violating GSM 07.07 here. It always includes the '+' for international numbers,
+        although this should only be encoded via ntype = '145'.
+        """
+        if type( nstring ) != types.StringType():
+            # even though we set +CSCS="UCS2" (modem charset), the name is always encoded in text format, not PDU.
+            nstring = nstring.encode( "iso-8859-1" )
+
+        if nstring[0] == '+':
+            return nstring, 145
+        else:
+            return nstring, 129
 
     def channel( self, category ):
         if category == "CallMediator":
