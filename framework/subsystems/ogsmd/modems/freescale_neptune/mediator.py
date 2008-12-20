@@ -74,8 +74,7 @@ class SimSendAuthCode( SimMediator ):
         if response[-1] == "OK":
             self._ok()
             # send auth status signal
-            if response[0].startswith( "+CPIN" ):
-                self._object.AuthStatus( self._rightHandSide( response[0] ) )
+            self._object.AuthStatus( "READY" )
         else:
             SimMediator.responseFromChannel( self, request, response )
 

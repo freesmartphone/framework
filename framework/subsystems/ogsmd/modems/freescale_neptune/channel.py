@@ -12,9 +12,13 @@ Module: channel
 Freescale Neptune specific modem channels
 """
 
+__version__ = "0.8.0"
+MODULE_NAME = "ogsmd.neptune_freescale"
 
 from ogsmd.modems.abstract.channel import AbstractModemChannel
 from ogsmd.gsm.parser import ThrowStuffAwayParser
+
+import gobject
 
 #=========================================================================#
 class EzxMuxChannel( AbstractModemChannel ):
@@ -40,6 +44,19 @@ class EzxMuxChannel( AbstractModemChannel ):
         c.append( "+CGREG=2" )
 
 #=========================================================================#
+class CallChannel( EzxMuxChannel ):
+#=========================================================================#
+    def __init__( self, *args, **kwargs ):
+        EzxMuxChannel.__init__( self, *args, **kwargs )
+
+        # FIXME we can't do this, since it is modem-wide (not VC-wide)
+        #self.enqueue( "+CMER=0,0,0,0,0" ) # unsolicited event reporting: none
+
+    def installParser( self ):
+        trash = [ "+CIEV:" ]
+        self.parser = ThrowStuffAwayParser( trash, self._handleResponseToRequest, self._handleUnsolicitedResponse )
+
+#=========================================================================#
 class MiscChannel( EzxMuxChannel ):
 #=========================================================================#
     def __init__( self, *args, **kwargs ):
@@ -51,6 +68,21 @@ class MiscChannel( EzxMuxChannel ):
     def installParser( self ):
         trash = [ "+CIEV:" ]
         self.parser = ThrowStuffAwayParser( trash, self._handleResponseToRequest, self._handleUnsolicitedResponse )
+
+    def modemStateSimUnlocked( self ):
+        """
+        Called, when the modem signalizes the SIM being unlocked.
+        """
+
+        # This modem needs a special SIM init sequence otherwise GSM 07.07 SMS commands won't succeed
+        self.enqueue( "+CRRM" )
+        self.enqueue( "+EPMS?" )
+        self.enqueue( "+EMGL=4", self._ezxEgmlAnswer )
+
+    def _ezxEgmlAnswer( self, request, response ):
+        if True: #if response[0] == "OK":
+            # send SIM is ready command
+            self._modem._object.ReadyStatus( True )
 
 #=========================================================================#
 class UnsolicitedResponseChannel( EzxMuxChannel ):

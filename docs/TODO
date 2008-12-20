@@ -21,7 +21,8 @@ b) they can be treated as plugins (just toss a new one into a directory and it w
 * add more regexps
 * revamp parser to take a number of expected prefixes. This should lead to much more
   reliable detection of unsolicited responses
-* add gprs status into org.freesmartphone.GSM.Network.Status
+* move gprs status into org.freesmartphone.GSM.Network.Status?
+* how to find out when the SIM is truly ready? [Calypso has a signal, others not]
 * port to vala
 * ...
 

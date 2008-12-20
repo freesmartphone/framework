@@ -11,14 +11,14 @@ Module: modem
 Freescale Neptune modem class
 """
 
-__version__ = "0.2.0"
+__version__ = "0.2.1"
 MODULE_NAME = "ogsmd.modems.freescale_neptune"
 
 import mediator
 
 from ogsmd.modems.abstract.modem import AbstractModem
 
-from .channel import MiscChannel, UnsolicitedResponseChannel
+from .channel import CallChannel, MiscChannel, UnsolicitedResponseChannel
 from .unsolicited import UnsolicitedResponseDelegate
 
 from ogsmd.gsm.decor import logged
@@ -61,7 +61,7 @@ class FreescaleNeptune( AbstractModem ):
         AbstractModem.__init__( self, *args, **kwargs )
 
         self._channels[ "UNSOL" ] = UnsolicitedResponseChannel( self.pathfactory, "/dev/mux0", modem=self ) # might also be callchannel, if /dev/mux2 does not want to
-        self._channels[ "CALL" ] = MiscChannel( self.pathfactory, "/dev/mux2", modem=self )
+        self._channels[ "CALL" ] = CallChannel( self.pathfactory, "/dev/mux2", modem=self )
         #self._channels[ "MISC" ] = MiscChannel( self.pathfactory, "/dev/mux4", modem=self ) # needs to parse unsolicited
         self._channels[ "MISC" ] = MiscChannel( self.pathfactory, "/dev/mux6", modem=self )
 
