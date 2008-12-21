@@ -76,6 +76,7 @@ class MiscChannel( EzxMuxChannel ):
 
         # This modem needs a special SIM init sequence otherwise GSM 07.07 SMS commands won't succeed
         self.enqueue( "+CRRM" )
+        # FIXME if this returns an error, we might have no SIM inserted
         self.enqueue( "+EPMS?" )
         self.enqueue( "+EMGL=4", self._ezxEgmlAnswer )
 

@@ -66,6 +66,7 @@ class UnsolicitedResponseDelegate( AbstractUnsolicitedResponseDelegate ):
         7: roaming (0-2)
         8: sms storage full (0-1)
         11: ???
+        20: ??? (SIM not inserted?)
         """
         indicator, value = ( int(x) for x in safesplit( righthandside, ',' ) )
 

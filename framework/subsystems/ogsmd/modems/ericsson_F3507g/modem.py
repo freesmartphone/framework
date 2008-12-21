@@ -36,7 +36,6 @@ class EricssonF3507g( AbstractModem ):
         # configure channel
         self._channels["SINGLE"].setDelegate( UnsolicitedResponseDelegate( self._object, mediator ) )
 
-
     def channel( self, category ):
         return self._channels["SINGLE"]
 
