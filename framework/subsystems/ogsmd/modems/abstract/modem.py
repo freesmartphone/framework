@@ -258,7 +258,7 @@ class AbstractModem( object ):
     # internal API
     #
     def _initChannels( self, on_ok, on_error, iteration=1 ):
-        if iteration == 5:
+        if iteration == 7:
             # we did try to open the modem 5 times -- giving up now
             on_error()
         # try to open all channels

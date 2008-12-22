@@ -88,7 +88,11 @@ class VirtualChannel( object ):
         self.serial.parity = serial.PARITY_NONE
         self.serial.stopbits = serial.STOPBITS_ONE
         self.serial.timeout = None
-        self.serial.open()
+        try:
+            self.serial.open()
+        except serial.serialutil.SerialException:
+          # Fail gracefully if the device isn't there (yet)
+          return False
         if not self.serial.isOpen():
             return False
 
