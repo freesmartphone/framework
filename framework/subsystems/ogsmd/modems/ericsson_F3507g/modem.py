@@ -12,6 +12,8 @@ Module: modem
 __version__ = "0.1.0"
 MODULE_NAME = "ogsmd.modems.ericsson_F3507g"
 
+THINKPAD_POWER_PATH="/sys/bus/platform/devices/thinkpad_acpi/wwan_enable"
+
 import mediator
 
 from ..abstract.modem import AbstractModem
@@ -21,6 +23,7 @@ from .unsolicited import UnsolicitedResponseDelegate
 
 from ogsmd.gsm.decor import logged
 from ogsmd.gsm.channel import AtCommandChannel
+from ogsmd.helpers import writeToFile
 
 #=========================================================================#
 class EricssonF3507g( AbstractModem ):
@@ -35,6 +38,22 @@ class EricssonF3507g( AbstractModem ):
         self._channels["SINGLE"] = EricssonChannel( self.pathfactory, "/dev/ttyACM0", modem=self )
         # configure channel
         self._channels["SINGLE"].setDelegate( UnsolicitedResponseDelegate( self._object, mediator ) )
+
+    def open( self, on_ok, on_error ):
+        """
+        Power on modem
+        """
+        writeToFile( THINKPAD_POWER_PATH, "1" )
+        # call default implementation (open all channels)
+        AbstractModem.open( self, on_ok, on_error )
+
+    def close( self ): # SYNC
+        """
+        Power down modem
+        """
+        # call default implementation (closing all channels)
+        AbstractModem.close( self )
+        writeToFile( THINKPAD_POWER_PATH, "0" )
 
     def channel( self, category ):
         return self._channels["SINGLE"]
