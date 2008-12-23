@@ -402,7 +402,7 @@ class Device( resource.Resource ):
     def SignalStrength( self, strength ):
         logger.info( "org.freesmartphone.GSM.Network.SignalStrength: %s", strength )
 
-    @dbus.service.method( DBUS_INTERFACE_NETWORK, "", "a(isss)",
+    @dbus.service.method( DBUS_INTERFACE_NETWORK, "", "a(issss)",
                           async_callbacks=( "dbus_ok", "dbus_error" ) )
     @resource.checkedmethod
     def ListProviders( self, dbus_ok, dbus_error ):

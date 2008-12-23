@@ -25,7 +25,8 @@ logger = logging.getLogger( "ogsmd" )
 # format patterns
 #=========================================================================#
 # +COPS: (2,"MEDION Mobile","","26203"),(3,"T-Mobile D","TMO D","26201"),(3,"Vodafone.de","Vodafone","26202"),(3,"o2 - de","o2 - de","26207")
-PAT_OPERATOR_LIST = re.compile( '\((?P<status>[123]),"(?P<name>[^"]+?)","(?P<shortname>[^"]*?)","(?P<code>\d*?)"\)' )
+# +COPS: (2,"E-PLUS","E-PLUS","26203",2),(2,"E-PLUS","E-PLUS","26203",0),(3,"T-Mobile D","T-Mobile D","26201",0),(3,"Vodafone.de","Vodafone.de","26202",0),(3,"Vodafone.de","Vodafone.de","26202",2),(3,"o2 - de","o2 - de","26207",2),(3,"o2 - de","o2 - de","26207",0),(3,"T-Mobile D","T-Mobile D","26201",2)
+PAT_OPERATOR_LIST = re.compile( '\((?P<status>[123]),"(?P<name>[^"]+?)","(?P<shortname>[^"]*?)","(?P<code>\d*?)"(?:,(?P<act>\d))?\)')
 
 # +CPBR: (1-250),44,17
 # +CBPR: (1-50)
@@ -664,6 +665,17 @@ REGISTER_MODE = { \
     2: "unregister",
     3: "unknown",
     4: "manual;automatic",
+}
+
+#=========================================================================#
+REGISTER_ACT = { \
+    0: "GSM",
+    1: "Compact GSM",
+    2: "UMTS",
+    3: "EDGE",
+    4: "HSDPA",
+    5: "HSUPA",
+    6: "HSDPA/HSUPA",
 }
 
 #=========================================================================#

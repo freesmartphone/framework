@@ -1047,6 +1047,8 @@ class NetworkGetStatus( NetworkMediator ):
                 else:
                     result["mode"] = const.REGISTER_MODE[int(values[0])]
                     result["provider"] = values[2].strip( '"' )
+                    if len( values ) == 4:
+                        result["act"] = const.REGISTER_ACT[int( values[3] )]
                     values = safesplit( self._rightHandSide( response[-2] ), ',' )
                     if len( values ) > 2:
                         result["code"] = int( values[2].strip( '"' ) )
@@ -1091,7 +1093,11 @@ class NetworkListProviders( NetworkMediator ): # a{sv}
                 status = const.PROVIDER_STATUS[int(operator.groupdict()["status"])]
                 name = operator.groupdict()["name"]
                 shortname = operator.groupdict()["shortname"]
-                result.append( ( index, status, name, shortname ) )
+                act = operator.groupdict()["act"]
+                if act == "":
+                    act = "0" # Default to plain GPRS
+                act = const.REGISTER_ACT[int(act)]
+                result.append( ( index, status, name, shortname, act ) )
             self._ok( result )
         else:
             NetworkMediator.responseFromChannel( self, request, response )
@@ -1424,9 +1430,11 @@ class PdpGetNetworkStatus( PdpMediator ):
             else:
                 result[ "registration"] = const.REGISTER_STATUS[int(safesplit( self._rightHandSide( response[-2] ), ',' )[1])]
                 values = safesplit( self._rightHandSide( response[-2] ), ',' )
-                if len( values ) == 4: # have lac and cid now
+                if len( values ) >= 4: # have lac and cid now
                     result["lac"] = values[2].strip( '"' )
                     result["cid"] = values[3].strip( '"' )
+                if len( values ) == 5:
+                    result["act"] = const.REGISTER_ACT[ int(values[4]) ]
         self._ok( result )
 
 #=========================================================================#

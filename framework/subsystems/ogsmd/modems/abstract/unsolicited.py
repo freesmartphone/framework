@@ -92,21 +92,26 @@ class AbstractUnsolicitedResponseDelegate( object ):
         values = safesplit( righthandside, ',' )
         status = {}
         status["registration"] = const.REGISTER_STATUS[int(values[0])]
-        if len( values ) == 3:
+        if len( values ) >= 3:
             status["lac"] = values[1].strip( '"' )
             status["cid"] = values[2].strip( '"' )
+        if len( values ) == 4:
+            status["act"] = const.REGISTER_ACT[int(values[3])]
         self._object.NetworkStatus( status )
 
     # +CREG: 1,"000F","032F"
+    # +CREG: 1,"000F","032F",2
     def plusCREG( self, righthandside ):
         """
         Network Registration Status Update
         """
         values = safesplit( righthandside, ',' )
         self.register = const.REGISTER_STATUS[int(values[0])]
-        if len( values ) == 3:
+        if len( values ) >= 3:
             self.lac = values[1].strip( '"' )
             self.cid = values[2].strip( '"' )
+        if len( values ) == 4:
+            self.act = const.REGISTER_ACT[int(values[3])]
 
         self._mediator.NetworkGetStatus( self._object, self.statusOK, self.statusERR )
 
@@ -143,19 +148,6 @@ class AbstractUnsolicitedResponseDelegate( object ):
             logger.warning( "unhandled +CMTI message notification" )
         else:
             self._object.IncomingStoredMessage( int(index) )
-
-    # +CREG: 1,"000F","032F"
-    def plusCREG( self, righthandside ):
-        """
-        Network Registration
-        """
-        values = safesplit( righthandside, ',' )
-        self.register = const.REGISTER_STATUS[int(values[0])]
-        if len( values ) == 3:
-            self.lac = values[1].strip( '"' )
-            self.cid = values[2].strip( '"' )
-
-        self._mediator.NetworkGetStatus( self._object, self.statusOK, self.statusERR )
 
     # +CRING: VOICE
     def plusCRING( self, calltype ):
