@@ -19,6 +19,7 @@ import calling
 from ogsmd.gsm.decor import logged
 from ogsmd.gsm import const, convert
 from ogsmd.helpers import safesplit
+from ogsmd.modems import currentModem
 import ogsmd.gsm.sms
 
 import logging
