@@ -1,3 +1,9 @@
+2008-12-24	Daniel Willmann	<daniel@totalueberwachung.de>
+
+	* [ogsmd] Added network access type to Provider Info (WARNING, breaks API!)
+	* [ogsmd] Support for Ericsson F3507g modem (as found in Thinkpads)
+	* [ogsmd] Preliminary support for Option UMTS cards
+
 2008-12-20	Michael Lauer	<mickey@openmoko.org>
 
 	* [ogsmd] Create qualcomm_msm modem abstraction based on singleline with minimal changes.
