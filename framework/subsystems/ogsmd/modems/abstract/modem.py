@@ -63,6 +63,12 @@ class AbstractModem( object ):
             "RING":         04,
             }
 
+        self._charsets = { \
+            "DEFAULT":      "gsm_default",
+            "PHONEBOOK":    "gsm_ucs2",
+            "USSD":         "gsm_ucs2",
+            }
+
         self._data["cancel-outgoing-call"] = "H" # default will kill all connections
 
     def open( self, on_ok, on_error ):

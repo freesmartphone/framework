@@ -33,6 +33,11 @@ class EricssonF3507g( AbstractModem ):
     def __init__( self, *args, **kwargs ):
         AbstractModem.__init__( self, *args, **kwargs )
 
+        self._charsets = { \
+            "DEFAULT":      "gsm_ucs2",
+            "PHONEBOOK":    "gsm_ucs2",
+            "USSD":         "gsm_ucs2",
+            }
         # One line for unsolicited messages and modem communication
         # ttyACM1 will be used for data and ttyACM2 will be used for GPS data
         self._channels["SINGLE"] = EricssonChannel( self.pathfactory, "/dev/ttyACM0", modem=self )

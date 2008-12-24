@@ -2,6 +2,7 @@
 """
 The Open GSM Daemon - Python Implementation
 
+(C) 2008 Daniel Willmann <daniel@totalueberwachung.de>
 (C) 2008 Michael 'Mickey' Lauer <mlauer@vanille-media.de>
 (C) 2008 Openmoko, Inc.
 
@@ -184,13 +185,14 @@ class AbstractUnsolicitedResponseDelegate( object ):
         """
         Incoming USSD result
         """
+        charset = currentModem()._charsets["USSD"]
         values = safesplit( righthandside, ',' )
         if len( values ) == 1:
             mode = const.NETWORK_USSD_MODE[int(values[0])]
             self._object.IncomingUssd( mode, "" )
         elif len( values ) == 3:
             mode = const.NETWORK_USSD_MODE[int(values[0])]
-            message = values[1].strip( '" ' ).decode("gsm_ucs2")
+            message = values[1].strip( '" ' ).decode(charset)
             self._object.IncomingUssd( mode, message )
         else:
             logger.warning( "Ignoring unknown format: '%s'" % righthandside )

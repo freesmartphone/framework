@@ -2,6 +2,7 @@
 """
 The Open GSM Daemon - Python Implementation
 
+(C) 2008 Daniel Willmann <daniel@totalueberwachung.de>
 (C) 2008 Michael 'Mickey' Lauer <mlauer@vanille-media.de>
 (C) 2008 Openmoko, Inc.
 GPLv2 or later
@@ -654,11 +655,12 @@ class SimListPhonebooks( SimMediator ):
 
     @logged
     def responseFromChannel( self, request, response ):
+        charset = currentModem()._charsets["DEFAULT"]
         if ( response[-1] == "OK" ):
             result = []
             for pb in re.findall( const.PAT_STRING, response[0] ):
                 try:
-                    result.append( const.PHONEBOOK_CATEGORY.revlookup(pb) )
+                    result.append( const.PHONEBOOK_CATEGORY.revlookup(pb.decode(charset)) )
                 except KeyError:
                     pass
             self._ok( result )
@@ -674,12 +676,13 @@ class SimListPhonebooks( SimMediator ):
 class SimGetPhonebookInfo( SimMediator ):
 #=========================================================================#
     def trigger( self ):
+        charset = currentModem()._charsets["DEFAULT"]
         try:
             self.pbcategory = const.PHONEBOOK_CATEGORY[self.category]
         except KeyError:
             self._error( error.InvalidParameter( "valid categories are %s" % const.PHONEBOOK_CATEGORY.keys() ) )
         else:
-            self._commchannel.enqueue( '+CPBS="%s";+CPBR=?' % self.pbcategory, self.responseFromChannel, self.errorFromChannel )
+            self._commchannel.enqueue( '+CPBS="%s";+CPBR=?' % self.pbcategory.encode(charset), self.responseFromChannel, self.errorFromChannel )
 
     def responseFromChannel( self, request, response ):
         if response[-1] != "OK":
@@ -705,6 +708,7 @@ class SimGetPhonebookInfo( SimMediator ):
 class SimRetrievePhonebook( SimMediator ):
 #=========================================================================#
     def trigger( self ):
+        charset = currentModem()._charsets["DEFAULT"]
         try:
             self.pbcategory = const.PHONEBOOK_CATEGORY[self.category]
         except KeyError:
@@ -714,10 +718,12 @@ class SimRetrievePhonebook( SimMediator ):
             if minimum is None: # don't know yet
                 SimGetPhonebookInfo( self._object, self.tryAgain, self.reportError, category=self.category )
             else:
-                self._commchannel.enqueue( '+CPBS="%s";+CPBR=%d,%d' % ( self.pbcategory, minimum, maximum ), self.responseFromChannel, self.errorFromChannel, timeout=currentModem().timeout("SIMACCESS") )
+                self._commchannel.enqueue( '+CPBS="%s";+CPBR=%d,%d' % ( self.pbcategory.encode(charset), minimum, maximum ), self.responseFromChannel, self.errorFromChannel, timeout=currentModem().timeout("SIMACCESS") )
 
     @logged
     def responseFromChannel( self, request, response ):
+        defcharset = currentModem()._charsets["DEFAULT"]
+        charset = currentModem()._charsets["PHONEBOOK"]
         if response[-1] != "OK":
             SimMediator.responseFromChannel( self, request, response )
         else:
@@ -725,18 +731,19 @@ class SimRetrievePhonebook( SimMediator ):
             for entry in response[:-1]:
                 index, number, ntype, name = safesplit( self._rightHandSide( entry ), ',' )
                 index = int( index )
-                number = number.strip( '"' )
+                number = number.strip( '"' ).decode(defcharset)
                 ntype = int( ntype )
-                name = convert.ucs2hexToUnicode( name.strip('"') )
+                name = name.strip('"').decode(charset)
                 result.append( ( index, name, const.phonebookTupleToNumber( number, ntype ) ) )
             self._ok( result )
 
     def tryAgain( self, result ):
+        charset = currentModem()._charsets["DEFAULT"]
         minimum, maximum = self._object.modem.phonebookIndices( self.pbcategory )
         if minimum is None: # still?
             raise error.InternalException( "can't get valid phonebook indices for phonebook %s from modem" % self.pbcategory )
         else:
-            self._commchannel.enqueue( '+CPBS="%s";+CPBR=%d,%d' % ( self.pbcategory, minimum, maximum ), self.responseFromChannel, self.errorFromChannel, timeout=currentModem().timeout("SIMACCESS") )
+            self._commchannel.enqueue( '+CPBS="%s";+CPBR=%d,%d' % ( self.pbcategory.encode(charset), minimum, maximum ), self.responseFromChannel, self.errorFromChannel, timeout=currentModem().timeout("SIMACCESS") )
 
     def reportError( self, result ):
         self._error( result )
@@ -756,28 +763,32 @@ class SimDeleteEntry( SimMediator ):
 class SimStoreEntry( SimMediator ):
 #=========================================================================#
     def trigger( self ):
+        charset = currentModem()._charsets["PHONEBOOK"]
+        defcharset = currentModem()._charsets["DEFAULT"]
         try:
             self.pbcategory = const.PHONEBOOK_CATEGORY[self.category]
         except KeyError:
             self._error( error.InvalidParameter( "valid categories are %s" % const.PHONEBOOK_CATEGORY.keys() ) )
         else:
             number, ntype = currentModem().numberToPhonebookTuple( self.number )
-            name = convert.UnicodeToucs2hex( self.name.strip('"') )
-            self._commchannel.enqueue( '+CPBS="%s";+CPBW=%d,"%s",%d,"%s"' % ( self.pbcategory, self.index, number, ntype, name ), self.responseFromChannel, self.errorFromChannel, timeout=currentModem().timeout("SIMACCESS") )
+            name = self.name.strip('"').encode(charset)
+            self._commchannel.enqueue( '+CPBS="%s";+CPBW=%d,"%s",%d,"%s"' % ( self.pbcategory.encode(defcharset), self.index, number, ntype, name ), self.responseFromChannel, self.errorFromChannel, timeout=currentModem().timeout("SIMACCESS") )
 
 #=========================================================================#
 class SimRetrieveEntry( SimMediator ):
 #=========================================================================#
     def trigger( self ):
+        charset = currentModem()._charsets["DEFAULT"]
         try:
             self.pbcategory = const.PHONEBOOK_CATEGORY[self.category]
         except KeyError:
             self._error( error.InvalidParameter( "valid categories are %s" % const.PHONEBOOK_CATEGORY.keys() ) )
         else:
-            self._commchannel.enqueue( '+CPBS="%s";+CPBR=%d' % ( self.pbcategory, self.index ), self.responseFromChannel, self.errorFromChannel, timeout=currentModem().timeout("SIMACCESS") )
+            self._commchannel.enqueue( '+CPBS="%s";+CPBR=%d' % ( self.pbcategory.encode(charset), self.index ), self.responseFromChannel, self.errorFromChannel, timeout=currentModem().timeout("SIMACCESS") )
 
     @logged
     def responseFromChannel( self, request, response ):
+        charset = currentModem()._charsets["PHONEBOOK"]
         if response[-1] != "OK":
             SimMediator.responseFromChannel( self, request, response )
         else:
@@ -789,7 +800,7 @@ class SimRetrieveEntry( SimMediator ):
                     index = int( index )
                     number = number.strip( '"' )
                     ntype = int( ntype )
-                    name = name.strip('"').decode("gsm_ucs2")
+                    name = name.strip('"').decode(charset)
                     self._ok( name, const.phonebookTupleToNumber( number, ntype ) )
 
 #=========================================================================#
@@ -1000,7 +1011,7 @@ class NetworkUnregister( NetworkMediator ):
 class NetworkGetStatus( NetworkMediator ):
 #=========================================================================#
     def trigger( self ):
-
+        charset = currentModem()._charsets["DEFAULT"]
         # query strength
         request, response, error = yield( "+CSQ" )
         result = {}
@@ -1030,8 +1041,8 @@ class NetworkGetStatus( NetworkMediator ):
                 result[ "registration"] = const.REGISTER_STATUS[int(safesplit( self._rightHandSide( response[-2] ), ',' )[1])]
                 values = safesplit( self._rightHandSide( response[-2] ), ',' )
                 if len( values ) == 4: # have lac and cid now
-                    result["lac"] = values[2].strip( '"' )
-                    result["cid"] = values[3].strip( '"' )
+                    result["lac"] = values[2].strip( '"' ).decode(charset)
+                    result["cid"] = values[3].strip( '"' ).decode(charset)
 
         # query operator name and numerical code
         request, response, error = yield( "+COPS=3,0;+COPS?;+COPS=3,2;+COPS?" )
@@ -1046,12 +1057,12 @@ class NetworkGetStatus( NetworkMediator ):
                     result["mode"] = const.REGISTER_MODE[int(values[0])]
                 else:
                     result["mode"] = const.REGISTER_MODE[int(values[0])]
-                    result["provider"] = values[2].strip( '"' )
+                    result["provider"] = values[2].strip( '"' ).decode(charset)
                     if len( values ) == 4:
                         result["act"] = const.REGISTER_ACT[int( values[3] )]
                     values = safesplit( self._rightHandSide( response[-2] ), ',' )
                     if len( values ) > 2:
-                        result["code"] = int( values[2].strip( '"' ) )
+                        result["code"] = int( values[2].strip( '"' ).decode(charset) )
         # UGLY special check for some modems, which return a strength of 0, if you
         # call +CSQ too early after a (re)registration. In that case, we just
         # leave the strength out of the result
@@ -1084,18 +1095,19 @@ class NetworkListProviders( NetworkMediator ): # a{sv}
 
     @logged
     def responseFromChannel( self, request, response ):
+        charset = currentModem()._charsets["DEFAULT"]
         if response[0] == "OK":
             self._ok( [] )
         if response[-1] == "OK":
             result = []
             for operator in const.PAT_OPERATOR_LIST.finditer( response[0] ):
-                index = int(operator.groupdict()["code"])
+                index = int(operator.groupdict()["code"].decode(charset))
                 status = const.PROVIDER_STATUS[int(operator.groupdict()["status"])]
-                name = operator.groupdict()["name"]
-                shortname = operator.groupdict()["shortname"]
+                name = operator.groupdict()["name"].decode(charset)
+                shortname = operator.groupdict()["shortname"].decode(charset)
                 act = operator.groupdict()["act"]
                 if act == "":
-                    act = "0" # Default to plain GPRS
+                    act = "0" # Default to plain GSM
                 act = const.REGISTER_ACT[int(act)]
                 result.append( ( index, status, name, shortname, act ) )
             self._ok( result )
@@ -1229,9 +1241,10 @@ class NetworkSetCallingIdentification( NetworkMediator ): # s
 class NetworkSendUssdRequest( NetworkMediator ): # s
 #=========================================================================#
     def trigger( self ):
+        charset = currentModem()._charsets["USSD"]
         # FIXME request code validation
         # when using UCS2 we need to encode the request, although it is just a number :/
-        request = self.request.encode("gsm_ucs2")
+        request = self.request.encode(charset)
         commchannel = self._object.modem.communicationChannel( "UnsolicitedMediator" ) # exceptional, since CUSD is semi-unsolicited
         commchannel.enqueue( '+CUSD=1,"%s",15' % request, self.responseFromChannel, self.errorFromChannel )
 
