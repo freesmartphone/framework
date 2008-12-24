@@ -190,7 +190,7 @@ class AbstractUnsolicitedResponseDelegate( object ):
             self._object.IncomingUssd( mode, "" )
         elif len( values ) == 3:
             mode = const.NETWORK_USSD_MODE[int(values[0])]
-            message = convert.ucs2hexToUnicode(values[1].strip( '" ' ) )
+            message = values[1].strip( '" ' ).decode("gsm_ucs2")
             self._object.IncomingUssd( mode, message )
         else:
             logger.warning( "Ignoring unknown format: '%s'" % righthandside )

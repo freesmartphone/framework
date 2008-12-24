@@ -789,7 +789,7 @@ class SimRetrieveEntry( SimMediator ):
                     index = int( index )
                     number = number.strip( '"' )
                     ntype = int( ntype )
-                    name = convert.ucs2hexToUnicode( name.strip('"') )
+                    name = name.strip('"').decode("gsm_ucs2")
                     self._ok( name, const.phonebookTupleToNumber( number, ntype ) )
 
 #=========================================================================#
@@ -1231,7 +1231,7 @@ class NetworkSendUssdRequest( NetworkMediator ): # s
     def trigger( self ):
         # FIXME request code validation
         # when using UCS2 we need to encode the request, although it is just a number :/
-        request = convert.UnicodeToucs2hex( self.request )
+        request = self.request.encode("gsm_ucs2")
         commchannel = self._object.modem.communicationChannel( "UnsolicitedMediator" ) # exceptional, since CUSD is semi-unsolicited
         commchannel.enqueue( '+CUSD=1,"%s",15' % request, self.responseFromChannel, self.errorFromChannel )
 

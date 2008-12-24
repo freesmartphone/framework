@@ -15,7 +15,7 @@ GSM conversion functions.
 """
 from datetime import datetime
 from const import GSMALPHABET, GSMEXTBYTE, GSMEXTALPHABET, \
-		PDUADDR_ENC_TRANS, PDUADDR_DEC_TRANS
+    PDUADDR_ENC_TRANS, PDUADDR_DEC_TRANS
 from codecs import register, CodecInfo
 
 #=========================================================================#
@@ -145,6 +145,8 @@ def gsmcodec(name):
 #=========================================================================#
     if name == "gsm_default":
         return CodecInfo( gsm_default_encode, gsm_default_decode, name="gsm_default" )
+    elif name == "gsm_ucs2":
+        return CodecInfo( UnicodeToucs2hex, ucs2hexToUnicode, name="gsm_ucs2" )
 
 register( gsmcodec )
 
@@ -204,16 +206,25 @@ def ira_pdu_to_string( pdu ):
     return unpack_sevenbit( bytes ).strip()
 
 #=========================================================================#
-def ucs2hexToUnicode( text ):
+def ucs2hexToUnicode( text, errors="strict" ):
 #=========================================================================#
-    bytes = ( int( text[ i:i+2 ], 16 ) for i in range( 0, len(text), 2 ) )
-    return "".join( map( chr, bytes ) ).decode("utf_16_be")
+    bytes = []
+    for i in range( 0, len(text), 2 ):
+        try:
+            bytes.append( int( text[i:i+2], 16 ) )
+        except ValueError:
+            raise UnicodeError
+            if errors == 'strict': raise UnicodeError,"invalid PDU Byte"
+            elif errors == 'replace': bytes.append(0) # replace with 0
+            elif errors == 'ignore': bytes.append(0)
+            else: raise UnicodeError, "unknown error handling"
+    return "".join( map( chr, bytes ) ).decode("utf_16_be") , len(text)
 
 #=========================================================================#
-def UnicodeToucs2hex( text ):
+def UnicodeToucs2hex( text, errors="strict" ):
 #=========================================================================#
     bytes = map( ord, text.encode("utf_16_be") )
-    return "".join( ( "%02X" % i for i in bytes) )
+    return "".join( ( "%02X" % i for i in bytes) ), len(text)
 
 #=========================================================================#
 if __name__ == "__main__":
@@ -221,5 +232,5 @@ if __name__ == "__main__":
     assert ira_pdu_to_string( "33DAED46ABD56AB5186CD668341A8D46A3D168341A8D46A3D168341A8D46A3D168341A8D46A3D168341A8D46A3D168341A8D46A3D168341A8D46A3D168341A8D46A3D168341A8D46A3D168341A8D46A3D100" ) == "347745555103", "ira_pdu_to_string failed"
     print "OK"
 
-    assert ucs2hexToUnicode( "00420072006100730069006C002000540065006C00650063006F006D" ) == "Brasil Telecom", "ucs2hexToUnicode failed"
+    assert "00420072006100730069006C002000540065006C00650063006F006D".decode("gsm_ucs2") == "Brasil Telecom", "ucs2hexToUnicode failed"
     print "OK"
