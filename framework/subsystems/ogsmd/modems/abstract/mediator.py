@@ -1060,6 +1060,8 @@ class NetworkGetStatus( NetworkMediator ):
                     result["provider"] = values[2].strip( '"' ).decode(charset)
                     if len( values ) == 4:
                         result["act"] = const.REGISTER_ACT[int( values[3] )]
+                    else: # AcT defaults to GSM
+                        result["act"] = const.REGISTER_ACT[ 0 ]
                     values = safesplit( self._rightHandSide( response[-2] ), ',' )
                     if len( values ) > 2:
                         result["code"] = int( values[2].strip( '"' ).decode(charset) )
@@ -1107,7 +1109,7 @@ class NetworkListProviders( NetworkMediator ): # a{sv}
                 shortname = operator.groupdict()["shortname"].decode(charset)
                 act = operator.groupdict()["act"]
                 if act == "":
-                    act = "0" # Default to plain GSM
+                    act = "0" # AcT defaults to GSM
                 act = const.REGISTER_ACT[int(act)]
                 result.append( ( index, status, name, shortname, act ) )
             self._ok( result )
@@ -1448,6 +1450,8 @@ class PdpGetNetworkStatus( PdpMediator ):
                     result["cid"] = values[3].strip( '"' )
                 if len( values ) == 5:
                     result["act"] = const.REGISTER_ACT[ int(values[4]) ]
+                else: # AcT defaults to GSM
+                    result["act"] = const.REGISTER_ACT[ 0 ]
         self._ok( result )
 
 #=========================================================================#

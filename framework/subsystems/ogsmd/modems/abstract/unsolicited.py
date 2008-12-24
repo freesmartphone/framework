@@ -98,6 +98,8 @@ class AbstractUnsolicitedResponseDelegate( object ):
             status["cid"] = values[2].strip( '"' )
         if len( values ) == 4:
             status["act"] = const.REGISTER_ACT[int(values[3])]
+        else: # AcT defaults to GSM
+            status["act"] = const.REGISTER_ACT[ 0 ]
         self._object.NetworkStatus( status )
 
     # +CREG: 1,"000F","032F"
@@ -113,9 +115,10 @@ class AbstractUnsolicitedResponseDelegate( object ):
             self.cid = values[2].strip( '"' )
         if len( values ) == 4:
             self.act = const.REGISTER_ACT[int(values[3])]
+        else: # AcT defaults to GSM
+            self.act = const.REGISTER_ACT[ 0 ]
 
         self._mediator.NetworkGetStatus( self._object, self.statusOK, self.statusERR )
-
 
     # +CLIP: "+496912345678",145,,,,0
     def plusCLIP( self, righthandside ):
