@@ -1443,11 +1443,12 @@ class PdpGetNetworkStatus( PdpMediator ):
             elif response[-1] != "OK" or len( response ) == 1:
                 pass
             else:
+                charset = currentModem()._charsets["DEFAULT"]
                 result[ "registration"] = const.REGISTER_STATUS[int(safesplit( self._rightHandSide( response[-2] ), ',' )[1])]
                 values = safesplit( self._rightHandSide( response[-2] ), ',' )
                 if len( values ) >= 4: # have lac and cid now
-                    result["lac"] = values[2].strip( '"' )
-                    result["cid"] = values[3].strip( '"' )
+                    result["lac"] = values[2].strip( '"' ).decode(charset)
+                    result["cid"] = values[3].strip( '"' ).decode(charset)
                 if len( values ) == 5:
                     result["act"] = const.REGISTER_ACT[ int(values[4]) ]
                 else: # AcT defaults to GSM
