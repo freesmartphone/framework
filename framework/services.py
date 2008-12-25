@@ -12,9 +12,11 @@ Module: services
 
 __version__ = "0.1.0"
 
+import netlink
+
 import gobject
 
-import os, time, sys, socket, fcntl
+import os, time, sys, socket, fcntl, struct
 try:
     socket.NETLINK_KOBJECT_UEVENT
 except AttributeError:
@@ -70,13 +72,12 @@ class KObjectDispatcher( object ):
             self._watchU = gobject.io_add_watch( self._socketU.fileno(), gobject.IO_IN, self._onActivityU )
 
         try:
-            self._socketR.bind( ( os.getpid(), 1 ) )
+            self._socketR.bind( ( os.getpid(), netlink.RTNLGRP_LINK | netlink.RTNLGRP_IPV4_ROUTE ) )
         except socket.error, e:
             logger.error( "Could not bind to netlink, kobject notifications will not work." )
         else:
             logger.info( "Successfully bound to netlink route." )
             self._watchR = gobject.io_add_watch( self._socketR.fileno(), gobject.IO_IN, self._onActivityR )
-
 
     def __del__( self ):
         """
@@ -155,17 +156,33 @@ class KObjectDispatcher( object ):
         Run through callbacks and call, if applicable
         """
         data = os.read( source, 512 )
+
         print "MSG='%s'" % repr(data)
         logger.debug( "Received route notification: %s" % repr(data) )
 
-        msgtype = data[24] # 03 iface down, 02 iface up
-        iface = data[36:36+8].strip()
+        msglen, msg_type, flags, seq, pid = struct.unpack( "IHHII", data[:16] )
+        print "len=%d, type=%d, flags=%d, seq=%d, pid=%d" %( msglen, msg_type, flags, seq, pid )
+
+        if msg_type == netlink.RTM_NEWROUTE:
+            print "addroute"
+        elif msg_type == netlink.RTM_DELROUTE:
+            print "delroute"
+        elif msg_type == netlink.RTM_NEWLINK:
+            iface = data[36:36+8].strip()
+            print "addlink; iface=%s" % iface
+        elif msg_type == netlink.RTM_DELLINK:
+            iface = data[36:36+8].strip()
+            print "dellink; iface=%s" % iface
+        else:
+            print "undecoded RTM type %d" % msg_type
+
+        #msgtype = data[24] # 03 iface down, 02 iface up
         #parts = data.split( '\0' )
         #action, path = parts[0].split( '@' )
         #properties = {}
         #if len( parts ) > 1:
             #properties = dict( [ x.split('=') for x in parts if '=' in x ] )
-        ##print "action='%s', path='%s', properties='%s'" % ( action, path, properties
+        #print "action='%s', path='%s', properties='%s'" % ( action, path, properties
         #for match, rules in self._matches.iteritems():
             ##print "checking %s startswith %s" % ( parts[0], match )
             #if parts[0].startswith( match ):
