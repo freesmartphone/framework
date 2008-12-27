@@ -13,7 +13,7 @@ Module: channel
 TI Calypso specific modem channels
 """
 
-__version__ = "0.9.9.3"
+__version__ = "0.9.10.0"
 
 from framework.config import config
 
@@ -29,6 +29,47 @@ import gobject
 
 import logging
 logger = logging.getLogger('ogsmd')
+
+#=========================================================================#
+#  MMI_AEC_REQ : 0283 = Long AEC, 105 = SPENH, 187 = AEC+SPENH, 1 = STOP
+#      aec_control register bits | 0  0  Sa t2|t1 g3 g2 g1|g0 e2 e1 ak|
+#              bit 0 : ACK bit : set to 1 in order to warn DSP that a new command
+#              is present.
+#              bit 1 : enable AEC
+#              bit 2 : enable SPENH (= Speech Enhancement = noise reduction)
+#              bit 3 : additionnal AEC gain attenuation (lsb)
+#              bit 4 : additionnal AEC gain attenuation (msb)
+#              bit 5 : additionnal SPENH gain attenuation (lsb)
+#              bit 6 : additionnal SPENH gain attenuation (msb)
+#              bit 7 : reset trigger for AEC
+#              bit 8 : reset trigger for SPENH
+#              bit 9 : AEC selector 0 : short AEC, 1 : long AEC
+#
+#  for Short AEC        0083
+#  for long AEC         0283
+#  for long AEC  -6 dB  028B
+#  for long AEC  -12 dB 0293
+#  for long AEC  -18 dB 029B
+#  for SPENH            0105
+#  for SPENH -6 dB      0125
+#  for SPENH -12 dB     0145
+#  for SPENH -18 dB     0165
+#  for BOTH             0187
+#  for STOP ALL         0001 (all bits reset + ACK to 1 to warn the DSP)
+
+AEC_NR_MAP = { \
+    "short-aec":        "0083",
+    "long-aec":         "0283",
+    "long-aec:6db":     "028B",
+    "long-aec:12db":    "0293",
+    "long-aec:18db":    "029B",
+    "nr":               "0105",
+    "nr:6db":           "0125",
+    "nr:12db":          "0145",
+    "nr:18db":          "0165",
+    "aec+nr":           "0187",
+    "none":             "0001",
+    }
 
 #=========================================================================#
 class CalypsoModemChannel( AbstractModemChannel ):
@@ -216,14 +257,15 @@ class UnsolicitedResponseChannel( CalypsoModemChannel ):
         c.append( "%CNIV=1" )
         c.append( "%CSTAT=1" )
         c.append( '@ST="-26"' ) # audio side tone: set to minimum
-        c.append( "%N028B" ) # Long Echo Cancellation: active, -6db
-        c.append( "%N0125" ) # Noise reduction: active, -6db
 
         deepSleepMode = config.getValue( "ogsmd", "ti_calypso_deep_sleep", "adaptive" )
         if deepSleepMode == "never":
             c.append( "%SLEEP=2" ) # sleep mode: disable all
         else:
             c.append( "%SLEEP=4" ) # sleep mode: enable all
+
+        dspMode = config.getValue( "ogsmd", "ti_calypso_dsp_mode", "aec+nr" )
+        c.append( "%N" + AEC_NR_MAP.get( dspMode, "aec+nr" ) )
 
         c = self._commands["sim"]
 

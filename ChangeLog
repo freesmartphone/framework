@@ -1,6 +1,8 @@
 2008-12-27	Michael Lauer	<mickey@openmoko.org>
 
 	* [ogsmd] Refactored Modem.dataOptions() into "pppd-configuration" attribute in modem data storage.
+	* [ogsmd] Added TI-Calypso specific configuration option "ti_calypso_dsp_mode" to configure
+	  audio enhancements. Documentation for this option has been added to the sample configuration file.
 
 2008-12-24	Daniel Willmann	<daniel@totalueberwachung.de>
 
