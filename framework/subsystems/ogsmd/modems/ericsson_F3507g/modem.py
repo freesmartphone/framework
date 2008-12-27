@@ -44,6 +44,29 @@ class EricssonF3507g( AbstractModem ):
         # configure channel
         self._channels["SINGLE"].setDelegate( UnsolicitedResponseDelegate( self._object, mediator ) )
 
+        self._data["pppd-configuration"] = [ \
+            "115200",
+            "nodetach",
+            "crtscts",
+            "noipdefault",
+            ":10.0.0.1",
+            "local",
+            'defaultroute',
+            'debug',
+            'hide-password',
+            'ipcp-accept-local',
+            #"lcp-echo-failure", "10",
+            #"lcp-echo-interval", "3",
+            "noauth",
+            #"demand",
+            "noipdefault",
+            "novj",
+            "novjccomp",
+            "persist",
+        ]
+
+
+
     def open( self, on_ok, on_error ):
         """
         Power on modem
@@ -69,28 +92,3 @@ class EricssonF3507g( AbstractModem ):
     def dataPort( self ):
         # FIXME remove duplication and just use pathfactory
         return "/dev/ttyACM1"
-
-    def dataOptions( self, category ):
-        if category == "ppp":
-            return [
-                    '115200',
-                    'nodetach',
-                    'crtscts',
-                    "noipdefault",
-                    ":10.0.0.1",
-                    "local",
-                    'defaultroute',
-                    'debug',
-                    'hide-password',
-                    'ipcp-accept-local',
-                    'lcp-echo-failure', '10',
-                    'lcp-echo-interval', '3',
-                    'noauth',
-                    #'demand',
-                    'noipdefault',
-                    'novj',
-                    'novjccomp',
-                    'persist',
-                    ]
-        else:
-            return []

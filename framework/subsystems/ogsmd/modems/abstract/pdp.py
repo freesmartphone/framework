@@ -13,7 +13,7 @@ Module: pdp
 
 """
 
-__version__ = "0.2.0"
+__version__ = "0.2.1"
 
 from .mediator import AbstractMediator
 from .overlay import OverlayFile
@@ -50,7 +50,7 @@ class Pdp( AbstractMediator ):
         self.ppp = None
         self.overlays = []
 
-        #KObjectDispatcher.addMatch( "*", "/devices/virtual/net", self._onInterfaceChange )
+        KObjectDispatcher.addMatch( "*", "/class/net", self._onInterfaceChange )
 
     def _onInterfaceChange( action, path, **kwargs ):
         logger.debug( "detected interface change", action, path )
@@ -65,7 +65,7 @@ class Pdp( AbstractMediator ):
         apn, user, password = str(apn), str(user), str(password)
 
         # merge with modem specific options
-        self.ppp_options = self.__class__.PPP_OPTIONS_GENERAL + self._object.modem.dataOptions( "ppp" )
+        self.ppp_options = self.__class__.PPP_OPTIONS_GENERAL + self._object.modem.data( "pppd-configuration" )
 
         # merge with user and password settings
         if user:

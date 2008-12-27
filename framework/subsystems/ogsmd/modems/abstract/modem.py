@@ -17,7 +17,7 @@ __version__ = "0.9.9.2"
 MODULE_NAME = "ogsmd.modem.abstract"
 
 import gobject
-import types
+import sys, types
 
 import logging
 logger = logging.getLogger( MODULE_NAME )
@@ -52,6 +52,31 @@ class AbstractModem( object ):
         # FIXME: Might be bad as default, since not all modems necessarily support that
         self._data["sms-direct-cb"] = "2,2,2,1,1" # what about a,3,c,d,e?
         self._data["sms-direct-nocb"] = "2,2,0,0,0" # dito
+
+        self._data["pppd-configuration"] = [ \
+            '115200',
+            'nodetach',
+            'crtscts',
+            'defaultroute',
+            'debug',
+            'hide-password',
+            'holdoff', '3',
+            'ipcp-accept-local',
+            'ktune',
+            #'lcp-echo-failure', '10',
+            #'lcp-echo-interval', '20',
+            'ipcp-max-configure', '4',
+            'lock',
+            'noauth',
+            #'demand',
+            'noipdefault',
+            'novj',
+            'novjccomp',
+            #'persist',
+            'proxyarp',
+            'replacedefaultroute',
+            'usepeerdns',
+        ]
 
         self._timeouts = { \
             "SIMAUTH":      15,
@@ -131,7 +156,7 @@ class AbstractModem( object ):
         """
         Returns the communication channel for certain command category.
         """
-        assert False, "pure virtual method called"
+        sys.exit( -1 ) # pure virtual method called
 
     def channels( self ):
         """

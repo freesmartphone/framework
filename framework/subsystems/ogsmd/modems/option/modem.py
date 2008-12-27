@@ -37,6 +37,26 @@ class Option( AbstractModem ):
         # configure channels
         self._channels["UNSOL"].setDelegate( UnsolicitedResponseDelegate( self._object, mediator ) )
 
+        self._data["pppd-configuration"] = [ \
+                    "115200",
+                    "nodetach",
+                    "crtscts",
+                    "noipdefault",
+                    ":10.0.0.1",
+                    "local",
+                    'defaultroute',
+                    'debug',
+                    'hide-password',
+                    'ipcp-accept-local',
+                    #"lcp-echo-failure", "10",
+                    #"lcp-echo-interval", "3",
+                    "noauth",
+                    #"demand",
+                    "noipdefault",
+                    "novj",
+                    "novjccomp",
+                    "persist" ]
+
     def channel( self, category ):
         return self._channels["UNSOL"]
 
@@ -46,29 +66,3 @@ class Option( AbstractModem ):
     def dataPort( self ):
         # FIXME remove duplication and just use pathfactory
         return "/dev/ttyUSB0"
-
-    def dataOptions( self, category ):
-        if category == "ppp":
-            return [
-                    '115200',
-                    'nodetach',
-                    'crtscts',
-										"noipdefault",
-										":10.0.0.1",
-										"local",
-                    'defaultroute',
-                    'debug',
-                    'hide-password',
-                    'ipcp-accept-local',
-                    'lcp-echo-failure', '10',
-                    'lcp-echo-interval', '3',
-                    'noauth',
-                    #'demand',
-                    'noipdefault',
-                    'novj',
-                    'novjccomp',
-                    'persist',
-                    ]
-        else:
-            return []
-

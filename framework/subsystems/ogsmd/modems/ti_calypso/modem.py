@@ -11,7 +11,7 @@ Module: modem
 
 """
 
-__version__ = "0.9.9.5"
+__version__ = "0.9.9.6"
 MODULE_NAME = "ogsmd.modems.ti_calypso"
 
 SYSFS_CALYPSO_FLOW_CONTROL_PATH = "/sys/bus/platform/devices/neo1973-pm-gsm.0/flowcontrolled"
@@ -88,34 +88,6 @@ class TiCalypso( AbstractModem ):
         # FIXME remove duplication and just use pathfactory
         muxer = self._bus.get_object( "org.pyneo.muxer", "/org/pyneo/Muxer" )
         return muxer.AllocChannel( "ogsmd.gprs", dbus_interface="org.freesmartphone.GSM.MUX" )
-
-    def dataOptions( self, category ):
-        if category == "ppp":
-            return [
-                    '115200',
-                    'nodetach',
-                    'crtscts',
-                    'defaultroute',
-                    'debug',
-                    'hide-password',
-                    'holdoff', '3',
-                    'ipcp-accept-local',
-                    'ktune',
-                    #'lcp-echo-failure', '10',
-                    #'lcp-echo-interval', '20',
-                    'ipcp-max-configure', '4',
-                    'lock',
-                    'noauth',
-                    #'demand',
-                    'noipdefault',
-                    'novj',
-                    'novjccomp',
-                    #'persist',
-                    'proxyarp',
-                    'replacedefaultroute',
-                    'usepeerdns' ]
-        else:
-            return []
 
     def prepareForSuspend( self, ok_callback, error_callback ):
         """overridden for internal purposes"""

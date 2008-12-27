@@ -1,3 +1,7 @@
+2008-12-27	Michael Lauer	<mickey@openmoko.org>
+
+	* [ogsmd] Refactored Modem.dataOptions() into "pppd-configuration" attribute in modem data storage.
+
 2008-12-24	Daniel Willmann	<daniel@totalueberwachung.de>
 
 	* [ogsmd] Added network access type to Provider Info (WARNING, breaks API!)

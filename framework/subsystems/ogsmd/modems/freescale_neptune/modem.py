@@ -92,31 +92,3 @@ class FreescaleNeptune( AbstractModem ):
 
     def pathfactory( self, name ):
         return name
-
-    def dataOptions( self, category ):
-        if category == "ppp":
-            return [
-                    '115200',
-                    'nodetach',
-                    'crtscts',
-                    'defaultroute',
-                    'debug',
-                    'hide-password',
-                    'holdoff', '3',
-                    'ipcp-accept-local',
-                    'ktune',
-                    'lcp-echo-failure', '8',
-                    'lcp-echo-interval', '3',
-                    'ipcp-max-configure', '32',
-                    'lock',
-                    'noauth',
-                    #'demand',
-                    'noipdefault',
-                    'novj',
-                    'novjccomp',
-                    #'persist',
-                    'proxyarp',
-                    'replacedefaultroute',
-                    'usepeerdns' ]
-        else:
-            return []
