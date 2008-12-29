@@ -1,3 +1,14 @@
+2008-12-29	Michael lauer	<mickey@openmoko.org>
+
+	* Support external subsystems. If you add a section with an 'external' attribute, then
+	the section will be treated as an external subsystem to launch with the path given
+	as attribute:
+	[mysubsystem]
+	external=/foo/bar
+	TODO: Add 'relaunch' attribute.
+	NOTE: This is the first step towards integrating Vala/C subsystems to frameworkd.
+	NOTE2: You can also "override" internal subsystems by giving the 'external' attribute.
+
 2008-12-27	Michael Lauer	<mickey@openmoko.org>
 
 	* [ogsmd] Refactored Modem.dataOptions() into "pppd-configuration" attribute in modem data storage.

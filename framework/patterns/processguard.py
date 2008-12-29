@@ -10,13 +10,16 @@ Package: framework.patterns
 Module: processguard
 """
 
-__version__ = "0.0.0"
+__version__ = "0.1.0"
 
 import gobject
 
-import os
+import os, signal
 
 MAX_READ = 4096
+
+import logging
+logger = logging.getLogger( "mppl.processguard" )
 
 #============================================================================#
 class ProcessGuard( object ):
@@ -28,6 +31,7 @@ class ProcessGuard( object ):
         """
         Init
         """
+        logger.debug( "Creating process guard for %s" % cmdline )
         self._childwatch = None
         self._stdoutwatch = None
         self._stderrwatch = None
@@ -87,6 +91,7 @@ class ProcessGuard( object ):
         if condition != gobject.IO_IN:
             return False
         data = os.read( source, MAX_READ )
+        logger.debug( "%s got data from child: %s" % ( self, repr(data) ) )
         if self._onOutput is not None:
             self._onOutput( data )
         return True # mainloop: call me again
@@ -98,6 +103,7 @@ class ProcessGuard( object ):
         if condition != gobject.IO_IN:
             return False
         data = os.read( source, MAX_READ )
+        logger.debug( "%s got error from child: %s" % ( self, repr(data) ) )
         if self._onError is not None:
             self._onError( data )
         return True # mainloop: call me again
@@ -117,9 +123,8 @@ class ProcessGuard( object ):
         """
         Cleanup
         """
-        if self.pid is not None:
-            os.kill( self.pid, 1 )
-            self.reset()
+        self.shutdown()
+        self.reset()
 
     #
     # API
@@ -134,6 +139,13 @@ class ProcessGuard( object ):
         self._onOutput = onOutput
         self._onError = onError
         self._execute( options )
+
+    def shutdown( self, sig=signal.SIGTERM ):
+        """
+        Shutdown the process.
+        """
+        if self.pid is not None:
+            os.kill( self.pid, sig )
 
 #============================================================================#
 if __name__ == "__main__":

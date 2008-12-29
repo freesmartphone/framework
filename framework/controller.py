@@ -10,7 +10,7 @@ Package: framework
 Module: controller
 """
 
-__version__ = "0.9.4"
+__version__ = "0.9.6"
 
 from framework.config import DBUS_BUS_NAME_PREFIX, debug, config, loggingmap
 from framework.patterns import daemon
@@ -37,7 +37,7 @@ class Controller( daemon.Daemon ):
     """
     Loading and registering plugins.
     """
-    # We store all the DBUs object in a class attribute
+    # We store all DBus objects in a class attribute
     objects = {}
 
     @classmethod
@@ -78,14 +78,22 @@ class Controller( daemon.Daemon ):
         self._subsystems["frameworkd"] = subsystem.Framework( self.bus, path, self )
         Controller.objects.update( self._subsystems["frameworkd"].objects() )
 
-        # walk subsystems and find 'em
         systemstolaunch = self.options.values.subsystems.split( ',' )
 
+        # add internal subsystems
         subsystems = [ entry for entry in os.listdir( path )
                        if os.path.isdir( "%s/%s" % ( path, entry ) ) ]
 
+        # add external subsystems
+        for section in config.sections():
+            external = config.getValue( section, "external", "" )
+            if external and ( external not in subsystems ):
+                subsystems.append( section )
+
+        # walk and launch subsystems
         for s in subsystems:
             disable = config.getBool( s, "disable", False )
+            external = config.getValue( s, "external", "" )
             if disable:
                 logger.info( "skipping subsystem %s as requested via config file." % s )
                 continue
@@ -93,10 +101,11 @@ class Controller( daemon.Daemon ):
                 if s not in systemstolaunch:
                     logger.info( "skipping subsystem %s as requested via command line" % s )
                     continue
-                logger.info( "launching subsystem %s" % s )
-                self._subsystems[s] = subsystem.Subsystem( s, self.bus, path, self )
+            if external:
+                logger.info( "launching external subsystem %s" % s )
+                self._subsystems[s] = subsystem.External( s, external, self )
             else:
-                logger.info( "launching subsystem %s" % s )
+                logger.info( "launching internal subsystem %s" % s )
                 self._subsystems[s] = subsystem.Subsystem( s, self.bus, path, self )
             Controller.objects.update( self._subsystems[s].objects() )
 

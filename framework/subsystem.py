@@ -10,9 +10,11 @@ Module: subsystem
 """
 
 MODULE_NAME = "frameworkd.subsystem"
-__version__ = "1.0.1"
+__version__ = "1.1.0"
 
 from .config import config, DBUS_BUS_NAME_PREFIX
+
+from patterns.processguard import ProcessGuard
 
 import dbus
 import os, sys, time
@@ -36,6 +38,15 @@ class Subsystem( object ):
         self._objects = {}
         self.busnames = []
 
+        self.launch()
+
+        self.launchTime = time.time() - self.launchTime
+        logger.info( "subsystem %s took %.2f seconds to startup" % ( self.name, self.launchTime ) )
+
+    def launch( self ):
+        """
+        Launch the subsystem.
+        """
         self.busnames.append( self.tryClaimBusName() )
         self.registerModulesInSubsystem()
 
@@ -45,9 +56,6 @@ class Subsystem( object ):
             logger.warning( "service %s doesn't have any busnames registered" % self.name )
         else:
             logger.debug( "service %s now owning busnames %s" % (self.name, self.busnames) )
-
-        self.launchTime = time.time() - self.launchTime
-        logger.info( "subsystem %s took %.2f seconds to startup" % ( self.name, self.launchTime ) )
 
     def shutdown( self ):
         """
@@ -145,3 +153,24 @@ class Framework( Subsystem ):
     def registerModulesInSubsystem( self ):
         import framework.objectquery
         self.registerObjectsFromModule( framework.objectquery )
+
+#----------------------------------------------------------------------------#
+class External( Subsystem ):
+#----------------------------------------------------------------------------#
+    """
+    A Wrapper for an external subsystem.
+
+    An external subsystem is "just" a child process to us.
+    """
+    def __init__( self, name, path, controller ):
+        self._process = ProcessGuard( path )
+        Subsystem.__init__( self, name, None, None, controller )
+
+    def launch( self ):
+        self._process.execute( onExit=self.processExit )
+
+    def processExit( self, pid, exitcode, exitsignal ):
+        print "process has exit :/"
+
+    def shutdown( self ):
+        self._process.shutdown()
