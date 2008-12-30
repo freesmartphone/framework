@@ -18,7 +18,7 @@ __version__ = "0.2.1"
 from .mediator import AbstractMediator
 from .overlay import OverlayFile
 
-from framework.services import KObjectDispatcher
+from framework.patterns.kobject import KObjectDispatcher
 
 import gobject
 import os, subprocess, signal, copy
