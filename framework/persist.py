@@ -9,24 +9,24 @@ freesmartphone.org Framework Daemon
 GPLv2 or later
 
 Module: persist
-
 """
 
 from __future__ import with_statement
 
-__version__ = "1.0.0"
+__version__ = "1.0.1"
+MODULE_NAME = "frameworkd.persist"
 
 import os, atexit
 
 import logging
-logger = logging.getLogger( "frameworkd.persist" )
+logger = logging.getLogger( MODULE_NAME )
 
 from framework.config import config, rootdir
 rootdir = os.path.join( rootdir, 'persist' )
 format = config.getValue( "frameworkd", "persist_format", "pickle" )
 
 if format == "pickle":
-    import pickle
+    import cPickle as pickle
 elif format == "yaml":
     from yaml import load, dump
     try:
