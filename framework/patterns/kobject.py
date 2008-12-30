@@ -12,6 +12,8 @@ Module: services
 
 __version__ = "0.1.0"
 
+SYS_CLASS_NET = "/sys/class/net"
+
 import netlink
 
 import gobject
@@ -24,6 +26,16 @@ except AttributeError:
 
 import logging
 logger = logging.getLogger( "frameworkd.services" )
+
+def indexToInterface( index ):
+    for iface in os.listdir( "/sys/class/net" ):
+        ifindex = int( open( "%s/%s/ifindex" % ( SYS_CLASS_NET, iface ), "r" ).read().strip() )
+        if ifindex == index:
+            return iface
+    raise IndexError( "index not found" )
+
+def ipv4Address( data ):
+    return ".".join( str(ord(octet)) for octet in data )
 
 #----------------------------------------------------------------------------#
 class KObjectDispatcher( object ):
@@ -164,9 +176,19 @@ class KObjectDispatcher( object ):
         print "len=%d, type=%d, flags=%d, seq=%d, pid=%d" %( msglen, msg_type, flags, seq, pid )
 
         if msg_type == netlink.RTM_NEWROUTE:
-            print "addroute"
+            if msglen == 44:
+                route = "0.0.0.0"
+            else:
+                route = ipv4Address( data[40:44] )
+            iface = indexToInterface( ord( data[-4] ) )
+            print "addroute=%s; iface=%s;" % ( route, iface )
         elif msg_type == netlink.RTM_DELROUTE:
-            print "delroute"
+            if msglen == 44:
+                route = "0.0.0.0"
+            else:
+                route = ipv4Address( data[40:44] )
+            iface = indexToInterface( ord( data[-4] ) )
+            print "delroute=%s; iface=%s" % ( route, iface )
         elif msg_type == netlink.RTM_NEWLINK:
             iface = data[36:36+8].strip()
             print "addlink; iface=%s" % iface
@@ -193,6 +215,8 @@ class KObjectDispatcher( object ):
 #----------------------------------------------------------------------------#
 if __name__ == "__main__":
 #----------------------------------------------------------------------------#
+    logging.basicConfig()
+
     def class_callback( *args, **kwargs ):
         print "class callback", args, kwargs
 
