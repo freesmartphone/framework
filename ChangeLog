@@ -1,8 +1,14 @@
+2008-12-30	Michael Lauer	<mickey@openmoko.org>
+
+	* [odeviced] Register objects under /org/freesmartphone/Device/Display/ also
+	  with an numerical incremental alias -- e.g. the first display can now 
+	  also be accessed via /org/freesmartphone/Device/Display/0.
+	* [rules] Adjust the default backlight brightness rule to use display "0".
+
 2008-12-29	Michael lauer	<mickey@openmoko.org>
 
 	* Support external subsystems. If you add a section with an 'external' attribute, then
-	the section will be treated as an external subsystem to launch with the path given
-	as attribute:
+	the section will be treated as an external subsystem to launch with the path given as an attribute:
 	[mysubsystem]
 	external=/foo/bar
 	TODO: Add 'relaunch' attribute.
@@ -138,9 +144,9 @@
 2008-11-14	Michael Lauer	<mickey@openmoko.org>
 
 	* Implement org.freesmartphone.GSM.Network.GetCountryCode() -> ss
-    * [odeviced] Added kernel26 option called 'fb_blank' (default=1).
-      If you suffer from the Om bug WSOD (white screen of death), try
-      setting this option to 0.
+	* [odeviced] Added kernel26 option called 'fb_blank' (default=1).
+	  If you suffer from the Om bug WSOD (white screen of death), try
+	  setting this option to 0.
 
 2008-11-02	Michael Lauer	<mickey@openmoko.org>
 

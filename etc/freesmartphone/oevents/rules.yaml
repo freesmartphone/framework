@@ -44,9 +44,9 @@
 -
     while: CallListContains("incoming")
     filters: Not(CallListContains("active"))
-    actions: 
+    actions:
              - RingTone()
-             - SetDisplayBrightness("pcf50633_bl", 90)
+             - SetDisplayBrightness("0", 90)
 -
     while: CallStatus()
     filters: Or(HasAttr(status, "outgoing"), HasAttr(status, "active"))
@@ -111,12 +111,12 @@
     #
     trigger: IdleState()
     filters: HasAttr(status, "busy")
-    actions: SetDisplayBrightness("pcf50633_bl", 90)
+    actions: SetDisplayBrightness("0", 90)
 -
     trigger: IdleState()
     filters: HasAttr(status, "idle_dim")
-    actions: SetDisplayBrightness("pcf50633_bl", 20)
+    actions: SetDisplayBrightness("0", 20)
 -
     trigger: IdleState()
     filters: HasAttr(status, "idle_prelock")
-    actions: SetDisplayBrightness("pcf50633_bl", 0)
+    actions: SetDisplayBrightness("0", 0)

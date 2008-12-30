@@ -1,5 +1,6 @@
 == controller / general ==
 * introduce dbus subsystem or dbus object inter-dependencies and honor the dependency graph on startup
+* add dbus-introspectiond
 
 == odeviced ==
 * add more device-specific modules
