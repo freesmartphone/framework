@@ -8,7 +8,7 @@ GPLv2 or later
 """
 
 MODULE_NAME = "odeviced.kernel26"
-__version__ = "0.9.9.2"
+__version__ = "0.9.9.3"
 
 from helpers import DBUS_INTERFACE_PREFIX, DBUS_PATH_PREFIX, readFromFile, writeToFile, cleanObjectName
 from framework.config import config
@@ -402,6 +402,8 @@ class RealTimeClock( dbus.service.Object ):
     """A Dbus Object implementing org.freesmartphone.Device.RealTimeClock
     using the kernel 2.6 rtc class device"""
     DBUS_INTERFACE = DBUS_INTERFACE_PREFIX + ".RealTimeClock"
+    SUPPORTS_MULTIPLE_OBJECT_PATHS = True
+    OBJECT_PATH_COUNTER = 0
 
     def __init__( self, bus, index, node ):
         self.interface = self.DBUS_INTERFACE
@@ -409,6 +411,10 @@ class RealTimeClock( dbus.service.Object ):
         dbus.service.Object.__init__( self, bus, self.path )
         logger.info( "%s %s initialized. Serving %s at %s" % ( self.__class__.__name__, __version__, self.interface, self.path ) )
         self.node = node
+        # also register object under an incremental path
+        self.path2 = DBUS_PATH_PREFIX + "/RealTimeClock/%d" % self.__class__.OBJECT_PATH_COUNTER
+        self.add_to_connection( self._connection, self.path2  )
+        self.__class__.OBJECT_PATH_COUNTER += 1
 
     #
     # dbus
