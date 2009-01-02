@@ -10,7 +10,7 @@ Open Device Daemon - Framework Support Object
 GPLv2 or later
 """
 
-__version__ = "0.5.2"
+__version__ = "0.5.3"
 
 from .introspection import process_introspection_data
 from .config import DBUS_INTERFACE_PREFIX
@@ -73,42 +73,6 @@ class Framework( dbus.service.Object ):
     #
     # dbus methods
     #
-    @dbus.service.method( DBUS_INTERFACE_FRAMEWORK, "s", "ao",
-                          async_callbacks=( "dbus_ok", "dbus_error" ) )
-    def ListObjectsByInterface( self, interface, dbus_ok, dbus_error ):
-
-        @tasklet.tasklet
-        def task( self=self, interface=interface ):
-            if interface == "*":
-                yield self.controller.objects.keys()
-            else:
-                objects = []
-
-                for object in self.controller.objects:
-                    try:
-                        interfaces = Framework.InterfaceCache[object]
-                    except KeyError:
-                        logger.debug( "introspecting object %s..." % object )
-                        introspectionData = yield tasklet.WaitDBus( self._getInterfaceForObject( object, "org.freedesktop.DBus.Introspectable" ).Introspect )
-                        interfaces = process_introspection_data( introspectionData )["interfaces"]
-                        Framework.InterfaceCache[object] = interfaces
-
-                    logger.debug( "interfaces for object are %s" % interfaces )
-                    for iface in interfaces:
-                        if interface.endswith( '*' ):
-                            if iface.startswith( interface[:-1] ):
-                                objects.append( object )
-                                break
-                        else:
-                            if iface == interface:
-                                objects.append( object )
-                                break
-
-                logger.debug( "introspection fully done, result is %s" % objects )
-                yield objects
-
-        task().start_dbus( dbus_ok, dbus_error )
-
     @dbus.service.method( DBUS_INTERFACE_FRAMEWORK, "", "as" )
     def ListDebugLoggers( self ):
         """
