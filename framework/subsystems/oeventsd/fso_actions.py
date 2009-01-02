@@ -13,7 +13,7 @@ Module: fso_actions
 
 """
 
-__VERSION__ = "0.3.0"
+__VERSION__ = "0.4.0"
 MODULE_NAME = "oeventsd"
 
 import framework.patterns.tasklet as tasklet
@@ -165,6 +165,28 @@ class VibratorAction(Action):
                     '/org/freesmartphone/Device/LED/%s' % self.target,
                     'org.freesmartphone.Device.LED',
                     'SetBrightness', 0).trigger()
+
+#============================================================================#
+class OccupyResourceAction(Action):
+#============================================================================#
+    function_name = 'OccupyResource'
+
+    def __init__(self, resource):
+        self.resource = resource
+
+    def trigger(self, **kargs):
+        DBusAction(dbus.SystemBus(),
+                    'org.freesmartphone.ousaged',
+                    '/org/freesmartphone/Usage',
+                    'org.freesmartphone.Usage',
+                    'RequestResource', self.resource).trigger()
+
+    def untrigger(self, **kargs):
+        DBusAction(dbus.SystemBus(),
+                    'org.freesmartphone.ousaged',
+                    '/org/freesmartphone/Usage',
+                    'org.freesmartphone.Usage',
+                    'ReleaseResource', self.resource).trigger()
 
 #=========================================================================#
 class RingToneAction(Action):

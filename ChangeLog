@@ -1,3 +1,9 @@
+2009-01-02	Michael Lauer	<mlauer@vanille-media.de>
+
+	* Removed ListObjectsByInterface from frameworkd objectquery.py. This will
+	  now be implemented by dbus-hlid (a seperate FSO project).
+	* [oeventsd] Added OccupyResource action and add some convenient rules.
+
 2008-12-30	Michael Lauer	<mickey@openmoko.org>
 
 	* [odeviced] Register objects under /org/freesmartphone/Device/Display/ also

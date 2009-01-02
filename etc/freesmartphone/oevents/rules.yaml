@@ -1,5 +1,5 @@
 
-# This file is in YAML format (http://www.yaml.org/) 
+# This file is in YAML format (http://www.yaml.org/)
 # We define a list of rules that will be automatically loaded
 # When we start the oevents module of the framework daemon
 #
@@ -9,7 +9,7 @@
 # - actions     : action object or list of actions objects
 #
 # We define the following functions :
-# - CallStatus()            : create a trigger object activated on a call status event 
+# - CallStatus()            : create a trigger object activated on a call status event
 # - PowerStatus()           : create a trigger object activated on a power status event
 # - HasAttr(name, value)    : create a filter that accept signal with a given attribute
 # - Not(filter)             : create a neg filter
@@ -47,14 +47,24 @@
     actions:
              - RingTone()
              - SetDisplayBrightness("0", 90)
+             - OccupyResource(CPU)
+
 -
     while: CallStatus()
     filters: Or(HasAttr(status, "outgoing"), HasAttr(status, "active"))
-    actions: SetScenario(gsmhandset)
+    actions:
+            - SetScenario(gsmhandset)
+            - OccupyResource(CPU)
 -
     while: PowerStatus()
     filters: HasAttr(status, "charging")
     actions: SetLed("gta02_power_orange", "light")
+
+#-
+#    while: PowerStatus()
+#    filters: Not(HasAttr(status, "discharging"))
+#    actions: OccupyResource(Display)
+
 -
     while: PowerStatus()
     filters: HasAttr(status, "critical")
@@ -104,7 +114,7 @@
 -
     trigger: DbusTrigger(system, 'org.freesmartphone.odeviced', 0, 'org.freesmartphone.Device.IdleNotifier', 'State')
     actions: Debug("dbus trigger test")
-- 
+-
 
     #
     # Idleness Brightness Handling
