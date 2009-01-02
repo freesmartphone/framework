@@ -8,7 +8,7 @@ GPLv2 or later
 """
 
 MODULE_NAME = "odeviced.kernel26"
-__version__ = "0.9.9.3"
+__version__ = "0.9.9.4"
 
 from helpers import DBUS_INTERFACE_PREFIX, DBUS_PATH_PREFIX, readFromFile, writeToFile, cleanObjectName
 from framework.config import config
@@ -230,9 +230,18 @@ class PowerSupply( dbus.service.Object ):
         self.powerStatus = "unknown"
         self.online = False
         self.capacity = -1
+        self.isBattery = ( readFromFile( "%s/type" ) == "Battery" )
 
     def isPresent( self ):
-        return not ( readFromFile( "%s/present" % self.node ) != '1' )
+        present = readFromFile( "%s/present" % self.node )
+        online = readFromFile( "%s/online" % self.node )
+        return ( present == "1" or online == "1" )
+
+    def isOnline( self ):
+        return not ( readFromFile( "%s/online" % self.node ) != '1' )
+
+    def theType( self ):
+        return readFromFile( "%s/type" % self.node )
 
     def onUeventActivity( self, source, condition ):
         data = self.ueventsock.recv( 1024 )
@@ -252,6 +261,8 @@ class PowerSupply( dbus.service.Object ):
         return False # don't call me again
 
     def readCapacity( self ):
+        if not self.isBattery:
+            return 100
         if not self.isPresent():
             return -1
         data = readFromFile( "%s/capacity" % self.node )
@@ -273,7 +284,7 @@ class PowerSupply( dbus.service.Object ):
         capacity = self.readCapacity()
         self.sendCapacityIfChanged( capacity )
         if self.online:
-            if capacity > 98:
+            if capacity > 98: # older batteries will never reach 100
                 self.sendPowerStatusIfChanged( "full" )
         else: # offline
             if capacity <= 5:
@@ -295,8 +306,9 @@ class PowerSupply( dbus.service.Object ):
         except KeyError:
             pass
         else:
-            # FIXME: what should we do with the "Not Charging" state? It seems to be only a temporary state
-            # occuring during the time the charger has been physically inserted but not been yet enumerated on USB
+            # NOTE: "Not Charging" is an interesting state which can have two reasons:
+            # 1.) The charger has been physically inserted but the device has not yet enumerated on USB.
+            # 2.) The battery has been fully charged and we're now just grabbing power from the charger.
             if powerStatus != "not charging":
                 self.sendPowerStatusIfChanged( powerStatus )
         return False # don't call me again
@@ -316,20 +328,23 @@ class PowerSupply( dbus.service.Object ):
     def GetName( self ):
         return self.node.split("/")[-1]
 
+    @dbus.service.method( DBUS_INTERFACE, "", "s" )
+    def GetType( self ):
+        return self.theType()
+
+    # FIXME: we might want to remove that -- anyone really interested should rather walk through the sysfs path
     @dbus.service.method( DBUS_INTERFACE, "", "a{sv}" )
     def GetInfo( self ):
         # AC/BATs differ in lots of nodes. Do we want additional methods for present / online ?
+        keys = [ key for key in os.listdir( self.node ) if key != "uevent" if os.path.isfile( "%s/%s" % ( self.node, key ) ) ]
         dict = {}
-        for key in "capacity current_now energy_full energy_full_design energy_now manufacturer model_name status technology type voltage_min_design voltage_now present online".split():
+        for key in keys:
             dict[key] = readFromFile( "%s/%s" % ( self.node, key ) )
         return dict
 
-    # FIXME deprecated, should be removed
-    @dbus.service.method( DBUS_INTERFACE, "", "i" )
-    def GetEnergyPercentage( self ):
-        if self.capacity == -1:
-            self.onCapacityCheck()
-        return self.capacity
+    @dbus.service.method( DBUS_INTERFACE, "", "b" )
+    def IsPresent( self ):
+        return self.isPresent()
 
     @dbus.service.method( DBUS_INTERFACE, "", "i" )
     def GetCapacity( self ):
@@ -340,10 +355,6 @@ class PowerSupply( dbus.service.Object ):
     @dbus.service.method( DBUS_INTERFACE, "", "s" )
     def GetPowerStatus( self ):
         return self.powerStatus
-
-    @dbus.service.method( DBUS_INTERFACE, "", "b" )
-    def IsPresent( self ):
-        return self.isPresent()
 
     #
     # dbus signals
