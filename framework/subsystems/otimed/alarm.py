@@ -89,34 +89,11 @@ class AlarmController( dbus.service.Object ):
             dbus.BUS_DAEMON_NAME,
             dbus.BUS_DAEMON_PATH
         )
-        self.rtc = None
 
-        def cbListObjects( rtcpaths ):
-            try:
-                if not rtcpaths:
-                    logger.error( "no RealTimeClock interface found" )
-                    return
-                proxy = self.bus.get_object( "org.freesmartphone.odeviced", rtcpaths[0] )
-                self.rtc = dbus.Interface( proxy, "org.freesmartphone.RealTimeClock" )
-            except:
-                logger.exception( "failed to get rtc interface" )
-
-        def onIdle():
-            logger.info( "getting rtc interface" )
-            try:
-                # we need to have odeviced started up before being able to set alarms
-                proxy = self.bus.get_object( "org.freesmartphone.odeviced", "/org/freesmartphone/Framework" )
-                framework = dbus.Interface( proxy, "org.freesmartphone.Framework" )
-                framework.ListObjectsByInterface(
-                    "org.freesmartphone.Device.RealTimeClock",
-                    reply_handler=cbListObjects, error_handler=log_dbus_error( "can not get list of RTCs" )
-                )
-            except:
-                logger.exception( "failed to get rtc interface" )
-
-        gobject.idle_add(onIdle)
-
-        logger.info( "%s initialized. Serving %s at %s", self.__class__.__name__, self.interface, self.path )
+        # gather realtime clock dbus object
+        o = bus.get_object( "org.freesmartphone.odeviced", "/org/freesmartphone/Device/RealTimeClock/0", follow_name_owner_changes=True )
+        self.rtc = dbus.Interface( o, "org.freesmartphone.RealTimeClock" )
+        logger.info( "%s %s initialized. Serving %s at %s", self.__class__.__name__, __version__, self.interface, self.path )
 
     def _nameOwnerChangedHandler( self, name, old_owner, new_owner ):
         # TODO what happens when something changes it busname?
@@ -142,12 +119,9 @@ class AlarmController( dbus.service.Object ):
             alarm.fire()
         if self.queue:
             self.timer = gobject.timeout_add_seconds( self.queue[0].timestamp - int(time.time()), self._schedule )
-            if self.rtc is None:
-                logger.error( "no rtc interface yet, wakeup not possible" )
-                return
             self.rtc.SetWakeupTime(
                 self.queue[0].timestamp,
-                reply_handler=drop_dbus_result, error_handler=log_dbus_error( "can not set wakeup time" )
+                reply_handler=drop_dbus_result, error_handler=log_dbus_error( "RTC error; can not set wakeup time" )
             )
 
     #
