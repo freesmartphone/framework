@@ -91,7 +91,10 @@ class AlarmController( dbus.service.Object ):
         )
 
         # gather realtime clock dbus object
-        o = bus.get_object( "org.freesmartphone.odeviced", "/org/freesmartphone/Device/RealTimeClock/0", follow_name_owner_changes=True )
+        o = bus.get_object( "org.freesmartphone.odeviced",
+                            "/org/freesmartphone/Device/RealTimeClock/0",
+                            follow_name_owner_changes=True,
+                            introspect=False )
         self.rtc = dbus.Interface( o, "org.freesmartphone.RealTimeClock" )
         logger.info( "%s %s initialized. Serving %s at %s", self.__class__.__name__, __version__, self.interface, self.path )
 

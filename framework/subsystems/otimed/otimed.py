@@ -12,7 +12,8 @@ Package: otimed
 Module: otimed
 """
 
-__version__ = "0.2.0"
+__version__ = "0.2.1"
+MODULE_NAME = "otimed"
 
 from datetime import datetime, timedelta
 from math import sqrt
@@ -28,7 +29,7 @@ import dbus.mainloop.glib
 import gobject
 
 import logging
-logger = logging.getLogger( 'otimed' )
+logger = logging.getLogger( MODULE_NAME )
 
 def getOutput(cmd):
     from subprocess import Popen, PIPE
@@ -135,8 +136,11 @@ class ZoneSource( object ):
             None,
             None
         )
-        proxy = bus.get_object( "org.freesmartphone.ogsmd", "/org/freesmartphone/GSM/Server" )
-        self.gsmdata = dbus.Interface( proxy, "org.freesmartphone.GSM.Data" )
+        proxy = bus.get_object( "org.freesmartphone.ogsmd",
+                                "/org/freesmartphone/GSM/Server",
+                                follow_name_owner_changes=True,
+                                introspect=False )
+        self.gsmdata = dbus.Interface( proxy, "org.freesmartphone.GSM.Data",  )
 
     def _handleNetworkStatusChanged( self, status ):
         if "code" in status:
