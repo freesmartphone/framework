@@ -10,7 +10,7 @@ Interactive console for the freesmartphone.org framework
 GPLv2 or later
 """
 
-__version__ = "0.9.1.5"
+__version__ = "0.9.1.6"
 
 import dbus.service
 import dbus.mainloop.glib
@@ -70,7 +70,7 @@ def getInterface( busname, objectpath, interface ):
 #----------------------------------------------------------------------------#
 def getObjectsForInterface( interface ):
 #----------------------------------------------------------------------------#
-    paths = framework.ListObjectsByInterface( interface, dbus_interface="org.freesmartphone.Framework" )
+    paths = dbus_hlid.ListObjectsByInterface( "org.freesmartphone.frameworkd", interface, dbus_interface="org.freesmartphone.DBus" )
     result = {}
     for path in paths:
         result[str(path)] = getInterface( "org.freesmartphone.frameworkd", path, interface )
@@ -81,6 +81,9 @@ mainloop = MainLoop()
 bus = dbus.SystemBus()
 
 # FIXME use introspection
+
+# dbus_hlid object
+dbus_hlid = getObject( "org.freesmartphone.DBus", "/org/freesmartphone/DBus" )
 
 # framework object
 framework = getObject( "org.freesmartphone.frameworkd", "/org/freesmartphone/Framework" )
