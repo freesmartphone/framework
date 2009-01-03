@@ -12,9 +12,9 @@ Package: ogsmd.modems.abstract
 Module: unsolicited
 """
 
-__version__ = "0.9.9.2"
+__version__ = "0.9.9.3"
 
-import calling
+import calling, pdp
 
 from ogsmd.gsm.decor import logged
 from ogsmd.gsm import const, convert
@@ -74,16 +74,19 @@ class AbstractUnsolicitedResponseDelegate( object ):
         self._object.IncomingCellBroadcast( channel, data )
 
     # +CGEV: ME DEACT "IP","010.161.025.237",1
+    # +CGEV: ME DETACH
     def plusCGEV( self, righthandside ):
         """
         Gprs Context Event
         """
         values = safesplit( righthandside, ',' )
         if len( values ) == 1: # detach, but we're not having an IP context online
-            pass
+            if values[0] == "ME DETACH":
+                # FIXME this will probably lead to a zombie
+                pdp.Pdp.getInstance().deactivate()
+                # FIXME force dropping the dataport, this will probably kill the zombie
         elif len( values ) >= 3: # detach while we were attached
             pass
-            # FIXME gather pdp context class and stop ppp
 
         # +CGREG: 2
         # +CGREG: 1,"000F","5B4F

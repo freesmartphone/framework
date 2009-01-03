@@ -10,11 +10,11 @@ Package: framework.patterns
 Module: processguard
 """
 
-__version__ = "0.1.0"
+__version__ = "0.2.0"
 
 import gobject
 
-import os, signal
+import os, signal, types
 
 MAX_READ = 4096
 
@@ -31,12 +31,15 @@ class ProcessGuard( object ):
         """
         Init
         """
-        logger.debug( "Creating process guard for %s" % cmdline )
+        if type( cmdline ) == types.ListType:
+            self._cmdline = cmdline
+        else:
+            self._cmdline = cmdline.split()
         self._childwatch = None
         self._stdoutwatch = None
         self._stderrwatch = None
-        self._cmdline = cmdline.split()
         self._reset()
+        logger.debug( "Created process guard for %s" % repr(self._cmdline) )
 
     def _reset( self ):
         """
@@ -145,7 +148,16 @@ class ProcessGuard( object ):
         Shutdown the process.
         """
         if self.pid is not None:
+            logger.info( "shutdown: killing process %d with signal %d", self.pid, sig )
             os.kill( self.pid, sig )
+        else:
+            logger.info( "shutdown: process already vanished" )
+
+    def isRunning( self ):
+        """
+        Returns True, when the process is running. False, otherwise.
+        """
+        return self.pid is not None
 
 #============================================================================#
 if __name__ == "__main__":

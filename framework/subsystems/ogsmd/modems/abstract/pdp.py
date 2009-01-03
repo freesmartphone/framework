@@ -13,18 +13,20 @@ Module: pdp
 
 """
 
-__version__ = "0.2.1"
+__version__ = "0.3.0"
+MODULE_NAME = "ogsmd.modems.abstract.pdp"
 
 from .mediator import AbstractMediator
 from .overlay import OverlayFile
 
 from framework.patterns.kobject import KObjectDispatcher
+from framework.patterns.processguard import ProcessGuard
 
 import gobject
 import os, subprocess, signal, copy
 
 import logging
-logger = logging.getLogger( "ogsmd.pdp" )
+logger = logging.getLogger( MODULE_NAME )
 
 #=========================================================================#
 class Pdp( AbstractMediator ):
@@ -50,7 +52,8 @@ class Pdp( AbstractMediator ):
         self.ppp = None
         self.overlays = []
 
-        KObjectDispatcher.addMatch( "*", "/class/net", self._onInterfaceChange )
+        # FIXME: add match only while running pppd
+        KObjectDispatcher.addMatch( "addlink", "", self._onAddLinkEvent )
 
     def _onInterfaceChange( action, path, **kwargs ):
         logger.debug( "detected interface change", action, path )
@@ -74,10 +77,7 @@ class Pdp( AbstractMediator ):
             self.pds[self.__class__.PPP_PAP_SECRETS_FILENAME] = '%s * "%s" *\n' % ( user or '*', password )
             self.pds[self.__class__.PPP_CHAP_SECRETS_FILENAME] =  '%s * "%s" *\n'% ( user or '*', password )
 
-        self.timeout_source = None
         self.childwatch_source = None
-
-        self.default_route = self.route = self._defaultRoute()
 
     def isActive( self ):
         return self.state == "active"
@@ -108,7 +108,7 @@ class Pdp( AbstractMediator ):
         self.overlays = []
 
     def _activate( self ):
-        if self.ppp is not None and self.ppp.poll() is None:
+        if self.ppp is not None and self.ppp.isRunning():
             raise Exception( "already active" )
 
         self.port = str( self._object.modem.dataPort() )
@@ -120,15 +120,12 @@ class Pdp( AbstractMediator ):
         logger.info( "launching ppp as commandline %s" % ppp_commandline )
 
         self._prepareFiles()
+        self.ppp = ProcessGuard( ppp_commandline )
+        self.ppp.execute( onExit=self._spawnedProcessDone, onError=self._onPppError, onOutput=self._onPppOutput )
 
-        self.ppp = subprocess.Popen( ppp_commandline )
+        logger.info( "pppd launched. See syslog (e.g. logread -f) for output." )
 
-        # FIXME bad polling here
-        self.timeout_source = gobject.timeout_add_seconds( 2, self._pollInterface )
-
-        logger.info( "pppd launched, pid %d. See logread -f for output." % self.ppp.pid )
-
-        # FIXME that's premature. we might adopt the following states:
+        # FIXME that's somewhat premature. we might adopt the following states:
         # "setup", "active", "shutdown", "release"
 
         self._updateState( "outgoing" )
@@ -139,57 +136,41 @@ class Pdp( AbstractMediator ):
             self._object.ContextStatus( 1, newstate, {} )
 
     def _deactivate( self ):
-        if self.ppp.poll() is not None:
-            return
+        logger.info( "shutting down pppd" )
+        self.ppp.shutdown()
 
-        logger.info( "shutting down pppd, pid %d." % self.ppp.pid )
-
-        os.kill( self.ppp.pid, signal.SIGTERM )
-        #os.kill( self.ppp.pid, signal.SIGKILL )
-
-        logger.debug( "waiting for process to quit..." )
-        self.ppp.wait()
-
-        self._spawnedProcessDone()
-
-    def _spawnedProcessDone( self ):
-        logger.info( "pppd exited with code %d" % self.ppp.returncode )
+    def _spawnedProcessDone( self, pid, exitcode, exitsignal ):
+        logger.info( "pppd exited with code %d, signal %d" % ( exitcode, exitsignal ) )
 
         # FIXME check whether this was a planned exit or not, if not, try to recover
 
         self._updateState( "release" )
         self._recoverFiles()
 
-        # FIXME find a better way to restore the default route
-        os.system( "ifdown %s" % self.default_route )
-        os.system( "ifup %s" % self.default_route )
+        # FIXME at this point, the default route might be wrong, if someone killed pppd
 
-        # release context just to be sure that the next ppp setup will find the
-        # data port in command mode
-        self._netchannel.enqueue( "+CGACT=0", lambda a,b:None, lambda a,b:None )
+        # force releasing context and attachment to make sure that
+        # the next ppp setup will find the data port in command mode
+        self._netchannel.enqueue( "+CGACT=0;+CGATT=0", lambda a,b:None, lambda a,b:None )
 
-    def _defaultRoute( self ):
-        f = open( "/proc/net/route", 'r' )
-        l = f.readlines()
-        f.close()
-        for n in l:
-            n = n.split('\t')
-            if n[1] == "00000000":
-                return n[0]
-        return ""
-
-    def _pollInterface( self ):
-        """Gets frequently called from mainloop to check the default route."""
-        # FIXME use netlink socket to be notified here!
-        route = self._defaultRoute()
-        logger.debug( "route status. old=%s, last=%s, current=%s" % ( self.default_route, self.route, route ) )
-        if route != self.route:
-            self.route = route
-            if route == "ppp0":
+    def _onAddLinkEvent( self, action, path, **properties ):
+        """
+        Called by KObjectDispatcher
+        """
+        try:
+            device = properties["dev"]
+            flags = properties["flags"]
+        except KeyError:
+            pass # not enough information
+        else:
+            if device == "ppp0" and "UP" in flags:
                 self._updateState( "active" )
-            else:
-                self._updateState( "release" )
-        return True
+
+    def _onPppError( self, text ):
+        print "ppp error:", repr(text)
+
+    def _onPppOutput( self, text ):
+        print "ppp output:", repr(text)
 
     # class wide constants constants
 
