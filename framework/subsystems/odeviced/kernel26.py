@@ -243,7 +243,7 @@ class PowerSupply( dbus.service.Object ):
         data = readFromFile( "%s/uevent" % self.node )
         parts = data.split( '\n' )
         d = dict( [ x.split('=') for x in parts if '=' in x ] )
-        self.handlePropertyChange( **d )
+        self.handlePropertyChange( "coldplug", "<this-battery>", **d )
         return False # mainloop: don't call me again
 
     def readCapacity( self ):
@@ -279,10 +279,10 @@ class PowerSupply( dbus.service.Object ):
                 self.sendPowerStatusIfChanged( "critical" )
         return True # call me again
 
-    def handlePropertyChange( self, **properties ):
+    def handlePropertyChange( self, action, path, **properties ):
         if not self.isPresent():
             return False # don't call me again
-        logger.debug( "got property change from uevent socket: %s" % properties )
+        logger.debug( "got property action '%s' from uevent for path '%s': %s" % ( action, path, properties ) )
         try:
             self.online = ( properties["POWER_SUPPLY_ONLINE"] == '1' )
         except KeyError:
