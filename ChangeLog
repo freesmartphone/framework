@@ -4,6 +4,7 @@
 	  This will be used to substitute route some polling in pdp and other modules.
 	  NOTE: To assist netlink parsing, we include the cxutil and cxnet packages
 	  from python-connexion in the framework. For more details, see http://www.radlinux.org/connexion/wiki
+	* odeviced: Substituted own kobject notification with generic KobjectDispatcher.
 
 2009-01-02	Michael Lauer	<mlauer@vanille-media.de>
 

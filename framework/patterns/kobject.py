@@ -10,17 +10,14 @@ Package: framework
 Module: services
 """
 
-__version__ = "0.1.0"
+__version__ = "0.2.0"
 MODULE_NAME = "frameworkd.kobject"
 
 SYS_CLASS_NET = "/sys/class/net"
 
-try:
-    from cxnet.netlink.rtnl import rtnl_msg as RtNetlinkMessage
-    from cxnet.netlink.rtnl import rtnl_msg_parser as RtNetlinkParser
-    from cxnet.netlink.rtnl import RTNLGRP_LINK, RTNLGRP_IPV4_IFADDR, RTNLGRP_IPV4_ROUTE
-except ImportError:
-    raise ImportError( "cxnet not found. Please install python-connexion >= 0.4.6" )
+from cxnet.netlink.rtnl import rtnl_msg as RtNetlinkMessage
+from cxnet.netlink.rtnl import rtnl_msg_parser as RtNetlinkParser
+from cxnet.netlink.rtnl import RTNLGRP_LINK, RTNLGRP_IPV4_IFADDR, RTNLGRP_IPV4_ROUTE
 
 import gobject
 
@@ -57,6 +54,8 @@ class KObjectDispatcher( object ):
 
     _instance = None
     _matches = {}
+
+    ACTIONS = "add change remove addaddress deladdress addlink dellink addroute delroute".split()
 
     def __init__( self ):
         self._socketU = None
@@ -107,11 +106,13 @@ class KObjectDispatcher( object ):
         logger.info( "Unlinked from all netlink objects. No further notifications." )
 
     def _addMatch( self, action, path, callback ):
+        logger.debug( "_addMatch %s, %s, %s" % ( action, path, callback ) )
         #print "action='%s', path='%s'" % ( action, path )
         if action == '*':
             self._addMatch( "add", path, callback )
+            self._addMatch( "change", path, callback )
             self._addMatch( "remove", path, callback )
-        elif action in "add remove addaddress deladdress addlink dellink addroute delroute".split():
+        elif action in self.__class__.ACTIONS:
             path = path.replace( '*', '' )
             if path == '' or path.startswith( '/' ):
                 match = "%s@%s" % ( action, path )
@@ -121,9 +122,10 @@ class KObjectDispatcher( object ):
             else:
                 raise ValueError( "Path needs to start with / or be '*'" )
         else:
-            raise ValueError( "Action needs to be 'add' or 'remove'" )
+            raise ValueError( "Action needs to be one of %s" % self.__class__.ACTIONS )
 
     def _removeMatch( self, action, path, callback ):
+        logger.debug( "_removeMatch %s, %s, %s" % ( action, path, callback ) )
         if action == '*':
             self._removeMatch( "add", path, callback )
             self._removeMatch( "remove", path, callback )
@@ -193,6 +195,9 @@ if __name__ == "__main__":
 #----------------------------------------------------------------------------#
     logging.basicConfig()
 
+    def change_class_callback( *args, **kwargs ):
+        print "change @ class callback", args, kwargs
+
     def class_callback( *args, **kwargs ):
         print "class callback", args, kwargs
 
@@ -214,6 +219,7 @@ if __name__ == "__main__":
     def del_route_callback( *args, **kwargs ):
         print "del route callback", args, kwargs
 
+    KObjectDispatcher.addMatch( "change", "/class/", change_class_callback )
     KObjectDispatcher.addMatch( "add", "/class/", class_callback )
     KObjectDispatcher.addMatch( "add", "/devices/", devices_callback )
     KObjectDispatcher.addMatch( "*", "*", all_callback )

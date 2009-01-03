@@ -8,17 +8,17 @@ GPLv2 or later
 """
 
 MODULE_NAME = "odeviced.kernel26"
-__version__ = "0.9.9.4"
+__version__ = "0.9.9.5"
 
 from helpers import DBUS_INTERFACE_PREFIX, DBUS_PATH_PREFIX, readFromFile, writeToFile, cleanObjectName
 from framework.config import config
+from framework.patterns.kobject import KObjectDispatcher
 
 import dbus.service
 
 import gobject
 
-import os, time, sys, socket, fcntl
-socket.NETLINK_KOBJECT_UEVENT = 15 # not present in earlier versions
+import os, time, sys
 
 import logging
 logger = logging.getLogger( MODULE_NAME )
@@ -213,24 +213,20 @@ class PowerSupply( dbus.service.Object ):
         logger.info( "%s %s initialized. Serving %s at %s" % ( self.__class__.__name__, __version__, self.interface, self.path ) )
         self.node = node
 
-        self.ueventsock = s = socket.socket( socket.AF_NETLINK, socket.SOCK_DGRAM, socket.NETLINK_KOBJECT_UEVENT )
-        # this only works as root
-        try:
-            s.bind( ( os.getpid(), 1 ) )
-        except socket.error, e:
-            logger.warning( "Could not bind to netlink object. Power supply reporting might not work." )
-        else:
-            logger.info( "Successfully bound to netlink object." )
-            self.ueventsockWatch = gobject.io_add_watch( s.fileno(), gobject.IO_IN, self.onUeventActivity )
         capacityCheckTimeout = config.getInt( MODULE_NAME, "capacity_check_timeout", 60*5 )
         self.capacityWatch = gobject.timeout_add_seconds( capacityCheckTimeout, self.onCapacityCheck )
-        # FIXME should this rather be handled globally (controller issuing a coldstart on every subsystem?)
+        # FIXME should this rather be handled globally (controller issuing a coldstart on every subsystem)? Yes!
         gobject.idle_add( self.onColdstart )
 
         self.powerStatus = "unknown"
         self.online = False
         self.capacity = -1
-        self.isBattery = ( readFromFile( "%s/type" ) == "Battery" )
+        self.type_ = readFromFile( "%s/type" % self.node ).lower()
+        self.isBattery = ( self.type_ == "battery" )
+
+        # get polling-free battery notifications via kobject/uevent
+        if self.isBattery:
+            KObjectDispatcher.addMatch( "change", "/class/power_supply/%s" % node.split('/')[-1], self.handlePropertyChange )
 
     def isPresent( self ):
         present = readFromFile( "%s/present" % self.node )
@@ -243,22 +239,12 @@ class PowerSupply( dbus.service.Object ):
     def theType( self ):
         return readFromFile( "%s/type" % self.node )
 
-    def onUeventActivity( self, source, condition ):
-        data = self.ueventsock.recv( 1024 )
-        logger.debug( "got data from uevent socket: %s" % repr(data) )
-        # split up and check whether this is really for us
-        parts = data.split( '\x00' )
-        name = parts[0]
-        myname = "power_supply/%s" % self.node.split("/")[-1]
-        if name.endswith( myname ):
-            gobject.idle_add( self.handlePropertyChange, dict( [ x.split('=') for x in parts if '=' in x ] ) )
-        return True # call me again
-
     def onColdstart( self ):
         data = readFromFile( "%s/uevent" % self.node )
         parts = data.split( '\n' )
-        gobject.idle_add( self.handlePropertyChange, dict( [ x.split('=') for x in parts if '=' in x ] ) )
-        return False # don't call me again
+        d = dict( [ x.split('=') for x in parts if '=' in x ] )
+        self.handlePropertyChange( **d )
+        return False # mainloop: don't call me again
 
     def readCapacity( self ):
         if not self.isBattery:
@@ -293,7 +279,7 @@ class PowerSupply( dbus.service.Object ):
                 self.sendPowerStatusIfChanged( "critical" )
         return True # call me again
 
-    def handlePropertyChange( self, properties ):
+    def handlePropertyChange( self, **properties ):
         if not self.isPresent():
             return False # don't call me again
         logger.debug( "got property change from uevent socket: %s" % properties )
