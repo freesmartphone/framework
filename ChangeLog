@@ -1,3 +1,10 @@
+2009-01-03	Michael Lauer	<mlauer@vanille-media.de>
+
+	* Added new module kobject patterns that wraps uevent and rtnetlink notifications.
+	  This will be used to substitute route some polling in pdp and other modules.
+	  NOTE: To assist netlink parsing, we include the cxutil and cxnet packages
+	  from python-connexion in the framework. For more details, see http://www.radlinux.org/connexion/wiki
+
 2009-01-02	Michael Lauer	<mlauer@vanille-media.de>
 
 	* Removed ListObjectsByInterface from frameworkd objectquery.py. This will

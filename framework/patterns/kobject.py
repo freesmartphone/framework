@@ -11,31 +11,28 @@ Module: services
 """
 
 __version__ = "0.1.0"
+MODULE_NAME = "frameworkd.kobject"
 
 SYS_CLASS_NET = "/sys/class/net"
 
-import netlink
+try:
+    from cxnet.netlink.rtnl import rtnl_msg as RtNetlinkMessage
+    from cxnet.netlink.rtnl import rtnl_msg_parser as RtNetlinkParser
+    from cxnet.netlink.rtnl import RTNLGRP_LINK, RTNLGRP_IPV4_IFADDR, RTNLGRP_IPV4_ROUTE
+except ImportError:
+    raise ImportError( "cxnet not found. Please install python-connexion >= 0.4.6" )
 
 import gobject
 
-import os, time, sys, socket, fcntl, struct
+import os, time, sys, socket, ctypes
+
 try:
     socket.NETLINK_KOBJECT_UEVENT
 except AttributeError:
     socket.NETLINK_KOBJECT_UEVENT = 15 # not present in earlier versions
 
 import logging
-logger = logging.getLogger( "frameworkd.services" )
-
-def indexToInterface( index ):
-    for iface in os.listdir( "/sys/class/net" ):
-        ifindex = int( open( "%s/%s/ifindex" % ( SYS_CLASS_NET, iface ), "r" ).read().strip() )
-        if ifindex == index:
-            return iface
-    raise IndexError( "index not found" )
-
-def ipv4Address( data ):
-    return ".".join( str(ord(octet)) for octet in data )
+logger = logging.getLogger( MODULE_NAME )
 
 #----------------------------------------------------------------------------#
 class KObjectDispatcher( object ):
@@ -84,12 +81,16 @@ class KObjectDispatcher( object ):
             self._watchU = gobject.io_add_watch( self._socketU.fileno(), gobject.IO_IN, self._onActivityU )
 
         try:
-            self._socketR.bind( ( os.getpid(), netlink.RTNLGRP_LINK | netlink.RTNLGRP_IPV4_ROUTE ) )
+            self._socketR.bind( ( os.getpid(), RTNLGRP_LINK | RTNLGRP_IPV4_IFADDR | RTNLGRP_IPV4_ROUTE ) )
         except socket.error, e:
             logger.error( "Could not bind to netlink, kobject notifications will not work." )
         else:
             logger.info( "Successfully bound to netlink route." )
             self._watchR = gobject.io_add_watch( self._socketR.fileno(), gobject.IO_IN, self._onActivityR )
+
+        # for rtnetlink assistance
+        self._libc = ctypes.CDLL( "libc.so.6" )
+        self._parser = RtNetlinkParser()
 
     def __del__( self ):
         """
@@ -110,7 +111,7 @@ class KObjectDispatcher( object ):
         if action == '*':
             self._addMatch( "add", path, callback )
             self._addMatch( "remove", path, callback )
-        elif action in "add remove".split():
+        elif action in "add remove addaddress deladdress addlink dellink addroute delroute".split():
             path = path.replace( '*', '' )
             if path == '' or path.startswith( '/' ):
                 match = "%s@%s" % ( action, path )
@@ -148,7 +149,6 @@ class KObjectDispatcher( object ):
         Run through callbacks and call, if applicable
         """
         data = os.read( source, 512 )
-        print "MSG='%s'" % repr(data)
         logger.debug( "Received kobject notification: %s" % repr(data) )
         parts = data.split( '\0' )
         action, path = parts[0].split( '@' )
@@ -167,49 +167,25 @@ class KObjectDispatcher( object ):
         """
         Run through callbacks and call, if applicable
         """
-        data = os.read( source, 512 )
+        msg = RtNetlinkMessage()
+        l = self._libc.recvfrom( source, ctypes.byref( msg ), ctypes.sizeof( msg ), 0, 0, 0 )
+        result = self._parser.parse( msg )
+        logger.debug( "Received netlink notification: %s" % repr(result) )
 
-        print "MSG='%s'" % repr(data)
-        logger.debug( "Received route notification: %s" % repr(data) )
-
-        msglen, msg_type, flags, seq, pid = struct.unpack( "IHHII", data[:16] )
-        print "len=%d, type=%d, flags=%d, seq=%d, pid=%d" %( msglen, msg_type, flags, seq, pid )
-
-        if msg_type == netlink.RTM_NEWROUTE:
-            if msglen == 44:
-                route = "0.0.0.0"
-            else:
-                route = ipv4Address( data[40:44] )
-            iface = indexToInterface( ord( data[-4] ) )
-            print "addroute=%s; iface=%s;" % ( route, iface )
-        elif msg_type == netlink.RTM_DELROUTE:
-            if msglen == 44:
-                route = "0.0.0.0"
-            else:
-                route = ipv4Address( data[40:44] )
-            iface = indexToInterface( ord( data[-4] ) )
-            print "delroute=%s; iface=%s" % ( route, iface )
-        elif msg_type == netlink.RTM_NEWLINK:
-            iface = data[36:36+8].strip()
-            print "addlink; iface=%s" % iface
-        elif msg_type == netlink.RTM_DELLINK:
-            iface = data[36:36+8].strip()
-            print "dellink; iface=%s" % iface
+        try:
+            action = "%s%s" % ( result["action"], result["type"] )
+            path = ""
+        except KeyError:
+            logger.warning( "Not enough information in netlink notification" )
         else:
-            print "undecoded RTM type %d" % msg_type
-
-        #msgtype = data[24] # 03 iface down, 02 iface up
-        #parts = data.split( '\0' )
-        #action, path = parts[0].split( '@' )
-        #properties = {}
-        #if len( parts ) > 1:
-            #properties = dict( [ x.split('=') for x in parts if '=' in x ] )
-        #print "action='%s', path='%s', properties='%s'" % ( action, path, properties
-        #for match, rules in self._matches.iteritems():
-            ##print "checking %s startswith %s" % ( parts[0], match )
-            #if parts[0].startswith( match ):
-                #for rule in rules:
-                    #rule( action, path, **properties )
+            properties = dict(result)
+            del properties["action"]
+            del properties["type"]
+            for match, rules in self._matches.iteritems():
+                if match[:-1] == action:
+                    for rule in rules:
+                        rule( action, path, **properties )
+        #print result
         return True
 
 #----------------------------------------------------------------------------#
@@ -226,9 +202,26 @@ if __name__ == "__main__":
     def all_callback( *args, **kwargs ):
         print "* callback", args, kwargs
 
+    def add_link_callback( *args, **kwargs ):
+        print "add link callback", args, kwargs
+
+    def del_link_callback( *args, **kwargs ):
+        print "del link callback", args, kwargs
+
+    def add_route_callback( *args, **kwargs ):
+        print "add route callback", args, kwargs
+
+    def del_route_callback( *args, **kwargs ):
+        print "del route callback", args, kwargs
+
     KObjectDispatcher.addMatch( "add", "/class/", class_callback )
     KObjectDispatcher.addMatch( "add", "/devices/", devices_callback )
     KObjectDispatcher.addMatch( "*", "*", all_callback )
+
+    KObjectDispatcher.addMatch( "addlink", "", add_link_callback )
+    KObjectDispatcher.addMatch( "dellink", "", del_link_callback )
+    KObjectDispatcher.addMatch( "addroute", "", add_route_callback )
+    KObjectDispatcher.addMatch( "delroute", "", del_route_callback )
 
     mainloop = gobject.MainLoop()
     mainloop.run()
