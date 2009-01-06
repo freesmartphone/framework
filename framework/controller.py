@@ -2,28 +2,27 @@
 """
 freesmartphone.org Framework Daemon
 
-(C) 2008 Michael 'Mickey' Lauer <mlauer@vanille-media.de>
-(C) 2008 Openmoko, Inc.
+(C) 2008-2009 Michael 'Mickey' Lauer <mlauer@vanille-media.de>
+(C) 2008-2009 Openmoko, Inc.
 GPLv2 or later
 
 Package: framework
 Module: controller
 """
 
-__version__ = "0.9.6"
+MODULE_NAME = "frameworkd.controller"
+__version__ = "0.9.8"
 
 from framework.config import DBUS_BUS_NAME_PREFIX, debug, config, loggingmap
 from framework.patterns import daemon
 import subsystem
 
-import dbus, dbus.service
-from dbus.mainloop.glib import DBusGMainLoop
-from gobject import MainLoop, idle_add
-
+import dbus, dbus.service, dbus.mainloop.glib
+import gobject
 import os, sys, types, time
 
 import logging
-logger = logging.getLogger( "frameworkd.controller" )
+logger = logging.getLogger( MODULE_NAME )
 
 try: # not present in older glib versions
     from gobject import timeout_add_seconds
@@ -54,8 +53,8 @@ class Controller( daemon.Daemon ):
         daemon.Daemon.__init__( self, "/tmp/frameworkd.pid" )
 
         # dbus & glib mainloop
-        DBusGMainLoop( set_as_default=True )
-        self.mainloop = MainLoop()
+        dbus.mainloop.glib.DBusGMainLoop( set_as_default=True )
+        self.mainloop = gobject.MainLoop()
         self.bus = dbus.SystemBus()
 
         # check if there's already something owning our bus name org.freesmartphone.frameworkd
@@ -68,9 +67,8 @@ class Controller( daemon.Daemon ):
         # FIXME remove hardcoded controller knowledge from objects
         self.config = config
 
-        # call me
-        idle_add( self.idle )
-        timeout_add_seconds( 1*60, self.timeout )
+        # call me when idle and in mainloop
+        gobject.idle_add( self.idle )
 
         self._configureLoggers()
         self._handleOverrides()
@@ -126,27 +124,16 @@ class Controller( daemon.Daemon ):
     def idle( self ):
         logger.info( "================== mainloop   entered ===================" )
         logger.info( "startup time was %.2f seconds" % ( time.time() - self.launchTime ) )
-        #self.bus.add_signal_receiver(
-            #self._nameOwnerChanged,
-            #"NameOwnerChanged",
-            #"org.freedesktop.DBus",
-            #"org.freedesktop.DBus",
-            #"/org/freedesktop/DBus",
-            #sender_keyword = None,
-            #destination_keyword = None,
-            #interface_keyword = None,
-            #member_keyword = None,
-            #path_keyword = None )
-
-        return False # don't call me again
+        gobject.timeout_add_seconds( 1*60, self.timeout )
+        return False # mainloop: don't call me again
 
     def timeout( self ):
         """
         Regular timeout.
         """
-        # FIXME add self-monitoring and self-healing
+        # FIXME add self-monitoring and self-healing ;)
         logger.debug( "alive and kicking" )
-        return True # call me again
+        return True # mainloop: call me again
 
     def run( self ):
         """
@@ -176,20 +163,15 @@ class Controller( daemon.Daemon ):
             logging.getLogger( section ).setLevel( loglevel )
 
     def _handleOverrides( self ):
-        self.config = config
-
         for override in self.options.values.overrides:
             try:
                 left, value = override.split( '=', 1 )
                 section, key = left.split( '.', 1 )
             except ValueError:
                 self.options.error( "Wrong format for override values" )
-            if not self.config.has_section( section ):
-                self.config.add_section( section )
-            self.config.set( section, key, value )
-
-    def _nameOwnerChanged( self, name_owner, *args ):
-        pass
+            if not config.has_section( section ):
+                config.add_section( section )
+            config.set( section, key, value )
 
 #----------------------------------------------------------------------------#
 if __name__ == "__main__":

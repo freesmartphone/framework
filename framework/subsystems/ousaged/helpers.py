@@ -1,5 +1,5 @@
 import logging
-logger = logging.getLogger('ousaged')
+logger = logging.getLogger( "ousaged.helpers" )
 
 #============================================================================#
 def readFromFile( path ):
@@ -10,7 +10,7 @@ def readFromFile( path ):
         logger.warning( "(could not read from '%s': %s)" % ( path, e ) )
         return "N/A"
     else:
-        logger.debug( "(read '%s' from '%s')" % ( value, path ) )
+        logger.debug( "(read %s from '%s')" % ( repr(value), path ) )
         return value
 
 #============================================================================#

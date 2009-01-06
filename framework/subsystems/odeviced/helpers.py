@@ -4,7 +4,7 @@ DBUS_PATH_PREFIX = "/org/freesmartphone/Device"
 from string import maketrans
 
 import logging
-logger = logging.getLogger('odeviced')
+logger = logging.getLogger( "odeviced.helpers" )
 
 #============================================================================#
 def readFromFile( path ):
@@ -15,13 +15,13 @@ def readFromFile( path ):
         logger.warning( "(could not read from '%s': %s)" % ( path, e ) )
         return "N/A"
     else:
-        logger.debug( "(read '%s' from '%s')" % ( value, path ) )
+        logger.debug( "(read %s from '%s')" % ( repr(value), path ) )
         return value
 
 #============================================================================#
 def writeToFile( path, value ):
 #============================================================================#
-    logger.debug( "(writing '%s' to '%s')" % ( value, path ) )
+    logger.debug( "(writing %s to '%s')" % ( repr(value), path ) )
     try:
         f = open( path, 'w' )
     except IOError, e:
