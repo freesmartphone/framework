@@ -1,3 +1,9 @@
+2009-01-06	Michael Lauer	<mlauer@vanille-media.de>
+
+	* We now register one dbus connection per subsystem to prevent objects
+	  appearing on all bus names. If you previously only used the bus name
+	  'org.freesmartphone.frameworkd', you have to adjust your code.
+
 2009-01-03	Michael Lauer	<mlauer@vanille-media.de>
 
 	* Added new module kobject patterns that wraps uevent and rtnetlink notifications.

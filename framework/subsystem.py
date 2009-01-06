@@ -27,12 +27,15 @@ class Subsystem( object ):
 #----------------------------------------------------------------------------#
     """
     Encapsulates a frameworkd subsystem exported via dbus.
+
+    Every subsystem has its dedicated dbus bus connection to
+    prevent all objects showing up on all bus names.
     """
     def __init__( self, name, bus, path, controller ):
         logger.debug( "subsystem %s created" % name )
         self.launchTime = time.time()
         self.name = name
-        self.bus = bus
+        self.bus = dbus.bus.BusConnection( dbus.bus.BUS_SYSTEM )
         self.path = path
         self.controller = controller
         self._objects = {}
@@ -119,7 +122,9 @@ class Subsystem( object ):
                 logger.debug( "module %s doesn't need additional busnames" % module )
 
             try:
-                for obj in factory( "%s.%s" % ( DBUS_BUS_NAME_PREFIX, self.name ), self.controller ):
+                # we used to pass the controller to the individual objects, we no longer do but
+                # pass ourself instead
+                for obj in factory( "%s.%s" % ( DBUS_BUS_NAME_PREFIX, self.name ), self ):
                     self._objects[obj.path] = obj
             except Exception, e:
                     logger.exception( "factory method not successfully completed for module %s" % module )
