@@ -2,13 +2,13 @@
 """
 Open Device Daemon - A plugin for input device peripherals
 
-(C) 2008 Michael 'Mickey' Lauer <mlauer@vanille-media.de>
-(C) 2008 Openmoko, Inc.
+(C) 2008-2009 Michael 'Mickey' Lauer <mlauer@vanille-media.de>
+(C) 2008-2009 Openmoko, Inc.
 GPLv2 or later
 """
 
 MODULE_NAME = "odeviced.input"
-__version__ = "0.9.9.4"
+__version__ = "0.9.9.5"
 
 from pyglet.linux_const import EV_ABS
 from pyglet.linux import input_device_supports_event_type
@@ -46,7 +46,7 @@ class Input( dbus.service.Object, asyncworker.AsyncWorker ):
 
     action = { "key": 1, "switch": 5 }
 
-    def __init__( self, bus, config, index, node ):
+    def __init__( self, bus, index, node ):
         self.interface = self.DBUS_INTERFACE
         self.path = DBUS_PATH_PREFIX + "/Input"
         dbus.service.Object.__init__( self, bus, self.path )
@@ -163,7 +163,7 @@ def factory( prefix, controller ):
     """
     Initialize dbus plugin objects.
     """
-    return [ Input( controller.bus, controller.config, 0, "" ) ]
+    return [ Input( controller.bus, 0, "" ) ]
 
 if __name__ == "__main__":
     import dbus

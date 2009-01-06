@@ -14,13 +14,13 @@ Known states and possible use cases:
 - "lock": not receiving input for "very long", lock the display now
 - "suspend": shut down CPU, suspend to RAM or DISK
 
-(C) 2008 Michael 'Mickey' Lauer <mlauer@vanille-media.de>
-(C) 2008 Openmoko, Inc.
+(C) 2008-2009 Michael 'Mickey' Lauer <mlauer@vanille-media.de>
+(C) 2008-2009 Openmoko, Inc.
 GPLv2 or later
 """
 
 MODULE_NAME = "odeviced.idlenotifier"
-__version__ = "0.9.10.0"
+__version__ = "0.9.10.1"
 
 from helpers import DBUS_INTERFACE_PREFIX, DBUS_PATH_PREFIX, readFromFile, writeToFile
 from framework.config import config
@@ -50,7 +50,7 @@ class IdleNotifier( dbus.service.Object ):
     def instance( klass ):
         return klass._instance
 
-    def __init__( self, bus, config, index, extranodes ):
+    def __init__( self, bus, index, extranodes ):
         self.__class__._instance = self
         self.interface = self.DBUS_INTERFACE
         self.path = DBUS_PATH_PREFIX + "/IdleNotifier/%s" % index
@@ -289,7 +289,7 @@ class DisplayResource( resource.Resource ):
 #----------------------------------------------------------------------------#
 def factory( prefix, controller ):
 #----------------------------------------------------------------------------#
-    return [ IdleNotifier( controller.bus, controller.config, 0, [] ),
+    return [ IdleNotifier( controller.bus, 0, [] ),
              CpuResource( controller.bus ),
              DisplayResource( controller.bus ) ]
 
