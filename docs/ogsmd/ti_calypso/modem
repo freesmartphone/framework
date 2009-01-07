@@ -45,6 +45,8 @@
 * Sometimes on outgoing calls %CPI with message type of 9 (setup MO call) wont get sent. For outgoing call progress
   detection one should rather rely on %CPI with message type 3 (call proceed)
 
+* Calypso only checks for flow-control before sending an entire message.
+
 === GSM standards violations ===
 
 * None found yet
