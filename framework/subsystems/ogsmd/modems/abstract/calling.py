@@ -2,8 +2,8 @@
 """
 freesmartphone.org ogsmd - Python Implementation
 
-(C) 2008 Michael 'Mickey' Lauer <mlauer@vanille-media.de>
-(C) 2008 Openmoko, Inc.
+(C) 2008-2009 Michael 'Mickey' Lauer <mlauer@vanille-media.de>
+(C) 2008-2009 Openmoko, Inc.
 GPLv2 or later
 
 Package: ogsmd.modems.abstract
@@ -15,7 +15,8 @@ New style abstract call handling
 __version__ = "0.9.1.2"
 MODULE_NAME = "ogsmd.callhandler"
 
-from ogsmd.gsm import error, const
+from ogsmd import error
+from ogsmd.gsm import const
 
 import logging
 logger = logging.getLogger( MODULE_NAME )

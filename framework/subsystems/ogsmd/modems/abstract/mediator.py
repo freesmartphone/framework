@@ -25,7 +25,8 @@ TODO:
 __version__ = "0.9.11.1"
 MODULE_NAME = "ogsmd.modems.abstract.mediator"
 
-from ogsmd.gsm import error, const, convert
+from ogsmd import error
+from ogsmd.gsm import const, convert
 from ogsmd.gsm.decor import logged
 from ogsmd.helpers import safesplit
 from ogsmd.modems import currentModem
