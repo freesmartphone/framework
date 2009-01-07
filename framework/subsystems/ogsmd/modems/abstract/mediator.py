@@ -22,7 +22,7 @@ TODO:
  * refactor parameter validation
 """
 
-__version__ = "0.9.11.1"
+__version__ = "0.9.11.2"
 MODULE_NAME = "ogsmd.modems.abstract.mediator"
 
 from ogsmd import error
@@ -1493,20 +1493,7 @@ class PdpDeactivateContext( PdpMediator ):
 class PdpGetContextStatus( PdpMediator ):
 #=========================================================================#
     def trigger( self ):
-        self._commchannel.enqueue( '+CGACT?', self.responseFromChannel, self.errorFromChannel )
-
-    def responseFromChannel( self, request, response ):
-        if ( response[-1] == "OK" ):
-            if len( response ) < 2:
-                self._ok( "release" ) # rather 'unknown'?
-            else:
-                # FIXME support more than one context
-                # (once we see the first modem that supports it)
-                number, status = self._rightHandSide( response[-2] ).split( ',' )
-                self._ok( "active" if status == '1' else "release" )
-        else:
-            DeviceMediator.responseFromChannel( self, request, response )
-
+        self._ok( Pdp.getInstance( self._object ).status() )
 #
 # CB Mediators
 #
