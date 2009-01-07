@@ -86,6 +86,12 @@ class Resource( resource.Resource ):
             self.catmap[category] = str( behaviour )
             dbus_ok()
 
+    @dbus.service.method( DBUS_INTERFACE, "", "aa{sv}",
+                          async_callbacks=( "dbus_ok", "dbus_error" ) )
+    def ReturnTest( self, dbus_ok, dbus_error ):
+        d = {"foo":"bar"}
+        dbus_ok( [d,d] )
+
 #============================================================================#
 def factory(prefix, controller):
 #============================================================================#

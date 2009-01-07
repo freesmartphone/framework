@@ -623,7 +623,7 @@ class Device( resource.Resource ):
     def GetServingCellInformation( self, dbus_ok, dbus_error ):
         mediator.MonitorGetServingCellInformation( self, dbus_ok, dbus_error )
 
-    @dbus.service.method( DBUS_INTERFACE_MONITOR, "", "a(a{sv})",
+    @dbus.service.method( DBUS_INTERFACE_MONITOR, "", "aa{sv}",
                           async_callbacks=( "dbus_ok", "dbus_error" ) )
     @resource.checkedmethod
     def GetNeighbourCellInformation( self, dbus_ok, dbus_error ):
