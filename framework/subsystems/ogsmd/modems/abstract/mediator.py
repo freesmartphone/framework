@@ -259,6 +259,15 @@ class DebugMediator( AbstractMediator, AbstractYieldSupport ):
         self._commchannel = self._object.modem.communicationChannel( "DebugMediator" )
         AbstractYieldSupport.__init__( self, *args, **kwargs )
 
+#=========================================================================#
+class MonitorMediator( AbstractMediator, AbstractYieldSupport ):
+#=========================================================================#
+    def __init__( self, *args, **kwargs ):
+        AbstractMediator.__init__( self, *args, **kwargs )
+        # this is a bit ugly, but how should we get the channel elsewhere?
+        self._commchannel = self._object.modem.communicationChannel( "MonitorMediator" )
+        AbstractYieldSupport.__init__( self, *args, **kwargs )
+
 #
 # import singletons
 #
@@ -1543,6 +1552,22 @@ class CbSetCellBroadcastSubscriptions( CbMediator ):
         else:
             message = '0,"%s","0-3,5"' % self.channels
         self._commchannel.enqueue( "+CSCB=%s" % message, self.responseFromChannel, self.errorFromChannel )
+
+#
+# Monitor Mediators
+#
+
+#=========================================================================#
+class MonitorGetServingCellInformation( MonitorMediator ):
+#=========================================================================#
+    def trigger( self ):
+        self._error( error.UnsupportedCommand( "org.freesmartphone.GSM.Monitor.GetServingCellInformation" ) )
+
+#=========================================================================#
+class MonitorGetNeighbourCellInformation( MonitorMediator ):
+#=========================================================================#
+    def trigger( self ):
+        self._error( error.UnsupportedCommand( "org.freesmartphone.GSM.Monitor.GetNeighbourCellInformation" ) )
 
 #
 # Debug Mediators

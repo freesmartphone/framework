@@ -10,7 +10,7 @@ Interactive console for the freesmartphone.org framework
 GPLv2 or later
 """
 
-__version__ = "0.9.1.6"
+__version__ = "0.9.1.7"
 
 import dbus.service
 import dbus.mainloop.glib
@@ -70,7 +70,11 @@ def getInterface( busname, objectpath, interface ):
 #----------------------------------------------------------------------------#
 def getObjectsForInterface( interface ):
 #----------------------------------------------------------------------------#
-    paths = dbus_hlid.ListObjectsByInterface( "org.freesmartphone.frameworkd", interface, dbus_interface="org.freesmartphone.DBus" )
+    try:
+        paths = dbus_hlid.ListObjectsByInterface( "org.freesmartphone.frameworkd", interface, dbus_interface="org.freesmartphone.DBus" )
+    except dbus.DBusException, e:
+        print "DBus Exception. dbus-hlid not installed"
+        paths = []
     result = {}
     for path in paths:
         result[str(path)] = getInterface( "org.freesmartphone.frameworkd", path, interface )
@@ -115,24 +119,6 @@ frameworkiface = getInterface( \
     "/org/freesmartphone/Framework",
     "org.freesmartphone.Framework" )
 
-# gsm data
-gsmdata = getInterface( \
-    "org.freesmartphone.ogsmd",
-    "/org/freesmartphone/GSM/Server",
-    "org.freesmartphone.GSM.Data" )
-
-# gsm homezone
-gsmhz = getInterface( \
-    "org.freesmartphone.ogsmd",
-    "/org/freesmartphone/GSM/Server",
-    "org.freesmartphone.GSM.HZ" )
-
-# gsm phone
-gsmphone = getInterface( \
-    "org.freesmartphone.ogsmd",
-    "/org/freesmartphone/GSM/Server",
-    "org.freesmartphone.GSM.Phone" )
-
 # odeviced objects
 devaudio = getInterface( \
     "org.freesmartphone.odeviced",
@@ -156,7 +142,7 @@ except IndexError:
     pass
 leds = getObjectsForInterface( "org.freesmartphone.Device.LED" ).values()
 
-# ogsmd
+# ogsmd device objects
 gsmdevice = getInterface( \
     "org.freesmartphone.ogsmd",
     "/org/freesmartphone/GSM/Device",
@@ -181,6 +167,10 @@ gsmpdp = getInterface( \
     "org.freesmartphone.ogsmd",
     "/org/freesmartphone/GSM/Device",
     "org.freesmartphone.GSM.PDP" )
+gsmmonitor = getInterface( \
+    "org.freesmartphone.ogsmd",
+    "/org/freesmartphone/GSM/Device",
+    "org.freesmartphone.GSM.Monitor" )
 gsmtest = getInterface( \
     "org.freesmartphone.ogsmd",
     "/org/freesmartphone/GSM/Device",
@@ -189,6 +179,20 @@ gsmdebug = getInterface( \
     "org.freesmartphone.ogsmd",
     "/org/freesmartphone/GSM/Device",
     "org.freesmartphone.GSM.Debug" )
+
+# ogsmd server objects
+gsmdata = getInterface( \
+    "org.freesmartphone.ogsmd",
+    "/org/freesmartphone/GSM/Server",
+    "org.freesmartphone.GSM.Data" )
+gsmhz = getInterface( \
+    "org.freesmartphone.ogsmd",
+    "/org/freesmartphone/GSM/Server",
+    "org.freesmartphone.GSM.HZ" )
+gsmphone = getInterface( \
+    "org.freesmartphone.ogsmd",
+    "/org/freesmartphone/GSM/Server",
+    "org.freesmartphone.GSM.Phone" )
 
 # ogps
 gpsaccuracy = getInterface( \

@@ -11,9 +11,10 @@ Module: device
 """
 
 MODULE_NAME = "ogsmd.device"
-__version__ = "0.9.10.0"
+__version__ = "0.9.10.1"
 
 from framework import resource
+from framework.config import config
 from modems import modemFactory, allModems, setCurrentModem
 
 import dbus
@@ -30,6 +31,7 @@ DBUS_INTERFACE_NETWORK = "org.freesmartphone.GSM.Network"
 DBUS_INTERFACE_CALL = "org.freesmartphone.GSM.Call"
 DBUS_INTERFACE_PDP = "org.freesmartphone.GSM.PDP"
 DBUS_INTERFACE_CB = "org.freesmartphone.GSM.CB"
+DBUS_INTERFACE_MONITOR = "org.freesmartphone.GSM.Monitor"
 DBUS_INTERFACE_RESOURCE = "org.freesmartphone.Resource"
 
 DBUS_INTERFACE_DEBUG = "org.freesmartphone.GSM.Debug"
@@ -613,6 +615,21 @@ class Device( resource.Resource ):
         logger.info( "org.freesmartphone.GSM.CB.IncomingCellBroadcast: %s %s", channel, data )
 
     #
+    # dbus org.freesmartphone.GSM.Monitor
+    #
+    @dbus.service.method( DBUS_INTERFACE_MONITOR, "", "a{sv}",
+                          async_callbacks=( "dbus_ok", "dbus_error" ) )
+    @resource.checkedmethod
+    def GetServingCellInformation( self, dbus_ok, dbus_error ):
+        mediator.MonitorGetServingCellInformation( self, dbus_ok, dbus_error )
+
+    @dbus.service.method( DBUS_INTERFACE_MONITOR, "", "a(a{sv})",
+                          async_callbacks=( "dbus_ok", "dbus_error" ) )
+    @resource.checkedmethod
+    def GetNeighbourCellInformation( self, dbus_ok, dbus_error ):
+        mediator.MonitorGetNeighbourCellInformation( self, dbus_ok, dbus_error )
+
+    #
     # dbus org.freesmartphone.GSM.Debug
     # WARNING: Do not rely on that, it might vanish any time
     #
@@ -649,7 +666,7 @@ class Device( resource.Resource ):
 def factory( prefix, controller ):
 #=========================================================================#
     sys.path.append( os.path.dirname( os.path.dirname( __file__ ) ) )
-    modemtype = controller.config.getValue( "ogsmd", "modemtype", "unspecified" )
+    modemtype = config.getValue( "ogsmd", "modemtype", "unspecified" )
     device = Device( controller.bus, modemtype )
     return [ device ]
 
