@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: UTF-8 -*-
 """
-Open Device Daemon - Framework Support Object
+freesmartphone.org: Framework Support Object
 
 (C) 2008 Michael 'Mickey' Lauer <mlauer@vanille-media.de>
 (C) 2008 Jan 'Shoragan' Lübbe <jluebbe@lasnet.de>
@@ -10,7 +10,12 @@ Open Device Daemon - Framework Support Object
 GPLv2 or later
 """
 
-__version__ = "0.5.3"
+__version__ = "0.6.0"
+
+try:
+    from .__version__ import version
+except ImportError:
+    version = "inline"
 
 from .introspection import process_introspection_data
 from .config import DBUS_INTERFACE_PREFIX
@@ -160,6 +165,10 @@ class Framework( dbus.service.Object ):
     @dbus.service.method( DBUS_INTERFACE_FRAMEWORK, "", "" )
     def Shutdown( self ):
         gobject.idle_add( self._shutdownFramework )
+
+    @dbus.service.method( DBUS_INTERFACE_FRAMEWORK, "", "s" )
+    def GetVersion( self ):
+        return version
 
 #----------------------------------------------------------------------------#
 def factory( prefix, controller ):
