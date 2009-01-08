@@ -85,10 +85,11 @@ class CSVContactBackend(Backend):
             
             for line in file:
                 if line.find('=') == -1: continue
-                
+                in_line = line.strip()
+
                 # Break CSV line up into key/value pairs, then assign them to the new entry
                 entry = {}
-                pairs = line.split(',')
+                pairs = in_line.split(',')
                 for pair in pairs:
                     (key, value) = pair.split('=')
                     entry[key] = value
