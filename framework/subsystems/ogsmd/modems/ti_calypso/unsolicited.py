@@ -9,7 +9,10 @@ GPLv2 or later
 
 __version__ = "0.8.3"
 
+from .channel import createDspCommand
+
 from framework.config import config
+from ogsmd.modems import currentModem
 from ogsmd.modems.abstract.unsolicited import AbstractUnsolicitedResponseDelegate
 from ogsmd.gsm import const
 from ogsmd.helpers import safesplit
@@ -65,7 +68,6 @@ class UnsolicitedResponseDelegate( AbstractUnsolicitedResponseDelegate ):
             logger.warning( "Recamping bug occured, but TI Calypso is still out of deep sleep mode." )
             gobject.source_remove( self.recampingTimeout )
         self.recampingTimeout = gobject.timeout_add_seconds( 60*60, self._reactivateDeepSleep )
-
 
     def _reactivateDeepSleep( self ):
         logger.info( "Reenabling deep sleep mode on TI Calypso (giving it another chance)" )
@@ -247,8 +249,12 @@ class UnsolicitedResponseDelegate( AbstractUnsolicitedResponseDelegate ):
             info.update( { "status": "outgoing" } )
         elif msgType == "3": # Sometimes setup is not sent?!
             info.update( { "status": info["direction"] } )
-        if msgType in ( "013689" ):
+        if msgType in "013689":
             self._callHandler.statusChangeFromNetwork( int(callId), info )
+
+        # DSP bandaid
+        if msgType in "34":
+            currentModem().channel( "MiscMediator" ).enqueue( createDspCommand() )
 
     # %CPRI: 1,2
     def percentCPRI( self, righthandside ):

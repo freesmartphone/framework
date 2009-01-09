@@ -71,6 +71,10 @@ AEC_NR_MAP = { \
     "none":             "0001",
     }
 
+def createDspCommand():
+    dspMode = config.getValue( "ogsmd", "ti_calypso_dsp_mode", "aec+nr" )
+    return "%N" + AEC_NR_MAP.get( dspMode, "aec+nr" )
+
 #=========================================================================#
 class CalypsoModemChannel( AbstractModemChannel ):
 #=========================================================================#
@@ -264,8 +268,7 @@ class UnsolicitedResponseChannel( CalypsoModemChannel ):
         else:
             c.append( "%SLEEP=4" ) # sleep mode: enable all
 
-        dspMode = config.getValue( "ogsmd", "ti_calypso_dsp_mode", "aec+nr" )
-        c.append( "%N" + AEC_NR_MAP.get( dspMode, "aec+nr" ) )
+        c.append( createDspCommand() )
 
         c = self._commands["sim"]
 

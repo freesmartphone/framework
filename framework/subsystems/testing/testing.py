@@ -92,6 +92,16 @@ class Resource( resource.Resource ):
         d = {"foo":"bar"}
         dbus_ok( [d,d] )
 
+    @dbus.service.method( DBUS_INTERFACE, "", "",
+                          async_callbacks=( "dbus_ok", "dbus_error" ) )
+    def SignalTest( self, dbus_ok, dbus_error ):
+        self.Test( dict(yo="kurt") )
+        dbus_ok()
+
+    @dbus.service.signal( DBUS_INTERFACE, "a{sv}" )
+    def Test( self, asv ):
+        logger.info( "emitting signal" )
+
 #============================================================================#
 def factory(prefix, controller):
 #============================================================================#

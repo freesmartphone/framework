@@ -1,3 +1,7 @@
+2009-01-09	Michael Lauer	<mlauer@vanille-media.de>
+
+	* [ogsmd] [TI CALYPSO] DSP command gets now resent before call setup.
+
 2009-01-07	Michael Lauer	<mlauer@vanille-media.de>
 
 	* [ogsmd] Implemented org.freesmartphone.GSM.Monitoring.* as stub
