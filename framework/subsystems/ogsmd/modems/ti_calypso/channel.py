@@ -13,7 +13,7 @@ Module: channel
 TI Calypso specific modem channels
 """
 
-__version__ = "0.9.10.0"
+__version__ = "0.9.10.1"
 
 from framework.config import config
 
@@ -176,27 +176,6 @@ class CalypsoModemChannel( AbstractModemChannel ):
         logger.debug( "Closing the modem..." )
         self._modem.reinit()
 
-    #
-    # Do not send the reinit commands right after suspend, give us a bit time
-    # to drain the buffer queue, as we might have been waken from GSM
-    # FIXME At the end of the day, this is a workaround that tries to reduce
-    # the possibilities of unsolicited responses woven in solicited responses.
-    # We need to be crystal-clear here in realizing that this is a bandaid not
-    # only for a conceptual problem with the AT protocol, but also our imperfect
-    # AT lowlevel parser. If we would give the parser a list for every valid answer
-    # forevery request, we would be able to identify unsolicited responses woven
-    # in solicited reponses with much more confidence.
-    # Note to self: Remember this for the forthcoming reimplementation of ogsmsd in Vala :)
-    # :M:
-
-    def resume( self, ok_callback, error_callback ):
-        logger.debug( "TI Calypso specific resume handling... sending reinit in 5 seconds..." )
-        def done( request, response, self=self, ok_callback=ok_callback ):
-            return False # mainloop: don't call me again
-        # FIXME clean timer if we suspend again before having the commands sent
-        gobject.timeout_add_seconds( 10, self._sendCommandsNotifyDone, "resume", done )
-        ok_callback( self )
-
 #=========================================================================#
 class CallChannel( CalypsoModemChannel ):
 #=========================================================================#
@@ -234,6 +213,7 @@ class UnsolicitedResponseChannel( CalypsoModemChannel ):
 #=========================================================================#
     def __init__( self, *args, **kwargs ):
         CalypsoModemChannel.__init__( self, *args, **kwargs )
+        self._reenableUnsolicitedTimer = None
 
     def _populateCommands( self ):
         CalypsoModemChannel._populateCommands( self )
@@ -311,4 +291,32 @@ class UnsolicitedResponseChannel( CalypsoModemChannel ):
             if not self.delegate.recampingTimeout is None:
                 gobject.source_remove( self.delegate.recampingTimeout )
                 self.delegate.recampingTimeout = None
-        super( UnsolicitedResponseChannel, self ).close()
+        CalypsoModemChannel.close( self )
+
+    #
+    # Do not send the reinit commands right after suspend, give us a bit time
+    # to drain the buffer queue, as we might have been waken from GSM
+    # FIXME At the end of the day, this is a workaround that tries to reduce
+    # the possibilities of unsolicited responses woven in solicited responses.
+    # We need to be crystal-clear here in realizing that this is a bandaid not
+    # only for a conceptual problem with the AT protocol, but also our imperfect
+    # AT lowlevel parser. If we would give the parser a list for every valid answer
+    # forevery request, we would be able to identify unsolicited responses woven
+    # in solicited reponses with much more confidence.
+    # Note to self: Remember this for the forthcoming reimplementation of ogsmsd in Vala :)
+    # :M:
+
+    def resume( self, ok_callback, error_callback ):
+        logger.debug( "TI Calypso specific resume handling... sending reinit in 5 seconds..." )
+        def done( request, response, self=self, ok_callback=ok_callback ):
+            self.reenableUnsolicitedTimer = None
+            return False # mainloop: don't call me again
+        self._reenableUnsolicitedTimer = gobject.timeout_add_seconds( 10, self._sendCommandsNotifyDone, "resume", done )
+        ok_callback( self )
+
+    def suspend( self, ok_callback, error_callback ):
+        # check whether we suspend before the unsolicited messages have been reenabled
+        if self._reenableUnsolicitedTimer is not None:
+            logger.debug( "TI Calypso specific resume handling... killing reenable-unsolicited-timer." )
+            gobject.source_remove( self._reenableUnsolicitedTimer )
+        ok_callback( self )
