@@ -11,12 +11,12 @@ Module: powercontrol_neo
 """
 
 MODULE_NAME = "odeviced.powercontrol_neo"
-__version__ = "0.7.2"
+__version__ = "0.7.3"
 
 from helpers import readFromFile, writeToFile
 from powercontrol import GenericPowerControl, ResourceAwarePowerControl
 
-import os, sys
+import os, subprocess, sys
 
 import logging
 logger = logging.getLogger( MODULE_NAME )
@@ -71,7 +71,12 @@ class NeoWifiPowerControl( ResourceAwarePowerControl ):
         ResourceAwarePowerControl.__init__( self, bus, "WiFi", node )
 
     def setPower( self, power ):
-        wireless.wifiSetOn( "eth0", 1 if power else 0 )
+        if power:
+            subprocess.call( "wmiconfig -i eth0 --wlan enable".split() )
+            wireless.wifiSetOn( "eth0", 1 )
+        else:
+            wireless.wifiSetOn( "eth0", 0 )
+            subprocess.call( "wmiconfig -i eth0 --wlan disable".split() )
 
     def getPower( self ):
         return wireless.wifiIsOn( "eth0" )
