@@ -18,7 +18,7 @@ import dbus.service
 
 import gobject
 
-import os, time, sys
+import os, time, sys, fcntl
 
 import logging
 logger = logging.getLogger( MODULE_NAME )
