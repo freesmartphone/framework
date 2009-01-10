@@ -13,7 +13,7 @@ Module: channel
 TI Calypso specific modem channels
 """
 
-__version__ = "0.9.10.1"
+__version__ = "0.9.10.2"
 
 from framework.config import config
 
@@ -319,4 +319,4 @@ class UnsolicitedResponseChannel( CalypsoModemChannel ):
         if self._reenableUnsolicitedTimer is not None:
             logger.debug( "TI Calypso specific resume handling... killing reenable-unsolicited-timer." )
             gobject.source_remove( self._reenableUnsolicitedTimer )
-        ok_callback( self )
+        CalypsoModemChannel.suspend( self, ok_callback, error_callback )
