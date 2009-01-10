@@ -14,7 +14,7 @@ This module provides communication channel abstractions that
 transport their data over a (virtual) serial line.
 """
 
-__version__ = "0.9.9.3"
+__version__ = "0.9.9.4"
 MODULE_NAME = "ogsmd.channel"
 
 from ogsmd.gsm.decor import logged
@@ -216,6 +216,8 @@ class VirtualChannel( object ):
         assert source == self.serial.fd, "ready to read on bogus source"
         assert condition == gobject.IO_IN, "ready to read on bogus condition"
 
+        logger.debug( "%s: _readyToRead: watch timeout = %s", self, repr( self.watchTimeout ) )
+
         self._hookPreReading()
 
         try:
@@ -234,6 +236,8 @@ class VirtualChannel( object ):
         """Called, if source is ready to receive data."""
         assert source == self.serial.fd, "ready to write on bogus source"
         assert condition == gobject.IO_OUT, "ready to write on bogus condition"
+
+        logger.debug( "%s: _readyToSend: watch timeout = %s", self, repr( self.watchTimeout ) )
 
         self._hookPreSending()
         self.readyToSend()
@@ -286,7 +290,6 @@ class QueuedVirtualChannel( VirtualChannel ):
         """
         VirtualChannel.__init__( self, *args, **kwargs )
         self.q = PeekholeQueue()
-
         self.installParser()
 
         self.watchTimeout = None
@@ -344,23 +347,23 @@ class QueuedVirtualChannel( VirtualChannel ):
         """
         Reimplemented for internal purposes.
         """
-        if __debug__: logger.debug( "%s queue is: %s" % ( repr(self), repr(self.q.queue) ) )
         if self.q.empty():
-            if __debug__: logger.debug( "%s: nothing in request queue" % repr(self) )
             self.watchReadyToSend = None
             return False
 
         logger.debug( "%s: sending %d bytes: %s" % ( repr(self), len(self.q.peek()[0]), repr(self.q.peek()[0]) ) )
-        self.serial.write( self.q.peek()[0] ) # channel data
-        if self.q.peek()[3]: # channel timeout
+        self.serial.write( self.q.peek()[0] ) # 0 = request data
+        if self.q.peek()[3]: # 3 = request timeout
             self.watchTimeout = gobject.timeout_add_seconds( self.q.peek()[3], self._handleCommandTimeout )
+        else:
+            self.watchTimeout = gobject.timeout_add_seconds( self.timeout, self._handleCommandTimeout )
         return False
 
     def readyToRead( self, data ):
         """
         Reimplemented for internal purposes.
         """
-        self.parser.feed( data, not self.q.empty() )
+        self.parser.feed( data, self.isWaitingForResponse() )
 
     def handleUnsolicitedResponse( self, response ):
         """
@@ -437,15 +440,15 @@ class QueuedVirtualChannel( VirtualChannel ):
     #@logged
     def _handleUnsolicitedResponse( self, response ):
         """
-        Called, when an unsolicited response has been parsed.
+        Called from parser, when an unsolicited response has been parsed.
         """
         self.handleUnsolicitedResponse( response )
-        return not self.q.empty() # parser needs to know the current status
+        return self.isWaitingForResponse() # parser needs to know the current status
 
     #@logged
     def _handleResponseToRequest( self, response ):
         """
-        Called, when a response to a request has been parsed.
+        Called from parser, when a response to a request has been parsed.
         """
         # stop timer
         if self.watchTimeout is not None:
@@ -457,19 +460,21 @@ class QueuedVirtualChannel( VirtualChannel ):
         # relaunch
         if not self.watchReadyToSend:
             self.watchReadyToSend = gobject.io_add_watch( self.serial.fd, gobject.IO_OUT, self._readyToSend )
-        return not self.q.empty() # parser needs to know the current status
+        return self.isWaitingForResponse() # parser needs to know the current status
 
     #@logged
     def _handleCommandTimeout( self ):
         """
-        Called, when a command does not get a response within a certain timeout.
+        Called from mainloop, when a command does not get a response within a certain timeout.
 
         Here, we need to send an EOF to cancel the current command. If we would not,
         then an eventual response (outside the timeout interval) would be misrecognized
         as an unsolicited response.
         """
+        self.watchTimeout = None
         self.serial.write( "\x1A" )
         self.handleCommandTimeout( self.q.get() )
+        return False
 
 #=========================================================================#
 class DelegateChannel( QueuedVirtualChannel ):
