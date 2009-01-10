@@ -7,7 +7,7 @@ The Open GSM Daemon - Python Implementation
 GPLv2 or later
 """
 
-__version__ = "0.8.3"
+__version__ = "0.8.4"
 
 from .channel import createDspCommand
 
@@ -102,10 +102,16 @@ class UnsolicitedResponseDelegate( AbstractUnsolicitedResponseDelegate ):
         self.lastStatus = register
         self.lastTime = time.time()
 
-    # +CRING is only used to trigger a status update
+    # +CRING is only honored, if we didn't receive %CPI
     def plusCRING( self, calltype ):
-        pass
-        # self._callHandler.ring()
+        status = self._callHandler.status()
+        if "incoming" in status:
+            # looks like %CPI has been received before, ignoring
+            logger.debug( "+CRING, but call status already ok: ignoring" )
+            return
+        else:
+            logger.warning( "+CRING without previous %CPI: alerting" )
+            AbstractUnsolicitedResponseDelegate.plusCRING( self, calltype )
 
     # +CLIP is not used on TI Calypso. See %CPI
     def plusCLIP( self, righthandside ):

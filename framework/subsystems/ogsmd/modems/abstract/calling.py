@@ -153,7 +153,9 @@ class CallHandler( object ):
         CallListCalls( Object.instance(), self.syncStatus_ok, self.syncStatus_err )
 
     def syncStatus_ok( self, calls ):
-        assert len( calls ) == 1, "unhandled case"
+        if len( calls ) > 1:
+            logger.warning( "unhandled case" )
+            return
         # synthesize status change from network
         callid, status, properties = calls[0]
         self.statusChangeFromNetwork( callid, {"status": status} )
