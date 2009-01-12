@@ -203,6 +203,7 @@ class SMS(object):
         self.dcs_mwi_type = None
         self.dcs_mclass = None
         self.scts = []
+        self.error = []
 
     def _parse_userdata( self, ud_len, bytes ):
         offset = 0
@@ -239,7 +240,11 @@ class SMS(object):
             userdata = userdata[:septets]
 
         if not self.dcs_alphabet is None:
-            self.ud = userdata.decode( self.dcs_alphabet )
+            try:
+                self.ud = userdata.decode( self.dcs_alphabet )
+            except UnicodeError, e:
+                self.error.append("Userdata corrupt")
+                self.ud = ""
         else:
             self.ud = userdata
 
@@ -334,6 +339,8 @@ class SMS(object):
         map["type"] = self.type
         map["pid"] = self.pid
         map["alphabet"] = SMS_ALPHABET_TO_ENCODING.revlookup(self.dcs_alphabet)
+        if len(self.error) > 0:
+            map["error"] = self.error
 
         if self.type == "sms-deliver" or self.type == "sms-submit-report":
             # FIXME Return correct time with timezoneinfo
