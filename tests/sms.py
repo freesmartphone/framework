@@ -140,6 +140,13 @@ class SMSTests(unittest.TestCase):
         self.assert_(sms.pdu() == "00410006919421430A08160500030A02010055006E00690063006F006400652320",
                 "SMS UCS2 alphabet encoding failed, PDU:\n%s" % sms.pdu())
 
+    def test_invalid_scts_date_in_pdu(self):
+        """Ensure invalid dates don't break SMS decoding"""
+
+        invalid_date_pdu = "07914140279505F74404D011002000803190819234000704010200018000"
+        sms = SMS.decode(invalid_date_pdu, "sms-deliver")
+        self.assert_(sms.properties["timestamp"] == "Tue Jan  1 00:00:00 1980 +0000")
+        self.assert_(sms.properties.has_key("error"))
 
 if __name__ == '__main__':
 
