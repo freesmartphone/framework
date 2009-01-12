@@ -12,7 +12,7 @@ Module: pdu
 
 """
 from ogsmd.gsm.convert import *
-from ogsmd.gsm.const import CB_PDU_DCS_LANGUAGE, TP_MTI_INCOMING, TP_MTI_OUTGOING
+from ogsmd.gsm.const import CB_PDU_DCS_LANGUAGE, TP_MTI_INCOMING, TP_MTI_OUTGOING, SMS_ALPHABET_TO_ENCODING
 import math
 
 class SMSError(Exception):
@@ -202,6 +202,7 @@ class SMS(object):
         self.dcs_mwi_indication = None
         self.dcs_mwi_type = None
         self.dcs_mclass = None
+        self.scts = []
 
     def _parse_userdata( self, ud_len, bytes ):
         offset = 0
@@ -331,6 +332,9 @@ class SMS(object):
     def _getProperties( self ):
         map = {}
         map["type"] = self.type
+        map["pid"] = self.pid
+        SMS_ALPHABET_TO_ENCODING.index(self.dcs_alphabet)
+
         if self.type == "sms-deliver" or self.type == "sms-submit-report":
             # FIXME Return correct time with timezoneinfo
             map["timestamp"] = self.scts[0].ctime() + " %+05i" % (self.scts[1]*100)
@@ -352,6 +356,10 @@ class SMS(object):
                     self.udh[0] = [ v, properties["csm_num"], properties["csm_seq"] ]
             if k == "port":
                 self.udh[4] = [v]
+            if k == "pid":
+                self.pid = v
+            if k == "alphabet":
+                self.dcs_alphabet = SMS_ALPHABET_TO_ENCODING[v]
 
     properties = property( _getProperties, _setProperties )
 
@@ -522,6 +530,7 @@ class CellBroadcast(SMS):
         if self.dcs_language_indication is None:
             group = 0x01
             dcs = 0x00
+            # FIXME: Why is language ucs2?
             if self.dcs_language == "utf_16_be":
                 dcs = 0x01
             dcs = group << 4 | dcs

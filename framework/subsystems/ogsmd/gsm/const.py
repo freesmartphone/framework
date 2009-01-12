@@ -724,6 +724,13 @@ SMS_PDU_STATUS_IN = { \
 }
 
 #=========================================================================#
+SMS_ALPHABET_TO_ENCODING = { \
+    "gsm_default": "gsm_default",
+    "ucs2": "utf_16_be",
+    "binary": None,
+}
+
+#=========================================================================#
 CB_PDU_DCS_LANGUAGE = [ "German", "English", "Italian", "French", "Spanish",
         "Dutch", "Swedish", "Danish", "Portuguese", "Finnish",
         "Norwegian", "Greek", "Turkish", "Hungarian", "Polish", None]
