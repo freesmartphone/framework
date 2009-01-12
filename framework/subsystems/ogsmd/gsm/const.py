@@ -724,11 +724,11 @@ SMS_PDU_STATUS_IN = { \
 }
 
 #=========================================================================#
-SMS_ALPHABET_TO_ENCODING = { \
+SMS_ALPHABET_TO_ENCODING = BiDict( { \
     "gsm_default": "gsm_default",
     "ucs2": "utf_16_be",
     "binary": None,
-}
+} )
 
 #=========================================================================#
 CB_PDU_DCS_LANGUAGE = [ "German", "English", "Italian", "French", "Spanish",

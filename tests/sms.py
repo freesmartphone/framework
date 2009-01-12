@@ -119,6 +119,9 @@ class SMSTests(unittest.TestCase):
 
         self.assert_(sms.pdu() == "00410006919421430A000B0500030A0201A8E5391D",
                 "SMS encoding incorrect, PDU is %s" %sms.pdu())
+        self.assert_(sms.properties == { "pid": 10, "csm_id": 10, "csm_num": 2, "csm_seq" : 1,
+            "alphabet": "gsm_default", "type": "sms-submit"}, "SMS properties not as expected: %s" %
+            sms.properties)
 
         # Extended plane
         sms.ud = "{}[]\\"
@@ -129,8 +132,9 @@ class SMSTests(unittest.TestCase):
                 "SMS extended alphabet encoding failed, PDU:\n%s" % sms.pdu())
 
         # UCS-2
+        sms.properties = { "alphabet": "ucs2" }
         sms.ud = u'Unicode\u2320'
-        self.assert_(sms.dcs_alphabet == "ucs2",
+        self.assert_(sms.dcs_alphabet == "utf_16_be",
                 "SMS UCS2 alphabet encoding failed, alphabet used is: %s"
                 % sms.dcs_alphabet)
         self.assert_(sms.pdu() == "00410006919421430A08160500030A02010055006E00690063006F006400652320",

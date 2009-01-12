@@ -333,7 +333,7 @@ class SMS(object):
         map = {}
         map["type"] = self.type
         map["pid"] = self.pid
-        SMS_ALPHABET_TO_ENCODING.index(self.dcs_alphabet)
+        map["alphabet"] = SMS_ALPHABET_TO_ENCODING.revlookup(self.dcs_alphabet)
 
         if self.type == "sms-deliver" or self.type == "sms-submit-report":
             # FIXME Return correct time with timezoneinfo
