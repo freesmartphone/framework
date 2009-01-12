@@ -160,7 +160,13 @@ class SMS(object):
 
         if sms.type == "sms-deliver" or sms.type == "sms-submit-report":
             # SCTS - Service Centre Time Stamp
-            sms.scts = decodePDUTime( bytes[offset:offset+7] )
+            try:
+                sms.scts = decodePDUTime( bytes[offset:offset+7] )
+            except ValueError, e:
+                sms.error.append("Service Center Timestamp invalid")
+                from datetime import datetime
+                sms.scts = (datetime(1980, 01, 01, 00, 00, 00), 0)
+
             offset += 7
         elif sms.type == "sms-submit":
             # VP - Validity Period FIXME
@@ -170,7 +176,13 @@ class SMS(object):
                 offset += 1
             elif sms.pdu_vpf == 3:
                 # Absolute
-                sms.vp = decodePDUTime( bytes[offset:offset+7] )
+                try:
+                    sms.vp = decodePDUTime( bytes[offset:offset+7] )
+                except ValueError, e:
+                    sms.error.append("Validity Period invalid")
+                    from datetime import datetime
+                    sms.vp = (datetime(1980, 01, 01, 00, 00, 00), 0)
+
                 offset += 7
 
         if sms.type == "sms-submit-report" and not sms.pdu_udli:

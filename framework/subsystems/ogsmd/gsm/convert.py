@@ -66,15 +66,20 @@ def bcd_encode(number):
 #=========================================================================#
 def decodePDUTime(bs):
 #=========================================================================#
-  bs = [((n & 0xf) * 10) + (n >> 4) for n in bs]
-  if bs[0] >= 90: # I don't know if this is the right cut-off point...
-    year = 1900 + bs[0]
+  [year, month, day, hour, minute, second, timezone] = \
+                  [((n & 0xf) * 10) + (n >> 4) for n in bs]
+  if year >= 90: # I don't know if this is the right cut-off point...
+    year += 1900
   else:
-    year = 2000 + bs[0]
-  timezone = bs[6]
+    year += 2000
   sign = (timezone >> 7) * 2 - 1
   zone = (timezone & 0x7f) / -4. * sign
-  return ( datetime(year, bs[1], bs[2], bs[3], bs[4], bs[5]), zone )
+
+  # Invalid dates will generate a ValueError here which needs catching in
+  # higher levels
+  result = datetime(year, month, day, hour, minute, second)
+
+  return ( result, zone )
 
 #=========================================================================#
 def encodePDUTime(timeobj):
