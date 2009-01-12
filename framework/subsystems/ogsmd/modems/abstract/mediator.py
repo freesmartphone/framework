@@ -866,7 +866,7 @@ class SimRetrieveMessagebook( SimMediator ):
         # if you request a category for which no messages are found
         if response[-1] in ( "OK", "+CMS ERROR: 321" ):
             result = []
-            curmsg = None
+            inbody = False
             for line in response[:-1]:
                 #print "parsing line", line
                 if line.startswith( "+CMGL" ):
@@ -879,11 +879,20 @@ class SimRetrieveMessagebook( SimMediator ):
                     else:
                       direction = "sms-submit"
                     length = int(header.groupdict()["pdulen"])
-                else:
+                    inbody = True
+                elif inbody == True:
                     # Now we decode the actual PDU
-
-                    sms = ogsmd.gsm.sms.SMS.decode( line, direction )
-                    result.append( ( index, status, str(sms.oa), sms.ud, sms.properties ) )
+                    inbody = False
+                    try:
+                        sms = ogsmd.gsm.sms.SMS.decode( line, direction )
+                    except UnicodeError:
+                        # Report an error so ogsmd doesn't bail out and we can
+                        # see which PDU makes trouble
+                        result.append( ( index, status, "Error decoding", "Error decoding", {} ) )
+                    else:
+                        result.append( ( index, status, str(sms.oa), sms.ud, sms.properties ) )
+                else:
+                    logger.warning( "SinRetrieveMessagebook encountered strange answer to AT+CMGL: '%s'" % line )
             self._ok( result )
         else:
             SimMediator.responseFromChannel( self, request, response )
@@ -899,6 +908,7 @@ class SimRetrieveMessage( SimMediator ):
         if response[-1] != "OK":
             SimMediator.responseFromChannel( self, request, response )
         else:
+            inbody = False
             for line in response[:-1]:
                 #print "parsing line", line
                 if line.startswith( "+CMGR" ):
@@ -910,10 +920,14 @@ class SimRetrieveMessage( SimMediator ):
                     else:
                       direction = "sms-submit"
                     length = int(header.groupdict()["pdulen"])
-                else:
+                    inbody = True
+                elif inbody == True:
+                    inbody = False
                     # Now we decode the actual PDU
                     sms = ogsmd.gsm.sms.SMS.decode( line, direction )
                     result = ( status, str(sms.oa), sms.ud, sms.properties )
+                else:
+                    logger.warning( "SinRetrieveMessage encountered strange answer to AT+CMGR: '%s'" % line )
 
             self._ok( *result )
 
