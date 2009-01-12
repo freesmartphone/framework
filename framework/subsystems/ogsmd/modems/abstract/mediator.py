@@ -1149,7 +1149,9 @@ class NetworkListProviders( NetworkMediator ): # a{sv}
 class NetworkRegisterWithProvider( NetworkMediator ):
 #=========================================================================#
     def trigger( self ):
-        self._commchannel.enqueue( '+COPS=1,2,"%d"' % self.operator_code, self.responseFromChannel, self.errorFromChannel, timeout=currentModem().timeout("COPS") )
+        charset = currentModem()._charsets["DEFAULT"]
+        opcode = ("%05d" % ( self.operator_code )).encode(charset)
+        self._commchannel.enqueue( '+COPS=1,2,"%s"' % opcode, self.responseFromChannel, self.errorFromChannel, timeout=currentModem().timeout("COPS") )
 
 #=========================================================================#
 class NetworkGetCountryCode( NetworkMediator ):
