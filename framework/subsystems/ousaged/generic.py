@@ -13,7 +13,7 @@ Module: generic
 """
 
 MODULE_NAME = "ousaged"
-__version__ = "0.7.0"
+__version__ = "0.7.1"
 
 DBUS_INTERFACE_PREFIX = "org.freesmartphone.Usage"
 DBUS_PATH_PREFIX = "/org/freesmartphone/Usage"
@@ -35,12 +35,6 @@ logger = logging.getLogger( MODULE_NAME )
 #----------------------------------------------------------------------------#
 # DBus Exceptions specifications specific to this module
 
-class PolicyUnknown( dbus.DBusException ):
-    _dbus_error_name = "org.freesmartphone.Usage.PolicyUnknown"
-
-class PolicyDisabled( dbus.DBusException ):
-    _dbus_error_name = "org.freesmartphone.Usage.PolicyDisabled"
-
 class ResourceUnknown( dbus.DBusException ):
     _dbus_error_name = "org.freesmartphone.Usage.ResourceUnknown"
 
@@ -49,12 +43,6 @@ class ResourceExists( dbus.DBusException ):
 
 class ResourceInUse( dbus.DBusException ):
     _dbus_error_name = "org.freesmartphone.Usage.ResourceInUse"
-
-class UserExists( dbus.DBusException ):
-    _dbus_error_name = "org.freesmartphone.Usage.UserExists"
-
-class UserUnknown( dbus.DBusException ):
-    _dbus_error_name = "org.freesmartphone.Usage.UserUnknown"
 
 #----------------------------------------------------------------------------#
 class GenericUsageControl( dbus.service.Object ):

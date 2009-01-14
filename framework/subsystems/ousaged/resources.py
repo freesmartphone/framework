@@ -13,7 +13,7 @@ Module: resources
 """
 
 MODULE_NAME = "ousaged"
-__version__ = "0.6.0"
+__version__ = "0.6.1"
 
 import framework.patterns.tasklet as tasklet
 
@@ -25,6 +25,21 @@ import time, os, subprocess
 
 import logging
 logger = logging.getLogger( MODULE_NAME )
+
+#----------------------------------------------------------------------------#
+# DBus Exceptions specifications specific to this module
+
+class PolicyUnknown( dbus.DBusException ):
+    _dbus_error_name = "org.freesmartphone.Usage.PolicyUnknown"
+
+class PolicyDisabled( dbus.DBusException ):
+    _dbus_error_name = "org.freesmartphone.Usage.PolicyDisabled"
+
+class UserExists( dbus.DBusException ):
+    _dbus_error_name = "org.freesmartphone.Usage.UserExists"
+
+class UserUnknown( dbus.DBusException ):
+    _dbus_error_name = "org.freesmartphone.Usage.UserUnknown"
 
 #----------------------------------------------------------------------------#
 class AbstractResource( object ):
