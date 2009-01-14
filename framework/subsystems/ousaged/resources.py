@@ -56,7 +56,7 @@ class AbstractResource( object ):
         * enabled: The resource is always on.
     """
 
-    VALID_POLICIES = "disabled auto enable".split()
+    VALID_POLICIES = "disabled auto enabled".split()
 
     def __init__( self, usageControl, name = "Abstract" ):
         """
