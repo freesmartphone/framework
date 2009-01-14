@@ -33,8 +33,11 @@ def factory( prefix, controller ):
     devname = config.getValue( "ogpsd", "device", "DummyDevice")
     channame = config.getValue( "ogpsd", "channel", "GPSChannel")
     pathname = config.getValue( "ogpsd", "path", "")
+    debug = config.getValue( "ogpsd", "debug_addr", "")
 
     channel = globals()[channame]( pathname )
+    if debug:
+        channel.setDebugChannel( UDPChannel( debug ) )
     gpsdev = globals()[devname]( controller.bus, channel )
     objects.append( gpsdev )
 

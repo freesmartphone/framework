@@ -25,6 +25,11 @@ class GPSChannel( object ):
     """A GPS Channel :-)"""
     def __init__( self, path=None ):
         self.callback = None
+        self.debugChannel = None
+
+    def setDebugChannel( self, debugChannel ):
+        self.debugChannel = debugChannel
+        self.debugChannel.setCallback( self.send )
 
     def initializeChannel( self ):
         pass
@@ -47,21 +52,39 @@ class GPSChannel( object ):
 class UDPChannel ( GPSChannel ):
     """Generic UDP reader"""
 
-    def __init__(self, path):
+    def __init__( self, path ):
         super(UDPChannel, self).__init__()
         logger.debug("UDPChannel opens port %s" % path)
-        self.port = int(path)
-        self.s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        self.s.bind(('', self.port))
+        if ":" in path:
+            self.host, self.port = path.split( ":" )
+            self.port = int( self.port )
+        else:
+            self.host = ""
+            self.port = int( path )
+        self.s = socket.socket( socket.AF_INET, socket.SOCK_DGRAM )
+        self.s.bind( ("", self.port) )
         self.s.setblocking(False)
+        self.datapending = ""
         self.watchReadyToRead = gobject.io_add_watch( self.s.makefile(), gobject.IO_IN, self.readyToRead )
+        self.watchReadyToSend = None
 
     def readyToRead( self, source, condition ):
         data = self.s.recv(1024)
         if self.callback:
             self.callback(data)
-
         return True
+
+    def readyToSend( self, source, condition ):
+        if self.host:
+            self.s.sendto( self.datapending, (self.host, self.port) )
+        self.datapending = ""
+        self.watchReadyToSend = None
+        return False
+
+    def send( self, stream ):
+        self.datapending = self.datapending + stream
+        if not self.watchReadyToSend:
+            self.watchReadyToSend = gobject.io_add_watch( self.s.makefile(), gobject.IO_OUT, self.readyToSend )
 
 class GllinChannel( UDPChannel ):
     """UDP reader for GTA01, takes care of starting and stopping gllin"""
@@ -162,6 +185,9 @@ class SerialChannel( GPSChannel ):
             inWaiting = 0
 
         data = self.serial.read( inWaiting )
+
+        if self.debugChannel:
+            self.debugChannel.send( data )
         if self.callback:
             self.callback( data )
 
