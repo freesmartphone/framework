@@ -33,6 +33,7 @@ from device import DBUS_INTERFACE_DEVICE, \
                    DBUS_BUS_NAME_DEVICE, \
                    DBUS_INTERFACE_SIM, \
                    DBUS_INTERFACE_NETWORK, \
+                   DBUS_INTERFACE_PDP, \
                    DBUS_INTERFACE_CB
 
 DBUS_INTERFACE_DATA = "org.freesmartphone.GSM.Data"
@@ -64,7 +65,11 @@ class Server( dbus.service.Object ):
         self.setupSignals()
         self._autoRegister = False
         self._service = "unknown"
+        self._autoOnline = False
+        self._online = "unknown"
         self.pin = None
+        self.user = None
+        self.password = None
 
     def setupSignals( self ):
         device = self.bus.get_object( DBUS_BUS_NAME_DEVICE, DBUS_OBJECT_PATH_DEVICE )
@@ -73,6 +78,8 @@ class Server( dbus.service.Object ):
         self.fso_sim = dbus.Interface( device, DBUS_INTERFACE_SIM )
         self.fso_network = dbus.Interface( device, DBUS_INTERFACE_NETWORK )
         self.fso_network.connect_to_signal( "Status", self.onIncomingGsmNetworkStatus )
+        self.fso_pdp = dbus.Interface( device, DBUS_INTERFACE_PDP )
+        self.fso_pdp.connect_to_signal( "ContextStatus", self.onIncomingGsmContextStatus )
         self.fso_device = dbus.Interface( device, DBUS_INTERFACE_DEVICE )
 
     def __del__( self ):
@@ -130,6 +137,23 @@ class Server( dbus.service.Object ):
             self._service = status
             self.ServiceStatus( status )
 
+    def replyGetContextStatus( self, status ):
+        self.onIncomingGsmContextStatus( 0, status, {} )
+
+    def onIncomingGsmContextStatus( self, index, status, properties ):
+        online = status
+        if online == "active":
+            self._updateOnlineStatus( "online" )
+        else:
+            self._updateOnlineStatus( "offline" )
+        if online in "release".split() and self._autoOnline:
+            self.GoOnline( self.apn, self.user, self.password, lambda:None, lambda Foo:None )
+
+    def _updateOnlineStatus( self, status ):
+        if self._online != status:
+            self._online = status
+            self.OnlineStatus( status )
+
     #
     # dbus org.freesmartphone.GSM.Data
     #
@@ -165,7 +189,7 @@ class Server( dbus.service.Object ):
         self.fso_sim.GetHomeZones( reply_handler=gotHomezones, error_handler=lambda error:None )
 
     #
-    # dbus org.freesmartphone.GSM.Phone
+    # dbus org.freesmartphone.GSM.Phone (auto register)
     #
     @dbus.service.method( DBUS_INTERFACE_PHONE, "s", "",
                           async_callbacks=( "dbus_ok", "dbus_error" ) )
@@ -173,7 +197,6 @@ class Server( dbus.service.Object ):
         self.pin = pin
         self._autoRegister = True
         dbus_ok()
-
         self.fso_network.GetStatus( reply_handler=self.onIncomingGsmNetworkStatus, error_handler=lambda Foo:None )
 
     @dbus.service.method( DBUS_INTERFACE_PHONE, "", "",
@@ -202,6 +225,35 @@ class Server( dbus.service.Object ):
     @dbus.service.signal( DBUS_INTERFACE_PHONE, "s" )
     def ServiceStatus( self, service ):
        logger.info( "service status now %s" % service )
+
+    #
+    # dbus org.freesmartphone.GSM.Phone (auto online)
+    #
+    @dbus.service.method( DBUS_INTERFACE_PHONE, "sss", "",
+                          async_callbacks=( "dbus_ok", "dbus_error" ) )
+    def StartAutoOnline( self, apn, user, password, dbus_ok, dbus_error ):
+        self.apn = apn
+        self.user = user
+        self.password = password
+        self._autoOnline = True
+        dbus_ok()
+        self.fso_pdp.GetContextStatus( reply_handler=self.replyGetContextStatus, error_handler=lambda Foo:None )
+
+    @dbus.service.method( DBUS_INTERFACE_PHONE, "", "",
+                          async_callbacks=( "dbus_ok", "dbus_error" ) )
+    def StopAutoOnline( self, dbus_ok, dbus_error ):
+        self._autoOnline = False
+        dbus_ok()
+
+    @dbus.service.method( DBUS_INTERFACE_PHONE, "sss", "",
+                          async_callbacks=( "dbus_ok", "dbus_error" ) )
+    def GoOnline( self, apn, user, password, dbus_ok, dbus_error ):
+        self.fso_pdp.ActivateContext( apn, user, password, reply_handler=dbus_ok, error_handler=dbus_error )
+
+    @dbus.service.signal( DBUS_INTERFACE_PHONE, "s" )
+    def OnlineStatus( self, online ):
+       logger.info( "online status now %s" % online )
+
 
 #=========================================================================#
 def factory( prefix, controller ):
