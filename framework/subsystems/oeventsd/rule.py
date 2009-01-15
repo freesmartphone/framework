@@ -9,8 +9,11 @@ The freesmartphone Events Module - Python Implementation
 GPLv2 or later
 """
 
+__version__ = "0.2.0"
+MODULE_NAME = "oeventsd.rule"
+
 import logging
-logger = logging.getLogger('oeventsd')
+logger = logging.getLogger( MODULE_NAME )
 
 from filter import Filter, AndFilter
 from action import Action, ListAction
@@ -64,7 +67,6 @@ class Rule( Trigger, Action ):
         # First we check that ALL the filters match the signal
         if not self.__filter.filter( **kargs ):
             return False
-        # FIXME: _trigger ???
         self._trigger( **kargs )
         return True
 
@@ -98,10 +100,11 @@ class WhileRule( Rule, Filter ):
             if not self._Rule__filter.filter( **kargs ):
                 self.untrigger( **kargs )
         else:
-            self.triggered = super( WhileRule, self ).trigger( **kargs )
+            self.triggered = Rule.trigger( self, **kargs )
 
     def untrigger( self, **kargs ):
         if not self.triggered:
+            logger.warning( "Untrigger for '%s' called, but not yet triggered. Not untriggering" )
             return
         self._untrigger( **kargs )
         self.triggered = False

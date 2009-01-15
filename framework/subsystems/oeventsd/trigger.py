@@ -57,7 +57,7 @@ class Trigger(AutoFunction):
         """
         logger.debug("trigger %s", self)
         for action in self.__listeners:
-            action._trigger(**kargs)
+            action.trigger(**kargs)
 
     def _untrigger(self, **kargs):
         """
@@ -65,7 +65,7 @@ class Trigger(AutoFunction):
         """
         logger.debug("untrigger %s", self)
         for action in self.__listeners:
-            action._untrigger(**kargs)
+            action.untrigger(**kargs)
 
     def enable(self):
         """

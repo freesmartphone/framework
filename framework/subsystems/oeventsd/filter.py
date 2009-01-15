@@ -31,6 +31,9 @@ class Filter( object ):
        number of keywords argument (**kargs) representing the event generated dict
        of values. The method returns True if the filter accept the event, False otherwise.
     """
+    def __init__( self, *args, **kwargs ):
+        pass
+
     def filter( self, **kargs ):
         # The default filter is always True
         return True
@@ -69,6 +72,7 @@ class AttributeFilter( Filter ):
        call and have the given value
     """
     def __init__( self, **kargs ):
+        Filter.__init__( self )
         self.kargs = kargs
 
     def filter( self, **kargs ):

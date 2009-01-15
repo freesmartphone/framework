@@ -18,7 +18,8 @@ MODULE_NAME = "oeventsd"
 
 import framework.patterns.tasklet as tasklet
 
-from action import Action, DBusAction
+from action import Action
+from action import QueuedDBusAction as DBusAction
 from framework.controller import Controller
 from framework.config import installprefix
 
@@ -330,7 +331,7 @@ class ExternalDBusAction(DBusAction):
     function_name = "ExternalDBusAction"
 
     """
-    A dbus action on the freesmartphone audio device
+    A flexible dbus action
     """
     def __init__(self, bus, service, obj, interface, method, *args):
         """Create the DBus action
