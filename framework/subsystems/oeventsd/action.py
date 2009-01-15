@@ -131,10 +131,23 @@ class DBusAction(Action):
     def __repr__(self):
         return "%s(%s)" % (self.method, self.args)
 
+#=========================================================================#
+class PeekholeQueue( Queue.Queue ):
+#=========================================================================#
+    """
+    This class extends the Queue with a method to peek at the
+    first element without having to remove this from the queue.
+    """
+    def peek( self ):
+        if self.empty():
+            return None
+        else:
+            return self.queue[0]
+
 #============================================================================#
 class QueuedDBusAction( DBusAction ):
 #============================================================================#
-    q = Queue.Queue()
+    q = PeekholeQueue()
 
     def enqueue( self, method, args, kargs ):
         logger.debug( "enqueing dbus call %s.%s", method, args )
@@ -144,9 +157,9 @@ class QueuedDBusAction( DBusAction ):
             self.workDaQueue()
 
     def workDaQueue( self ):
-        logger.debug( "working on queue w/ size %d", self.q.qsize() )
+        logger.debug( "working on queue: %s", self.q )
         if self.q.qsize():
-            method, args, kargs = self.q.get()
+            method, args, kargs = self.q.peek()
             # async dbus call now
             method( *args, **kargs )
 
@@ -164,8 +177,10 @@ class QueuedDBusAction( DBusAction ):
     def on_reply(self, *args):
         # We don't pass the reply to anything
         logger.info("signal %s responded : %s", self.method, args)
+        self.q.get()
         self.workDaQueue()
 
     def on_error(self, error):
         logger.error("signal %s emited an error %s", self.method, error)
+        self.q.get()
         self.workDaQueue()
