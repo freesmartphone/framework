@@ -2,6 +2,8 @@
 
 	* [oeventsd] Serialize dbus requests with a Queue. This (and removing a race in the RingToneAction)
 	should fix the problems with neverending vibration and audio ringtone on short calls (FSO ticket #205)
+	* [ousaged] Add config option 'sync_resources_with_lifecycle' for specifying whether all Resources should
+	be disabled on "startup", "shutdown", "always" (default), or "never".
 
 2009-01-14	Michael Lauer	<mlauer@vanille-media.de>
 

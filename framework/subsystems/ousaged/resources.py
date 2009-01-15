@@ -15,7 +15,8 @@ Module: resources
 MODULE_NAME = "ousaged"
 __version__ = "0.6.1"
 
-import framework.patterns.tasklet as tasklet
+from framework.config import config
+from framework.patterns import tasklet
 
 import gobject
 import dbus
@@ -206,6 +207,8 @@ class ClientResource( AbstractResource ):
     It can register using the RegisterResource of /org/freesmartphone/Usage.
     If the client is written in python, it can use the framework.Resource class.
     """
+    sync_resources_with_lifecycle = config.getValue( "ousaged", "sync_resources_with_lifecycle", "always" )
+
     def __init__( self, usageControl, name, path, sender ):
         """
         Create a new ClientResource
@@ -216,6 +219,9 @@ class ClientResource( AbstractResource ):
         bus = dbus.SystemBus()
         proxy = bus.get_object( sender, path )
         self.iface = dbus.Interface( proxy, "org.freesmartphone.Resource" )
+
+        if self.sync_resources_with_lifecycle in ( "always", "startup" ):
+            self._disable().start()
 
     @tasklet.tasklet
     def _enable( self ):
