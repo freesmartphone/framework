@@ -201,7 +201,8 @@ class ODeviceDResource( AbstractResource ):
 #----------------------------------------------------------------------------#
 class ClientResource( AbstractResource ):
 #----------------------------------------------------------------------------#
-    """A resource that is controled by an external client.
+    """
+    A resource controlled by an external client.
 
     The client needs to expose a dbus object implementing org.freesmartphone.Resource.
     It can register using the RegisterResource of /org/freesmartphone/Usage.

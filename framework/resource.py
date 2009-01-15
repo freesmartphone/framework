@@ -13,8 +13,9 @@ Module: resource
 """
 
 MODULE_NAME = "frameworkd.resource"
-__version__ = "0.3.1"
+__version__ = "0.3.2"
 
+from framework.config import config
 from framework.patterns import decorator
 
 import gobject
@@ -82,6 +83,8 @@ class Resource( dbus.service.Object ):
     """
     DBUS_INTERFACE = 'org.freesmartphone.Resource'
 
+    sync_resources_with_lifecycle = config.getValue( "ousaged", "sync_resources_with_lifecycle", "always" )
+
     def __init__( self, bus, name ):
         """
         Register the object as a new resource in ousaged
@@ -125,7 +128,9 @@ class Resource( dbus.service.Object ):
         """
         Called by the subsystem during system shutdown.
         """
-        if self._resourceStatus in "enabled enabling".split():
+
+        if self.sync_resources_with_lifecycle in ( "always", "shutdown" ) and \
+           self._resourceStatus in ( "enabled" , "enabling", "unknown" ):
             # no error handling, either it works or not
             #self._disable( lambda: None, lambda Foo: None )
             self.Disable( lambda: None, lambda Foo: None )
