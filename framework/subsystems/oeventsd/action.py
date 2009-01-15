@@ -11,60 +11,67 @@ Package: oeventsd
 Module: action
 """
 
+__version__ = "0.2.0"
+MODULE_NAME = "oeventsd.action"
+
 import dbus
 
 import logging
-logger = logging.getLogger('oeventsd')
+logger = logging.getLogger( MODULE_NAME )
 
 from parser import AutoFunction
-
 
 #============================================================================#
 class Action(AutoFunction):
 #============================================================================#
-    """Base class for Action objects
-    
+    """
+    Base class for Action objects
+
     An action has a `trigger` and `untrigger` methods.
-    By default the untirgger method will do nothing, but if it make sense, the action
+    By default the untrigger method will do nothing, but if it make sense, the action
     should define it.
     """
 
     def __init__(self):
-        pass
+        AutoFunction.__init__( self )
     def trigger(self, **kargs):
         """Perform the action"""
         pass
     def untrigger(self, **kargs):
-        """Undo anything that the action had performed""" 
+        """Undo anything that the action had performed"""
         pass
     def __repr__(self):
         return "unamed action"
-        
+
 #============================================================================#
 class ListAction(list, Action):
 #============================================================================#
-    """An action that will trigger a list of actions
-    
+    """
+    An action that will trigger a list of actions
+
     This is basicaly a script.
     """
     def __init__(self, actions):
         list.__init__(self, actions)
+        Action.__init__( self )
     def trigger(self, **kargs):
         for action in self:
             action.trigger(**kargs)
     def untrigger(self, **kargs):
         for action in self:
             action.untrigger(**kargs)
-            
+
 
 #============================================================================#
 class DebugAction(Action):
 #============================================================================#
-    """A special action for debugging purposes
+    """
+    A special action for debugging purposes
     """
     function_name = 'Debug'
 
     def __init__(self, msg):
+        Action.__init__( self )
         self.msg = msg
     def trigger(self, **kargs):
         logger.info("DebugAction : %s", self.msg)
@@ -74,10 +81,11 @@ class DebugAction(Action):
 #============================================================================#
 class DBusAction(Action):
 #============================================================================#
-    """A special action that will call a DBus method.
+    """
+    A special action that will call a DBus method.
     """
     def __init__(self, bus, service, obj, interface, method, *args):
-        super(DBusAction, self).__init__()
+        Action.__init__( self )
         self.bus = bus
         # some arguments checking
         assert isinstance(service, str)

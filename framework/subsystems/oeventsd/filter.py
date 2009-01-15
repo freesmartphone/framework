@@ -12,8 +12,11 @@ Module: filter
 
 """
 
+__version__ = "0.2.0"
+MODULE_NAME = "oeventsd.filter"
+
 import logging
-logger = logging.getLogger( "oeventsd" )
+logger = logging.getLogger( MODULE_NAME )
 
 #============================================================================#
 class Filter( object ):
@@ -24,7 +27,7 @@ class Filter( object ):
        will be called or not. When a rule is triggered, the trigger generate a dict
        of values, that can be later used by the filter.
 
-       All the filters need to implement the filter method, taking an arbitrary 
+       All the filters need to implement the filter method, taking an arbitrary
        number of keywords argument (**kargs) representing the event generated dict
        of values. The method returns True if the filter accept the event, False otherwise.
     """
@@ -38,23 +41,23 @@ class Filter( object ):
            The __invert__ method is called by the `~` operator.
         """
         return InvertFilter( self )
-        
+
     def __or__( self, f ):
         """Return a filter that is the logical OR operation between this filter and an other filter
         """
         return OrFilter( self, f )
-        
+
     def __and__( self, f ):
         return AndFilter( self, f )
-        
+
     def enable( self ):
         """enable the filter
-        
+
         This is used because some filter need to connect to external signals,
         e.g : WhileRule
         """
         pass
-        
+
     def disable( self ):
         """disable the filter"""
         pass
@@ -67,6 +70,7 @@ class AttributeFilter( Filter ):
     """
     def __init__( self, **kargs ):
         self.kargs = kargs
+
     def filter( self, **kargs ):
         return all( key in kargs and kargs[key] == value for (key, value) in self.kargs.items() )
 
@@ -78,37 +82,42 @@ class InvertFilter( Filter ):
 #============================================================================#
     """This filer returns the negation of the argument filter"""
     def __init__( self, filter ):
-        super( InvertFilter, self ).__init__()
+        Filter.__init__( self )
         self.__filter = filter
+
     def filter( self, **kargs ):
         return not self.__filter.filter( **kargs )
 
     def __repr__( self ):
         return "~(%s)" % self.__filter
-        
+
 #============================================================================#
 class AndFilter( Filter ):
 #============================================================================#
     """This filter returns the AND logical operation between a list of filters"""
     def __init__( self, *filters ):
-        super( AndFilter, self ).__init__()
+        Filter.__init__( self )
         assert all( isinstance( f, Filter ) for f in filters )
         self.filters = filters
+
     def filter( self, **kargs ):
         return all( f.filter( **kargs ) for f in self.filters )
+
     def __repr__( self ):
         return "And(%s)" % ','.join( str( f ) for f in self.filters )
-        
+
 #============================================================================#
 class OrFilter( Filter ):
 #============================================================================#
     """This filter returns the OR logical operation between a list of filters"""
     def __init__( self, *filters ):
-        super( OrFilter, self ).__init__()
+        Filter.__init__( self )
         assert all( isinstance( f, Filter ) for f in filters )
         self.filters = filters
+
     def filter( self, **kargs ):
         return any( f.filter( **kargs ) for f in self.filters )
+
     def __repr__( self ):
         return "Or(%s)" % ','.join( str( f ) for f in self.filters )
 

@@ -20,26 +20,27 @@ from trigger import Trigger
 class Rule( Trigger, Action ):
 #============================================================================#
     """A Rule is a link betwen a trigger and an action, that can check for conditions
-    
+
     Using rule we can refine the behavior of a trigger by giving a filter.
     When the rule is triggered it will trigger the action only if its filter
     allow it.
     """
     def __init__( self, trigger, filter = Filter(), action = Action(), name = "" ):
         """Create a new rule given a trigger, a filter and an action
-        
+
         We can give a list of action or a list of filter instead of a single
         action or filter, in that case the actions will be turned into a ListAction
-        and the filters into an AndFilter. 
+        and the filters into an AndFilter.
         """
-        super( Rule, self ).__init__()
-        
+        Trigger.__init__( self )
+        Action.__init__( self )
+
         # We accept list OR single value as argument
         if isinstance( filter, list ):
             filter = AndFilter( *filter )
         if isinstance( action, list ):
             action = ListAction( action )
-            
+
         assert isinstance(trigger, Trigger)
         assert isinstance(action, Action)
         assert isinstance(filter, Filter)
@@ -47,7 +48,7 @@ class Rule( Trigger, Action ):
         self.__trigger = trigger
         # The trigger will call this rule when triggered
         trigger.connect( self )
-        
+
         self.__filter = filter
         self.__action = action
         self.connect( action )
@@ -63,6 +64,7 @@ class Rule( Trigger, Action ):
         # First we check that ALL the filters match the signal
         if not self.__filter.filter( **kargs ):
             return False
+        # FIXME: _trigger ???
         self._trigger( **kargs )
         return True
 
@@ -71,45 +73,45 @@ class Rule( Trigger, Action ):
         logger.info( "enable rule : %s", self )
         self.__trigger.enable()
         self.__filter.enable()
-        
+
     def disable( self ):
         # It should be enough to disable the trigger and the filter
         logger.info( "disable rule : %s", self )
         self.__trigger.disable()
         self.__filter.disable()
-        
+
 #============================================================================#
 class WhileRule( Rule, Filter ):
 #============================================================================#
     """Special Rule that will also untrigger its action
-    
+
     We can also use a WhileRule as a filter, the condition is then true if the
-    rule is currently triggered. 
-    """ 
+    rule is currently triggered.
+    """
     def __init__( self, *args ):
-        super( WhileRule, self ).__init__( *args )
+        Rule.__init__( self, *args )
+        Filter.__init__( self, *args )
         self.triggered = False
+
     def trigger( self, **kargs ):
         if self.triggered:
             if not self._Rule__filter.filter( **kargs ):
                 self.untrigger( **kargs )
         else:
             self.triggered = super( WhileRule, self ).trigger( **kargs )
-                
+
     def untrigger( self, **kargs ):
         if not self.triggered:
             return
         self._untrigger( **kargs )
         self.triggered = False
-        
+
     def filter( self, **kargs ):
         """The filter is True if the rule is triggered"""
         return self.triggered
-        
+
     def __repr__( self ):
         if self.name:
             return "'%s'" % self.name
         return "While %s if %s then %s" % ( self._Rule__trigger, self._Rule__filter, self._Rule__action )
-
-
 
