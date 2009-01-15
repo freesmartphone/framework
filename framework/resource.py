@@ -96,7 +96,7 @@ class Resource( dbus.service.Object ):
             raise RuntimeError( "Resource only allowed as mixin w/ dbus.service.Object" )
         self._resourceBus = bus
         self._resourceName = name
-        self._resourceStatus = "disabled"
+        self._resourceStatus = "unknown"
 
         # We need to call the ousaged.Register method, but we can't do it
         # imediatly for the ousaged object may not be present yet.
