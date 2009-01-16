@@ -16,6 +16,30 @@ from dbus.mainloop.glib import DBusGMainLoop
 DBusGMainLoop(set_as_default=True)
 
 import test
+from framework.patterns.tasklet import WaitDBusSignal
+
+def retry_on_sim_not_ready(func):
+    """This decorator will make the test retry if the sim was not ready
+    """
+    @test.taskletTest
+    def ret(*args, **kargs):
+        bus = dbus.SystemBus()
+        gsm = bus.get_object('org.freesmartphone.ogsmd', '/org/freesmartphone/GSM/Device')
+        sim = dbus.Interface(gsm, 'org.freesmartphone.GSM.SIM')
+        try:
+            yield func(*args, **kargs)
+        except dbus.DBusException, ex:
+            if ex.get_dbus_name() == 'org.freesmartphone.GSM.SIM.NotReady':
+                # We give the SIM 30 seconds to get ready
+                yield WaitDBusSignal(sim, 'ReadyStatus', 30)
+                yield func(*args, **kargs)
+            raise           # All other dbus exception are raised
+
+    ret.__dict__ = func.__dict__
+    ret.__name__ = func.__name__
+    ret.__doc__ = func.__doc__
+    return ret
+
 
 class SimTests(unittest.TestCase):
     def setUp(self):
@@ -35,12 +59,14 @@ class SimTests(unittest.TestCase):
         self.usage.ReleaseResource('GSM')
         
     @test.request(("sim.present", True), ("sim.has_contacts", True))
+    @retry_on_sim_not_ready
     def test_get_contacts(self):
         """Try to get the contacts list"""
         contacts = self.sim.RetrievePhonebook('contacts')
         assert(contacts)
     
     @test.request("sim.present", True)
+    @retry_on_sim_not_ready
     def test_add_contact(self):
         """Try to add a new contact"""
         info = self.sim.GetPhonebookInfo('contacts')
