@@ -78,7 +78,7 @@ class GPSDevice( resource.Resource ):
         logger.info( "suspending" )
         self.ConnectionStatusChanged( False )
         self.suspendDevice()
-            self.channel.shutdownChannel()
+        self.channel.shutdownChannel()
         self.channel.suspendChannel()
         on_ok()
 
