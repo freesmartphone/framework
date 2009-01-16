@@ -400,7 +400,7 @@ class WaitDBusSignal(Tasklet):
         self.err_callback = err_callback
         self.connection = self.obj.connect_to_signal(self.event, self._callback)
         if self.time_out:
-            self.timeout_connection = gobject.timeout_add(self.time_out * 1000, self._err_callback)
+            self.timeout_connection = gobject.timeout_add_seconds(self.time_out, self._err_callback)
 
     def close(self):
         # Note : it is not working very well !!!! Why ? I don't know...
@@ -508,7 +508,7 @@ class Sleep(Tasklet):
         super(Sleep, self).__init__()
         self.time = time
     def start(self, callback, err_callback, *args):
-        self.event_id = gobject.timeout_add(self.time * 1000, callback, None, *args)
+        self.event_id = gobject.timeout_add_seconds(self.time, callback, None, *args)
     def close(self):
         # We cancel the event
         gobject.source_remove(self.event_id)
