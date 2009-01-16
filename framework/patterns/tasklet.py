@@ -172,6 +172,7 @@ class Tasklet(object):
             logger.error( "generator has vanished!" )
             return
         ### </ML addition FIXME FIXME>
+
         assert self.closed == False, "Trying to send to a closed tasklet"
         try:
             value = self.generator.send(value)
@@ -364,11 +365,16 @@ class WaitDBusSignal(Tasklet):
         self.event = event
         self.time_out = time_out
         self.connection = None
+        self.timeout_connection = None
 
     def _callback(self, *args):
         if not self.connection:
             return # We have been closed already
         self.connection.remove()
+        # don't forget to remove the timeout callback
+        if self.timeout_connection:
+            gobject.source_remove(self.timeout_connection)
+            self.timeout_connection = None
 
         if len(args) == 1:  # What is going on here is that if we have a single value, we return it directly,
             args = args[0]  # but if we have several value we pack them in a tuple for the callback
@@ -384,6 +390,8 @@ class WaitDBusSignal(Tasklet):
         return False
 
     def _err_callback(self):
+        # can only be called on timeout
+        self.timout_connection = None
         e = Exception("TimeOut")
         self.err_callback(type(e), e, sys.exc_info()[2])
 
@@ -392,13 +400,15 @@ class WaitDBusSignal(Tasklet):
         self.err_callback = err_callback
         self.connection = self.obj.connect_to_signal(self.event, self._callback)
         if self.time_out:
-            gobject.timeout_add(self.time_out * 1000, self._err_callback)
+            self.timeout_connection = gobject.timeout_add(self.time_out * 1000, self._err_callback)
 
     def close(self):
         # Note : it is not working very well !!!! Why ? I don't know...
         if self.connection:
             self.connection.remove()
-        self.obj = self.callback = self.connection = None
+        if self.timeout_connection:
+            gobject.source_remove(self.timeout_connection)
+        self.obj = self.callback = self.connection = self.timeout_connection = None
 
 class WaitDBusName(Tasklet):
     """Special tasklet that blocks until a given DBus name is available on the system bus"""
