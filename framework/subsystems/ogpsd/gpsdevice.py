@@ -86,7 +86,6 @@ class GPSDevice( resource.Resource ):
         logger.info("resuming")
         self.channel.resumeChannel()
         self.resumeDevice()
-            self.channel.shutdownChannel()
         self.ConnectionStatusChanged( True )
         on_ok()
 
