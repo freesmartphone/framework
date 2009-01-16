@@ -70,13 +70,15 @@ class GPSDevice( resource.Resource ):
         logger.info( "disabling" )
         self.ConnectionStatusChanged( False )
         self.shutdownDevice()
-        self.channel.shutdownChannel()
+        if self.channel is not None:
+            self.channel.shutdownChannel()
         on_ok()
 
     def _suspend( self, on_ok, on_error ):
         logger.info( "suspending" )
         self.ConnectionStatusChanged( False )
         self.suspendDevice()
+            self.channel.shutdownChannel()
         self.channel.suspendChannel()
         on_ok()
 
@@ -84,6 +86,7 @@ class GPSDevice( resource.Resource ):
         logger.info("resuming")
         self.channel.resumeChannel()
         self.resumeDevice()
+            self.channel.shutdownChannel()
         self.ConnectionStatusChanged( True )
         on_ok()
 
