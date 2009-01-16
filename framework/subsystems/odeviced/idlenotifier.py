@@ -20,7 +20,7 @@ GPLv2 or later
 """
 
 MODULE_NAME = "odeviced.idlenotifier"
-__version__ = "0.9.10.1"
+__version__ = "0.9.10.2"
 
 from helpers import DBUS_INTERFACE_PREFIX, DBUS_PATH_PREFIX, readFromFile, writeToFile
 from framework.config import config
@@ -92,6 +92,8 @@ class IdleNotifier( dbus.service.Object ):
         self.timeouts["busy"] = -1
         self.validStates = self.timeouts.keys()
         self.timeouts["awake"] = -1
+
+        self.timeout = None
 
         if len( self.input ):
             self.launchStateMachine()
