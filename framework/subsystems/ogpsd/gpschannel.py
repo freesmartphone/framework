@@ -204,6 +204,9 @@ class SerialChannel( GPSChannel ):
         return False
 
     def send( self, stream ):
+        if not self.serial.isOpen():
+            logger.warning( "Attempted to send something while serial is not open." )
+            return
         self.datapending = self.datapending + stream
         if not self.watchReadyToSend:
             self.watchReadyToSend = gobject.io_add_watch( self.serial.fd, gobject.IO_OUT, self.readyToSend )

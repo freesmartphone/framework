@@ -9,7 +9,7 @@ Open GPS Daemon
 GPLv2 or later
 """
 
-__version__ = "0.9.9.1"
+__version__ = "0.9.9.2"
 MODULE_NAME = "ogpsd"
 
 DEVICE_POWER_PATH = "/sys/bus/platform/devices/neo1973-pm-gps.0/pwron"
@@ -39,6 +39,8 @@ class GTA02Device( UBXDevice ):
         if self.aidingData is None:
             self.aidingData = { "almanac": {}, "ephemeris": {}, "position": {}, "hui": {} }
 
+        self.huiTimeout = None
+
         super( GTA02Device, self ).__init__( bus, channel )
 
     def initializeDevice( self ):
@@ -62,13 +64,13 @@ class GTA02Device( UBXDevice ):
         #self.send("CFG-MSG", 3, {"Class" : CLIDPAIR["AID-EPH"][0] , "MsgID" : CLIDPAIR["AID-EPH"][1] , "Rate": 1 })
         self.huiTimeout = gobject.timeout_add_seconds( 300, self.requestHuiTimer )
 
-    def shutdownDevice(self):
+    def shutdownDevice( self ):
         # Disable NAV-POSECEF, AID-REQ (AID-DATA), AID-ALM, AID-EPH messages
         self.send("CFG-MSG", 3, {"Class" : CLIDPAIR["NAV-POSECEF"][0] , "MsgID" : CLIDPAIR["NAV-POSECEF"][1] , "Rate" : 0 })
         self.send("CFG-MSG", 3, {"Class" : CLIDPAIR["AID-REQ"][0] , "MsgID" : CLIDPAIR["AID-REQ"][1] , "Rate" : 0 })
         self.send("CFG-MSG", 3, {"Class" : CLIDPAIR["AID-ALM"][0] , "MsgID" : CLIDPAIR["AID-ALM"][1] , "Rate" : 0 })
         #self.send("CFG-MSG", 3, {"Class" : CLIDPAIR["AID-EPH"][0] , "MsgID" : CLIDPAIR["AID-EPH"][1] , "Rate" : 0 })
-        if self.huiTimeout:
+        if self.huiTimeout is not None:
             gobject.source_remove( self.huiTimeout )
             self.huiTimeout = None
 
