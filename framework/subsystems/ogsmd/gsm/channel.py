@@ -215,28 +215,33 @@ class VirtualChannel( object ):
         """Called, if data is available on the source."""
         assert source == self.serial.fd, "ready to read on bogus source"
         assert condition == gobject.IO_IN, "ready to read on bogus condition"
-
         logger.debug( "%s: _readyToRead: watch timeout = %s", self, repr( self.watchTimeout ) )
 
         self._hookPreReading()
-
-        try:
-            inWaiting = self.serial.inWaiting()
-        except IOError:
-            inWaiting = 0
-            # should we really continue here?
-        data = self.serial.read( inWaiting )
+        data = self._lowlevelRead()
         logger.debug( "%s: got %d bytes from: %s" % ( self, len(data), repr(data) ) )
         self.readyToRead( data )
 
         self._hookPostReading()
         return True # gobject, call me again
 
+    def _lowlevelRead( self ):
+        """Called to read data from the port."""
+        try:
+            inWaiting = self.serial.inWaiting()
+        except IOError:
+            inWaiting = 0
+            # should we really continue here?
+        return self.serial.read( inWaiting )
+
+    def _lowlevelWrite( self, data ):
+        """Called to write data to the port."""
+        self.serial.write( data )
+
     def _readyToSend( self, source, condition ):
         """Called, if source is ready to receive data."""
         assert source == self.serial.fd, "ready to write on bogus source"
         assert condition == gobject.IO_OUT, "ready to write on bogus condition"
-
         logger.debug( "%s: _readyToSend: watch timeout = %s", self, repr( self.watchTimeout ) )
 
         self._hookPreSending()
@@ -245,25 +250,6 @@ class VirtualChannel( object ):
         self._hookPostSending()
 
         return False # gobject, don't call me again
-
-    def _slowButCorrectWrite( self, data ):
-        """
-        Write data to the serial port.
-
-        Implementation Note: This does not immediately write the data, but rather
-        set up a watch that gets triggered once the serial port is ready to acccept
-        written data. If this _may_ turn out to be too heavyweight (because of the
-        overhead of creating the lambda function and the additional function call),
-        then you better set __USE_FAST_WRITE = 1 and make it directly use serial.write()
-        """
-        gobject.io_add_watch( self.serial.fd, gobject.IO_OUT,
-        lambda source, condition, serial=self.serial, data=data: self.serial.write( data ) is not None )
-
-    __USE_FAST_WRITE = 0
-    if __USE_FAST_WRITE:
-        _write = self.serial.write
-    else:
-        _write = _slowButCorrectWrite
 
     @logged
     def __del__( self ):
@@ -352,7 +338,7 @@ class QueuedVirtualChannel( VirtualChannel ):
             return False
 
         logger.debug( "%s: sending %d bytes: %s" % ( repr(self), len(self.q.peek()[0]), repr(self.q.peek()[0]) ) )
-        self.serial.write( self.q.peek()[0] ) # 0 = request data
+        self._lowlevelWrite( self.q.peek()[0] ) # 0 = request data
         if self.q.peek()[3]: # 3 = request timeout
             self.watchTimeout = gobject.timeout_add_seconds( self.q.peek()[3], self._handleCommandTimeout )
         else:
