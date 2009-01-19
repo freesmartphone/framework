@@ -13,7 +13,7 @@ Module: channel
 TI Calypso specific modem channels
 """
 
-__version__ = "0.9.10.2"
+__version__ = "0.9.10.3"
 
 from framework.config import config
 
@@ -22,13 +22,15 @@ from ogsmd.gsm.callback import SimpleCallback
 
 from ogsmd.modems.abstract.channel import AbstractModemChannel
 
-import time
-import itertools
-import select
 import gobject
+
+import time, itertools, select, os
 
 import logging
 logger = logging.getLogger('ogsmd')
+
+#=========================================================================#
+LOW_LEVEL_BUFFER_SIZE = 32768
 
 #=========================================================================#
 #  MMI_AEC_REQ : 0283 = Long AEC, 105 = SPENH, 187 = AEC+SPENH, 1 = STOP
@@ -152,6 +154,12 @@ class CalypsoModemChannel( AbstractModemChannel ):
 
     def _hookPostReading( self ):
         pass
+
+    def _lowlevelRead( self ):
+        return os.read( self.serial.fd, LOW_LEVEL_BUFFER_SIZE )
+
+    def _lowlevelWrite( self, data ):
+        os.write( self.serial.fd, data )
 
     def _hookPreSending( self ):
         if CalypsoModemChannel.modem_communication_timestamp:
