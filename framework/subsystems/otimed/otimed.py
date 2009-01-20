@@ -15,6 +15,8 @@ Module: otimed
 __version__ = "0.2.1"
 MODULE_NAME = "otimed"
 
+import clock
+
 from datetime import datetime, timedelta
 from math import sqrt
 import shutil
@@ -220,8 +222,7 @@ class Time( dbus.service.Object ):
             for source in self.timesources:
                 if not source.offset is None:
                     source.offset = source.offset - d
-            t = datetime.utcnow() + d
-            getOutput( "date -u -s %s" % t.strftime( "%m%d%H%M%Y.%S" ) )
+            clock.adjust( seconds )
             getOutput( "hwclock --systohc" )
 
         # reenable timeout
