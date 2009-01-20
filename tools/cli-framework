@@ -251,6 +251,20 @@ pimsources = getInterface( \
     "/org/freesmartphone/PIM/Sources",
     "org.freesmartphone.PIM.Sources" )
 
+# bluez
+try:
+    bluez_manager = getInterface( \
+        "org.bluez",
+        "/",
+        "org.bluez.Manager" )
+
+    bluez = getInterface( \
+        "org.bluez",
+        bluez_manager.DefaultAdapter(),
+        "org.bluez.Adapter" )
+except:
+    print "failed to connect to bluez"
+
 bus.add_signal_receiver( handler, None, None, None, None,
     sender_keyword = "sender",
     destination_keyword = "destination",
