@@ -13,7 +13,7 @@ Module: resource
 """
 
 MODULE_NAME = "frameworkd.resource"
-__version__ = "0.3.3"
+__version__ = "0.4.0"
 
 from framework.config import config
 from framework.patterns import decorator
@@ -22,12 +22,18 @@ import gobject
 import dbus.service
 from dbus import validate_interface_name, Signature, validate_member_name
 
+import Queue
+
 import logging
 logger = logging.getLogger( MODULE_NAME )
 
 #----------------------------------------------------------------------------#
 @decorator.decorator
 def checkedmethod(f, *args, **kw):
+    """
+    This decorator wraps an asynchronous dbus method to checks the resource status and returning
+    org.freesmartphone.Resource.ResourceNotEnabled if the resource is not enabled.
+    """
     #print "calling %s with args %s, %s" % (f.func_name, args, kw)
     self = args[0]
     dbus_error = args[-1]
@@ -39,12 +45,30 @@ def checkedmethod(f, *args, **kw):
 #----------------------------------------------------------------------------#
 @decorator.decorator
 def checkedsyncmethod(f, *args, **kw):
+    """
+    This decorator wraps a synchronous dbus method to checks the resource status and returning
+    org.freesmartphone.Resource.ResourceNotEnabled if the resource is not enabled.
+    """
     #print "calling %s with args %s, %s" % (f.func_name, args, kw)
     self = args[0]
     if self._resourceStatus == "enabled":
         return f(*args, **kw)
     else:
         dbus_error( ResourceNotEnabled( "Resource is not enabled, current status is '%s'" % self._resourceStatus ) )
+
+#----------------------------------------------------------------------------#
+@decorator.decorator
+def checkedsignal(f, *args, **kw):
+    """
+    This decorator wraps a dbus signal and sends it only if the resource is enabled.
+    Otherwise, it enqueues the signals.
+    """
+    #print "calling %s with args %s, %s" % (f.func_name, args, kw)
+    self = args[0]
+    if self._resourceStatus == "enabled":
+        return f(*args, **kw)
+    else:
+        self._delayedSignalQueue.push( ( f, args ) ) # push for later
 
 #----------------------------------------------------------------------------#
 class ResourceNotEnabled( dbus.DBusException ):
@@ -100,6 +124,7 @@ class Resource( dbus.service.Object ):
         self._resourceBus = bus
         self._resourceName = name
         self._resourceStatus = "unknown"
+        self._delayedSignalQueue = Queue.Queue()
 
         # We need to call the ousaged.Register method, but we can't do it
         # imediatly for the ousaged object may not be present yet.
@@ -138,6 +163,13 @@ class Resource( dbus.service.Object ):
     def _updateResourceStatus( self, nextStatus ):
         logger.info( "setting resource status for %s from %s to %s" % ( self._resourceName, self._resourceStatus, nextStatus ) )
         self._resourceStatus = nextStatus
+        # send all queued signals, if any
+        if self._resourceStatus == "enabled":
+            logger.debug( "resource now enabled. checking signal queue" )
+            while not self._delayedSignalQueue.empty():
+                logger.debug( "sending delayed signal %s( %s )", f, args )
+                f, args = self._delayedSignalQueue.get()
+                f(*args)
 
     # callback factory
     def cbFactory( self, next, dbus_callback, *args ):

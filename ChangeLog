@@ -5,6 +5,10 @@
 	we also can't use the resource during the state transitions, i.e. 'enabling', 'disabling', 'suspending',
 	and 'resuming'. This should fix some race conditions, or at least, make it more clear why you can't
 	access the device.
+	* resource: Added a 'checkedsignal' decorator that will enqueue a signal when the resource is not 'enabled'.
+	Signals will get sent after the resource has reached the 'enabled' status.
+	* [ogsmd]: Wrapped all signals with the new 'resource.checkedsignal' decorator.
+	* [ogpsd]: Wrapped all signals with the new 'resource.checkedsignal' decorator.
 
 2009-01-15	Michael Lauer	<mlauer@vanille-media.de>
 
