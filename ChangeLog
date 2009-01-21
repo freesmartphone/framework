@@ -1,3 +1,11 @@
+2009-01-21	Michael Lauer	<mlauer@vanille-media.de>
+
+	* resource: Fixed bug in checkedmethod and checkedsyncmethod decorators. Previously we only got
+	org.freesmartphone.Resource.NotEnabled when the status was unequal 'disabled'. This is wrong, since
+	we also can't use the resource during the state transitions, i.e. 'enabling', 'disabling', 'suspending',
+	and 'resuming'. This should fix some race conditions, or at least, make it more clear why you can't
+	access the device.
+
 2009-01-15	Michael Lauer	<mlauer@vanille-media.de>
 
 	* [oeventsd] Serialize dbus requests with a Queue. This (and removing a race in the RingToneAction)
