@@ -68,7 +68,7 @@ def checkedsignal(f, *args, **kw):
     if self._resourceStatus == "enabled":
         return f(*args, **kw)
     else:
-        self._delayedSignalQueue.push( ( f, args ) ) # push for later
+        self._delayedSignalQueue.put( ( f, args ) ) # push for later
 
 #----------------------------------------------------------------------------#
 class ResourceNotEnabled( dbus.DBusException ):
