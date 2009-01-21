@@ -10,7 +10,7 @@ Interactive console for the freesmartphone.org framework
 GPLv2 or later
 """
 
-__version__ = "0.9.1.9"
+__version__ = "0.9.1.10"
 
 import dbus.service
 import dbus.mainloop.glib
@@ -24,6 +24,8 @@ def dbus_to_python(v):
 #----------------------------------------------------------------------------#
     if isinstance(v, dbus.Int64) or isinstance(v, dbus.Int32) or type(v) == types.IntType:
         return int(v)
+    elif isinstance(v, dbus.Double) or type(v) == types.FloatType:
+        return float(v)
     elif isinstance(v, dbus.String) or type(v) == types.StringType:
         return str(v)
     elif isinstance(v, dbus.Dictionary) or type(v) == types.DictType:
