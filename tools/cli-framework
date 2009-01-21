@@ -10,7 +10,7 @@ Interactive console for the freesmartphone.org framework
 GPLv2 or later
 """
 
-__version__ = "0.9.1.7"
+__version__ = "0.9.1.8"
 
 import dbus.service
 import dbus.mainloop.glib
@@ -68,10 +68,10 @@ def getInterface( busname, objectpath, interface ):
     return dbus.Interface( proxy, interface)
 
 #----------------------------------------------------------------------------#
-def getObjectsForInterface( interface ):
+def getObjectsForInterface( busname, interface ):
 #----------------------------------------------------------------------------#
     try:
-        paths = dbus_hlid.ListObjectsByInterface( "org.freesmartphone.frameworkd", interface, dbus_interface="org.freesmartphone.DBus" )
+        paths = dbus_hlid.ListObjectsByInterface( busname, interface, dbus_interface="org.freesmartphone.DBus" )
     except dbus.DBusException, e:
         print "DBus Exception. dbus-hlid not installed"
         paths = []
@@ -133,14 +133,14 @@ devidle = getInterface( \
     )
 
 try:
-    display = getObjectsForInterface( "org.freesmartphone.Device.Display" ).values()[0]
+    display = getObjectsForInterface( "org.freesmartphone.odeviced", "org.freesmartphone.Device.Display" ).values()[0]
 except IndexError:
     pass
 try:
-    bat = getObjectsForInterface( "org.freesmartphone.Device.PowerSupply" ).values()[0]
+    bat = getObjectsForInterface( "org.freesmartphone.odeviced", "org.freesmartphone.Device.PowerSupply" ).values()[0]
 except IndexError:
     pass
-leds = getObjectsForInterface( "org.freesmartphone.Device.LED" ).values()
+leds = getObjectsForInterface( "org.freesmartphone.odeviced", "org.freesmartphone.Device.LED" ).values()
 
 # ogsmd device objects
 gsmdevice = getInterface( \
