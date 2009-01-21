@@ -10,7 +10,7 @@ Package: ogsmd.modems.ti_calypso
 Module: mediator
 """
 
-__version__ = "1.1.0"
+__version__ = "1.1.1"
 
 from ogsmd.modems.abstract.mediator import *
 
@@ -71,9 +71,15 @@ class MonitorGetServingCellInformation( MonitorMediator ):
     16        lac           Location Area Code
     17        cba           Cell Bar Access
     18        cbq           Cell Bar Qualifier
-    19        Cell_type_ind Cell Type Indicator           NA/GSM/GPRS
+    19        ctype         Cell Type Indicator           NA/GSM/GPRS
     20        vocoder       Vocoder                       Sig/speech/efr/amr/14.4/9.6/4.8/2.4
     """
+    params = "arfcn c1 c2 rxlev bsic cid dsc txlev tn rlt tav rxlev_f rxlev_s rxqual_f rxqual_s lac cba cbq ctype vocoder".split()
+    params.reverse()
+
+    stringparams = "cid lac"
+    strengthparams = "c1 c2 rxlev txlev rxlev_f rxlev_s".split()
+
     def trigger( self ):
         self._commchannel.enqueue( "%EM=2,1", self.responseFromChannel, self.errorFromChannel )
 
@@ -83,12 +89,13 @@ class MonitorGetServingCellInformation( MonitorMediator ):
         else:
             result = {}
             values = self._rightHandSide( response[0] ).split( ',' )
-            params = "arfcn c1 c2 rxlev bsic cid dsc txlev tn rlt tav rxlev_f rxlev_s rxqual_f rxqual_s lac cba cbq cell_type_ind vocoder ".split()
-            params.reverse()
+            params = self.params[:]
             for value in values:
                 param = params.pop()
-                if param in ["cid", "lac"]:
+                if param in self.stringparams:
                     result[param] = "%04X" % int( value )
+                elif param in self.strengthparams:
+                    result[param] = const.signalQualityToPercentage( int(value)/2+2 )
                 else:
                     result[param] = int( value )
             self._ok( result )
@@ -109,12 +116,19 @@ class MonitorGetNeighbourCellInformation( MonitorMediator ):
     10 time-alignmnt     Time Alignment                Channel no 0 - 5
     11 cba_nc            Cell Bar Access               Channel no 0 - 5
     12 cbq_nc            Cell Bar Qualifier            Channel no 0 - 5
-    13 cell_type_ind     Cell Type Indicator           Channel no 0 - 5
+    13 ctype             Cell Type Indicator           Channel no 0 - 5
     14 rac               Routing Area Code             Channel no 0 - 5
     15 cell_resel_offset Cell resection Offset         Channel no 0 - 5
     16 temp_offset       Temporary Offset              Channel no 0 - 5
     17 rxlev_acc_min     Rxlev access min              Channel no 0 - 5
     """
+
+    params = "arfcn c1 c2 rxlev bsic cid lac foffset timea cba cbq ctype rac roffset toffset rxlevam".split()
+    params.reverse()
+
+    stringparams = "cid lac".split()
+    levelparams = "c1 c2 rxlev rxlevam".split()
+
     def trigger( self ):
         self._commchannel.enqueue( "%EM=2,3", self.responseFromChannel, self.errorFromChannel )
 
@@ -127,14 +141,15 @@ class MonitorGetNeighbourCellInformation( MonitorMediator ):
             if count > 0:
                 for cell in xrange( count ):
                     result.append( {} )
-                params = "arfcn c1 c2 rxlev bsic cid lac foffset timea cba cbq ctype rac roffset toffset rxlevam".split()
-                params.reverse()
+                params = self.params[:]
                 for line in response[1:-1]:
                     param = params.pop()
                     for index, value in enumerate( line.split( ',' ) ):
                         if index < count:
-                            if param in ["cid", "lac"]:
+                            if param in self.stringparams:
                                 result[index][param] = "%04X" % int( value )
+                            elif param in self.levelparams:
+                                result[index][param] = const.signalQualityToPercentage( int(value)/2+2 )
                             else:
                                 result[index][param] = int( value )
             self._ok( result )
