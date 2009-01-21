@@ -10,16 +10,20 @@ Open GPS Daemon - Parse NMEA/UBX data
 GPLv2 or later
 """
 
+__version__ = "0.9.0"
+MODULE_NAME = "ogspd.gpsdevice"
+
 DBUS_INTERFACE_PREFIX = "org.freedesktop.Gypsy"
 DBUS_PATH_PREFIX = "/org/freedesktop/Gypsy"
 
 from framework import resource
 import framework.patterns.tasklet as tasklet
+
 import dbus
 import dbus.service
 
 import logging
-logger = logging.getLogger('ogpsd')
+logger = logging.getLogger( MODULE_NAME )
 
 class GPSDevice( resource.Resource ):
     """An Dbus Object implementing org.freedesktop.Gypsy"""
@@ -276,31 +280,38 @@ class GPSDevice( resource.Resource ):
     #
     # dbus signals
     #
+    @resource.checkedsignal
     @dbus.service.signal( DBUS_INTERFACE_PREFIX + ".Device", "b" )
     def ConnectionStatusChanged( self, constatus ):
         logger.debug( "ConnectionStatusChanged %s" % constatus )
 
     @dbus.service.signal( DBUS_INTERFACE_PREFIX + ".Device", "i" )
+    @resource.checkedsignal
     def FixStatusChanged( self, fixstatus ):
         logger.debug( "FixStatusChanged %s" % fixstatus )
 
     @dbus.service.signal( DBUS_INTERFACE_PREFIX + ".Position", "iiddd" )
+    @resource.checkedsignal
     def PositionChanged( self, fields, tstamp, lat, lon, alt ):
         logger.debug( "PositionChanged (%i) %f, %f %f" % ( fields, lat, lon, alt ) )
 
     @dbus.service.signal( DBUS_INTERFACE_PREFIX + ".Accuracy", "iddd" )
+    @resource.checkedsignal
     def AccuracyChanged( self, fields, pdop, hdop, vdop ):
         logger.debug( "AccuracyChanged (%i) P%f, H%f, V%f" % ( fields, pdop, hdop, vdop ) )
 
     @dbus.service.signal( DBUS_INTERFACE_PREFIX + ".Course", "iiddd" )
+    @resource.checkedsignal
     def CourseChanged( self, fields, tstamp, speed, heading, climb ):
         logger.debug( "CourseChanged (%i) %f, %f°, %f" % ( fields, speed, heading, climb ) )
 
     @dbus.service.signal( DBUS_INTERFACE_PREFIX + ".Satellite", "a(ubuuu)" )
+    @resource.checkedsignal
     def SatellitesChanged( self, satellites ):
         logger.debug( "SatellitesChanged %s" % satellites )
 
     @dbus.service.signal( DBUS_INTERFACE_PREFIX + ".Time", "i" )
+    @resource.checkedsignal
     def TimeChanged( self, time ):
         logger.debug( "TimeChanged %i" % time )
 
