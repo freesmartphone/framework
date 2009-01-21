@@ -167,8 +167,8 @@ class Resource( dbus.service.Object ):
         if self._resourceStatus == "enabled":
             logger.debug( "resource now enabled. checking signal queue" )
             while not self._delayedSignalQueue.empty():
-                logger.debug( "sending delayed signal %s( %s )", f, args )
                 f, args = self._delayedSignalQueue.get()
+                logger.debug( "sending delayed signal %s( %s )", f, args )
                 f(*args)
 
     # callback factory
