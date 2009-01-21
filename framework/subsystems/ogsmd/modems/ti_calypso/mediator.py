@@ -78,7 +78,7 @@ class MonitorGetServingCellInformation( MonitorMediator ):
     params.reverse()
 
     stringparams = "cid lac"
-    strengthparams = "c1 c2 rxlev txlev rxlev_f rxlev_s".split()
+    strengthparams = "c1 c2 rxlev rxlev_f rxlev_s".split()
 
     def trigger( self ):
         self._commchannel.enqueue( "%EM=2,1", self.responseFromChannel, self.errorFromChannel )
