@@ -65,7 +65,10 @@ class GPSDevice( resource.Resource ):
     #
     def _enable( self, on_ok, on_error ):
         logger.info( "enabling" )
-        self.channel.initializeChannel()
+        if self.channel is not None:
+            self.channel.initializeChannel()
+        else:
+            logger.warn("GPSDevice has no channel assigned")
         self.initializeDevice()
         self.ConnectionStatusChanged( True )
         on_ok()
@@ -76,19 +79,26 @@ class GPSDevice( resource.Resource ):
         self.shutdownDevice()
         if self.channel is not None:
             self.channel.shutdownChannel()
+        else:
+            logger.warn("GPSDevice has no channel assigned")
         on_ok()
 
     def _suspend( self, on_ok, on_error ):
         logger.info( "suspending" )
         self.ConnectionStatusChanged( False )
         self.suspendDevice()
-        self.channel.shutdownChannel()
-        self.channel.suspendChannel()
+        if self.channel is not None:
+            self.channel.suspendChannel()
+        else:
+            logger.warn("GPSDevice has no channel assigned")
         on_ok()
 
     def _resume( self, on_ok, on_error ):
         logger.info("resuming")
-        self.channel.resumeChannel()
+        if self.channel is not None:
+            self.channel.resumeChannel()
+        else:
+            logger.warn("GPSDevice has no channel assigned")
         self.resumeDevice()
         self.ConnectionStatusChanged( True )
         on_ok()
