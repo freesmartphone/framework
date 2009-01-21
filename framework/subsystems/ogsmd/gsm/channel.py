@@ -14,7 +14,7 @@ This module provides communication channel abstractions that
 transport their data over a (virtual) serial line.
 """
 
-__version__ = "0.9.9.4"
+__version__ = "0.9.9.5"
 MODULE_NAME = "ogsmd.channel"
 
 from ogsmd.gsm.decor import logged
@@ -299,7 +299,6 @@ class QueuedVirtualChannel( VirtualChannel ):
         Enqueue data block for sending over the channel.
         """
         if type( data ) == types.UnicodeType:
-            logger.warning( "%s: Got unicode input. Trying to convert to plain string..." % self )
             data = str( data )
         self.q.put( ( data, response_cb, error_cb, timeout or self.timeout ) )
         if not self.connected:
