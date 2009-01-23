@@ -16,7 +16,8 @@ DBUS_PATH_PREFIX = "/org/freesmartphone"
 
 NEEDS_VERSION = 1
 
-__version__ = "1.1.0"
+__version__ = "1.1.1"
+
 __all__ = ( \
     "DBUS_BUS_NAME_PREFIX",
     "DBUS_INTERFACE_PREFIX",

@@ -1,3 +1,8 @@
+2009-01-23	Michael Lauer	<mlauer@vanille-media.de>
+	
+	* [odeviced]: powercontrol_neo: Use bind/unbind way of controlling ar6k power to get the maximum
+	power saving. This obsoletes wireless.pyx. At this point of time we no longer require Cython.
+
 2009-01-21	Michael Lauer	<mlauer@vanille-media.de>
 
 	* resource: Fixed bug in checkedmethod and checkedsyncmethod decorators. Previously we only got

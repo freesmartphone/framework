@@ -60,6 +60,7 @@ class GenericPowerControl( dbus.service.Object ):
             self.Power( self.name, expectedPower )
         else:
             logger.warning( "%s expected a power change for %s to %s which didn't happen" % ( __name__, self.name, expectedPower ) )
+        return False # mainloop: don't call me again
 
     #
     # dbus methods
@@ -76,7 +77,7 @@ class GenericPowerControl( dbus.service.Object ):
     def SetPower( self, power ):
         if power != self.getPower():
             self.setPower( power )
-            gobject.idle_add( lambda self=self: self.sendPowerSignal( power ) )
+            gobject.timeout_add_seconds( 3, lambda self=self: self.sendPowerSignal( power ) )
         else:
             # FIXME should we issue an error here or just silently ignore?
             pass

@@ -11,7 +11,7 @@ Module: powercontrol_neo
 """
 
 MODULE_NAME = "odeviced.powercontrol_neo"
-__version__ = "0.7.3"
+__version__ = "0.8.0"
 
 from helpers import readFromFile, writeToFile
 from powercontrol import GenericPowerControl, ResourceAwarePowerControl
@@ -20,12 +20,6 @@ import os, subprocess, sys
 
 import logging
 logger = logging.getLogger( MODULE_NAME )
-
-try:
-    import wireless
-except ImportError:
-    wireless = None
-    logger.error( "wireless module not available" )
 
 #----------------------------------------------------------------------------#
 class NeoBluetoothPowerControl( ResourceAwarePowerControl ):
@@ -71,15 +65,11 @@ class NeoWifiPowerControl( ResourceAwarePowerControl ):
         ResourceAwarePowerControl.__init__( self, bus, "WiFi", node )
 
     def setPower( self, power ):
-        if power:
-            subprocess.call( "wmiconfig -i eth0 --wlan enable".split() )
-            wireless.wifiSetOn( "eth0", 1 )
-        else:
-            wireless.wifiSetOn( "eth0", 0 )
-            subprocess.call( "wmiconfig -i eth0 --wlan disable".split() )
+        powernode = "bind" if power else "unbind"
+        writeToFile( "%s/%s" % ( self.node, powernode ), "s3c2440-sdi" )
 
     def getPower( self ):
-        return wireless.wifiIsOn( "eth0" )
+        return "eth0" in os.listdir( "/sys/class/net" )
 
 #----------------------------------------------------------------------------#
 def factory( prefix, controller ):
@@ -88,25 +78,22 @@ def factory( prefix, controller ):
     dbus server objects"""
     bus = controller.bus
 
-    def walk( objects, dirname, fnames ):
-        if walk.lookForBT and "neo1973-pm-bt.0" in fnames:
-            objects.append( NeoBluetoothPowerControl( bus, "%s/%s" % ( dirname, "neo1973-pm-bt.0" ) ) )
-            walk.lookForBT = False # only have one BT interface
-        if walk.lookForUSB and "s3c2410-ohci" in fnames: # works both for 1973 and FreeRunner
-            objects.append( NeoUsbHostPowerControl( bus, "%s/%s" % ( dirname, "s3c2410-ohci" ) ) )
-            walk.lookForUSB = False # only have one USB host
+    DEVICE_DIR = "/sys/bus/platform/devices"
+    DRIVER_DIR = "/sys/bus/platform/drivers"
+
+    devices = os.listdir( DEVICE_DIR )
+    drivers = os.listdir( DRIVER_DIR )
 
     objects = []
-    # scan for device nodes
 
-    devicespath = "/sys/bus/platform/devices"
-    walk.lookForBT = True
-    walk.lookForUSB = True
-    walk( objects, devicespath, os.listdir( devicespath ) )
+    if "neo1973-pm-bt.0" in devices:
+        objects.append( NeoBluetoothPowerControl( bus, "%s/%s" % ( DEVICE_DIR, "neo1973-pm-bt.0" ) ) )
 
-    # check for network interfaces
-    if ( wireless is not None ) and "eth0" in os.listdir( "/sys/class/net"):
-        objects.append( NeoWifiPowerControl( bus, "/sys/class/net/eth0" ) )
+    if "s3c2410-ohci" in devices:
+        objects.append( NeoUsbHostPowerControl( bus, "%s/%s" % ( DEVICE_DIR, "s3c2410-ohci" ) ) )
+
+    if "s3c2440-sdi" in drivers:
+        objects.append( NeoWifiPowerControl( bus, "%s/%s" % ( DRIVER_DIR, "s3c2440-sdi" ) ) )
 
     return objects
 
