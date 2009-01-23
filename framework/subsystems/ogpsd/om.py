@@ -12,7 +12,8 @@ GPLv2 or later
 __version__ = "0.9.9.3"
 MODULE_NAME = "ogpsd"
 
-DEVICE_POWER_PATH = "/sys/bus/platform/devices/neo1973-pm-gps.0/pwron"
+DEVICE_POWER_PATH_OLD = "/sys/bus/platform/devices/neo1973-pm-gps.0/pwron"
+DEVICE_POWER_PATH_NEW = "/sys/bus/platform/devices/neo1973-pm-gps.0/power_on"
 
 from ubx import UBXDevice
 from ubx import CLIDPAIR
@@ -33,9 +34,8 @@ class GTA02Device( UBXDevice ):
     def __init__( self, bus, channel ):
 
         # Make sure the GPS is off
-        helpers.writeToFile( DEVICE_POWER_PATH, "1" )
-        time.sleep( 0.5 )
-        helpers.writeToFile( DEVICE_POWER_PATH, "0" )
+        helpers.writeToFile( DEVICE_POWER_PATH_OLD, "0" )
+        helpers.writeToFile( DEVICE_POWER_PATH_NEW, "0" )
 
         self.aidingData = persist.get( "ogpsd", "aidingdata" )
         if self.aidingData is None:
@@ -46,7 +46,8 @@ class GTA02Device( UBXDevice ):
         super( GTA02Device, self ).__init__( bus, channel )
 
     def initializeDevice( self ):
-        helpers.writeToFile( DEVICE_POWER_PATH, "1" )
+        helpers.writeToFile( DEVICE_POWER_PATH_OLD, "1" )
+        helpers.writeToFile( DEVICE_POWER_PATH_NEW, "1" )
 
         # Wait for the device to be powered up
         time.sleep(0.5)
@@ -78,7 +79,8 @@ class GTA02Device( UBXDevice ):
 
         super( GTA02Device, self ).shutdownDevice()
 
-        helpers.writeToFile( DEVICE_POWER_PATH, "0" )
+        helpers.writeToFile( DEVICE_POWER_PATH_OLD, "0" )
+        helpers.writeToFile( DEVICE_POWER_PATH_NEW, "0" )
 
         # Save collected aiding data
         persist.set( "ogpsd", "aidingdata", self.aidingData )
