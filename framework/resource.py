@@ -58,7 +58,7 @@ def checkedsyncmethod(f, *args, **kw):
 
 #----------------------------------------------------------------------------#
 @decorator.decorator
-def checkedsignal(f, *args, **kw):
+def queuedsignal(f, *args, **kw):
     """
     This decorator wraps a dbus signal and sends it only if the resource is enabled.
     Otherwise, it enqueues the signals.

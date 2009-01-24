@@ -185,7 +185,7 @@ class Device( resource.Resource ):
     def GetAuthStatus( self, dbus_ok, dbus_error ):
         mediator.SimGetAuthStatus( self, dbus_ok, dbus_error )
 
-    @resource.checkedsignal
+    @resource.queuedsignal
     @dbus.service.signal( DBUS_INTERFACE_SIM, "s" )
     def AuthStatus( self, status ):
         logger.info( "auth status changed to %s", status )
@@ -228,7 +228,7 @@ class Device( resource.Resource ):
     def GetSimReady( self, dbus_ok, dbus_error ):
         dbus_ok( self.modem.simReady() == True )
 
-    @resource.checkedsignal
+    @resource.queuedsignal
     @dbus.service.signal( DBUS_INTERFACE_SIM, "b" )
     def ReadyStatus( self, status ):
         logger.info( "sim ready status %s", status )
@@ -350,12 +350,12 @@ class Device( resource.Resource ):
     def DeleteMessage( self, index, dbus_ok, dbus_error ):
         mediator.SimDeleteMessage( self, dbus_ok, dbus_error, index=index )
 
-    @resource.checkedsignal
+    @resource.queuedsignal
     @dbus.service.signal( DBUS_INTERFACE_SIM, "i" )
     def IncomingStoredMessage( self, index ):
         logger.info( "incoming message on sim storage index %s", index )
 
-    @resource.checkedsignal
+    @resource.queuedsignal
     @dbus.service.signal( DBUS_INTERFACE_SIM, "" )
     def MemoryFull( self ):
         logger.info( "sim memory full" )
@@ -369,7 +369,7 @@ class Device( resource.Resource ):
     def SendMessage( self, number, contents, properties, dbus_ok, dbus_error ):
         mediator.SmsSendMessage( self, dbus_ok, dbus_error, number=number, contents=contents, properties=properties )
 
-    @resource.checkedsignal
+    @resource.queuedsignal
     @dbus.service.signal( DBUS_INTERFACE_SMS, "ssa{sv}" )
     def IncomingMessage( self, address, text, features ):
         logger.info( "incoming message (unbuffered) from %s", address )
@@ -395,7 +395,7 @@ class Device( resource.Resource ):
     def GetStatus( self, dbus_ok, dbus_error ):
         mediator.NetworkGetStatus( self, dbus_ok, dbus_error )
 
-    @resource.checkedsignal
+    @resource.queuedsignal
     @dbus.service.signal( DBUS_INTERFACE_NETWORK, "a{sv}" )
     def Status( self, status ):
         logger.info( "org.freesmartphone.GSM.Network.Status: %s", status )
@@ -406,7 +406,7 @@ class Device( resource.Resource ):
     def GetSignalStrength( self, dbus_ok, dbus_error ):
         mediator.NetworkGetSignalStrength( self, dbus_ok, dbus_error )
 
-    @resource.checkedsignal
+    @resource.queuedsignal
     @dbus.service.signal( DBUS_INTERFACE_NETWORK, "i" )
     def SignalStrength( self, strength ):
         logger.info( "org.freesmartphone.GSM.Network.SignalStrength: %s", strength )
@@ -465,17 +465,17 @@ class Device( resource.Resource ):
     def SendUssdRequest( self, request, dbus_ok, dbus_error ):
         mediator.NetworkSendUssdRequest( self, dbus_ok, dbus_error, request=request )
 
-    @resource.checkedsignal
+    @resource.queuedsignal
     @dbus.service.signal( DBUS_INTERFACE_NETWORK, "ss" )
     def IncomingUssd( self, mode, message ):
         logger.info( "org.freesmartphone.GSM.Network.IncomingUssd: %s: %s", mode, message )
 
-    @resource.checkedsignal
+    @resource.queuedsignal
     @dbus.service.signal( DBUS_INTERFACE_NETWORK, "ss" )
     def CipherStatus( self, gsm, gprs ):
         logger.info( "org.freesmartphone.GSM.Network.CypherStatus: %s: %s", gsm, gprs )
 
-    @resource.checkedsignal
+    @resource.queuedsignal
     @dbus.service.signal( DBUS_INTERFACE_NETWORK, "i" )
     def TimeZoneReport( self, timezone ):
         logger.info( "org.freesmartphone.GSM.Network.TimeZoneReport: %d" )
@@ -488,7 +488,7 @@ class Device( resource.Resource ):
     def Emergency( self, number, dbus_ok, dbus_error ):
         mediator.CallEmergency( self, dbus_ok, dbus_error, number=number )
 
-    @resource.checkedsignal
+    @resource.queuedsignal
     @dbus.service.signal( DBUS_INTERFACE_CALL, "isa{sv}" )
     def CallStatus( self, index, status, properties ):
         logger.info( "org.freesmartphone.GSM.Call.CallStatus: %s %s %s", index, status, properties )
@@ -598,12 +598,12 @@ class Device( resource.Resource ):
     def GetContextStatus( self, dbus_ok, dbus_error ):
         mediator.PdpGetContextStatus( self, dbus_ok, dbus_error )
 
-    @resource.checkedsignal
+    @resource.queuedsignal
     @dbus.service.signal( DBUS_INTERFACE_PDP, "isa{sv}" )
     def ContextStatus( self, index, status, properties ):
         logger.info( "org.freesmartphone.GSM.PDP.ContextStatus: %s %s %s", index, status, properties )
 
-    @resource.checkedsignal
+    @resource.queuedsignal
     @dbus.service.signal( DBUS_INTERFACE_PDP, "a{sv}" )
     def NetworkStatus( self, status ):
         logger.info( "org.freesmartphone.GSM.PDP.NetworkStatus: %s", status )
@@ -623,7 +623,7 @@ class Device( resource.Resource ):
     def SetCellBroadcastSubscriptions( self, channels, dbus_ok, dbus_error ):
         mediator.CbSetCellBroadcastSubscriptions( self, dbus_ok, dbus_error, channels=channels )
 
-    @resource.checkedsignal
+    @resource.queuedsignal
     @dbus.service.signal( DBUS_INTERFACE_CB, "is" )
     def IncomingCellBroadcast( self, channel, data ):
         logger.info( "org.freesmartphone.GSM.CB.IncomingCellBroadcast: %s %s", channel, data )

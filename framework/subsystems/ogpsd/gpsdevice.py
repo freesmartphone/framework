@@ -280,38 +280,38 @@ class GPSDevice( resource.Resource ):
     #
     # dbus signals
     #
-    @resource.checkedsignal
+    @resource.queuedsignal
     @dbus.service.signal( DBUS_INTERFACE_PREFIX + ".Device", "b" )
     def ConnectionStatusChanged( self, constatus ):
         logger.debug( "ConnectionStatusChanged %s" % constatus )
 
     @dbus.service.signal( DBUS_INTERFACE_PREFIX + ".Device", "i" )
-    @resource.checkedsignal
+    @resource.queuedsignal
     def FixStatusChanged( self, fixstatus ):
         logger.debug( "FixStatusChanged %s" % fixstatus )
 
     @dbus.service.signal( DBUS_INTERFACE_PREFIX + ".Position", "iiddd" )
-    @resource.checkedsignal
+    @resource.queuedsignal
     def PositionChanged( self, fields, tstamp, lat, lon, alt ):
         logger.debug( "PositionChanged (%i) %f, %f %f" % ( fields, lat, lon, alt ) )
 
     @dbus.service.signal( DBUS_INTERFACE_PREFIX + ".Accuracy", "iddd" )
-    @resource.checkedsignal
+    @resource.queuedsignal
     def AccuracyChanged( self, fields, pdop, hdop, vdop ):
         logger.debug( "AccuracyChanged (%i) P%f, H%f, V%f" % ( fields, pdop, hdop, vdop ) )
 
     @dbus.service.signal( DBUS_INTERFACE_PREFIX + ".Course", "iiddd" )
-    @resource.checkedsignal
+    @resource.queuedsignal
     def CourseChanged( self, fields, tstamp, speed, heading, climb ):
         logger.debug( "CourseChanged (%i) %f, %f°, %f" % ( fields, speed, heading, climb ) )
 
     @dbus.service.signal( DBUS_INTERFACE_PREFIX + ".Satellite", "a(ubuuu)" )
-    @resource.checkedsignal
+    @resource.queuedsignal
     def SatellitesChanged( self, satellites ):
         logger.debug( "SatellitesChanged %s" % satellites )
 
     @dbus.service.signal( DBUS_INTERFACE_PREFIX + ".Time", "i" )
-    @resource.checkedsignal
+    @resource.queuedsignal
     def TimeChanged( self, time ):
         logger.debug( "TimeChanged %i" % time )
 
