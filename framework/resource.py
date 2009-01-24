@@ -13,7 +13,7 @@ Module: resource
 """
 
 MODULE_NAME = "frameworkd.resource"
-__version__ = "0.4.0"
+__version__ = "0.4.1"
 
 from framework.config import config
 from framework.patterns import decorator
@@ -40,7 +40,7 @@ def checkedmethod(f, *args, **kw):
     if self._resourceStatus == "enabled":
         return f(*args, **kw)
     else:
-        dbus_error( ResourceNotEnabled( "Resource is not enabled, current status is '%s'" % self._resourceStatus ) )
+        dbus_error( ResourceNotEnabled( "Resource %s is not enabled, current status is '%s'" % ( self.__class__.__name__, self._resourceStatus ) ) )
 
 #----------------------------------------------------------------------------#
 @decorator.decorator
@@ -54,14 +54,14 @@ def checkedsyncmethod(f, *args, **kw):
     if self._resourceStatus == "enabled":
         return f(*args, **kw)
     else:
-        dbus_error( ResourceNotEnabled( "Resource is not enabled, current status is '%s'" % self._resourceStatus ) )
+        dbus_error( ResourceNotEnabled( "Resource %s is not enabled, current status is '%s'" % ( self.__class__.__name__, self._resourceStatus ) ) )
 
 #----------------------------------------------------------------------------#
 @decorator.decorator
 def queuedsignal(f, *args, **kw):
     """
     This decorator wraps a dbus signal and sends it only if the resource is enabled.
-    Otherwise, it enqueues the signals.
+    Otherwise, it enqueues the signal.
     """
     #print "calling %s with args %s, %s" % (f.func_name, args, kw)
     self = args[0]
@@ -69,6 +69,20 @@ def queuedsignal(f, *args, **kw):
         return f(*args, **kw)
     else:
         self._delayedSignalQueue.put( ( f, args ) ) # push for later
+
+#----------------------------------------------------------------------------#
+@decorator.decorator
+def checkedsignal(f, *args, **kw):
+    """
+    This decorator wraps a dbus signal and sends it only if the resource is enabled.
+    Otherwise, it drops the signal.
+    """
+    #print "calling %s with args %s, %s" % (f.func_name, args, kw)
+    self = args[0]
+    if self._resourceStatus == "enabled":
+        return f(*args, **kw)
+    else:
+        logger.info( "Dropping signal %s, since resource %s is not enabled. Current status is '%s'" % ( f.__name__, self.__class__.__name__, self._resourceStatus ) )
 
 #----------------------------------------------------------------------------#
 class ResourceNotEnabled( dbus.DBusException ):
@@ -79,11 +93,6 @@ class ResourceNotEnabled( dbus.DBusException ):
 class ResourceError( dbus.DBusException ):
 #----------------------------------------------------------------------------#
     _dbus_error_name = "org.freesmartphone.Resource.Error"
-
-#----------------------------------------------------------------------------#
-class ResourceSuspendVeto( dbus.DBusException ):
-#----------------------------------------------------------------------------#
-    _dbus_error_name = "org.freesmartphone.Resource.SuspendVeto"
 
 #----------------------------------------------------------------------------#
 class Resource( dbus.service.Object ):
