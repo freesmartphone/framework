@@ -10,10 +10,11 @@ Package: framework
 Module: services
 """
 
-__version__ = "0.2.0"
+__version__ = "0.2.1"
 MODULE_NAME = "frameworkd.kobject"
 
 SYS_CLASS_NET = "/sys/class/net"
+BUFFER_SIZE = 2048
 
 from cxnet.netlink.rtnl import rtnl_msg as RtNetlinkMessage
 from cxnet.netlink.rtnl import rtnl_msg_parser as RtNetlinkParser
@@ -150,7 +151,7 @@ class KObjectDispatcher( object ):
         """
         Run through callbacks and call, if applicable
         """
-        data = os.read( source, 512 )
+        data = os.read( source, BUFFER_SIZE )
         logger.debug( "Received kobject notification: %s" % repr(data) )
         parts = data.split( '\0' )
         action, path = parts[0].split( '@' )
