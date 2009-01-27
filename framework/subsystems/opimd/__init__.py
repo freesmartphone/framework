@@ -11,7 +11,7 @@ MODULE_NAME = "opimd"
 
 from opimd import *
 
-# We import the domain modules, so that there classes are registered
+# We import the domain modules, so that there classes get registered
 import pimd_contacts
 import pimd_messages
 # Same thing for the backend modules
@@ -19,17 +19,15 @@ import pimb_sim_contacts_fso
 import pimb_sim_messages_fso
 import pimb_csv_contacts
 
-from gobject import MainLoop
-
-import os, sys
-
 import logging
 logger = logging.getLogger( MODULE_NAME )
 
 #----------------------------------------------------------------------------#
-def factory(prefix, controller):
+def factory( prefix, subsystem ):
 #----------------------------------------------------------------------------#
-    """This is the function that FSO's frameworkd will call to start this subsystem"""
+    """
+    frameworkd factory method.
+    """
     # TODO Check for exceptions
     from domain_manager import DomainManager
     DomainManager.init()
@@ -39,18 +37,18 @@ def factory(prefix, controller):
 
     dbus_objects = []
 
-    # Create a list of all d-bus objects to make frameworkd happy
+    # Create a list of all d-bus objects
     for dbus_obj in DomainManager.enumerate_dbus_objects():
+        logger.debug( "adding object %s" % dbus_obj )
         dbus_objects.append(dbus_obj)
 
     dbus_objects.append(backend_manager)
-
-    logger.info('opimd subsystem loaded')
 
     return dbus_objects
 
 #----------------------------------------------------------------------------#
 if __name__ == '__main__':
 #----------------------------------------------------------------------------#
+    import sys
     result = main_pyneo()
     sys.exit(result)

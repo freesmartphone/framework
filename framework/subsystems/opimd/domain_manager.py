@@ -24,13 +24,13 @@
 
 """pypimd Domain Plugin Manager"""
 
-import os
-
-import logging
-logger = logging.getLogger('opimd')
+MODULE_NAME = "opimd"
 
 from dbus.service import FallbackObject as DBusFBObject
 from opimd import *
+
+import logging
+logger = logging.getLogger( MODULE_NAME )
 
 # We use a meta class to automaticaly register all the domain subclasses
 #----------------------------------------------------------------------------#

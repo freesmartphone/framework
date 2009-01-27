@@ -24,9 +24,13 @@
 
 """pypimd Backend Plugin Manager"""
 
-import os
+from domain_manager import DomainManager
+from helpers import *
+from opimd import *
 
-from dbus import SystemBus
+import framework.patterns.tasklet as tasklet
+from framework.config import config, busmap
+
 from dbus.service import FallbackObject as DBusFBObject
 from dbus.service import signal as dbus_signal
 from dbus.service import method as dbus_method
@@ -34,11 +38,7 @@ from dbus.service import method as dbus_method
 import logging
 logger = logging.getLogger('opimd')
 
-from domain_manager import DomainManager
-from helpers import *
-from opimd import *
-import framework.patterns.tasklet as tasklet
-from framework.config import config
+#----------------------------------------------------------------------------#
 
 PIMB_CAN_ADD_ENTRY = 'add_entry'
 PIMB_CAN_DEL_ENTRY = 'del_entry'
@@ -48,16 +48,17 @@ PIMB_CAN_NEEDS_LOGIN = 'needs_login'
 PIMB_STATUS_DISCONNECTED = 0
 PIMB_STATUS_CONNECTED = 1
 
+#----------------------------------------------------------------------------#
 
 # D-Bus constant initialization, *must* be done before any D-Bus method decorators are declared
 try:
     import framework.config
-    
+
     _DBUS_PATH_SOURCES = DBUS_PATH_BASE_FSO + '/Sources'
     _DIN_SOURCES = DIN_BASE_FSO + '.Sources'
     _DIN_SOURCE = DIN_BASE_FSO + '.Source'
     ENV_MODE = 'FSO'
-    
+
 except ImportError:
     _DBUS_PATH_SOURCES = DBUS_PATH_BASE_PYNEO + '/Sources'
     _DIN_SOURCES = DIN_BASE_PYNEO + '.Sources'
@@ -82,7 +83,6 @@ class Backend(object):
     __metaclass__ = BackendMetaClass
     _all_backends_cls = []
 
-
 #----------------------------------------------------------------------------#
 class BackendManager(DBusFBObject):
 #----------------------------------------------------------------------------#
@@ -92,31 +92,27 @@ class BackendManager(DBusFBObject):
 
     def __init__(self):
         """Initializes the backend manager
-        
+
         @param plugin_path The directory where we'll look for backend plugins"""
 
         # Initialize the D-Bus-Interface
-        DBusFBObject.__init__(
-            self,
-            conn=SystemBus(),
-            object_path=_DBUS_PATH_SOURCES
-            )
-        
-        # Keep frameworkd happy
+        DBusFBObject.__init__( self, conn=busmap["opimd"], object_path=_DBUS_PATH_SOURCES )
+
+        # Still necessary?
         self.interface = _DIN_SOURCES
         self.path = _DBUS_PATH_SOURCES
-        
+
         for backend_cls in Backend._all_backends_cls:
             self.register_backend(backend_cls())
 
     @classmethod
     def register_backend(cls, backend):
         """Register a backend and register it with all supported PIM domains
-        
+
         @param backend The backend object to register"""
         cls._backends.append(backend)
         logger.info("Registered backend %s", backend.name)
-        
+
         for domain in backend.get_supported_domains():
             domain_handler = DomainManager.get_domain_handler(domain)
             if domain_handler: domain_handler.register_backend(backend)
@@ -125,24 +121,24 @@ class BackendManager(DBusFBObject):
     @classmethod
     def get_default_backend(class_, domain):
         """Returns the default backend for a specific domain
-        
+
         @param domain The name of the domain to get the default backend for
         @return The backend to use"""
-        
+
         backend = None
-        
+
         try:
             key = domain.lower() + "_default_backend"
             backend_name = config.getValue('opimd', key)
-            
+
             for b in class_._backends:
                 if b.name == backend_name:
                     backend = b
                     break
-                
+
         except KeyError:
             pass
-        
+
         return backend
 
 
@@ -150,7 +146,7 @@ class BackendManager(DBusFBObject):
     def GetEntryCount(self):
         """Return the number of backends we know of"""
         return len(self._backends)
-        
+
     @dbus_method(_DIN_SOURCES, "", "", async_callbacks=( "dbus_ok", "dbus_error" ))
     def InitAllEntries(self, dbus_ok, dbus_error):
         """Initialize all the entries"""
@@ -170,12 +166,12 @@ class BackendManager(DBusFBObject):
     def GetName(self, rel_path):
         num_id = int(rel_path[1:])
         backend = None
-        
+
         if (num_id < len(self._backends)):
             backend = self._backends[num_id]
         else:
             raise InvalidBackendIDError()
-        
+
         return backend.name
 
 
@@ -183,12 +179,12 @@ class BackendManager(DBusFBObject):
     def GetSupportedPIMDomains(self, rel_path):
         num_id = int(rel_path[1:])
         backend = None
-        
+
         if (num_id < len(self._backends)):
             backend = self._backends[num_id]
         else:
             raise InvalidBackendIDError()
-        
+
         return backend.get_supported_domains()
 
 
@@ -196,11 +192,11 @@ class BackendManager(DBusFBObject):
     def GetStatus(self, rel_path):
         num_id = int(rel_path[1:])
         backend = None
-        
+
         if (num_id < len(self._backends)):
             backend = self._backends[num_id]
         else:
             raise InvalidBackendIDError()
-            
+
         return backend.status
 
