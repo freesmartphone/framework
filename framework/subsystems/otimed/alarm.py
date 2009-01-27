@@ -12,7 +12,7 @@ Module: alarm
 """
 
 MODULE_NAME = "otimed.alarm"
-__version__ = "0.1.2"
+__version__ = "0.1.3"
 
 DBUS_INTERFACE_PREFIX = "org.freesmartphone.Time.Alarm"
 DBUS_PATH_PREFIX = "/org/freesmartphone/Time/Alarm"
@@ -61,8 +61,8 @@ class Alarm( object ):
         pass
 
     def fire( self ):
-        proxy = self.bus.get_object( self.busname, "/org/freedesktop/Application" )
-        iface = dbus.Interface( proxy, "org.freesmartphone.Application" )
+        proxy = self.bus.get_object( self.busname, "/" )
+        iface = dbus.Interface( proxy, "org.freesmartphone.Notification" )
         iface.Alarm(
             reply_handler=drop_dbus_result,
             error_handler=log_dbus_error( "error while calling Alarm on %s" % self.busname )
