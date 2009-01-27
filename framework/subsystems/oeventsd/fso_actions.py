@@ -306,18 +306,26 @@ class CommandAction(Action):
 #=========================================================================#
     function_name = 'Command'
 
-    def __init__( self, cmd = 'true' ):
+    def __init__( self, cmd = 'true', env = {} ):
         self.cmd = cmd
+        self.env = env
 
     def trigger(self, **kargs):
         logger.info( "CommandAction %s", self.cmd )
 
+        env = {}
+        env.update( os.environ )
+        env.update( self.env )
+
         # FIXME if we are interested in tracking the process, then we
         # should use glib's spawn async and add a chile watch
-        subprocess.Popen( shlex.split( self.cmd ) )
+        try:
+            subprocess.Popen( shlex.split( self.cmd ), env = env )
+        except Exception, e:
+            logger.error( "Error while executing external command '%s': %s", self.cmd, e )
 
     def __repr__(self):
-        return "CommandAction(%s)" % self.cmd
+        return "CommandAction(%s, %s)" % ( self.cmd, self.env )
 
 #============================================================================#
 class SuspendAction(DBusAction):
