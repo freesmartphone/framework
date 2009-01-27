@@ -9,7 +9,7 @@ Open GPS Daemon
 GPLv2 or later
 """
 
-__version__ = "0.9.9.3"
+__version__ = "0.9.9.4"
 MODULE_NAME = "ogpsd"
 
 DEVICE_POWER_PATH_OLD = "/sys/bus/platform/devices/neo1973-pm-gps.0/pwron"
@@ -34,6 +34,9 @@ class GTA02Device( UBXDevice ):
     def __init__( self, bus, channel ):
 
         # Make sure the GPS is off
+        helpers.writeToFile( DEVICE_POWER_PATH_OLD, "1" )
+        helpers.writeToFile( DEVICE_POWER_PATH_NEW, "1" )
+        time.sleep( 0.5 )
         helpers.writeToFile( DEVICE_POWER_PATH_OLD, "0" )
         helpers.writeToFile( DEVICE_POWER_PATH_NEW, "0" )
 
