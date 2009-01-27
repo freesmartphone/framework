@@ -217,6 +217,7 @@ class GenericUsageControl( dbus.service.Object ):
         """
         Shutdown the system.
         """
+        logger.info( "System shutting down..." )
         self.SystemAction( "shutdown" ) # send signal
         dbus_ok()
         # FIXME this is not a clean shutdown
@@ -228,6 +229,7 @@ class GenericUsageControl( dbus.service.Object ):
         """
         Reboot the system.
         """
+        logger.info( "System rebooting..." )
         # FIXME should we cleanly shutdown resources here -- will it matter?
         self.SystemAction( "reboot" ) # send signal
         dbus_ok()
