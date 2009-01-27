@@ -41,6 +41,11 @@ loggingmap = { \
     "CRITICAL": logging.CRITICAL,
 }
 #
+# busmap for subsystems
+#
+busmap = {}
+
+#
 # init configuration
 #
 config = None

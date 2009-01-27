@@ -10,9 +10,9 @@ Module: subsystem
 """
 
 MODULE_NAME = "frameworkd.subsystem"
-__version__ = "1.1.0"
+__version__ = "1.1.1"
 
-from .config import config, DBUS_BUS_NAME_PREFIX
+from .config import config, busmap, DBUS_BUS_NAME_PREFIX
 
 from patterns.processguard import ProcessGuard
 
@@ -36,6 +36,7 @@ class Subsystem( object ):
         self.launchTime = time.time()
         self.name = name
         self.bus = dbus.bus.BusConnection( dbus.bus.BUS_SYSTEM )
+        busmap[name] = self.bus
         self.path = path
         self.controller = controller
         self._objects = {}
