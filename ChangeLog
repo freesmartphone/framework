@@ -1,3 +1,8 @@
+2009-01-28	Michael Lauer	<mlauer@vanille-media.de>
+
+	* [opimd]: Fixed dbus objects not appearing since they were registered on the initial dbus connection,
+	the subsystems use individual connections though.
+
 2009-01-23	Michael Lauer	<mlauer@vanille-media.de>
 	
 	* [odeviced]: powercontrol_neo: Use bind/unbind way of controlling ar6k power to get the maximum

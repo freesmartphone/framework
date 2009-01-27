@@ -36,6 +36,7 @@ setup(
         ("../../etc/freesmartphone/oevents",                      ["etc/freesmartphone/oevents/rules.yaml"]),
         ("../../etc/freesmartphone/persist",                      ["etc/freesmartphone/persist/README"]),
         ("../../etc/freesmartphone/ogsmd",                        ["etc/freesmartphone/ogsmd/networks.tab"]),
+        ("../../etc/freesmartphone/opim",                         ["etc/freesmartphone/opim/csv-contacts.txt"]),
         ("freesmartphone/examples/", getDir( "examples" ) ),
     ]
 )
