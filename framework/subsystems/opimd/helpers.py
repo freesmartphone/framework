@@ -1,72 +1,91 @@
-#
-#   Openmoko PIM Daemon
-#   Various globally used helpers
-#
-#   http://openmoko.org/
-#   http://pyneo.org/
-#
-#   Copyright (C) 2008 by Soeren Apel (abraxa@dar-clan.de)
-#
-#   This program is free software; you can redistribute it and/or modify
-#   it under the terms of the GNU General Public License as published by
-#   the Free Software Foundation; either version 2 of the License, or
-#   (at your option) any later version.
-#
-#   This program is distributed in the hope that it will be useful,
-#   but WITHOUT ANY WARRANTY; without even the implied warranty of
-#   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-#   GNU General Public License for more details.
-#
-#   You should have received a copy of the GNU General Public License
-#   along with this program; if not, write to the Free Software
-#   Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
-#
+#!/usr/bin/env python
+"""
+Open PIM Daemon
 
-"""pypimd Helpers"""
+(C) 2008 by Soeren Apel <abraxa@dar-clan.de>
+(C) 2009 Michael 'Mickey' Lauer <mlauer@vanille-media.de>
+(C) 2008-2009 Openmoko, Inc.
+GPLv2 or later
 
+Helpers
+"""
 
+from dbus import DBusException
+
+#----------------------------------------------------------------------------#
 def phone_number_to_tel_uri(phone_num):
+#----------------------------------------------------------------------------#
     """Transforms a regular phone number into a tel URI"""
-    
+
     uri = "tel:"
-    
+
     uri += phone_num
     return uri
 
 
+#----------------------------------------------------------------------------#
 def get_compare_for_tel(tel_value):
+#----------------------------------------------------------------------------#
     """Determines and returns a representation of a tel URI that is comparable to human input"""
-    
+
     # Remove tel:
     res = tel_value[4:]
-    
+
     # Remove +, - and /
     res = res.translate({ord(u'-'):None, ord(u'/'):None})
-    
+
     return res
 
-
 #----------------------------------------------------------------------------#
-class PIMException(Exception):
-#----------------------------------------------------------------------------#
-    """Base class for PIM-specific exceptions"""
-    pass
-
-#----------------------------------------------------------------------------#
-class InvalidQueryIDError(PIMException):
-#----------------------------------------------------------------------------#
-    """Raised when a submitted query ID is invalid / out of range"""
-    pass
-
-#----------------------------------------------------------------------------#
-class InvalidBackendIDError(PIMException):
-#----------------------------------------------------------------------------#
-    """Raised when a submitted backend ID is invalid / out of range"""
-    pass
-
-#----------------------------------------------------------------------------#
-class InvalidBackendError(PIMException):
+class InvalidBackend( DBusException ):
 #----------------------------------------------------------------------------#
     """Raised when a backend is either invalid or unsuited for a certain function call"""
-    pass
+    _dbus_error_name = "org.freesmartphone.PIM.InvalidBackend"
 
+#----------------------------------------------------------------------------#
+class InvalidBackendID( DBusException ):
+#----------------------------------------------------------------------------#
+    """Raised when a submitted backend ID is invalid / out of range"""
+    _dbus_error_name = "org.freesmartphone.PIM.InvalidBackendID"
+
+#----------------------------------------------------------------------------#
+class InvalidContactID( DBusException ):
+#----------------------------------------------------------------------------#
+    """Raised when a submitted contact ID is invalid / out of range"""
+    _dbus_error_name = "org.freesmartphone.PIM.InvalidContactID"
+
+#----------------------------------------------------------------------------#
+class NoMoreContacts( DBusException ):
+#----------------------------------------------------------------------------#
+    """Raised when there are no more contacts to be listed"""
+    _dbus_error_name = "org.freesmartphone.PIM.NoMoreContacts"
+
+#----------------------------------------------------------------------------#
+class InvalidQueryID( DBusException ):
+#----------------------------------------------------------------------------#
+    """Raised when a submitted query ID is invalid / out of range"""
+    _dbus_error_name = "org.freesmartphone.PIM.InvalidQueryID"
+
+#----------------------------------------------------------------------------#
+class InvalidMessageID( DBusException ):
+#----------------------------------------------------------------------------#
+    """Raised when a submitted message ID is invalid / out of range"""
+    _dbus_error_name = "org.freesmartphone.PIM.InvalidMessageID"
+
+#----------------------------------------------------------------------------#
+class NoMoreMessages( DBusException ):
+#----------------------------------------------------------------------------#
+    """Raised when there are no more messages to be listed"""
+    _dbus_error_name = "org.freesmartphone.PIM.NoMoreMessages"
+
+#----------------------------------------------------------------------------#
+class UnknownFolder( DBusException ):
+#----------------------------------------------------------------------------#
+    """Raised when a given folder name is unknown"""
+    _dbus_error_name = "org.freesmartphone.PIM.UnknownFolder"
+
+#----------------------------------------------------------------------------#
+class AmbiguousKey( DBusException ):
+#----------------------------------------------------------------------------#
+    """Raised when a given message field name is present more than once and it's unclear which to modify"""
+    _dbus_error_name = "org.freesmartphone.PIM.AmbiguousKey"

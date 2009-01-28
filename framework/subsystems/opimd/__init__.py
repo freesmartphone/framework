@@ -5,6 +5,8 @@ Open PIM Daemon
 (C) 2008 by Soeren Apel <abraxa@dar-clan.de>
 (C) 2008 Openmoko, Inc.
 GPLv2 or later
+
+Framework plugin factory
 """
 
 MODULE_NAME = "opimd"

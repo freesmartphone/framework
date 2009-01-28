@@ -1,31 +1,16 @@
-#
-#   Openmoko PIM Daemon
-#   Messages Domain Plugin
-#
-#   http://openmoko.org/
-#   http://pyneo.org/
-#
-#   Copyright (C) 2008 by Soeren Apel (abraxa@dar-clan.de)
-#
-#   This program is free software; you can redistribute it and/or modify
-#   it under the terms of the GNU General Public License as published by
-#   the Free Software Foundation; either version 2 of the License, or
-#   (at your option) any later version.
-#
-#   This program is distributed in the hope that it will be useful,
-#   but WITHOUT ANY WARRANTY; without even the implied warranty of
-#   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-#   GNU General Public License for more details.
-#
-#   You should have received a copy of the GNU General Public License
-#   along with this program; if not, write to the Free Software
-#   Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
-#
+#!/usr/bin/env python
+"""
+Open PIM Daemon
 
-"""pypimd Messages Domain Plugin
-Establishes the 'messages' PIM domain and handles all related requests"""
+(C) 2008 by Soeren Apel <abraxa@dar-clan.de>
+(C) 2008 Openmoko, Inc.
+GPLv2 or later
 
-from dbus import SystemBus
+Contacts Domain Plugin
+
+Establishes the 'messages' PIM domain and handles all related requests
+"""
+
 from dbus.service import FallbackObject as DBusFBObject
 from dbus.service import signal as dbus_signal
 from dbus.service import method as dbus_method
@@ -41,24 +26,15 @@ from opimd import *
 
 from framework.config import config, busmap
 
+#----------------------------------------------------------------------------#
+
 _DOMAIN_NAME = "Messages"
 
 _MIN_MATCH_TRESHOLD = 0.75
 
-
-# D-Bus constant initialization, *must* be done before any D-Bus method decorators are declared
-try:
-    import framework.config
-
-    _DBUS_PATH_MESSAGES = DBUS_PATH_BASE_FSO + '/' + _DOMAIN_NAME
-    _DIN_MESSAGES_BASE = DIN_BASE_FSO
-    ENV_MODE = 'FSO'
-
-except ImportError:
-    _DBUS_PATH_MESSAGES = DBUS_PATH_BASE_PYNEO + '/' + _DOMAIN_NAME
-    _DIN_MESSAGES_BASE = DIN_BASE_PYNEO
-    ENV_MODE = 'pyneo'
-
+_DBUS_PATH_MESSAGES = DBUS_PATH_BASE_FSO + '/' + _DOMAIN_NAME
+_DIN_MESSAGES_BASE = DIN_BASE_FSO
+ENV_MODE = 'FSO'
 
 _DBUS_PATH_QUERIES = _DBUS_PATH_MESSAGES + '/Queries'
 _DBUS_PATH_FOLDERS = _DBUS_PATH_MESSAGES + '/Folders'
@@ -68,45 +44,10 @@ _DIN_ENTRY = _DIN_MESSAGES_BASE + '.' + 'Message'
 _DIN_QUERY = _DIN_MESSAGES_BASE + '.' + 'MessageQuery'
 _DIN_FOLDER = _DIN_MESSAGES_BASE + '.' + 'MessageFolder'
 
-
-
-#----------------------------------------------------------------------------#
-class InvalidMessageIDError(PIMException):
-#----------------------------------------------------------------------------#
-    """Raised when a submitted contact ID is invalid / out of range"""
-    pass
-
-
-
-#----------------------------------------------------------------------------#
-class NoMoreMessagesError(PIMException):
-#----------------------------------------------------------------------------#
-    """Raised when there are no more messages to be listed"""
-    pass
-
-
-
-#----------------------------------------------------------------------------#
-class UnknownFolderNameError(PIMException):
-#----------------------------------------------------------------------------#
-    """Raised when a given folder name is unknown"""
-    pass
-
-
-
-#----------------------------------------------------------------------------#
-class AmbiguousKeyError(PIMException):
-#----------------------------------------------------------------------------#
-    """Raised when a given message field name is present more than once and it's unclear which to modify"""
-    pass
-
-
-
 #----------------------------------------------------------------------------#
 class MessageQueryMatcher(object):
 #----------------------------------------------------------------------------#
     query_obj = None
-#----------------------------------------------------------------------------#
 
     def __init__(self, query):
         """Evaluates a query
@@ -152,8 +93,6 @@ class MessageQueryMatcher(object):
 
         return results
 
-
-
 #----------------------------------------------------------------------------#
 class Message():
 #----------------------------------------------------------------------------#
@@ -169,7 +108,6 @@ class Message():
     _fields = None
     _field_idx = None
     _used_backends = None
-#----------------------------------------------------------------------------#
 
     def __init__(self, uri):
         """Creates a new Message instance
@@ -221,7 +159,7 @@ class Message():
             return
 
         if len(field_ids) > 1:
-            raise AmbiguousKeyError()
+            raise AmbiguousKey( "More than one potential field: %s" % field_ids )
 
         field = self._fields[field_ids[0]]
         field[1] = value
@@ -412,7 +350,6 @@ class SingleQueryHandler(object):
     query = None      # The query this handler is processing
     entries = None
     cursors = None    # The next entry we'll serve, depending on the client calling us
-#----------------------------------------------------------------------------#
 
     def __init__(self, query, messages, dbus_sender):
         """Creates a new SingleQueryHandler instance
@@ -500,7 +437,7 @@ class SingleQueryHandler(object):
         try:
             result = self.entries[self.cursors[dbus_sender]]
         except IndexError:
-            raise NoMoreMessagesError()
+            raise NoMoreMessages( "All Messages have been delivered" )
 
         message_id = self.entries[self.cursors[dbus_sender]]
         message = self._messages[message_id]
@@ -522,7 +459,7 @@ class SingleQueryHandler(object):
         try:
             result = self.entries[self.cursors[dbus_sender]]
         except IndexError:
-            raise NoMoreMessagesError()
+            raise NoMoreMessages( "All Messages have been delivered" )
 
         message_id = self.entries[self.cursors[dbus_sender]]
         message = self._messages[message_id]
@@ -552,7 +489,8 @@ class SingleQueryHandler(object):
             try:
                 entry = self.get_result(dbus_sender)
                 result[i] = entry
-            except NoMoreMessagesError:
+            except NoMoreMessages:
+                # we don't want to raise a dbus error here
                 break
 
         return result
@@ -593,8 +531,7 @@ class QueryManager(DBusFBObject):
     _messages = None
     _next_query_id = None
 
-# Note: _queries must be a dict so we can remove queries without messing up query IDs
-#----------------------------------------------------------------------------#
+    # Note: _queries must be a dict so we can remove queries without messing up query IDs
 
     def __init__(self, messages):
         """Creates a new QueryManager instance
@@ -642,13 +579,17 @@ class QueryManager(DBusFBObject):
                 # TODO Figure out how relative signals really work
                 # self.MessageAdded(query_id, message_uri)
 
+    def check_query_id_ok( self, query_id ):
+        """
+        Checks whether a query ID is existing. Raises InvalidQueryID, if not.
+        """
+        if not num_id in self._queries:
+            raise InvalidQueryID( "Existing query IDs: %s" % self._queries.keys() )
 
     @dbus_method(_DIN_QUERY, "", "i", rel_path_keyword="rel_path")
     def GetResultCount(self, rel_path):
         num_id = int(rel_path[1:])
-
-        # Make sure the requested query exists
-        if not self._queries.has_key(num_id): raise InvalidQueryIDError()
+        self.check_query_id_ok( num_id )
 
         return self._queries[num_id].get_result_count()
 
@@ -656,9 +597,7 @@ class QueryManager(DBusFBObject):
     @dbus_method(_DIN_QUERY, "", "", rel_path_keyword="rel_path", sender_keyword="sender")
     def Rewind(self, rel_path, sender):
         num_id = int(rel_path[1:])
-
-        # Make sure the requested query exists
-        if not self._queries.has_key(num_id): raise InvalidQueryIDError()
+        self.check_query_id_ok( num_id )
 
         self._queries[num_id].rewind(sender)
 
@@ -666,9 +605,7 @@ class QueryManager(DBusFBObject):
     @dbus_method(_DIN_QUERY, "i", "", rel_path_keyword="rel_path", sender_keyword="sender")
     def Skip(self, num_entries, rel_path, sender):
         num_id = int(rel_path[1:])
-
-        # Make sure the requested query exists
-        if not self._queries.has_key(num_id): raise InvalidQueryIDError()
+        self.check_query_id_ok( num_id )
 
         self._queries[num_id].skip(sender, num_entries)
 
@@ -676,9 +613,7 @@ class QueryManager(DBusFBObject):
     @dbus_method(_DIN_QUERY, "", "s", rel_path_keyword="rel_path", sender_keyword="sender")
     def GetMessageURI(self, rel_path, sender):
         num_id = int(rel_path[1:])
-
-        # Make sure the requested query exists
-        if not self._queries.has_key(num_id): raise InvalidQueryIDError()
+        self.check_query_id_ok( num_id )
 
         return self._queries[num_id].get_message_uri(sender)
 
@@ -686,9 +621,7 @@ class QueryManager(DBusFBObject):
     @dbus_method(_DIN_QUERY, "", "a{sv}", rel_path_keyword="rel_path", sender_keyword="sender")
     def GetResult(self, rel_path, sender):
         num_id = int(rel_path[1:])
-
-        # Make sure the requested query exists
-        if not self._queries.has_key(num_id): raise InvalidQueryIDError()
+        self.check_query_id_ok( num_id )
 
         return self._queries[num_id].get_result(sender)
 
@@ -696,9 +629,7 @@ class QueryManager(DBusFBObject):
     @dbus_method(_DIN_QUERY, "i", "a{ia{sv}}", rel_path_keyword="rel_path", sender_keyword="sender")
     def GetMultipleResults(self, num_entries, rel_path, sender):
         num_id = int(rel_path[1:])
-
-        # Make sure the requested query exists
-        if not self._queries.has_key(num_id): raise InvalidQueryIDError()
+        self.check_query_id_ok( num_id )
 
         return self._queries[num_id].get_multiple_results(sender, num_entries)
 
@@ -706,9 +637,7 @@ class QueryManager(DBusFBObject):
     @dbus_method(_DIN_QUERY, "", "", rel_path_keyword="rel_path")
     def Dispose(self, rel_path):
         num_id = int(rel_path[1:])
-
-        # Make sure the requested query exists
-        if not self._queries.has_key(num_id): raise InvalidQueryIDError()
+        self.check_query_id_ok( num_id )
 
         # Make sure no one else references the query handler before we remove our reference to it
         # Otherwise, garbage collection won't actually free its memory
@@ -723,7 +652,6 @@ class MessageFolder(DBusFBObject):
     _messages = None   # List of all messages registered with the messages domain
     _entries = None    # List of all messages within this folder
     name = None
-#----------------------------------------------------------------------------#
 
     def __init__(self, messages, folder_id, folder_name):
         self._messages = messages
@@ -793,7 +721,6 @@ class MessageDomain(Domain):
     _messages = None
     _folders = None
     query_manager = None
-#----------------------------------------------------------------------------#
 
     def __init__(self):
         """Creates a new MessageDomain instance"""
@@ -835,7 +762,7 @@ class MessageDomain(Domain):
         for (folder_id, folder) in enumerate(self._folders):
             if folder.name == folder_name: return folder_id
 
-        raise UnknownFolderNameError()
+        raise UnknownFolder( "Valid folders are %s" % list(self._folders) )
 
 
     def register_backend(self, backend):
@@ -871,7 +798,7 @@ class MessageDomain(Domain):
             folder_id = self.get_folder_id_from_name(folder_name)
             folder = self._folders[folder_id]
 
-        except UnknownFolderNameError:
+        except UnknownFolder:
             folder_id = len(self._folders)
             folder = MessageFolder(self._messages, folder_id, folder_name)
             self._folders.append(folder)
@@ -907,12 +834,12 @@ class MessageDomain(Domain):
         result = ""
 
         if not PIMB_CAN_ADD_ENTRY in backend.properties:
-            raise InvalidBackendError()
+            raise InvalidBackend( "This backend does not feature PIMB_CAN_ADD_ENTRY" )
 
         try:
             message_id = backend.add_message(message_data)
         except AttributeError:
-            raise InvalidBackendError()
+            raise InvalidBackend( "This backend does not feature add_message" )
 
         message = self._messages[message_id]
         result = message['URI']
@@ -988,13 +915,17 @@ class MessageDomain(Domain):
     def NewMessage(self, message_URI):
         pass
 
+    def check_message_id_ok( self, num_id ):
+        """
+        Checks whether the given message id is valid. Raises InvalidMessageID, if not.
+        """
+        if num_id >= len(self._messages):
+            raise InvalidMessageID()
 
     @dbus_method(_DIN_ENTRY, "", "a{sv}", rel_path_keyword="rel_path")
     def GetContent(self, rel_path):
         num_id = int(rel_path[1:])
-
-        # Make sure the requested message exists
-        if num_id >= len(self._messages): raise InvalidMessageIDError()
+        self.check_message_id_ok()
 
         return self._messages[num_id].get_content()
 
@@ -1002,9 +933,7 @@ class MessageDomain(Domain):
     @dbus_method(_DIN_ENTRY, "s", "a{sv}", rel_path_keyword="rel_path")
     def GetMultipleFields(self, field_list, rel_path):
         num_id = int(rel_path[1:])
-
-        # Make sure the requested message exists
-        if num_id >= len(self._messages): raise InvalidMessageIDError()
+        self.check_message_id_ok()
 
         # Break the string up into a list
         fields = field_list.split(',')
@@ -1025,9 +954,7 @@ class MessageDomain(Domain):
         @param new_folder_name Name of new folder
         @param rel_path Relative part of D-Bus object path, e.g. '/4'"""
         num_id = int(rel_path[1:])
-
-        # Make sure the requested message exists
-        if num_id >= len(self._messages): raise InvalidMessageIDError()
+        self.check_message_id_ok()
 
         message = self._messages[num_id]
 

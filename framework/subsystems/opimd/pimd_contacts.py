@@ -1,29 +1,15 @@
-#
-#   Openmoko PIM Daemon
-#   Contacts Domain Plugin
-#
-#   http://openmoko.org/
-#   http://pyneo.org/
-#
-#   Copyright (C) 2008 by Soeren Apel (abraxa@dar-clan.de)
-#
-#   This program is free software; you can redistribute it and/or modify
-#   it under the terms of the GNU General Public License as published by
-#   the Free Software Foundation; either version 2 of the License, or
-#   (at your option) any later version.
-#
-#   This program is distributed in the hope that it will be useful,
-#   but WITHOUT ANY WARRANTY; without even the implied warranty of
-#   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-#   GNU General Public License for more details.
-#
-#   You should have received a copy of the GNU General Public License
-#   along with this program; if not, write to the Free Software
-#   Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
-#
+#!/usr/bin/env python
+"""
+Open PIM Daemon
 
-"""pypimd Contacts Domain Plugin
-Establishes the 'contact' PIM domain and handles all related requests"""
+(C) 2008 by Soeren Apel <abraxa@dar-clan.de>
+(C) 2008 Openmoko, Inc.
+GPLv2 or later
+
+Contacts Domain Plugin
+
+Establishes the 'contact' PIM domain and handles all related requests
+"""
 
 from dbus.service import FallbackObject as DBusFBObject
 from dbus.service import signal as dbus_signal
@@ -43,24 +29,15 @@ from opimd import *
 
 from framework.config import busmap
 
+#----------------------------------------------------------------------------#
+
 _DOMAIN_NAME = "Contacts"
 
 _MIN_MATCH_TRESHOLD = 0.75
 
-
-# D-Bus constant initialization, *must* be done before any D-Bus method decorators are declared
-try:
-    import framework.config
-
-    _DBUS_PATH_CONTACTS = DBUS_PATH_BASE_FSO + '/' + _DOMAIN_NAME
-    _DIN_CONTACTS_BASE = DIN_BASE_FSO
-    ENV_MODE = 'FSO'
-
-except ImportError:
-    _DBUS_PATH_CONTACTS = DBUS_PATH_BASE_PYNEO + '/' + _DOMAIN_NAME
-    _DIN_CONTACTS_BASE = DIN_BASE_PYNEO
-    ENV_MODE = 'pyneo'
-
+_DBUS_PATH_CONTACTS = DBUS_PATH_BASE_FSO + '/' + _DOMAIN_NAME
+_DIN_CONTACTS_BASE = DIN_BASE_FSO
+ENV_MODE = 'FSO'
 
 _DBUS_PATH_QUERIES = _DBUS_PATH_CONTACTS + '/Queries'
 
@@ -68,29 +45,10 @@ _DIN_CONTACTS = _DIN_CONTACTS_BASE + '.' + 'Contacts'
 _DIN_ENTRY = _DIN_CONTACTS_BASE + '.' + 'Contact'
 _DIN_QUERY = _DIN_CONTACTS_BASE + '.' + 'ContactQuery'
 
-
-
-#----------------------------------------------------------------------------#
-class InvalidContactIDError(PIMException):
-#----------------------------------------------------------------------------#
-    """Raised when a submitted contact ID is invalid / out of range"""
-    pass
-
-
-
-#----------------------------------------------------------------------------#
-class NoMoreContactsError(PIMException):
-#----------------------------------------------------------------------------#
-    """Raised when there are no more contacts to be listed"""
-    pass
-
-
-
 #----------------------------------------------------------------------------#
 class ContactQueryMatcher(object):
 #----------------------------------------------------------------------------#
     query_obj = None
-#----------------------------------------------------------------------------#
 
     def __init__(self, query):
         """Evaluates a query
@@ -153,7 +111,6 @@ class Contact():
     _fields = None
     _field_idx = None
     _used_backends = None
-#----------------------------------------------------------------------------#
 
     def __init__(self, path):
         """Creates a new Contact instance
@@ -391,7 +348,6 @@ class SingleQueryHandler(object):
     query = None      # The query this handler is processing
     entries = None
     cursors = None    # The next entry we'll serve, depending on the client calling us
-#----------------------------------------------------------------------------#
 
     def __init__(self, query, contacts, dbus_sender):
         """Creates a new SingleQueryHandler instance
@@ -479,7 +435,7 @@ class SingleQueryHandler(object):
         try:
             result = self.entries[self.cursors[dbus_sender]]
         except IndexError:
-            raise NoMoreContactsError()
+            raise NoMoreContacts( "All results have been submitted" )
 
         contact_id = self.entries[self.cursors[dbus_sender]]
         contact = self._contacts[contact_id]
@@ -501,7 +457,7 @@ class SingleQueryHandler(object):
         try:
             result = self.entries[self.cursors[dbus_sender]]
         except IndexError:
-            raise NoMoreContactsError()
+            raise NoMoreContacts( "All results have been submitted" )
 
         contact_id = self.entries[self.cursors[dbus_sender]]
         contact = self._contacts[contact_id]
@@ -531,7 +487,8 @@ class SingleQueryHandler(object):
             try:
                 entry = self.get_result(dbus_sender)
                 result.append(entry)
-            except NoMoreContactsError:
+            except NoMoreContacts:
+                """Don't want to raise an error in that case"""
                 break
 
         return result
@@ -572,8 +529,7 @@ class QueryManager(DBusFBObject):
     _contacts = None
     _next_query_id = None
 
-# Note: _queries must be a dict so we can remove queries without messing up query IDs
-#----------------------------------------------------------------------------#
+    # Note: _queries must be a dict so we can remove queries without messing up query IDs
 
     def __init__(self, contacts):
         """Creates a new QueryManager instance
@@ -621,13 +577,17 @@ class QueryManager(DBusFBObject):
                 # TODO Figure out how relative signals really work
                 # self.ContactAdded(query_id, contact_path)
 
+    def check_query_id_ok( self, num_id ):
+        """
+        Checks whether a query ID is existing. Raises InvalidQueryID, if not.
+        """
+        if not num_id in self._queries:
+            raise InvalidQueryID( "Existing query IDs: %s" % self._queries.keys() )
 
     @dbus_method(_DIN_QUERY, "", "i", rel_path_keyword="rel_path")
     def GetResultCount(self, rel_path):
         num_id = int(rel_path[1:])
-
-        # Make sure the requested query exists
-        if not self._queries.has_key(num_id): raise InvalidQueryIDError()
+        self.check_query_id_ok( num_id )
 
         return self._queries[num_id].get_result_count()
 
@@ -635,9 +595,7 @@ class QueryManager(DBusFBObject):
     @dbus_method(_DIN_QUERY, "", "", rel_path_keyword="rel_path", sender_keyword="sender")
     def Rewind(self, rel_path, sender):
         num_id = int(rel_path[1:])
-
-        # Make sure the requested query exists
-        if not self._queries.has_key(num_id): raise InvalidQueryIDError()
+        self.check_query_id_ok( num_id )
 
         self._queries[num_id].rewind(sender)
 
@@ -645,9 +603,7 @@ class QueryManager(DBusFBObject):
     @dbus_method(_DIN_QUERY, "i", "", rel_path_keyword="rel_path", sender_keyword="sender")
     def Skip(self, num_entries, rel_path, sender):
         num_id = int(rel_path[1:])
-
-        # Make sure the requested query exists
-        if not self._queries.has_key(num_id): raise InvalidQueryIDError()
+        self.check_query_id_ok( num_id )
 
         self._queries[num_id].skip(sender, num_entries)
 
@@ -655,9 +611,7 @@ class QueryManager(DBusFBObject):
     @dbus_method(_DIN_QUERY, "", "s", rel_path_keyword="rel_path", sender_keyword="sender")
     def GetContactPath(self, rel_path, sender):
         num_id = int(rel_path[1:])
-
-        # Make sure the requested query exists
-        if not self._queries.has_key(num_id): raise InvalidQueryIDError()
+        self.check_query_id_ok( num_id )
 
         return self._queries[num_id].get_contact_path(sender)
 
@@ -665,9 +619,7 @@ class QueryManager(DBusFBObject):
     @dbus_method(_DIN_QUERY, "", "a{sv}", rel_path_keyword="rel_path", sender_keyword="sender")
     def GetResult(self, rel_path, sender):
         num_id = int(rel_path[1:])
-
-        # Make sure the requested query exists
-        if not self._queries.has_key(num_id): raise InvalidQueryIDError()
+        self.check_query_id_ok( num_id )
 
         return self._queries[num_id].get_result(sender)
 
@@ -675,9 +627,7 @@ class QueryManager(DBusFBObject):
     @dbus_method(_DIN_QUERY, "i", "aa{sv}", rel_path_keyword="rel_path", sender_keyword="sender")
     def GetMultipleResults(self, num_entries, rel_path, sender):
         num_id = int(rel_path[1:])
-
-        # Make sure the requested query exists
-        if not self._queries.has_key(num_id): raise InvalidQueryIDError()
+        self.check_query_id_ok( num_id )
 
         return self._queries[num_id].get_multiple_results(sender, num_entries)
 
@@ -685,9 +635,7 @@ class QueryManager(DBusFBObject):
     @dbus_method(_DIN_QUERY, "", "", rel_path_keyword="rel_path")
     def Dispose(self, rel_path):
         num_id = int(rel_path[1:])
-
-        # Make sure the requested query exists
-        if not self._queries.has_key(num_id): raise InvalidQueryIDError()
+        self.check_query_id_ok( num_id )
 
         # Make sure no one else references the query handler before we remove our reference to it
         # Otherwise, garbage collection won't actually free its memory
@@ -702,7 +650,6 @@ class ContactDomain(Domain):
     _backends = None
     _contacts = None
     query_manager = None
-#----------------------------------------------------------------------------#
 
     def __init__(self):
         """Creates a new ContactDomain instance"""
@@ -791,12 +738,12 @@ class ContactDomain(Domain):
         result = ""
 
         if not PIMB_CAN_ADD_ENTRY in backend.properties:
-            raise InvalidBackendError()
+            raise InvalidBackend( "Backend properties not including PIMB_CAN_ADD_ENTRY" )
 
         try:
             contact_id = backend.add_contact(contact_data)
         except AttributeError:
-            raise InvalidBackendError()
+            raise InvalidBackend( "Backend does not feature add_contact" )
 
         contact = self._contacts[contact_id]
         result = contact['Path']
@@ -806,7 +753,6 @@ class ContactDomain(Domain):
         # self.query_manager.check_new_contact(contact_id)
 
         return result
-
 
     @dbus_method(_DIN_CONTACTS, "a{sv}s", "s")
     def GetSingleContactSingleField(self, query, field_name):
@@ -851,7 +797,8 @@ class ContactDomain(Domain):
         num_id = int(rel_path[1:])
 
         # Make sure the requested contact exists
-        if num_id >= len(self._contacts): raise InvalidContactIDError()
+        if num_id >= len(self._contacts):
+            raise InvalidContactID()
 
         return self._contacts[num_id].get_content()
 
@@ -861,7 +808,8 @@ class ContactDomain(Domain):
         num_id = int(rel_path[1:])
 
         # Make sure the requested contact exists
-        if num_id >= len(self._contacts): raise InvalidContactIDError()
+        if num_id >= len(self._contacts):
+            raise InvalidContactID()
 
         # Break the string up into a list
         fields = field_list.split(',')

@@ -1,28 +1,13 @@
-#
-#   Openmoko PIM Daemon
-#   Backend Plugin Manager
-#
-#   http://openmoko.org/
-#   http://pyneo.org/
-#
-#   Copyright (C) 2008 by Soeren Apel (abraxa@dar-clan.de)
-#
-#   This program is free software; you can redistribute it and/or modify
-#   it under the terms of the GNU General Public License as published by
-#   the Free Software Foundation; either version 2 of the License, or
-#   (at your option) any later version.
-#
-#   This program is distributed in the hope that it will be useful,
-#   but WITHOUT ANY WARRANTY; without even the implied warranty of
-#   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-#   GNU General Public License for more details.
-#
-#   You should have received a copy of the GNU General Public License
-#   along with this program; if not, write to the Free Software
-#   Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
-#
+#!/usr/bin/env python
+"""
+Open PIM Daemon
 
-"""pypimd Backend Plugin Manager"""
+(C) 2008 by Soeren Apel <abraxa@dar-clan.de>
+(C) 2008 Openmoko, Inc.
+GPLv2 or later
+
+Backend plugin manager
+"""
 
 from domain_manager import DomainManager
 from helpers import *
@@ -50,26 +35,18 @@ PIMB_STATUS_CONNECTED = 1
 
 #----------------------------------------------------------------------------#
 
-# D-Bus constant initialization, *must* be done before any D-Bus method decorators are declared
-try:
-    import framework.config
+_DBUS_PATH_SOURCES = DBUS_PATH_BASE_FSO + '/Sources'
+_DIN_SOURCES = DIN_BASE_FSO + '.Sources'
+_DIN_SOURCE = DIN_BASE_FSO + '.Source'
+ENV_MODE = 'FSO'
 
-    _DBUS_PATH_SOURCES = DBUS_PATH_BASE_FSO + '/Sources'
-    _DIN_SOURCES = DIN_BASE_FSO + '.Sources'
-    _DIN_SOURCE = DIN_BASE_FSO + '.Source'
-    ENV_MODE = 'FSO'
-
-except ImportError:
-    _DBUS_PATH_SOURCES = DBUS_PATH_BASE_PYNEO + '/Sources'
-    _DIN_SOURCES = DIN_BASE_PYNEO + '.Sources'
-    _DIN_SOURCE = DIN_BASE_PYNEO + '.Source'
-    ENV_MODE = 'pyneo'
-
-
-# We use a meta class to automaticaly register all the backend subclasses
 #----------------------------------------------------------------------------#
 class BackendMetaClass(type):
 #----------------------------------------------------------------------------#
+    """
+    Meta class to automaticaly register all the backend subclasses.
+    """
+
     def __init__(cls, name, bases, dict):
         super(BackendMetaClass, cls).__init__(name, bases, dict)
         if object in bases:
@@ -170,7 +147,7 @@ class BackendManager(DBusFBObject):
         if (num_id < len(self._backends)):
             backend = self._backends[num_id]
         else:
-            raise InvalidBackendIDError()
+            raise error.InvalidBackendID( "Maximum backend ID is %d" % len(self._backends)-1 )
 
         return backend.name
 
@@ -183,7 +160,7 @@ class BackendManager(DBusFBObject):
         if (num_id < len(self._backends)):
             backend = self._backends[num_id]
         else:
-            raise InvalidBackendIDError()
+            raise error.InvalidBackendID( "Maximum backend ID is %d" % len(self._backends)-1 )
 
         return backend.get_supported_domains()
 
@@ -196,7 +173,6 @@ class BackendManager(DBusFBObject):
         if (num_id < len(self._backends)):
             backend = self._backends[num_id]
         else:
-            raise InvalidBackendIDError()
+            raise error.InvalidBackendID( "Maximum backend ID is %d" % len(self._backends)-1 )
 
         return backend.status
-
