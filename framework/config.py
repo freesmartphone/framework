@@ -81,16 +81,19 @@ rootlogger.setLevel( loggingmap.get( debug, logging.INFO ) )
 for handler in rootlogger.handlers:
     rootlogger.removeHandler( handler )
 
-# now that we are clean, setup our actual handler
+# now that we are clean, setup our actual handler and configure formatter
 if debugto == "stderr":
     handler = logging.StreamHandler() # default=stderr
+    handler.setFormatter( logging.Formatter( "%(asctime)s %(name)-8s %(levelname)-8s %(message)s", datefmt="%Y.%m.%d %H:%M:%S" ) )
 elif debugto == "file":
     handler = logging.FileHandler( debugdest )
+    handler.setFormatter( logging.Formatter( "%(asctime)s %(name)-8s %(levelname)-8s %(message)s", datefmt="%Y.%m.%d %H:%M:%S" ) )
 elif debugto == "syslog":
     handler = logging.handlers.SysLogHandler( address = "/dev/log" )
+    # timestamps are not needed with syslog
+    handler.setFormatter( logging.Formatter( "%(name)-8s %(levelname)-8s %(message)s" ) )
 
-# configure the formatter and set the handler
-handler.setFormatter( logging.Formatter( "%(asctime)s %(name)-8s %(levelname)-8s %(message)s", datefmt="%Y.%m.%d %H:%M:%S" ) )
+# set the handler
 rootlogger.addHandler( handler )
 
 #
