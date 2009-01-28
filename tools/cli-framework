@@ -10,7 +10,7 @@ Interactive console for the freesmartphone.org framework
 GPLv2 or later
 """
 
-__version__ = "0.9.1.10"
+__version__ = "0.9.2.0"
 
 import dbus.service
 import dbus.mainloop.glib
@@ -248,10 +248,34 @@ pim = getInterface( \
     "org.freesmartphone.PIM" )
 
 # pimsources
-pimsources = getInterface( \
+pims = getInterface( \
     "org.freesmartphone.opimd",
     "/org/freesmartphone/PIM/Sources",
     "org.freesmartphone.PIM.Sources" )
+
+# pimcontacts
+pimc = getInterface( \
+    "org.freesmartphone.opimd",
+    "/org/freesmartphone/PIM/Contacts",
+    "org.freesmartphone.PIM.Contacts" )
+
+# pimcontacts
+pimcq = getInterface( \
+    "org.freesmartphone.opimd",
+    "/org/freesmartphone/PIM/Contacts/Queries",
+    "org.freesmartphone.PIM.ContactQuery" )
+
+# pimmessages
+pimm = getInterface( \
+    "org.freesmartphone.opimd",
+    "/org/freesmartphone/PIM/Messages",
+    "org.freesmartphone.PIM.Messages" )
+
+# pimmessagequeries
+pimmq = getInterface( \
+    "org.freesmartphone.opimd",
+    "/org/freesmartphone/PIM/Messages/Queries",
+    "org.freesmartphone.PIM.MessageQuery" )
 
 # bluez
 try:
