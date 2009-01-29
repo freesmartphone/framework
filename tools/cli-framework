@@ -31,8 +31,11 @@ def dbus_to_python( v ):
 
     if isinstance(v, dbus.Byte) \
         or isinstance(v, dbus.Int64) \
-        or isinstance(v, dbus.UInt32) \
+        or isinstance(v, dbus.UInt64) \
         or isinstance(v, dbus.Int32) \
+        or isinstance(v, dbus.UInt32) \
+        or isinstance(v, dbus.Int16) \
+        or isinstance(v, dbus.UInt16) \
         or type(v) == types.IntType:
         return int(v)
     elif isinstance(v, dbus.Double) or type(v) == types.FloatType:
