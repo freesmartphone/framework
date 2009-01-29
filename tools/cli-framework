@@ -10,7 +10,7 @@ Interactive console for the freesmartphone.org framework
 GPLv2 or later
 """
 
-__version__ = "0.9.2.0"
+__version__ = "0.9.2.1"
 
 import dbus.service
 import dbus.mainloop.glib
@@ -138,14 +138,17 @@ frameworkiface = getInterface( \
 devaudio = getInterface( \
     "org.freesmartphone.odeviced",
     "/org/freesmartphone/Device/Audio",
-    "org.freesmartphone.Device.Audio" \
-    )
+    "org.freesmartphone.Device.Audio" )
 
 devidle = getInterface( \
     "org.freesmartphone.odeviced",
     "/org/freesmartphone/Device/IdleNotifier/0",
-    "org.freesmartphone.Device.IdleNotifier" \
-    )
+    "org.freesmartphone.Device.IdleNotifier" )
+
+devrtc = getInterface( \
+    "org.freesmartphone.odeviced",
+    "/org/freesmartphone/Device/RealTimeClock/0",
+    "org.freesmartphone.Device.RealTimeClock" )
 
 try:
     display = getObjectsForInterface( "org.freesmartphone.odeviced", "org.freesmartphone.Device.Display" ).values()[0]
