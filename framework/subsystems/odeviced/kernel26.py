@@ -460,10 +460,6 @@ class RealTimeClock( dbus.service.Object ):
             else:
                 pyrtc.rtcSetAlarm( time.gmtime( float(t) ) )
 
-    @dbus.service.method( DBUS_INTERFACE, "", "" )
-    def Suspend( self ):
-        writeToFile( "/sys/power/state", "mem" )
-
 #----------------------------------------------------------------------------#
 def factory( prefix, controller ):
 #----------------------------------------------------------------------------#
