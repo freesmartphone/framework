@@ -2,7 +2,7 @@
 """
 The freesmartphone Events Module - Python Implementation
 
-(C) 2008 Michael 'Mickey' Lauer <mlauer@vanille-media.de>
+(C) 2008-2009 Michael 'Mickey' Lauer <mlauer@vanille-media.de>
 (C) 2008 Jan 'Shoragan' Lübbe <jluebbe@lasnet.de>
 (C) 2008 Guillaume 'Charlie' Chereau
 (C) 2008 Openmoko, Inc.
@@ -13,7 +13,7 @@ Module: fso_actions
 
 """
 
-__VERSION__ = "0.4.1"
+__VERSION__ = "0.4.2"
 MODULE_NAME = "oeventsd"
 
 import framework.patterns.tasklet as tasklet
@@ -206,11 +206,33 @@ class RingToneAction(Action):
         self.__init().start()
         return False # mainloop: don't call me again
 
-    # We need to make DBus calls and wait for the result,
-    # So we use a tasklet to avoid blocking the mainloop.
+    def cbPreferencesServiceNotify( self, key, value ):
+        """
+        Audio preferences have changed. Reload.
+        """
+        k = str(key)
+        if k == "ring-tone":
+            self.ring_tone = value
+        elif k == "ring-volume":
+            self.ring_volume = value
+        elif k == "ring-loop":
+            self.ring_loop = value
+        elif k == "ring-length":
+            self.ring_length = value
+
+        self.sound_path = os.path.join( installprefix, "share/sounds/", self.ring_tone )
+        self.audio_action = AudioAction(self.sound_path, self.ring_loop, self.ring_length) if self.ring_volume != 0 else None
+        self.vibrator_action = VibratorAction()
+
+        logger.debug( "ring tone action changed: audio=%s, vibrator=%s", self.audio_action, self.vibrator_action )
 
     @tasklet.tasklet
     def __init(self):
+        """
+        We need to make DBus calls and wait for the result,
+        So we use a tasklet to avoid blocking the mainloop.
+        """
+
         logger.debug( "ring tone action init from mainloop" )
         # We get the 'phone' preferences service and
         # retreive the ring-tone and ring-volume config values
@@ -228,14 +250,17 @@ class RingToneAction(Action):
         )
         phone_prefs = dbus.Interface(phone_prefs, 'org.freesmartphone.Preferences.Service')
 
-        # FIXME does that still work if (some of) the entries are missing?
-        ring_tone = yield tasklet.WaitDBus( phone_prefs.GetValue, "ring-tone" )
-        ring_volume = yield tasklet.WaitDBus( phone_prefs.GetValue, "ring-volume" )
-        ring_loop = yield tasklet.WaitDBus( phone_prefs.GetValue, "ring-loop" )
-        ring_length = yield tasklet.WaitDBus( phone_prefs.GetValue, "ring-length" )
-        self.sound_path = os.path.join( installprefix, "share/sounds/", ring_tone )
+        # connect to signal for later notifications
+        phone_prefs.connect_to_signal( "Notify", self.cbPreferencesServiceNotify )
 
-        self.audio_action = AudioAction(self.sound_path, ring_loop, ring_length) if ring_volume != 0 else None
+        # FIXME does that still work if (some of) the entries are missing?
+        self.ring_tone = yield tasklet.WaitDBus( phone_prefs.GetValue, "ring-tone" )
+        self.ring_volume = yield tasklet.WaitDBus( phone_prefs.GetValue, "ring-volume" )
+        self.ring_loop = yield tasklet.WaitDBus( phone_prefs.GetValue, "ring-loop" )
+        self.ring_length = yield tasklet.WaitDBus( phone_prefs.GetValue, "ring-length" )
+
+        self.sound_path = os.path.join( installprefix, "share/sounds/", self.ring_tone )
+        self.audio_action = AudioAction(self.sound_path, self.ring_loop, self.ring_length) if self.ring_volume != 0 else None
         self.vibrator_action = VibratorAction()
 
         logger.debug( "ring tone action: audio=%s, vibrator=%s", self.audio_action, self.vibrator_action )
