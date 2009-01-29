@@ -90,7 +90,7 @@ class GllinChannel( UDPChannel ):
     """UDP reader for GTA01, takes care of starting and stopping gllin"""
 
     def __init__( self, path="/etc/init.d/gllin" ):
-        super( GllinChannel, self ).__init__( 6000 )
+        super( GllinChannel, self ).__init__( "6000" )
         self.gllin = path
 
     def initializeChannel( self ):
