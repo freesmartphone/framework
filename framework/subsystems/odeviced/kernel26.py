@@ -8,11 +8,17 @@ GPLv2 or later
 """
 
 MODULE_NAME = "odeviced.kernel26"
-__version__ = "0.9.9.5"
+__version__ = "0.9.9.6"
 
 from helpers import DBUS_INTERFACE_PREFIX, DBUS_PATH_PREFIX, readFromFile, writeToFile, cleanObjectName
 from framework.config import config
 from framework.patterns.kobject import KObjectDispatcher
+from framework.patterns.null import Null
+
+try:
+    import pyrtc
+except ImportError:
+    logger.error( "pyrtc not present. Can not operate real time clock" )
 
 import dbus.service
 
@@ -439,10 +445,6 @@ class RealTimeClock( dbus.service.Object ):
             return readFromFile( "%s/wakealarm" % self.node )
         else:
             # use ioctl interface
-            try:
-                import pyrtc
-            except ImportError:
-                logger.error( "pyrtc not present. Can not operate real time clock" )
             ( enabled, pending ), t = pyrtc.rtcReadAlarm()
             return "0" if not enabled else str( time.mktime( t ) )
 
@@ -453,25 +455,14 @@ class RealTimeClock( dbus.service.Object ):
             writeToFile( "%s/wakealarm" % self.node, t )
         else:
             # use ioctl interface
-            try:
-                import pyrtc
-            except ImportError:
-                logger.error( "pyrtc not present. Can not operate real time clock" )
-            if time == "0":
+            if t == "0":
                 pyrtc.rtcDisableAlarm()
             else:
-                pyrtc.rtcSetAlarm( time.gmtime( t ) )
+                pyrtc.rtcSetAlarm( time.gmtime( float(t) ) )
 
     @dbus.service.method( DBUS_INTERFACE, "", "" )
     def Suspend( self ):
         writeToFile( "/sys/power/state", "mem" )
-
-    # add poweroff?
-
-    @dbus.service.method( DBUS_INTERFACE, "", "s" )
-    def GetWakeupReason( self ):
-        # FIXME
-        return "unknown"
 
 #----------------------------------------------------------------------------#
 def factory( prefix, controller ):
