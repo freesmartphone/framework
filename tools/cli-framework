@@ -20,9 +20,20 @@ import os, sys, code, pprint, types, atexit
 pp = pprint.PrettyPrinter( indent=4 )
 
 #----------------------------------------------------------------------------#
-def dbus_to_python(v):
+def dbus_to_python( v ):
 #----------------------------------------------------------------------------#
-    if isinstance(v, dbus.Int64) or isinstance(v, dbus.Int32) or type(v) == types.IntType:
+    class ObjectPath( object ):
+        def __init__( self, path ):
+            self.path = str( path )
+
+        def __repr__( self ):
+            return "op%s" % repr(self.path)
+
+    if isinstance(v, dbus.Byte) \
+        or isinstance(v, dbus.Int64) \
+        or isinstance(v, dbus.UInt32) \
+        or isinstance(v, dbus.Int32) \
+        or type(v) == types.IntType:
         return int(v)
     elif isinstance(v, dbus.Double) or type(v) == types.FloatType:
         return float(v)
@@ -36,6 +47,8 @@ def dbus_to_python(v):
         return tuple(dbus_to_python(x) for x in v)
     elif isinstance(v, dbus.Boolean) or type(v) == types.BooleanType:
         return bool(v)
+    elif isinstance(v, dbus.ObjectPath) or type(v) == ObjectPath:
+        return ObjectPath(v)
     else:
         return v
         raise TypeError("Can't convert type %s to python object" % type(v))
