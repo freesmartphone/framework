@@ -17,6 +17,8 @@ MODULE_NAME = "otimed"
 
 import clock
 
+from framework.config import config
+
 from datetime import datetime, timedelta
 from math import sqrt
 import shutil
@@ -87,6 +89,9 @@ class GPSTimeSource( TimeSource ):
         logger.debug( "GPS: timeout" )
         return False
 
+    def __repr__( self ):
+        return "<%s>" % ( self.__class__.__name__, )
+
 #============================================================================#
 class NTPTimeSource( TimeSource ):
 #============================================================================#
@@ -123,8 +128,11 @@ class NTPTimeSource( TimeSource ):
             self.offset = None
             logger.warning( "NTP: no timestamp received" )
 
+    def __repr__( self ):
+        return "<%s checking %s every %s seconds>" % ( self.__class__.__name__, self.server, self.interval )
+
 #============================================================================#
-class ZoneSource( object ):
+class GSMZoneSource( object ):
 #============================================================================#
     def __init__( self, bus ):
         self.zone = None
@@ -182,6 +190,9 @@ class ZoneSource( object ):
             self.zone = None
             logger.debug( "GSM: no ISO-Code for this network" )
 
+    def __repr__( self ):
+        return "<%s>" % ( self.__class__.__name__, )
+
 #============================================================================#
 class Time( dbus.service.Object ):
 #============================================================================#
@@ -191,11 +202,22 @@ class Time( dbus.service.Object ):
         self.interface = "org.freesmartphone.Time"
         self.bus = bus
 
-        self.timesources = []
-        self.timesources.append( GPSTimeSource( self.bus ) )
-        self.timesources.append( NTPTimeSource( self.bus ) )
+        timesources = [x.strip().upper() for x in config.getValue( "otimed", "timesources", "GPS,NTP").split( ',' )]
+        zonesources = [x.strip().upper() for x in config.getValue( "otimed", "zonesources", "GSM").split( ',' )]
 
-        self.zonesource = ZoneSource( self.bus )
+        self.timesources = []
+        if 'GPS' in timesources:
+            self.timesources.append( GPSTimeSource( self.bus ) )
+        if 'NTP' in timesources:
+            self.timesources.append( NTPTimeSource( self.bus ) )
+
+        logger.info( "loaded timesources %s", self.timesources )
+
+        self.zonesources = []
+        if 'GSM' in zonesources:
+            self.zonesources.append( GSMZoneSource( self.bus ) )
+
+        logger.info( "loaded zonesources %s", self.zonesources )
 
         self.interval = 90
         self.updateTimeout = gobject.timeout_add_seconds( self.interval, self._handleUpdateTimeout )
