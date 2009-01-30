@@ -8,26 +8,24 @@ GPLv2 or later
 """
 
 MODULE_NAME = "odeviced.kernel26"
-__version__ = "0.9.9.6"
+__version__ = "0.9.9.7"
 
 from helpers import DBUS_INTERFACE_PREFIX, DBUS_PATH_PREFIX, readFromFile, writeToFile, cleanObjectName
 from framework.config import config
 from framework.patterns.kobject import KObjectDispatcher
 from framework.patterns.null import Null
 
-try:
-    import pyrtc
-except ImportError:
-    logger.error( "pyrtc not present. Can not operate real time clock" )
-
 import dbus.service
-
 import gobject
-
 import os, time, sys, fcntl
 
 import logging
 logger = logging.getLogger( MODULE_NAME )
+
+try:
+    import pyrtc
+except ImportError:
+    logger.error( "pyrtc not present. Can not operate real time clock" )
 
 FBIOBLANK = 0x4611
 FB_BLANK_UNBLANK = 0
