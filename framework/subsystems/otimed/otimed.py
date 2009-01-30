@@ -12,7 +12,7 @@ Package: otimed
 Module: otimed
 """
 
-__version__ = "0.2.1"
+__version__ = "0.2.2"
 MODULE_NAME = "otimed"
 
 import clock
@@ -78,7 +78,7 @@ class GPSTimeSource( TimeSource ):
             logger.debug( "GPS: offset=%f", toSeconds( self.offset ) )
         else:
             self.offset = None
-            logger.debug( "GPS: time invalid", toSeconds( self.offset ) )
+            logger.debug( "GPS: time invalid" )
         if not self.invalidTimeout is None:
             gobject.source_remove( self.invalidTimeout )
             self.invalidTimeout = gobject.timeout_add_seconds( 300, self._handleInvaildTimeout )
