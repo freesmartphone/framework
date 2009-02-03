@@ -111,7 +111,10 @@ class NTPTimeSource( TimeSource ):
         self.offset = None
         # FIXME do everything async
         data = '\x1b' + 47 * '\0'
-        self.socket.sendto( data, ( self.server, 123 ))
+        try:
+            self.socket.sendto( data, ( self.server, 123 ))
+        except:
+            logger.debug( "NTP: failed to request timestamp" )
         # reenable timeout
         return True
 
