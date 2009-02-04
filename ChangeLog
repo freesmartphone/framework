@@ -1,3 +1,7 @@
+2009-02-01	Stefan Schmidt	<stefan@openmoko.org>
+
+	* Released as freesmartphone.org framework milestone 5
+
 2009-01-30	Jan Luebbe      <jluebbe@debian.org>
 
 	* [otimed] Add config options for time and zone sources. Set to "NONE" to disable this feature.
