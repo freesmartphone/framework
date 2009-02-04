@@ -10,7 +10,7 @@ Interactive console for the freesmartphone.org framework
 GPLv2 or later
 """
 
-__version__ = "0.9.2.1"
+__version__ = "0.9.3.0"
 
 import dbus.service
 import dbus.mainloop.glib
@@ -82,8 +82,14 @@ def getObject( busname, objectpath ):
 #----------------------------------------------------------------------------#
 def getInterface( busname, objectpath, interface ):
 #----------------------------------------------------------------------------#
-    proxy = getObject( busname, objectpath )
-    return dbus.Interface( proxy, interface)
+    try:
+        proxy = getObject( busname, objectpath )
+        iface = dbus.Interface( proxy, interface )
+    except dbus.DBusException:
+        print "DBus Exception. Can't get %s@%s:%s" % ( interface, busname, objectpath )
+        return None
+    else:
+        return iface
 
 #----------------------------------------------------------------------------#
 def getObjectsForInterface( busname, interface ):
@@ -162,6 +168,12 @@ try:
 except IndexError:
     pass
 leds = getObjectsForInterface( "org.freesmartphone.odeviced", "org.freesmartphone.Device.LED" ).values()
+
+# omuxerd object
+muxer = getInterface( \
+    "org.freesmartphone.omuxerd",
+    "/org/freesmartphone/GSM/Muxer",
+    "org.freesmartphone.GSM.MUX" )
 
 # ogsmd device objects
 gsmdevice = getInterface( \
