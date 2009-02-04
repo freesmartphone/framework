@@ -8,7 +8,7 @@ GPLv2 or later
 """
 
 MODULE_NAME = "odeviced.kernel26"
-__version__ = "0.9.9.7"
+__version__ = "0.9.9.8"
 
 from helpers import DBUS_INTERFACE_PREFIX, DBUS_PATH_PREFIX, readFromFile, writeToFile, cleanObjectName
 from framework.config import config
@@ -217,11 +217,6 @@ class PowerSupply( dbus.service.Object ):
         logger.info( "%s %s initialized. Serving %s at %s" % ( self.__class__.__name__, __version__, self.interface, self.path ) )
         self.node = node
 
-        capacityCheckTimeout = config.getInt( MODULE_NAME, "capacity_check_timeout", 60*5 )
-        self.capacityWatch = gobject.timeout_add_seconds( capacityCheckTimeout, self.onCapacityCheck )
-        # FIXME should this rather be handled globally (controller issuing a coldstart on every subsystem)? Yes!
-        gobject.idle_add( self.onColdstart )
-
         self.powerStatus = "unknown"
         self.online = False
         self.capacity = -1
@@ -231,6 +226,10 @@ class PowerSupply( dbus.service.Object ):
         # get polling-free battery notifications via kobject/uevent
         if self.isBattery:
             KObjectDispatcher.addMatch( "change", "/class/power_supply/%s" % node.split('/')[-1], self.handlePropertyChange )
+            capacityCheckTimeout = config.getInt( MODULE_NAME, "capacity_check_timeout", 60*5 )
+            self.capacityWatch = gobject.timeout_add_seconds( capacityCheckTimeout, self.onCapacityCheck )
+            # FIXME should this rather be handled globally (controller issuing a coldstart on every subsystem)? Yes!
+            gobject.idle_add( self.onColdstart )
 
     def isPresent( self ):
         present = readFromFile( "%s/present" % self.node )
