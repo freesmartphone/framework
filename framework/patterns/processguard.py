@@ -2,15 +2,15 @@
 """
 freesmartphone.org Framework Daemon
 
-(C) 2008 Michael 'Mickey' Lauer <mlauer@vanille-media.de>
-(C) 2008 Openmoko, Inc.
+(C) 2008-2009 Michael 'Mickey' Lauer <mlauer@vanille-media.de>
+(C) 2008-2009 Openmoko, Inc.
 GPLv2 or later
 
 Package: framework.patterns
 Module: processguard
 """
 
-__version__ = "0.2.0"
+__version__ = "0.2.1"
 
 import gobject
 
@@ -127,7 +127,7 @@ class ProcessGuard( object ):
         Cleanup
         """
         self.shutdown()
-        self.reset()
+        self._reset()
 
     #
     # API
