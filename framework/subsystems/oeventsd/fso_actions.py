@@ -237,31 +237,28 @@ class RingToneAction(Action):
         # We get the 'phone' preferences service and
         # retreive the ring-tone and ring-volume config values
         # We are careful to use 'yield' cause the calls could be blocking.
-        prefs = dbus.SystemBus().get_object(
-            'org.freesmartphone.opreferencesd',
-            '/org/freesmartphone/Preferences'
-        )
-        prefs = dbus.Interface(prefs, 'org.freesmartphone.Preferences')
+        try:
+            prefs = dbus.SystemBus().get_object( "org.freesmartphone.opreferencesd", "/org/freesmartphone/Preferences" )
+            prefs = dbus.Interface( prefs, "org.freesmartphone.Preferences" )
+        except dbus.DBusException: # preferences daemon probably not present
+            logger.warning( "org.freesmartphone.opreferencesd not present. Can't get ring tones." )
+        else:
+            phone_prefs = yield tasklet.WaitDBus( prefs.GetService, "phone" )
+            phone_prefs = dbus.SystemBus().get_object( "org.freesmartphone.opreferencesd", phone_prefs )
+            phone_prefs = dbus.Interface( phone_prefs, "org.freesmartphone.Preferences.Service" )
 
-        phone_prefs = yield tasklet.WaitDBus( prefs.GetService, "phone" )
-        phone_prefs = dbus.SystemBus().get_object(
-            'org.freesmartphone.opreferencesd',
-            phone_prefs
-        )
-        phone_prefs = dbus.Interface(phone_prefs, 'org.freesmartphone.Preferences.Service')
+            # connect to signal for later notifications
+            phone_prefs.connect_to_signal( "Notify", self.cbPreferencesServiceNotify )
 
-        # connect to signal for later notifications
-        phone_prefs.connect_to_signal( "Notify", self.cbPreferencesServiceNotify )
+            # FIXME does that still work if (some of) the entries are missing?
+            self.ring_tone = yield tasklet.WaitDBus( phone_prefs.GetValue, "ring-tone" )
+            self.ring_volume = yield tasklet.WaitDBus( phone_prefs.GetValue, "ring-volume" )
+            self.ring_loop = yield tasklet.WaitDBus( phone_prefs.GetValue, "ring-loop" )
+            self.ring_length = yield tasklet.WaitDBus( phone_prefs.GetValue, "ring-length" )
 
-        # FIXME does that still work if (some of) the entries are missing?
-        self.ring_tone = yield tasklet.WaitDBus( phone_prefs.GetValue, "ring-tone" )
-        self.ring_volume = yield tasklet.WaitDBus( phone_prefs.GetValue, "ring-volume" )
-        self.ring_loop = yield tasklet.WaitDBus( phone_prefs.GetValue, "ring-loop" )
-        self.ring_length = yield tasklet.WaitDBus( phone_prefs.GetValue, "ring-length" )
-
-        self.sound_path = os.path.join( installprefix, "share/sounds/", self.ring_tone )
-        self.audio_action = AudioAction(self.sound_path, self.ring_loop, self.ring_length) if self.ring_volume != 0 else None
-        self.vibrator_action = VibratorAction()
+            self.sound_path = os.path.join( installprefix, "share/sounds/", self.ring_tone )
+            self.audio_action = AudioAction(self.sound_path, self.ring_loop, self.ring_length) if self.ring_volume != 0 else None
+            self.vibrator_action = VibratorAction()
 
         logger.debug( "ring tone action: audio=%s, vibrator=%s", self.audio_action, self.vibrator_action )
 
