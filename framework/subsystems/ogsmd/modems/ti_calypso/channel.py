@@ -13,7 +13,7 @@ Module: channel
 TI Calypso specific modem channels
 """
 
-__version__ = "0.9.10.3"
+__version__ = "0.9.10.4"
 
 from framework.config import config
 
@@ -141,6 +141,14 @@ class CalypsoModemChannel( AbstractModemChannel ):
             CalypsoModemChannel.modem_communication_timestamp = time.time()
 
         return True
+
+    #
+    # send %CUNS=2 on every channel as init
+    #
+    def _populateCommands( self ):
+        AbstractModemChannel._populateCommands( self )
+
+        self._commands["init"].append( "%CUNS=2" )
 
     #
     # TI Calypso has a deep sleep mode, effective after 8 seconds,
