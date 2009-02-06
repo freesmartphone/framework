@@ -29,7 +29,8 @@ def retry_on_sim_not_ready(func):
         try:
             yield func(*args, **kargs)
         except dbus.DBusException, ex:
-            if ex.get_dbus_name() == 'org.freesmartphone.GSM.SIM.NotReady':
+            # XXX: the org.freesmartphone.GSM.Device.Failed shouldn't be here !
+            if ex.get_dbus_name() in ['org.freesmartphone.GSM.SIM.NotReady', 'org.freesmartphone.GSM.Device.Failed']:
                 # We give the SIM 30 seconds to get ready
                 yield WaitDBusSignal(sim, 'ReadyStatus', 30)
                 yield func(*args, **kargs)
@@ -72,6 +73,28 @@ class SimTests(unittest.TestCase):
         info = self.sim.GetPhonebookInfo('contacts')
         min_index = int(info['min_index'])
         self.sim.StoreEntry('contacts', min_index, "TEST", "0123456789")
+
+    @test.request("sim.present", True)
+    @retry_on_sim_not_ready
+    def test_add_message(self):
+        """Try to add a new text message"""
+        msg = u"hello"
+        number = '012345678'
+        prop = dict(type='SMS_DELIVER',
+                    alphabet='gsm_default')
+        index = self.sim.StoreMessage(number, msg, prop)
+
+    @test.request("sim.present", True)
+    @retry_on_sim_not_ready
+    def test_add_binary_message(self):
+        """Try to add a new binary message"""
+        msg = 'some binary data \x00 <-- with a null char'
+        number = '012345678'
+        prop = dict(type='SMS_DELIVER',
+                    alphabet='binary')
+        index = self.sim.StoreMessage(number, msg, prop)
+
+
         
 if __name__ == '__main__':
     suite = unittest.defaultTestLoader.loadTestsFromTestCase(SimTests)
