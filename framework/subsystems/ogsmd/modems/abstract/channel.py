@@ -11,7 +11,7 @@ Package: ogsmd.modems.abstract
 Module: channel
 """
 
-__version__ = "0.9.0"
+__version__ = "0.9.1"
 MODULE_NAME = "ogsmd.modems.abstract.channel"
 
 from ogsmd.gsm.decor import logged
@@ -117,6 +117,7 @@ class AbstractModemChannel( AtCommandChannel ):
 
         c = []
         # reset
+        c.append( '' )                  # wakeup
         c.append( 'Z' )                 # soft reset
         c.append( 'E0V1' )              # echo off, verbose result on
         # error and result reporting reporting
