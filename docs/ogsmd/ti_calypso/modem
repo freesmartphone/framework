@@ -1,6 +1,13 @@
 == TI Calypso specific notes ==
 
-=== Behaviour ===
+=== MUX Level ===
+
+* Before entering the multiplex mode, you have to set echo off (ATE0), otherwise you
+  won't get any 07.10 packets in return
+  
+* No response to test commands
+
+=== AT Level ===
 
 * On channel init, we better send \x1a first -- just in case something crashed while we
   were inside a multiline request command
@@ -46,10 +53,6 @@
   detection one should rather rely on %CPI with message type 3 (call proceed)
 
 * Calypso only checks for flow-control before sending an entire message.
-
-=== GSM standards violations ===
-
-* None found yet
 
 === Proprietary commands ===
 
