@@ -10,7 +10,7 @@ Package: framework.patterns
 Module: processguard
 """
 
-__version__ = "0.2.1"
+__version__ = "0.2.2"
 
 import gobject
 
@@ -149,7 +149,10 @@ class ProcessGuard( object ):
         """
         if self.pid is not None:
             logger.info( "shutdown: killing process %d with signal %d", self.pid, sig )
-            os.kill( self.pid, sig )
+            try:
+                os.kill( self.pid, sig )
+            except OSError:
+                logger.info( "shutdown: process already vanished" )
         else:
             logger.info( "shutdown: process already vanished" )
 
