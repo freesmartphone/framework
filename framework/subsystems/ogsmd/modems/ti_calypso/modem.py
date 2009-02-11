@@ -11,7 +11,7 @@ Module: modem
 
 """
 
-__version__ = "0.9.9.7"
+__version__ = "0.9.9.8"
 MODULE_NAME = "ogsmd.modems.ti_calypso"
 
 DEVICE_CALYPSO_PATH             = "/dev/ttySAC0"
@@ -177,7 +177,7 @@ class TiCalypso( AbstractModem ):
             return str(pts)
 
     def dataPort( self ):
-        return self.pathfactory( self, "ogsmd.gprs" )
+        return self.pathfactory( "ogsmd.gprs" )
 
     def prepareForSuspend( self, ok_callback, error_callback ):
         """overridden for internal purposes"""
