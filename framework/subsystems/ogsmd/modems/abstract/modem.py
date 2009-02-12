@@ -13,7 +13,7 @@ Module: modem
 
 # FIXME: The modem should really be a sigleton
 
-__version__ = "0.9.9.2"
+__version__ = "0.9.9.3"
 MODULE_NAME = "ogsmd.modem.abstract"
 
 import gobject
@@ -85,6 +85,7 @@ class AbstractModem( object ):
             "CFUN":         10,
             "COPS":         30,
             "COPS=?":       80,
+            "COPN":         90,
             "RING":         04,
             }
 
