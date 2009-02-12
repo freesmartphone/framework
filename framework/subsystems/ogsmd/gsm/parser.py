@@ -10,7 +10,7 @@ Package: ogsmd.gsm
 Module: parser
 """
 
-__version__ = "0.8.0"
+__version__ = "0.8.1"
 
 import os
 DEBUG = os.environ.get( "FSO_DEBUG_PARSER", False )
@@ -220,19 +220,31 @@ class ThrowStuffAwayParser( StateBasedLowlevelAtParser ):
             return self.state_inline
 
 #=========================================================================#
-class KaiserAtViolationParser( StateBasedLowlevelAtParser ):
+class AlwaysUnsolicitedParser( StateBasedLowlevelAtParser ):
 #=========================================================================#
     """
-    This parser is written for the HTC Kaiser which is blatantly
-    violating v.250 by sending 0\r instead of OK\r\n as the response
-    terminal symbol.
+    This parser treats certain responses always as unsolicited, based on
+    prefix matching. It is useful for modems which do not support deferring
+    unsolicited responses between sending a query and returning the (solicited)
+    response -- such as the TI Calypso with regards to +CRING, +CLIP, and %CPI.
     """
 
-    def feed( self, bytes, haveCommand ):
-        if bytes.endswith( "\r\n0\r" ):
-            bytes = "%sOK\r\n" % bytes[:-2]
+    def __init__( self, alwaysUnsolicited, response, unsolicited ):
+        StateBasedLowlevelAtParser.__init__( self, response, unsolicited )
+        self.alwaysUnsolicited = alwaysUnsolicited
 
-        StateBasedLowlevelAtParser.feed( self, bytes, haveCommand )
+    def lineCompleted( self, multipleR = False ):
+        # FIXME update self.haveCommand for next command
+        if self.haveCommand and not self.isAlwaysUnsolicited():
+            return self.solicitedLineCompleted( multipleR )
+        else:
+            return self.unsolicitedLineCompleted( multipleR )
+
+    def isAlwaysUnsolicited( self ):
+        for u in self.alwaysUnsolicited:
+            if self.curline.startswith( u ):
+                return True
+        return False
 
 #=========================================================================#
 if __name__ == "__main__":
