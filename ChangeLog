@@ -1,6 +1,10 @@
+2009-02-12	Michael Lauer	<mlauer@vanille-media.de>
+
+	* ogsmd: Implemented org.freesmartphone.GSM.SIM.GetProviderList -> a{is}
+
 2009-02-06	Michael Lauer	<mlauer@vanille-media.de>
 
-	* ogsmd: [TI CALYPSO] Add support for the next-generation 07.10 multiplexer from FSO.
+	* ogsmd: [TI CALYPSO] Added support for the next-generation 07.10 multiplexer from FSO.
 	  Set 'ti_calypso_muxer' to 'fso-abyss'. Default value is gsm0710muxd for the time being.
 
 2009-02-01	Stefan Schmidt	<stefan@openmoko.org>

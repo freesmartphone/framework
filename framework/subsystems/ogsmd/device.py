@@ -11,7 +11,7 @@ Module: device
 """
 
 MODULE_NAME = "ogsmd.device"
-__version__ = "0.9.10.1"
+__version__ = "0.9.11.0"
 
 from framework import resource
 from framework.config import config
@@ -263,6 +263,12 @@ class Device( resource.Resource ):
     @resource.checkedmethod
     def GetIssuer( self, dbus_ok, dbus_error ):
         mediator.SimGetIssuer( self, dbus_ok, dbus_error )
+
+    @dbus.service.method( DBUS_INTERFACE_SIM, "", "a{is}",
+                          async_callbacks=( "dbus_ok", "dbus_error" ) )
+    @resource.checkedmethod
+    def GetProviderList( self, dbus_ok, dbus_error ):
+        mediator.SimGetProviderList( self, dbus_ok, dbus_error )
 
     ### SIM phonebook
     @dbus.service.method( DBUS_INTERFACE_SIM, "", "as",

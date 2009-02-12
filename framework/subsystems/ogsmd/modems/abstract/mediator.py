@@ -22,7 +22,7 @@ TODO:
  * refactor parameter validation
 """
 
-__version__ = "0.9.11.2"
+__version__ = "0.9.12"
 MODULE_NAME = "ogsmd.modems.abstract.mediator"
 
 from ogsmd import error
@@ -656,6 +656,27 @@ class SimGetIssuer( SimMediator ): # s
                     else:
                         break
                 self._ok( name )
+
+#=========================================================================#
+class SimGetProviderList( SimMediator ): # a{is}
+#=========================================================================#
+    def trigger( self ):
+        self._commchannel.enqueue( "+COPN", self.responseFromChannel, self.errorFromChannel, timeout=currentModem().timeout("COPN") )
+
+    def responseFromChannel( self, request, response ):
+        if response[-1] != "OK":
+            SimMediator.responseFromChannel( self, request, response )
+        else:
+            result = {}
+            for line in response[:-1]:
+                mccmnc, name = safesplit( self._rightHandSide( line ), ',' )
+                # Some modems contain provider tables with illegal characters
+                try:
+                    uname = unicode( name )
+                except UnicodeDecodeError:
+                    uname = "<undecodable>"
+                result[ int(mccmnc.strip( '" ') ) ] = uname
+            return self._ok( result )
 
 #=========================================================================#
 class SimListPhonebooks( SimMediator ):
