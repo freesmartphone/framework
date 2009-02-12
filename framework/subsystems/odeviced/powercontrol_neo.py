@@ -11,7 +11,7 @@ Module: powercontrol_neo
 """
 
 MODULE_NAME = "odeviced.powercontrol_neo"
-__version__ = "0.8.0"
+__version__ = "0.8.1"
 
 from helpers import readFromFile, writeToFile
 from powercontrol import GenericPowerControl, ResourceAwarePowerControl
@@ -49,7 +49,7 @@ class NeoUsbHostPowerControl( GenericPowerControl ):
         # mode switching
         self.modenode = "%s/%s" % ( node, "usb_mode" )
         # node to provide 5V/100mA to USB gadgets, only present on Neo FreeRunner
-        self.powernode = "%s/../neo1973-pm-host.0/hostmode" % node
+        self.powernode = "%s/neo1973-pm-host.0/hostmode" % os.path.dirname( node )
 
     def setPower( self, power ):
         if power:
