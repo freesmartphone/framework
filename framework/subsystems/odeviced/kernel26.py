@@ -295,11 +295,18 @@ class PowerSupply( dbus.service.Object ):
         except KeyError:
             pass
         else:
-            # NOTE: "Not Charging" is an interesting state which can have two reasons:
-            # 1.) The charger has been physically inserted but the device has not yet enumerated on USB.
-            # 2.) The battery has been fully charged and we're now just grabbing power from the charger.
-            if powerStatus != "not charging":
-                self.sendPowerStatusIfChanged( powerStatus )
+            # NOTE1: On some devices, peripherals are connected directly to the battery, which means
+            # they can _not_ drag power from USB. Hence, the battery needs to be recharged frequently,
+            # even while it is full. To cover up for this, we do not send 'charging' if the last status was
+            # full.
+            if powerStatus == "charging" and self.powerStatus == "full":
+                logger.info( "Charging has been restarted, although power is still full. Ignoring" )
+            else:
+                # NOTE2: "Not Charging" is an interesting state which can have two reasons:
+                # 1.) The charger has been physically inserted but the device has not yet enumerated on USB.
+                # 2.) The battery has been fully charged and we're now just grabbing power from the charger.
+                if powerStatus != "not charging":
+                    self.sendPowerStatusIfChanged( powerStatus )
         return False # don't call me again
 
     def sendPowerStatusIfChanged( self, powerStatus ):
