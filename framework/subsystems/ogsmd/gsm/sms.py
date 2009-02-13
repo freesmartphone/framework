@@ -262,7 +262,9 @@ class SMS(object):
                 self.error.append("Userdata corrupt")
                 self.ud = ""
         else:
-            self.ud = userdata
+            # Binary message
+            self.data = [ ord(x) for x in userdata ]
+            self.ud = "This is a binary message"
 
     def _getDCS( self ):
         # TODO throw exceptions on invalid combinations
@@ -355,6 +357,10 @@ class SMS(object):
         map["type"] = self.type
         map["pid"] = self.pid
         map["alphabet"] = SMS_ALPHABET_TO_ENCODING.revlookup(self.dcs_alphabet)
+
+        if map["alphabet"] == "binary":
+            map["data"] = self.data
+
         if len(self.error) > 0:
             map["error"] = self.error
 
@@ -383,6 +389,8 @@ class SMS(object):
                 self.pid = v
             if k == "alphabet":
                 self.dcs_alphabet = SMS_ALPHABET_TO_ENCODING[v]
+            if k == "data":
+                    self.data = v
 
     properties = property( _getProperties, _setProperties )
 
@@ -439,7 +447,8 @@ class SMS(object):
                     self.dcs_alphabet = "utf_16_be"
                     pduud = self.ud.encode( self.dcs_alphabet )
             else:
-                pduud = self.ud
+                # Binary message
+                pduud = "".join([ chr(x) for x in self.data ])
 
         if self.type == "sms-deliver" or self.type == "sms-submit":
             pdubytes.append( self.dcs )
