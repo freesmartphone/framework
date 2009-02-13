@@ -13,7 +13,7 @@ packages = [ x[0] for x in os.walk( "framework" ) ]
 
 setup(
     name = "The FreeSmartphone Framework Daemon",
-    version = "0.8.4.9",
+    version = "0.8.5.1",
     author = "Michael 'Mickey' Lauer et. al.",
     author_email = "mlauer@vanille-media.de",
     url = "http://www.freesmartphone.org",
@@ -22,7 +22,7 @@ setup(
     #  ],
     #cmdclass = {'build_ext': build_ext},
     packages = packages,
-    scripts = [ "framework/frameworkd", "tools/cli-framework" ],
+    scripts = [ "framework/frameworkd", "tools/cli-framework", "tools/dump-netlink" ],
     data_files = [
         ("../../etc/dbus-1/system.d", ["etc/dbus-1/system.d/frameworkd.conf"] ),
         ("../../etc/freesmartphone/opreferences/schema/",         ["etc/freesmartphone/opreferences/schema/phone.yaml"]),
