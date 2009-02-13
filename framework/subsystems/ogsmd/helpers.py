@@ -117,15 +117,15 @@ class BiDict( object ):
 
 #=========================================================================#
 def processIterator():
-#=========================================================================#        
-    for entry in os.listdir( "/proc" ): 
+#=========================================================================#
+    for entry in os.listdir( "/proc" ):
         fileName = os.path.join( "/proc", entry, "cmdline" )
         if os.access( fileName, os.R_OK ):
             cmdline = file( fileName ).read()
             executablePath = cmdline.split("\x00")[0]
             executableName = executablePath.split(os.path.sep)[-1]
             #entry = pid, cmdline = cmdline file contents
-            yield (entry, cmdline, executablePath, executableName) 
+            yield (entry, cmdline, executablePath, executableName)
 
 #=========================================================================#
 def processFinder(nameToFind, matchType):
@@ -148,7 +148,7 @@ def killall( nameToKill, matchType="posix", killSignal=signal.SIGTERM ):
     for pid in processFinder( nameToKill, matchType ):
         try:
             os.kill( pid, killSignal )
-        except OSError: # permission denied/bad signal/etc...
+        except OSError, IOError: # permission denied/bad signal/process vanished/etc...
             pass
         else:
             killedPids.append( pid )
