@@ -53,8 +53,15 @@ class PDUAddress:
         if number == []:
             number = ""
         elif num_type == 5:
+            # Alphanumeric Address
             number = unpack_sevenbit( number )
             number = number.decode( "gsm_default" )
+
+            # On some occasions when names are n*8-1 characters long
+            # there are exactly 7 padding bits left which will result
+            # in the "@" character being appended to the name.
+            if len(number) % 8 == 0 and number[-1] == "@":
+                number = number[:-1]
         else:
             number = bcd_decode( number )
             # Every occurence of the padding semi-octet should be removed
@@ -134,6 +141,7 @@ class SMS(object):
         # OA/DA - Originating or Destination Address
         # WARNING, the length is coded in digits of the number, not in octets occupied!
         if sms.type == "sms-submit" or sms.type == "sms-deliver":
+            # XXX: Is this correct? Can we detect the @-padding issue in oa_len?
             oa_len = 1 + (bytes[offset] + 1) / 2
             offset += 1
             sms.oa = PDUAddress.decode( bytes[offset:offset+oa_len] )
@@ -234,10 +242,6 @@ class SMS(object):
                 offset += ie_len
                 # FIXME
                 self.udh[iei] = ie_data
-
-        # User Data FIXME
-        # We need to look at the DCS in order to be able to decide what
-        # to use here
 
         # We need to lose the padding bits before the start of the
         # seven-bit packed data, which means we need to figure out how
