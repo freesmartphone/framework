@@ -13,7 +13,7 @@ Module: resources
 """
 
 MODULE_NAME = "ousaged"
-__version__ = "0.6.1"
+__version__ = "0.6.2"
 
 from framework.config import config
 from framework.patterns import tasklet
@@ -41,6 +41,9 @@ class UserExists( dbus.DBusException ):
 
 class UserUnknown( dbus.DBusException ):
     _dbus_error_name = "org.freesmartphone.Usage.UserUnknown"
+
+class ResourceInUse( dbus.DBusException ):
+    _dbus_error_name = "org.freesmartphone.Usage.ResourceInUse"
 
 #----------------------------------------------------------------------------#
 class AbstractResource( object ):
