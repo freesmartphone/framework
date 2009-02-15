@@ -73,7 +73,6 @@ class ProcessGuard( object ):
                                       envp="",
                                       working_directory=os.environ.get( "PWD", "/" ),
                                       flags=gobject.SPAWN_DO_NOT_REAP_CHILD, # needed for child watch
-                                      child_setup=None,
                                       user_data=None,
                                       standard_input=False,
                                       standard_output=True,
