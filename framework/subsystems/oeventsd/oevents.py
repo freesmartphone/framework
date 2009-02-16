@@ -12,7 +12,7 @@ Package: oeventsd
 Module: oevents
 """
 
-__version__ = "0.3.0"
+__version__ = "0.3.1"
 
 import gobject
 import dbus
@@ -129,6 +129,11 @@ class EventsManager(dbus.service.Object):
                 logger.info( "Removing rule %s", name )
                 self.rules.remove(rule)
 
+    @dbus.service.method( "org.freesmartphone.Events" )
+    def ReloadRules( self ):
+        """Reload all rules"""
+        self.update()
+
 #============================================================================#
 def factory(prefix, controller):
 #============================================================================#
@@ -141,7 +146,7 @@ def factory(prefix, controller):
     rules = parser.parse_rules(open(rules_file).read())
     for rule in rules:
         events_manager.add_rule(rule)
-            
+
     # This is to ensure that all the other subsystems are up before we update the events_manager
     gobject.idle_add( events_manager.update )
 
