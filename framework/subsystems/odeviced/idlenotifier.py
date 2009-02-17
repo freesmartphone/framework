@@ -20,7 +20,7 @@ GPLv2 or later
 """
 
 MODULE_NAME = "odeviced.idlenotifier"
-__version__ = "0.9.10.2"
+__version__ = "0.9.10.3"
 
 from helpers import DBUS_INTERFACE_PREFIX, DBUS_PATH_PREFIX, readFromFile, writeToFile
 from framework.config import config
@@ -263,6 +263,7 @@ class DisplayResource( resource.Resource ):
         Enable (inherited from Resource)
         """
         IdleNotifier.instance().prohibitStateTransitionTo( "idle_dim" )
+        IdleNotifier.instance().SetState( "busy" )
         # FIXME should we do something else here?
         on_ok()
 
