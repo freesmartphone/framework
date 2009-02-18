@@ -171,8 +171,9 @@ class TiCalypso( AbstractModem ):
                 if not self._modemOn():
                     self._muxeriface = None
                     return "" # FIXME: emit error?
-                # abyss needs an open session before we can allocate channels
-                self._muxeriface.OpenSession( True, 98, DEVICE_CALYPSO_PATH, 115200 )
+                if not self._muxeriface.HasAutoSession():
+                    # abyss needs an open session before we can allocate channels
+                    self._muxeriface.OpenSession( True, 98, DEVICE_CALYPSO_PATH, 115200 )
             pts, vc = self._muxeriface.AllocChannel( name, self._channelmap[name] )
             return str(pts)
 
