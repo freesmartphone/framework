@@ -10,7 +10,7 @@ Package: ogsmd.modems.cinterion_mc75
 Module: modem
 """
 
-__version__ = "0.0.0"
+__version__ = "0.1.0"
 MODULE_NAME = "ogsmd.modems.cinterion_mc75"
 
 import mediator
@@ -49,10 +49,9 @@ class CinterionMc75( AbstractModem ):
 
         Overridden for internal purposes.
         """
-        muxer = self._bus.get_object( "org.pyneo.muxer", "/org/pyneo/Muxer" )
-        return str( muxer.AllocChannel( name, dbus_interface="org.freesmartphone.GSM.MUX" ) )
+        muxer = self._bus.get_object( "org.freesmartphone.omuxerd", "/org/freesmartphone/GSM/Muxer" )
+        port, channel = muxer.AllocChannel( name, 0, dbus_interface="org.freesmartphone.GSM.MUX" )
+        return str( port )
 
     def dataPort( self ):
-        # FIXME remove duplication and just use pathfactory
-        muxer = self._bus.get_object( "org.pyneo.muxer", "/org/pyneo/Muxer" )
-        return muxer.AllocChannel( "ogsmd.gprs", dbus_interface="org.freesmartphone.GSM.MUX" )
+        return self.pathfactory( "ogsmd.gprs" )
