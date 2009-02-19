@@ -22,7 +22,7 @@ TODO:
  * refactor parameter validation
 """
 
-__version__ = "0.9.12"
+__version__ = "0.9.13"
 MODULE_NAME = "ogsmd.modems.abstract.mediator"
 
 from ogsmd import error
@@ -1153,7 +1153,7 @@ class NetworkListProviders( NetworkMediator ): # a{sv}
                 name = operator.groupdict()["name"].decode(charset)
                 shortname = operator.groupdict()["shortname"].decode(charset)
                 act = operator.groupdict()["act"]
-                if act == "":
+                if act is None or act == "":
                     act = "0" # AcT defaults to GSM
                 act = const.REGISTER_ACT[int(act)]
                 result.append( ( index, status, name, shortname, act ) )
