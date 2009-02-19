@@ -1540,9 +1540,9 @@ class CbGetCellBroadcastSubscriptions( CbMediator ): # s
 #=========================================================================#
     def trigger( self ):
 
-        request, response, error = yield( "+CSCB?" )
-        if error is not None:
-            self.errorFromChannel( request, error )
+        request, response, err = yield( "+CSCB?" )
+        if err is not None:
+            self.errorFromChannel( request, err )
         else:
             if response[-1] != "OK":
                 self.responseFromChannel( request, response )
@@ -1564,7 +1564,7 @@ class CbGetCellBroadcastSubscriptions( CbMediator ): # s
                 else:
                     if channels == "": # drop nothing = accept 0-999
                         self._ok( "all" )
-                    self._error( error.InternalException, "+CSCB: 1 not yet handled" )
+                    self._error( error.InternalException( "+CSCB: 1 not yet handled" ) )
 
 #=========================================================================#
 class CbSetCellBroadcastSubscriptions( CbMediator ):
