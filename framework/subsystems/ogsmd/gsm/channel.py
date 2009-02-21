@@ -14,7 +14,7 @@ This module provides communication channel abstractions that
 transport their data over a (virtual) serial line.
 """
 
-__version__ = "0.9.9.5"
+__version__ = "0.9.11"
 MODULE_NAME = "ogsmd.channel"
 
 from ogsmd.gsm.decor import logged
@@ -27,6 +27,10 @@ import Queue, fcntl, os, time, types # stdlib
 
 import logging
 logger = logging.getLogger( MODULE_NAME )
+
+PRIORITY_RTR = -20
+PRIORITY_RTS = -10
+PRIORITY_HUP = -5
 
 #=========================================================================#
 class PeekholeQueue( Queue.Queue ):
@@ -103,9 +107,9 @@ class VirtualChannel( object ):
             return False
 
         # set up I/O watches for mainloop
-        self.watchReadyToRead = gobject.io_add_watch( self.serial.fd, gobject.IO_IN, self._readyToRead )
-        self.watchReadyToSend = gobject.io_add_watch( self.serial.fd, gobject.IO_OUT, self._readyToSend )
-        self.watchHUP = gobject.io_add_watch( self.serial.fd, gobject.IO_HUP, self._hup )
+        self.watchReadyToRead = gobject.io_add_watch( self.serial.fd, gobject.IO_IN, self._readyToRead, priority=PRIORITY_RTR )
+        self.watchReadyToSend = gobject.io_add_watch( self.serial.fd, gobject.IO_OUT, self._readyToSend, priority=PRIORITY_RTS )
+        self.watchHUP = gobject.io_add_watch( self.serial.fd, gobject.IO_HUP, self._hup, priority=PRIORITY_HUP )
         self.connected = self.serial.isOpen()
         return self.connected
 
@@ -244,6 +248,11 @@ class VirtualChannel( object ):
         assert condition == gobject.IO_OUT, "ready to write on bogus condition"
         logger.debug( "%s: _readyToSend: watch timeout = %s", self, repr( self.watchTimeout ) )
 
+        # make sure nothing has been queued up in the buffer in the meantime
+        while self.serial.inWaiting():
+            logger.warning( "_readyToSend, but new data already in the buffer. processing" )
+            self._readyToRead( self.serial.fd, gobject.IO_IN )
+
         self._hookPreSending()
         self.readyToSend()
         self.watchReadyToSend = None
@@ -279,10 +288,12 @@ class QueuedVirtualChannel( VirtualChannel ):
         self.installParser()
 
         self.watchTimeout = None
-        if "timeout" in kwargs:
-            self.timeout = kwargs["timeout"]
-        else:
-            self.timeout = 10 # default timeout in seconds
+        #if "timeout" in kwargs:
+        #    self.timeout = kwargs["timeout"]
+        #else:
+        #    self.timeout = 90 # default timeout in seconds
+
+        self.timeout = 90
 
         logger.info( "%s: Creating channel with timeout = %d seconds", self, self.timeout )
 
@@ -300,11 +311,11 @@ class QueuedVirtualChannel( VirtualChannel ):
         """
         if type( data ) == types.UnicodeType:
             data = str( data )
-        self.q.put( ( data, response_cb, error_cb, timeout or self.timeout ) )
+        self.q.put( ( data, response_cb, error_cb, self.timeout ) )
         if not self.connected:
             return
         if self.q.qsize() == 1 and not self.watchReadyToSend:
-            self.watchReadyToSend = gobject.io_add_watch( self.serial.fd, gobject.IO_OUT, self._readyToSend )
+            self.watchReadyToSend = gobject.io_add_watch( self.serial.fd, gobject.IO_OUT, self._readyToSend, priority=PRIORITY_RTS )
 
     def pendingCommands( self ):
         """
@@ -348,6 +359,11 @@ class QueuedVirtualChannel( VirtualChannel ):
         """
         Reimplemented for internal purposes.
         """
+
+        # restart timeout //FIXME: only if we were  waiting for a response?
+        if self.watchTimeout is not None:
+            gobject.source_remove( self.watchTimeout )
+            self.watchTimeout = gobject.timeout_add_seconds( self.timeout, self._handleCommandTimeout )
         self.parser.feed( data, self.isWaitingForResponse() )
 
     def handleUnsolicitedResponse( self, response ):
@@ -444,7 +460,7 @@ class QueuedVirtualChannel( VirtualChannel ):
         self.handleResponseToRequest( request, response )
         # relaunch
         if not self.watchReadyToSend:
-            self.watchReadyToSend = gobject.io_add_watch( self.serial.fd, gobject.IO_OUT, self._readyToSend )
+            self.watchReadyToSend = gobject.io_add_watch( self.serial.fd, gobject.IO_OUT, self._readyToSend, priority=PRIORITY_RTS )
         return self.isWaitingForResponse() # parser needs to know the current status
 
     #@logged
