@@ -13,13 +13,13 @@ Module: fso_actions
 
 """
 
-__VERSION__ = "0.4.2"
+__VERSION__ = "0.4.3"
 MODULE_NAME = "oeventsd"
 
 import framework.patterns.tasklet as tasklet
 
 from action import Action
-from action import QueuedDBusAction as DBusAction
+from action import QueuedDBusAction, DBusAction
 from framework.controller import Controller
 from framework.config import installprefix
 
@@ -75,7 +75,7 @@ class AudioAction(Action):
         self.length = length
 
     def trigger(self, **kargs):
-        DBusAction(
+        QueuedDBusAction(
             dbus.SystemBus(),
             'org.freesmartphone.odeviced',
             '/org/freesmartphone/Device/Audio',
@@ -83,7 +83,7 @@ class AudioAction(Action):
             'PlaySound', self.path, self.loop, self.length).trigger()
 
     def untrigger(self, **kargs):
-        DBusAction(
+        QueuedDBusAction(
             dbus.SystemBus(),
             'org.freesmartphone.odeviced',
             '/org/freesmartphone/Device/Audio',
