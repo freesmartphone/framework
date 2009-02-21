@@ -31,3 +31,7 @@ Lessons learned from the implementation of ogsmd 1.x
   * a mapping of values to types.
   This could reduce quite some boilerplate code.
 
+* Try to treat channels equally. Send commands in a round-robin fashion
+  (except those for which there is per-channel state) to improve latency
+  and throughput.
+
