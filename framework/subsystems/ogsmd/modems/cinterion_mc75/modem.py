@@ -38,7 +38,7 @@ class CinterionMc75( AbstractModem ):
         self._channels["UNSOL"].setDelegate( UnsolicitedResponseDelegate( self._object, mediator ) )
 
     def channel( self, category ):
-        if category == "UnsolicitedMediator":
+        if category in ( "UnsolicitedMediator", "NetworkMediator" ):
             return self._channels["UNSOL"]
         else:
             return self._channels["MISC"]

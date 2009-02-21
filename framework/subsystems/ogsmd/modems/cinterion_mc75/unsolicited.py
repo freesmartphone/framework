@@ -15,4 +15,6 @@ from ogsmd.modems.abstract.unsolicited import AbstractUnsolicitedResponseDelegat
 class UnsolicitedResponseDelegate( AbstractUnsolicitedResponseDelegate ):
     def __init__( self, *args, **kwargs ):
         AbstractUnsolicitedResponseDelegate.__init__( self, *args, **kwargs )
-        self._callHandler.unsetHook() # we have special call handling that doesn't need stock hooks
+
+        #self._callHandler.unsetHook() # we have special call handling that doesn't need stock hooks
+        # No we don't (yet) :)
