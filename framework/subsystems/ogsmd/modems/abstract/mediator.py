@@ -165,7 +165,11 @@ class AbstractYieldSupport( object ):
         self.generator = self.trigger()
         if self.generator is not None:
             toEnqueue = self.generator.next()
-            self._commchannel.enqueue( toEnqueue, self.genResponseFromChannel, self.genErrorFromChannel )
+            if type( toEnqueue ) == type( tuple() ):
+                command, prefixes = toEnqueue
+                self._commchannel.enqueue( command, self.genResponseFromChannel, self.genErrorFromChannel, prefixes )
+            else:
+                self._commchannel.enqueue( toEnqueue, self.genResponseFromChannel, self.genErrorFromChannel )
 
     def trigger( self ):
         assert False, "pure virtual method called"
@@ -524,7 +528,7 @@ class SimGetSimInfo( SimMediator ):
         result = {}
 
         # imsi
-        request, response, error = yield( "+CIMI" )
+        request, response, error = yield( "+CIMI", [] ) # all prefixes valid for this command
         if error is not None:
             self.errorFromChannel( request, error )
         else:

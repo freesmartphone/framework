@@ -153,6 +153,8 @@ class StateBasedLowlevelAtParser( object ):
         """
         Check whether the line starts with a prefix that indicates a valid response to our command.
         """
+        if self.validPrefixes == []: # everything allowed
+            return False
         for prefix in self.validPrefixes:
             if DEBUG: print "PARSER DEBUG: checking whether %s starts with valid prefix %s" % ( repr(self.curline), repr(prefix) )
             if self.curline.startswith( prefix ):
