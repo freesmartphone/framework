@@ -133,11 +133,18 @@ class StateBasedLowlevelAtParser( object ):
             self.response( self.lines )
             return self.reset()
 
+        elif self.hasPdu:
+            self.hasPdu = False
+            self.lines.append( self.curline )
+            self.curline = ""
+            return self.state_start
+
         elif self.isUnsolicitedLine():
             if DEBUG: print "PARSER DEBUG: [unsolicited] response detected within solicited"
             return self.unsolicitedLineCompleted( multipleR )
 
         else:
+            self.hasPdu = self.isSolicitedPduLine()
             self.lines.append( self.curline )
             self.curline = ""
             return self.state_start
@@ -169,6 +176,20 @@ class StateBasedLowlevelAtParser( object ):
         else:
             return False
 
+    def isUnsolicitedPduLine( self ):
+        if self.curline.startswith( "+CBM:" ) \
+        or self.curline.startswith( "+CDS:" ) \
+        or self.curline.startswith( "+CMT:" ):
+            return True
+        else:
+            return False
+
+    def isSolicitedPduLine( self ):
+        if self.curline.startswith( "+CMGL:" ):
+            return True
+        else:
+            return False
+
     def unsolicitedLineCompleted( self, multipleR = False ):
         if DEBUG: print "PARSER DEBUG: [unsolicited] line completed, line=", repr(self.curline)
         self.ulines.append( self.curline )
@@ -189,9 +210,7 @@ class StateBasedLowlevelAtParser( object ):
         # unsolicited response. Ideally, GSM would clearly indicate whether a PDU is following
         # or not, but alas, that's not the case.
         if self.curline:
-            if self.curline.startswith( "+CBM:" ) \
-            or self.curline.startswith( "+CDS:" ) \
-            or self.curline.startswith( "+CMT:" ):
+            if self.isUnsolicitedPduLine():
                 if DEBUG: print "PARSER DEBUG: message has PDU, waiting for 2nd line."
                 self.hasPdu = True
                 self.curline = ""
@@ -199,7 +218,6 @@ class StateBasedLowlevelAtParser( object ):
             else:
                 self.unsolicited( self.ulines )
                 return self.reset( False )
-
         else:
             if DEBUG: print "PARSER DEBUG: [unsolicited] message with empty line. Ignoring."
             return self.state_inline
