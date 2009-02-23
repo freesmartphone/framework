@@ -78,17 +78,6 @@ class AbstractModem( object ):
             'usepeerdns',
         ]
 
-        self._timeouts = { \
-            "SIMAUTH":      15,
-            "SIMACCESS":    10,
-            "NETWORK":      10,
-            "CFUN":         10,
-            "COPS":         30,
-            "COPS=?":       80,
-            "COPN":         90,
-            "RING":         04,
-            }
-
         self._charsets = { \
             "DEFAULT":      "gsm_default",
             "PHONEBOOK":    "gsm_ucs2",
@@ -133,12 +122,6 @@ class AbstractModem( object ):
 
     def setData( self, key, value ):
         self._data[key] = value
-
-    def timeout( self, category ):
-        """
-        Returns a timeout.
-        """
-        return self._timeouts.get( category, FALLBACK_TIMEOUT )
 
     def numberToPhonebookTuple( self, nstring ):
         """

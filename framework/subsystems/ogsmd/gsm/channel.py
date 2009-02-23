@@ -14,7 +14,7 @@ This module provides communication channel abstractions that
 transport their data over a (virtual) serial line.
 """
 
-__version__ = "0.9.11"
+__version__ = "0.9.12"
 MODULE_NAME = "ogsmd.channel"
 
 from ogsmd.gsm.decor import logged
@@ -31,6 +31,8 @@ logger = logging.getLogger( MODULE_NAME )
 PRIORITY_RTR = -20
 PRIORITY_RTS = -10
 PRIORITY_HUP = -5
+
+DEFAULT_CHANNEL_TIMEOUT = 5*60
 
 #=========================================================================#
 class PeekholeQueue( Queue.Queue ):
@@ -223,7 +225,7 @@ class VirtualChannel( object ):
 
         self._hookPreReading()
         data = self._lowlevelRead()
-        logger.debug( "%s: got %d bytes from: %s" % ( self, len(data), repr(data) ) )
+        logger.debug( "%s: got %d bytes: %s" % ( self, len(data), repr(data) ) )
         self.readyToRead( data )
 
         self._hookPostReading()
@@ -288,12 +290,8 @@ class QueuedVirtualChannel( VirtualChannel ):
         self.installParser()
 
         self.watchTimeout = None
-        #if "timeout" in kwargs:
-        #    self.timeout = kwargs["timeout"]
-        #else:
-        #    self.timeout = 90 # default timeout in seconds
 
-        self.timeout = 90
+        self.timeout = kwargs.get( timeout, DEFAULT_CHANNEL_TIMEOUT )
 
         logger.info( "%s: Creating channel with timeout = %d seconds", self, self.timeout )
 
@@ -395,7 +393,7 @@ class QueuedVirtualChannel( VirtualChannel ):
                 else:
                     ok_cb( reqstring.strip(), response )
             except Exception, e:
-                logger.exception( "unhandled exception in response callback: %s" % e )
+                logger.exception( "(ignoring) unhandled exception in response callback: %s" % e )
 
     def handleCommandTimeout( self, request ):
         """
@@ -550,7 +548,7 @@ class DelegateChannel( QueuedVirtualChannel ):
                 else:
                     method( values.strip() )
             except Exception, e:
-                logger.exception( "unhandled exception in unsolicited response handler: %s" % e )
+                logger.exception( "(ignoring) unhandled exception in unsolicited response handler: %s" % e )
                 return False
 
         return True # unsolicited response handled OK
@@ -563,17 +561,17 @@ class AtCommandChannel( DelegateChannel ):
 
     Commands are prefixed according to v25ter. Multiline commands are handled.
     """
-    def enqueue( self, command, response_cb=None, error_cb=None, timeout=None ):
+    def enqueue( self, command, response_cb=None, error_cb=None ):
         """
         Enqueue a single line or multiline command. Multiline commands have
         a '\r' (NOT '\r\n') embedded after the first line.
         """
         commands = command.split( '\r', 1 )
         if len( commands ) == 1:
-            QueuedVirtualChannel.enqueue( self, "AT%s\r\n" % command, response_cb, error_cb, timeout )
+            QueuedVirtualChannel.enqueue( self, "AT%s\r\n" % command, response_cb, error_cb )
         elif len( commands ) == 2:
             QueuedVirtualChannel.enqueue( self, "AT%s\r" % commands[0], None, None, None )
-            QueuedVirtualChannel.enqueue( self, "%s\x1A" % commands[1], response_cb, error_cb, timeout )
+            QueuedVirtualChannel.enqueue( self, "%s\x1A" % commands[1], response_cb, error_cb )
         else:
             assert False, "your python interpreter is broken"
 
