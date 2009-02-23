@@ -1,3 +1,12 @@
+2009-02-23	Michael Lauer	<mlauer@vanille-media.de>
+
+	* ogsmd: Rewritten timeout handling and unsolicited message handling.
+      We now maintain a list of valid prefixes for every command
+	  in the Queue. Once the parser processes a complete line, it checks whether
+	  this line contains expected results. With this, it's safe to operate modems
+	  that mix unsolicited and solicited responses. It's also a safeguard against
+	  race conditions when talking to the modem over buffered lines.
+
 2009-02-12	Michael Lauer	<mlauer@vanille-media.de>
 
 	* ogsmd: Implemented org.freesmartphone.GSM.SIM.GetProviderList -> a{is}

@@ -40,20 +40,22 @@ class StateBasedLowlevelAtParser( object ):
         self.unsolicited = unsolicited
         self.state = self.reset()
 
-    def reset( self ):
-        self.lines = []
+    def reset( self, yankSolicited=True ):
+        if yankSolicited:
+            self.lines = []
+        self.ulines = []
         self.curline = ""
         self.hasPdu = False
-        self.haveCommand = False
         return self.state_start
 
-    def feed( self, bytes, haveCommand ):
+    def feed( self, bytes, haveCommand, validPrefixes ):
         # NOTE: the continuation query relies on '\r\n> ' not being
         # fragmented... question: is that always correct? If not,
         # we better keep the state. We could also enhance the signature
         # to support handing a haveContinuation parameter over to here.
 
         self.haveCommand = haveCommand
+        self.validPrefixes = validPrefixes
 
         if bytes == "\r\n> ":
             if DEBUG: print "PARSER DEBUG: got continuation character. sending empty response"
@@ -66,7 +68,7 @@ class StateBasedLowlevelAtParser( object ):
 
             nextstate = self.state( b )
             if nextstate is None:
-                print "PARSER DEBUG: WARNING: UNDEFINED PARSER STATE!"
+                print "PARSER DEBUG: WARNING: UNDEFINED PARSER STATE! Do not know where to go from %s upon receiving %s" % ( self.state, repr(b) )
                 print "previous bytes were:", repr(bytes)
                 print "current byte is:", repr(b)
                 print "lines:", repr(self.lines)
@@ -117,52 +119,70 @@ class StateBasedLowlevelAtParser( object ):
             return self.lineCompleted( True )
 
     def lineCompleted( self, multipleR = False ):
-        # FIXME update self.haveCommand for next command
         if self.haveCommand:
             return self.solicitedLineCompleted( multipleR )
         else:
             return self.unsolicitedLineCompleted( multipleR )
 
     def solicitedLineCompleted( self, multipleR = False ):
-        if DEBUG: print "PARSER DEBUG: [solicited] line completed, line=", repr(self.curline), "previous lines=", self.lines
-        if self.curline:
+        if DEBUG: print "PARSER DEBUG: [perhaps solicited] line completed, line=", repr(self.curline), "previous lines=", self.lines
+
+        if self.isTerminationLine():
+            if DEBUG: print "PARSER DEBUG: [solicited] response completed"
             self.lines.append( self.curline )
-            # check for termination
-            if self.curline == "OK" \
-            or self.curline == "ERROR" \
-            or self.curline.startswith( "+CME ERROR" ) \
-            or self.curline.startswith( "+CMS ERROR" ) \
-            or self.curline.startswith( "+EXT ERROR" ) \
-            or self.curline.startswith( "BUSY" ) \
-            or self.curline.startswith( "CONNECT" ) \
-            or self.curline.startswith( "NO ANSWER" ) \
-            or self.curline.startswith( "NO CARRIER" ) \
-            or self.curline.startswith( "NO DIALTONE" ):
-                if DEBUG: print "PARSER DEBUG: [solicited] response completed"
-                self.haveCommand = self.response( self.lines )
-                return self.reset()
-            else:
-                self.curline = ""
-                return self.state_inline
+            self.response( self.lines )
+            return self.reset()
+
+        elif self.isUnsolicitedLine():
+            if DEBUG: print "PARSER DEBUG: [unsolicited] response detected within solicited"
+            return self.unsolicitedLineCompleted( multipleR )
+
         else:
-            if DEBUG: print "PARSER WARNING: empty line within solicited response. Ignoring."
+            self.lines.append( self.curline )
             self.curline = ""
-            return self.state_inline
+            return self.state_start
+
+    def isUnsolicitedLine( self ):
+        """
+        Check whether the line starts with a prefix that indicates a valid response to our command.
+        """
+        for prefix in self.validPrefixes:
+            if DEBUG: print "PARSER DEBUG: checking whether %s starts with valid prefix %s" % ( repr(self.curline), repr(prefix) )
+            if self.curline.startswith( prefix ):
+                if DEBUG: print "PARSER DEBUG: yes; must be really solicited"
+                return False
+        if DEBUG: print "PARSER DEBUG: no match; must be unsolicited"
+        return True # no prefix did match
+
+    def isTerminationLine( self ):
+        if self.curline == "OK" \
+        or self.curline == "ERROR" \
+        or self.curline.startswith( "+CME ERROR" ) \
+        or self.curline.startswith( "+CMS ERROR" ) \
+        or self.curline.startswith( "+EXT ERROR" ) \
+        or self.curline.startswith( "BUSY" ) \
+        or self.curline.startswith( "CONNECT" ) \
+        or self.curline.startswith( "NO ANSWER" ) \
+        or self.curline.startswith( "NO CARRIER" ) \
+        or self.curline.startswith( "NO DIALTONE" ):
+            return True
+        else:
+            return False
 
     def unsolicitedLineCompleted( self, multipleR = False ):
         if DEBUG: print "PARSER DEBUG: [unsolicited] line completed, line=", repr(self.curline)
-        self.lines.append( self.curline )
+        self.ulines.append( self.curline )
 
         if self.hasPdu:
             if DEBUG: print "PARSER DEBUG: [unsolicited] line pdu completed, sending."
             if not self.curline:
                 if DEBUG: print "Empty line before PDU, ignoring"
                 # We have some cases where there is an empty line before the pdu
-                self.lines.pop()
+                self.ulines.pop()
                 return self.state_inline
             self.hasPdu = False
-            self.haveCommand = self.unsolicited( self.lines )
-            return self.reset()
+            self.unsolicited( self.ulines )
+            return self.reset( False )
 
         # Now this is slightly suboptimal. I tried hard to prevent even more protocol knowledge
         # infecting this parser, but I can't seem to find another way to detect a multiline
@@ -177,8 +197,8 @@ class StateBasedLowlevelAtParser( object ):
                 self.curline = ""
                 return self.state_inline
             else:
-                self.haveCommand = self.unsolicited( self.lines )
-                return self.reset()
+                self.unsolicited( self.ulines )
+                return self.reset( False )
 
         else:
             if DEBUG: print "PARSER DEBUG: [unsolicited] message with empty line. Ignoring."
