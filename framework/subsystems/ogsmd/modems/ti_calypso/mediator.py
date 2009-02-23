@@ -80,7 +80,7 @@ class MonitorGetServingCellInformation( MonitorMediator ):
     stringparams = "cid lac".split()
 
     def trigger( self ):
-        self._commchannel.enqueue( "%EM=2,1", self.responseFromChannel, self.errorFromChannel )
+        self._commchannel.enqueue( "%EM=2,1", self.responseFromChannel, self.errorFromChannel, ["%EM", "PDU"] )
 
     def responseFromChannel( self, request, response ):
         if response[-1] != "OK":
@@ -126,7 +126,7 @@ class MonitorGetNeighbourCellInformation( MonitorMediator ):
     stringparams = "cid lac".split()
 
     def trigger( self ):
-        self._commchannel.enqueue( "%EM=2,3", self.responseFromChannel, self.errorFromChannel )
+        self._commchannel.enqueue( "%EM=2,3", self.responseFromChannel, self.errorFromChannel, ["%EM", "PDU"] )
 
     def responseFromChannel( self, request, response ):
         if response[-1] != "OK":

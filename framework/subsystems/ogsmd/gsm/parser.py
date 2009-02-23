@@ -157,7 +157,11 @@ class StateBasedLowlevelAtParser( object ):
             return False
         for prefix in self.validPrefixes:
             if DEBUG: print "PARSER DEBUG: checking whether %s starts with valid prefix %s" % ( repr(self.curline), repr(prefix) )
-            if self.curline.startswith( prefix ):
+            if prefix == "PDU":
+                if self.curline[0] in "0123456789ABCDEF":
+                    if DEBUG: print "PARSER DEBUG: yes; must be really solicited"
+                    return False
+            elif self.curline.startswith( prefix ):
                 if DEBUG: print "PARSER DEBUG: yes; must be really solicited"
                 return False
         if DEBUG: print "PARSER DEBUG: no match; must be unsolicited"
