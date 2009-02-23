@@ -12,7 +12,7 @@ Package: ogsmd.modems.abstract
 Module: unsolicited
 """
 
-__version__ = "0.9.9.3"
+__version__ = "0.9.9.4"
 
 import calling, pdp
 
@@ -83,7 +83,9 @@ class AbstractUnsolicitedResponseDelegate( object ):
         if len( values ) == 1: # detach, but we're not having an IP context online
             if values[0] == "ME DETACH":
                 # FIXME this will probably lead to a zombie
-                pdp.Pdp.getInstance().deactivate()
+                instance = pdp.Pdp.getInstance()
+                if instance is not None:
+                    instance.deactivate()
                 # FIXME force dropping the dataport, this will probably kill the zombie
         elif len( values ) >= 3: # detach while we were attached
             pass
