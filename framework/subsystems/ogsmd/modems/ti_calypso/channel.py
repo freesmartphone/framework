@@ -144,12 +144,12 @@ class CalypsoModemChannel( AbstractModemChannel ):
         return True
 
     #
-    # send %CUNS=2 on every channel as init
+    # send %CUNS on every channel as init
     #
     def _populateCommands( self ):
         AbstractModemChannel._populateCommands( self )
 
-        self._commands["init"].append( "%CUNS=2" )
+        self._commands["init"].append( "%CUNS=0" )
 
     #
     # TI Calypso has a deep sleep mode, effective after 8 seconds,
