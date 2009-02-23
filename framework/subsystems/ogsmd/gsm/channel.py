@@ -14,7 +14,7 @@ This module provides communication channel abstractions that
 transport their data over a (virtual) serial line.
 """
 
-__version__ = "0.9.12"
+__version__ = "0.9.13"
 MODULE_NAME = "ogsmd.channel"
 
 from ogsmd.gsm.decor import logged
@@ -34,7 +34,7 @@ PRIORITY_HUP = -5
 
 DEFAULT_CHANNEL_TIMEOUT = 5*60
 
-AUTOPREFIX = re.compile( "A?T?(?P<prefix>.?[A-Z]+)" )
+AUTOPREFIX = re.compile( "A?T?(?P<prefix>[\+%!*$\^_&@][A-Z]+)" )
 
 #=========================================================================#
 class PeekholeQueue( Queue.Queue ):
