@@ -19,8 +19,6 @@ from framework.config import config
 
 from ogsmd.gsm.callback import SimpleCallback
 from ogsmd.gsm.decor import logged
-from ogsmd.gsm.parser import AlwaysUnsolicitedParser
-
 from ogsmd.modems.abstract.channel import AbstractModemChannel
 
 import gobject
@@ -192,13 +190,6 @@ class CalypsoModemChannel( AbstractModemChannel ):
         logger.warning( "HUP condition on modem channel. The multiplexer is probably dead. Launching reinit..." )
         logger.debug( "Closing the modem..." )
         self._modem.reinit()
-
-    #
-    # +CRING, +CLIP, %CPI are always unsolicited and can come at any time.
-    #
-    def installParser( self ):
-        l = "+CRING +CLIP %CPI".split()
-        self.parser = AlwaysUnsolicitedParser( l, self._handleResponseToRequest, self._handleUnsolicitedResponse )
 
 #=========================================================================#
 class CallChannel( CalypsoModemChannel ):
