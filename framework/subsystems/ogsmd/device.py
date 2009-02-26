@@ -380,6 +380,11 @@ class Device( resource.Resource ):
     def IncomingMessage( self, address, text, features ):
         logger.info( "incoming message (unbuffered) from %s", address )
 
+    @resource.queuedsignal
+    @dbus.service.signal( DBUS_INTERFACE_SMS, "ss" )
+    def IncomingMessageReceipt( self, number, text ):
+        logger.info( "incoming message delivery report from %s", number )
+
     #
     # dbus org.freesmartphone.GSM.Network
     #

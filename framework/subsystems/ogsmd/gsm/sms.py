@@ -107,7 +107,7 @@ class SMS(object):
         sms = cls( smstype )
         offset = 0
 
-        if sms.type == "sms-deliver" or sms.type == "sms-submit":
+        if sms.type == "sms-deliver" or sms.type == "sms-submit" or sms.type == "sms-status-report":
             # SCA - Service Center address
             sca_len = bytes[offset]
             offset += 1
@@ -131,16 +131,21 @@ class SMS(object):
             sms.pdu_mms = sms.pdu_rd
         elif sms.type == "sms-submit-report":
             sms.pdu_udhi = pdu_type & 0x04 != 0
+        elif sms.type == "sms-status-report":
+            sms.pdu_udhi = pdu_type & 0x40 != 0
+            sms.pdu_srr = pdu_type & 0x20 != 0
+            sms.pdu_mms = pdu_type & 0x04 != 0
+
 
         offset += 1
-        if sms.type == "sms-submit":
+        if sms.type == "sms-submit" or sms.type == "sms-status-report":
             # MR - Message Reference
             sms.mr = bytes[offset]
             offset += 1
 
         # OA/DA - Originating or Destination Address
         # WARNING, the length is coded in digits of the number, not in octets occupied!
-        if sms.type == "sms-submit" or sms.type == "sms-deliver":
+        if sms.type == "sms-submit" or sms.type == "sms-deliver" or sms.type == "sms-status-report":
             # XXX: Is this correct? Can we detect the @-padding issue in oa_len?
             oa_len = 1 + (bytes[offset] + 1) / 2
             offset += 1
@@ -148,6 +153,11 @@ class SMS(object):
             sms.da = sms.oa
 
             offset += oa_len
+
+            if sms.type == "sms-status-report":
+                # Skip SCTS, DT (discharge time), ST, PI FIXME
+                offset += 4
+
             # PID - Protocol identifier
             sms.pid = bytes[offset]
 
@@ -193,7 +203,9 @@ class SMS(object):
 
                 offset += 7
 
-        if sms.type == "sms-submit-report" and not sms.pdu_udli:
+        if ( sms.type == "sms-submit-report" and not sms.pdu_udli ) \
+             or sms.type == "sms-status-report":
+            # FIXME can sms-status-report have userdata?
             return sms
 
         # UD - User Data
@@ -206,7 +218,7 @@ class SMS(object):
         self.type = type
         self.sca = False
         self.pdu_udhi = False
-        self.pdu_srr = False
+        self.pdu_srr = True # Request delivery report
         self.pdu_sri = False
         self.pdu_rp = False
         self.pdu_vpf = 0
