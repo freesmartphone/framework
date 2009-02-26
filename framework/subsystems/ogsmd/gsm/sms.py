@@ -218,7 +218,7 @@ class SMS(object):
         self.type = type
         self.sca = False
         self.pdu_udhi = False
-        self.pdu_srr = True # Request delivery report
+        self.pdu_srr = False
         self.pdu_sri = False
         self.pdu_rp = False
         self.pdu_vpf = 0
