@@ -11,7 +11,7 @@ Module: controller
 """
 
 MODULE_NAME = "frameworkd.controller"
-__version__ = "0.9.8"
+__version__ = "0.9.9"
 
 from framework.config import DBUS_BUS_NAME_PREFIX, debug, config, loggingmap
 from framework.patterns import daemon
@@ -67,13 +67,16 @@ class Controller( daemon.Daemon ):
         # FIXME remove hardcoded controller knowledge from objects
         self.config = config
 
+        # gather subsystem plugins scantype
+        scantype = config.getValue( "frameworkd", "scantype", "auto" )
+
         # call me when idle and in mainloop
         gobject.idle_add( self.idle )
 
         self._configureLoggers()
         self._handleOverrides()
 
-        self._subsystems["frameworkd"] = subsystem.Framework( self.bus, path, self )
+        self._subsystems["frameworkd"] = subsystem.Framework( self.bus, path, scantype, self )
         Controller.objects.update( self._subsystems["frameworkd"].objects() )
 
         systemstolaunch = self.options.values.subsystems.split( ',' )
@@ -101,10 +104,10 @@ class Controller( daemon.Daemon ):
                     continue
             if external:
                 logger.info( "launching external subsystem %s" % s )
-                self._subsystems[s] = subsystem.External( s, external, self )
+                self._subsystems[s] = subsystem.External( s, external, scantype, self )
             else:
                 logger.info( "launching internal subsystem %s" % s )
-                self._subsystems[s] = subsystem.Subsystem( s, self.bus, path, self )
+                self._subsystems[s] = subsystem.Subsystem( s, self.bus, path, scantype, self )
             Controller.objects.update( self._subsystems[s].objects() )
 
         # do we have any subsystems left?

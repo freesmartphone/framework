@@ -10,7 +10,7 @@ Module: subsystem
 """
 
 MODULE_NAME = "frameworkd.subsystem"
-__version__ = "1.1.1"
+__version__ = "1.2.0"
 
 from .config import config, busmap, DBUS_BUS_NAME_PREFIX
 
@@ -31,13 +31,14 @@ class Subsystem( object ):
     Every subsystem has its dedicated dbus bus connection to
     prevent all objects showing up on all bus names.
     """
-    def __init__( self, name, bus, path, controller ):
+    def __init__( self, name, bus, path, scantype, controller ):
         logger.debug( "subsystem %s created" % name )
         self.launchTime = time.time()
         self.name = name
         self.bus = dbus.bus.BusConnection( dbus.bus.BUS_SYSTEM )
         busmap[name] = self.bus
         self.path = path
+        self.scantype = scantype
         self.controller = controller
         self._objects = {}
         self.busnames = []
@@ -76,7 +77,21 @@ class Subsystem( object ):
         return self._objects
 
     def findModulesInSubsystem( self ):
-        return os.listdir( "%s/%s" % ( self.path, self.name ) )
+        """
+        Find modules belonging to this subsystem.
+        Depening on the scantype this is either based on the
+        available config settings or 'auto', in which case
+        the whole subsystem's directory is scanned (slow!)
+        """
+        if self.scantype == "auto":
+            modules = os.listdir( "%s/%s" % ( self.path, self.name ) )
+        else:
+            modules = [ section for section in config.sections() \
+                        if '.' in section \
+                        if section.split('.')[0] == self.name ]
+
+        logger.info( "Scanned subsystem via method '%s', result is %s", self.scantype, modules )
+        return modules
 
     def registerModulesInSubsystem( self ):
         """
@@ -149,8 +164,8 @@ class Framework( Subsystem ):
     """
     The master subsystem.
     """
-    def __init__( self, bus, path, controller ):
-        Subsystem.__init__( self, "frameworkd", bus, path, controller )
+    def __init__( self, bus, path, scantype, controller ):
+        Subsystem.__init__( self, "frameworkd", bus, path, scantype, controller )
 
         if self.busnames is []:
             logger.critical( "can't claim master busname. Exiting" )
@@ -168,9 +183,9 @@ class External( Subsystem ):
 
     An external subsystem is "just" a child process to us.
     """
-    def __init__( self, name, path, controller ):
+    def __init__( self, name, path, scantype, controller ):
         self._process = ProcessGuard( path )
-        Subsystem.__init__( self, name, None, None, controller )
+        Subsystem.__init__( self, name, None, None, scantype, controller )
 
     def launch( self ):
         self._process.execute( onExit=self.processExit )
