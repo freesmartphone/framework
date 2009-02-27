@@ -75,28 +75,35 @@ class SMSTests(unittest.TestCase):
     def _recodepdu(self, pdu, dir):
         sms = SMS.decode(pdu, dir)
         genpdu = sms.pdu()
-        self.assert_(pdu == genpdu, "Reencoded SMS doesn't match, type %s" % dir)
+        self.assert_(pdu == genpdu, "Reencoded SMS doesn't match, PDUS:\n%s\n%s" % (pdu, genpdu))
 
-    def test_recode_sms(self):
-        """Try to decode SMS and reencode them to see if they match"""
+    def test_recode_sms_deliver(self):
+        """Try to decode sms-deliver messages and reencode them to see if they match"""
         for pdu in self.pdus_MT:
             self._recodepdu(pdu, "sms-deliver")
 
+    def test_recode_sms_submit(self):
+        """Try to decode sms-submit messages and reencode them to see if they match"""
         for pdu in self.pdus_MO:
             self._recodepdu(pdu, "sms-submit")
 
+    def test_recode_sms_submit_report(self):
+        """Try to decode sms-submit-report messages and reencode them to see if they match"""
         for pdu in self.pdus_ACKPDU:
             self._recodepdu(pdu, "sms-submit-report")
 
-    def test_decode_sms(self):
-        """Try to decode some SMS"""
-
+    def test_decode_sms_deliver(self):
+        """Try to decode some sms-deliver messages"""
         for pdu in self.pdus_MT:
             SMS.decode(pdu, "sms-deliver")
 
+    def test_decode_sms_submit(self):
+        """Try to decode some sms-submit messages"""
         for pdu in self.pdus_MO:
             SMS.decode(pdu, "sms-submit")
 
+    def test_decode_sms_submit_report(self):
+        """Try to decode some sms-submit-report messages"""
         for pdu in self.pdus_ACKPDU:
             SMS.decode(pdu, "sms-submit-report")
 
