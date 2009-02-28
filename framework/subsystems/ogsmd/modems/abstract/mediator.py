@@ -911,7 +911,7 @@ class SimRetrieveMessagebook( SimMediator ):
                         # see which PDU makes trouble
                         result.append( ( index, status, "Error decoding", "Error decoding", {} ) )
                     else:
-                        result.append( ( index, status, str(sms.oa), sms.ud, sms.properties ) )
+                        result.append( ( index, status, str(sms.addr), sms.ud, sms.properties ) )
                 else:
                     logger.warning( "SinRetrieveMessagebook encountered strange answer to AT+CMGL: '%s'" % line )
             self._ok( result )
@@ -946,7 +946,7 @@ class SimRetrieveMessage( SimMediator ):
                     inbody = False
                     # Now we decode the actual PDU
                     sms = ogsmd.gsm.sms.SMS.decode( line, direction )
-                    result = ( status, str(sms.oa), sms.ud, sms.properties )
+                    result = ( status, str(sms.addr), sms.ud, sms.properties )
                 else:
                     logger.warning( "SinRetrieveMessage encountered strange answer to AT+CMGR: '%s'" % line )
 
@@ -964,12 +964,9 @@ class SimSetServiceCenterNumber( SimMediator ):
 class SimStoreMessage( SimMediator ):
 #=========================================================================#
     def trigger( self ):
-        sms = ogsmd.gsm.sms.SMS("sms-submit")
-        sms.pdu_mti = 1
-        sms.pid = 0
-        sms.dcs = 0
+        sms = ogsmd.gsm.sms.SMSSubmit()
         # Use PDUAddress
-        sms.oa = ogsmd.gsm.sms.PDUAddress.guess( self.number )
+        sms.addr = ogsmd.gsm.sms.PDUAddress.guess( self.number )
         sms.ud = self.contents
         sms.properties = self.properties
         pdu = sms.pdu()
@@ -1013,12 +1010,9 @@ class SimDeleteMessage( SimMediator ):
 class SmsSendMessage( SmsMediator ):
 #=========================================================================#
     def trigger( self ):
-        sms = ogsmd.gsm.sms.SMS("sms-submit")
-        sms.pdu_mti = 1
-        sms.pid = 0
-        sms.dcs = 0
+        sms = ogsmd.gsm.sms.SMSSubmit()
         # Use PDUAddress
-        sms.oa = ogsmd.gsm.sms.PDUAddress.guess( self.number )
+        sms.addr = ogsmd.gsm.sms.PDUAddress.guess( self.number )
         sms.ud = self.contents
         sms.properties = self.properties
         pdu = sms.pdu()

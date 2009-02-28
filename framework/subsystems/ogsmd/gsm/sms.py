@@ -140,7 +140,7 @@ class SMS(object):
 
 
     def _parse_address( self, bytes, offset ):
-        # XXX: Is this correct? Can we detect the @-padding issue in oa_len?
+        # XXX: Is this correct? Can we detect the @-padding issue in address_len?
         address_len = 1 + (bytes[offset] + 1) / 2
         offset += 1
         address = PDUAddress.decode( bytes[offset:offset+address_len] )
@@ -365,7 +365,7 @@ class SMSDeliver(SMS):
 
         offset += 1
 
-        (self.oa, skip) = self._parse_address(bytes, offset)
+        (self.addr, skip) = self._parse_address(bytes, offset)
         offset += skip
 
         # PID - Protocol identifier
@@ -471,7 +471,7 @@ class SMSDeliver(SMS):
 
         pdubytes.append( pdu_type )
 
-        pdubytes.extend( self.oa.pdu() )
+        pdubytes.extend( self.addr.pdu() )
 
         pdubytes.append( self.pid )
 
@@ -529,7 +529,7 @@ Number: %s
 Headers: %s
 Alphabet: %s
 Message: %s
-""" % (self.type, self.sca, self.scts, self.pid, self.dcs, self.oa, self.udh, self.dcs_alphabet, repr(self.ud))
+""" % (self.type, self.sca, self.scts, self.pid, self.dcs, self.addr, self.udh, self.dcs_alphabet, repr(self.ud))
 
 class SMSSubmit(SMS):
 
@@ -560,7 +560,7 @@ class SMSSubmit(SMS):
         self.mr = bytes[offset]
         offset += 1
 
-        (self.da, skip) = self._parse_address( bytes, offset )
+        (self.addr, skip) = self._parse_address( bytes, offset )
         offset += skip
 
         # PID - Protocol identifier
@@ -682,7 +682,7 @@ class SMSSubmit(SMS):
 
         pdubytes.append( self.mr )
 
-        pdubytes.extend( self.da.pdu() )
+        pdubytes.extend( self.addr.pdu() )
 
         pdubytes.append( self.pid )
 
@@ -746,7 +746,7 @@ Number: %s
 Headers: %s
 Alphabet: %s
 Message: %s
-""" % (self.type, self.sca, self.vp, self.pid, self.dcs, self.da, self.udh, self.dcs_alphabet, repr(self.ud))
+""" % (self.type, self.sca, self.vp, self.pid, self.dcs, self.addr, self.udh, self.dcs_alphabet, repr(self.ud))
 
 class SMSSubmitReport(SMS):
 

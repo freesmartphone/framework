@@ -137,7 +137,7 @@ class SMSTests(unittest.TestCase):
         """Create an SMS object and try to encode it"""
         defprops = {'status-report-request': False, 'reject-duplicates': False, 'pid': 0, 'reply-path': False, 'message-reference': 0, 'alphabet': 'gsm_default', 'type': 'sms-submit'}
         sms = SMSSubmit()
-        sms.da = PDUAddress.guess("+491234")
+        sms.addr = PDUAddress.guess("+491234")
         self.assert_(sms.pdu() == "0001000691942143000000",
                 "SMS encoding incorrect, PDU is %s" %sms.pdu())
         sms.ud = "Test"
@@ -187,8 +187,8 @@ class SMSTests(unittest.TestCase):
             sms = SMS.decode(testpdu, "sms-deliver")
         end = datetime.now()
         diff = end-start
-        diff = (diff.seconds + diff.microseconds/1000000.0)/n
-        print "%fs ... " % diff
+        diff = (diff.seconds*1000 + diff.microseconds/1000.0)/n
+        print "%.3fms ... " % diff
 
 
 if __name__ == '__main__':

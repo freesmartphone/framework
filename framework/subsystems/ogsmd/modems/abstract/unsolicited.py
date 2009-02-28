@@ -146,7 +146,7 @@ class AbstractUnsolicitedResponseDelegate( object ):
         length = int(header[1])
         # Now we decode the actual PDU
         sms = ogsmd.gsm.sms.SMS.decode( pdu, "sms-deliver" )
-        self._object.IncomingMessage( str(sms.oa), sms.ud, sms.properties )
+        self._object.IncomingMessage( str(sms.addr), sms.ud, sms.properties )
 
     # +CDS: <PDU size>\r\n<PDU>
     def plusCDS( self, righthandside, pdu ):
@@ -154,7 +154,7 @@ class AbstractUnsolicitedResponseDelegate( object ):
         Incoming delivery report
         """
         sms = ogsmd.gsm.sms.SMS.decode( pdu, "sms-status-report" )
-        self._object.IncomingMessageReceipt( str(sms.oa), "delivered" )
+        self._object.IncomingMessageReceipt( str(sms.addr), "delivered" )
 
     # +CMTI: "SM",7
     def plusCMTI( self, righthandside ):
