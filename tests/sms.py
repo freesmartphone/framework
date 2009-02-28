@@ -25,6 +25,8 @@ from framework.subsystems.ogsmd.gsm.sms import *
 class SMSTests(unittest.TestCase):
     """Some test cases for the sms subsystem"""
     def setUp(self):
+        # This sms-deliver PDU would be reencoded with a different length value
+        # "07918167830071F1040BD0C7F7FBCC2E0300008080203200748078D0473BED2697D9F3B20E442DCFE9A076793E0F9FCBA07B9A8E0691C3EEF41C0D1AA3C3F2F0985E96CF75A00EE301E22C1C2C109B217781642E50B87E76816433DD0C066A81E60CB70B347381C2F5B30B"
         self.pdus_MT = [
         "0791448720900253040C914497035290960000500151614414400DD4F29C9E769F41E17338ED06",
         "0791448720003023440C91449703529096000050015132532240A00500037A020190E9339A9D3EA3E920FA1B1466B341E472193E079DD3EE73D85DA7EB41E7B41C1407C1CBF43228CC26E3416137390F3AABCFEAB3FAAC3EABCFEAB3FAAC3EABCFEAB3FAAC3EABCFEAB3FADC3EB7CFED73FBDC3EBF5D4416D9457411596457137D87B7E16438194E86BBCF6D16D9055D429548A28BE822BA882E6370196C2A8950E291E822BA88",
@@ -37,7 +39,6 @@ class SMSTests(unittest.TestCase):
         "0791448720003023400C91449703529096000050016121853340A005000301060540C8FA790EA2BF41E472193E7781402064FD3C07D1DF2072B90C9FBB402010B27E9E83E86F10B95C86CF5D201008593FCF41F437885C2EC3E72E100884AC9FE720FA1B442E97E17317080442D6CF7310FD0D2297CBF0B90B84AC9FE720FA1B442E97E17317080442D6CF7310FD0D2297CBF0B90B040221EBE73988FE0691CB65F8DC05028190",
         "0791448720003023440C914497035290960000500161218563402A050003010606EAE73988FE0691CB65F8DC05028190F5F31C447F83C8E5327CEE0281402010",
         "07918167830071F1040BD0C7F7FBCC2E030000808010800120804AD0473BED2697D9F3B20E644CCBDBE136835C6681CCF2B20B147381C2F5B30B04C3E96630500B1483E96030501A34CDB7C5E9B71B847AB2CB2062987D0E87E5E414",
-        "07918167830071F1040BD0C7F7FBCC2E0300008080203200748078D0473BED2697D9F3B20E442DCFE9A076793E0F9FCBA07B9A8E0691C3EEF41C0D1AA3C3F2F0985E96CF75A00EE301E22C1C2C109B217781642E50B87E76816433DD0C066A81E60CB70B347381C2F5B30B",
         "0791447758100650040C9194714373238200008080312160304019D4F29C0E6A97E7F3F0B90CB2A7C3A0791A7E0ED3CB2E",
         "0791447758100650040DD0F334FC1CA6970100008080312170224008D4F29CDE0EA7D9",
         "0791889653704434040C9188969366423600008090017134632302CA34",
@@ -75,7 +76,7 @@ class SMSTests(unittest.TestCase):
     def _recodepdu(self, pdu, dir):
         sms = SMS.decode(pdu, dir)
         genpdu = sms.pdu()
-        self.assert_(pdu == genpdu, "Reencoded SMS doesn't match, PDUS:\n%s\n%s" % (pdu, genpdu))
+        self.assert_(pdu == genpdu, "Reencoded SMS doesn't match, PDUS:\n%s\n%s\n%s" % (repr(sms), pdu, genpdu))
 
     def test_recode_sms_deliver(self):
         """Try to decode sms-deliver messages and reencode them to see if they match"""
@@ -113,10 +114,28 @@ class SMSTests(unittest.TestCase):
         for pdu in self.pdus_CB:
             cb = CellBroadcast.decode(pdu)
 
+    def test_default_sms_submit(self):
+        """Check the default properties of an sms-submit message"""
+        defprops = {'status-report-request': False, 'reject-duplicates': False, 'pid': 0, 'reply-path': False, 'message-reference': 0, 'alphabet': 'gsm_default', 'type': 'sms-submit'}
+        sms = SMSSubmit()
+        self.assert_(sms.properties == defprops, "Default sms-submit properties are wrong: %s" % sms.properties)
+
+    def test_default_sms_deliver(self):
+        """Check the default properties of an sms-deliver message"""
+        defprops = {'status-report-indicator': False, 'more-messages-to-send': False, 'alphabet': 'gsm_default', 'pid': 0, 'reply-path': False, 'timestamp': 'Tue Jan  1 00:00:00 1980 +0000', 'type': 'sms-deliver'}
+        sms = SMSDeliver()
+        self.assert_(sms.properties == defprops, "Default sms-deliver properties are wrong: %s" % sms.properties)
+
+    def test_default_sms_submit_report(self):
+        """Check the default properties of an sms-submit-report message"""
+        defprops = {'timestamp': 'Tue Jan  1 00:00:00 1980 +0000', 'type': 'sms-submit-report'}
+        sms = SMSSubmitReport()
+        self.assert_(sms.properties == defprops, "Default sms-submit-report properties are wrong: %s" % sms.properties)
+
     def test_generate_sms(self):
         """Create an SMS object and try to encode it"""
-        sms = SMS("sms-submit")
-        sms.oa = PDUAddress.guess("+491234")
+        sms = SMSSubmit()
+        sms.da = PDUAddress.guess("+491234")
         self.assert_(sms.pdu() == "0001000691942143000000",
                 "SMS encoding incorrect, PDU is %s" %sms.pdu())
         sms.ud = "Test"
