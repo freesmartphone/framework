@@ -531,6 +531,9 @@ Alphabet: %s
 Message: %s
 """ % (self.type, self.sca, self.scts, self.pid, self.dcs, self.addr, self.udh, self.dcs_alphabet, repr(self.ud))
 
+class SMSDeliverReport(SMS):
+    pass
+
 class SMSSubmit(SMS):
 
     def parse( self, bytes ):
@@ -912,6 +915,12 @@ class SMSSubmitReport(SMS):
 Type: %s
 Timestamp: %s
 """ % (self.type, self.scts)
+
+class SMSStatusReport(SMS):
+    pass
+
+class SMSCommand(SMS):
+    pass
 
 class CellBroadcast(SMS):
     @classmethod
