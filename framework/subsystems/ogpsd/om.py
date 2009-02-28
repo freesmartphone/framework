@@ -98,7 +98,7 @@ class GTA02Device( UBXDevice ):
             self.aidingData["position"]["z"] = data["ECEF_Z"]
 
     def handle_AID_DATA( self, data ):
-        pos = self.aidingData.get("position", None)
+        pos = self.aidingData.get("position", {})
 
         # Let's just try with 3km here and see how well this goes
         pacc = 300000 # in cm (3 km)
@@ -127,28 +127,28 @@ class GTA02Device( UBXDevice ):
         tacc = 60000 # in ms (1 minute)
 
         # We don't want the position to be valid if we don't know it
-        if pos is None:
-            flags = 0x02
-        else:
+        if pos:
             flags = 0x03
+        else:
+            flags = 0x02
 
         # Feed GPS with position and time
         self.send("AID-INI", 48, {"X" : pos.get("x", 0) , "Y" : pos.get("y", 0) , "Z" : pos.get("z", 0), \
                   "POSACC" : pacc, "TM_CFG" : 0 , "WN" : wn , "TOW" : tow , "TOW_NS" : 0 , \
                   "TACC_MS" : tacc , "TACC_NS" : 0 , "CLKD" : 0 , "CLKDACC" : 0 , "FLAGS" : flags })
 
-        if self.aidingData.get( "hui", None ):
+        if self.aidingData.get( "hui", {} ):
             self.send("AID-HUI", 72, self.aidingData["hui"])
 
         # Feed gps with almanac
-        if self.aidingData.get( "almanac", None ):
+        if self.aidingData.get( "almanac", {} ):
             for k, a in self.aidingData["almanac"].iteritems():
                 logger.debug("Loaded almanac for SV %d" % a["SVID"])
                 self.send("AID-ALM", 40, a);
 
         # Don't feed gps with ephemeris as this seems to screw up the chip and significantly lengthens
         # TTFF
-        #if self.aidingData.get( "ephemeris", None ):
+        #if self.aidingData.get( "ephemeris", {} ):
         #    for k, a in self.aidingData["ephemeris"].iteritems():
         #        logger.debug("Loaded ephemeris for SV %d" % a["SVID"])
         #        self.send("AID-EPH", 104, a);
