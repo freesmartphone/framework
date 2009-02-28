@@ -20,7 +20,7 @@ GPLv2 or later
 """
 
 MODULE_NAME = "odeviced.idlenotifier"
-__version__ = "0.9.10.3"
+__version__ = "0.9.10.4"
 
 from helpers import DBUS_INTERFACE_PREFIX, DBUS_PATH_PREFIX, readFromFile, writeToFile
 from framework.config import config
@@ -57,16 +57,11 @@ class IdleNotifier( dbus.service.Object ):
         dbus.service.Object.__init__( self, bus, self.path )
         logger.info( "%s %s initialized. Serving %s at %s", self.__class__.__name__, __version__, self.interface, self.path )
 
-        self.state = "awake"
-        self.timeouts = { \
-                        "none": -1, # dummy state
-                        "idle": 10,
-                        "idle_dim": 20,
-                        "idle_prelock": 12,
-                        "lock": 2,
-                        "suspend": 20, \
-                        }
-        self.states = "awake none busy idle idle_dim idle_prelock lock suspend".split()
+        self.defaultTimeouts = dict( awake=-1, busy=-1, idle=10, idle_dim=20, idle_prelock=12, lock=2, suspend=20 )
+        self.timeouts = self.defaultTimeouts.copy()
+        self.states = "awake busy idle idle_dim idle_prelock lock suspend".split()
+        self.validStates = self.states[:]
+        self.state = self.states[0]
 
         configvalue = config.getValue( MODULE_NAME, "ignoreinput", "" )
         ignoreinput = [ int(value) for value in configvalue.split(',') if value != "" ]
@@ -87,12 +82,6 @@ class IdleNotifier( dbus.service.Object ):
         logger.info( "opened %d input file descriptors" % len( self.input ) )
 
         self.readTimeoutsFromConfig()
-
-        # states without timeout
-        self.timeouts["busy"] = -1
-        self.validStates = self.timeouts.keys()
-        self.timeouts["awake"] = -1
-
         self.timeout = None
 
         if len( self.input ):
@@ -101,8 +90,8 @@ class IdleNotifier( dbus.service.Object ):
     def readTimeoutsFromConfig( self ):
         # override default timeouts with configuration (if set)
         for key in self.timeouts:
-            self.timeouts[key] = config.getInt( MODULE_NAME, key, self.timeouts[key] )
-            logger.debug( "setting %s timeout to %d" % ( key, self.timeouts[key] ) )
+            self.timeouts[key] = config.getInt( MODULE_NAME, key, self.defaultTimeouts[key] )
+            logger.debug( "(re)setting %s timeout to %d" % ( key, self.timeouts[key] ) )
 
     def prohibitStateTransitionTo( self, state ):
         # stop falling into in the future
