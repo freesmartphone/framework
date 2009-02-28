@@ -275,7 +275,7 @@ class SMS(object):
 
     dcs = property( _getDCS, _setDCS )
 
-    def parse_udh( self ):
+    def _get_udh( self ):
         map = {}
         # Parse User data headers
         if 0 in self.udh:
@@ -313,6 +313,28 @@ class SMS(object):
             # Wireless Control Message Protocol
 
         return map
+
+    def _set_udh( self, properties ):
+        for k,v in properties.items():
+            if k == "csm_id":
+                if "csm_num" in properties and "csm_seq" in properties:
+                    if v > 255:
+                        # Use 16-bit IDs
+                        self.udh[8] = [ v/256, v%256, properties["csm_num"], properties["csm_seq"] ]
+                    else:
+                        self.udh[0] = [ v, properties["csm_num"], properties["csm_seq"] ]
+            if k == "message-indication-type":
+                if "message-indication-count" in properties:
+                    self.udh[1] = [ v, properties["message-indication-count"] ]
+            if k == "port_size":
+                if "src_port" in properties and "dst_port" in properties:
+                    if v == 8:
+                        self.udh[4] = [ properties["dst_port"], properties["src_port"] ]
+                    elif v == 16:
+                        self.udh[5] = [ properties["dst_port"]/256, properties["dst_port"]%256,
+                                properties["src_port"]/256, properties["src_port"]%256 ]
+            if k == "smsc-control":
+                self.udh[6] = v
 
     def _getProperties( self ):
         map = {}
@@ -427,23 +449,29 @@ class SMSDeliver(SMS):
         # FIXME Return correct time with timezoneinfo
         map["timestamp"] = self.scts[0].ctime() + " %+05i" % (self.scts[1]*100)
 
-        map.update( self.parse_udh() )
+        map.update( self._get_udh() )
 
         return map
 
     def _setProperties( self, properties ):
+        self._set_udh( properties )
+
         for k,v in properties.items():
-            if k == "csm_id":
-                if "csm_num" in properties and "csm_seq" in properties:
-                    self.udh[0] = [ v, properties["csm_num"], properties["csm_seq"] ]
-            if k == "port":
-                self.udh[4] = [v]
             if k == "pid":
                 self.pid = v
+            if k == "more-messages-to-send":
+                self.pdu_mms = not v
+            if k == "reply-path":
+                self.pdu_rp = v
+            if k == "status-report-indicator":
+                self.pdu_sri = v
             if k == "alphabet":
                 self.dcs_alphabet = SMS_ALPHABET_TO_ENCODING[v]
             if k == "data":
-                    self.data = v
+                self.data = v
+            if k == "timestamp":
+                # TODO parse the timestamp correctly
+                pass
 
     properties = property( _getProperties, _setProperties )
 
@@ -636,17 +664,22 @@ class SMSSubmit(SMS):
             map["data"] = self.data
 
 
-        map.update(self.parse_udh())
+        map.update(self._get_udh())
 
         return map
 
     def _setProperties( self, properties ):
+        self._set_udh( properties )
+
         for k,v in properties.items():
-            if k == "csm_id":
-                if "csm_num" in properties and "csm_seq" in properties:
-                    self.udh[0] = [ v, properties["csm_num"], properties["csm_seq"] ]
-            if k == "port":
-                self.udh[4] = [v]
+            if k == "reject-duplicates":
+                self.pdu_rd = v
+            if k == "reply-path":
+                self.pdu_rp = v
+            if k == "status-report-request":
+                self.pdu_srr = v
+            if k == "message-reference":
+                self.mr = v
             if k == "pid":
                 self.pid = v
             if k == "alphabet":
@@ -830,11 +863,12 @@ class SMSSubmitReport(SMS):
         # FIXME Return correct time with timezoneinfo
         map["timestamp"] = self.scts[0].ctime() + " %+05i" % (self.scts[1]*100)
 
-        map.update( self.parse_udh() )
+        #map.update( self._get_udh() )
 
         return map
 
     def _setProperties( self, properties ):
+        #self._set_udh( properties )
         pass
 
     properties = property( _getProperties, _setProperties )

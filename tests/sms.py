@@ -168,6 +168,38 @@ class SMSTests(unittest.TestCase):
         self.assert_(sms.pdu() == "00410006919421430A08160500030A02010055006E00690063006F006400652320",
                 "SMS UCS2 alphabet encoding failed, PDU:\n%s" % sms.pdu())
 
+    def test_udh_port_8(self):
+        """Test setting and getting ports via the userdata header (8-bit)"""
+        sms = SMSSubmit()
+        sms.properties = { "src_port": 10, "dst_port": 80, "port_size": 8 }
+
+        self.assert_(4 in sms.udh, "UDH information element 4 not found")
+        self.assert_(sms.udh[4] == [80, 10], "Data in UDH information element 4 is wrong: %s" % sms.udh[4])
+
+    def test_udh_port_16(self):
+        """Test setting and getting ports via the userdata header (16-bit)"""
+        sms = SMSSubmit()
+        sms.properties = { "src_port": 1028, "dst_port": 80, "port_size": 16 }
+
+        self.assert_(5 in sms.udh, "UDH information element 5 not found")
+        self.assert_(sms.udh[5] == [0, 80, 1028/256, 1028%256], "Data in UDH information element 5 is wrong: %s" % sms.udh[5])
+
+    def test_udh_csm_short(self):
+        """Test concatenated short message settings (8-bit ID) via userdata header"""
+        sms = SMSSubmit()
+        sms.properties = { "csm_id": 80, "csm_num": 2, "csm_seq":1 }
+
+        self.assert_(0 in sms.udh, "UDH information element 0 not found")
+        self.assert_(sms.udh[0] == [80, 2, 1], "Data in UDH information element 0 is wrong: %s" % sms.udh[0])
+
+    def test_udh_csm_long(self):
+        """Test concatenated short message settings (16-bit ID) via userdata header"""
+        sms = SMSSubmit()
+        sms.properties = { "csm_id": 1080, "csm_num": 2, "csm_seq":1 }
+
+        self.assert_(8 in sms.udh, "UDH information element 0 not found")
+        self.assert_(sms.udh[8] == [1080/256, 1080%256, 2, 1], "Data in UDH information element 8 is wrong: %s" % sms.udh[8])
+
     def test_invalid_scts_date_in_pdu(self):
         """Ensure invalid dates don't break SMS decoding"""
 
