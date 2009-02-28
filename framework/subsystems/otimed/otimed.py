@@ -248,7 +248,7 @@ class Time( dbus.service.Object ):
                 if not source.offset is None:
                     source.offset = source.offset - d
             clock.adjust( mean )
-            getOutput( "hwclock --systohc" )
+            getOutput( "hwclock --systohc --utc" )
 
         # reenable timeout
         return True
