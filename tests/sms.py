@@ -19,6 +19,7 @@ import sys
 sys.path.extend(["../", "../framework/subsystems/"])
 
 import test
+import datetime
 import framework.patterns.tasklet as tasklet
 from framework.subsystems.ogsmd.gsm.sms import *
 
@@ -134,6 +135,7 @@ class SMSTests(unittest.TestCase):
 
     def test_generate_sms(self):
         """Create an SMS object and try to encode it"""
+        defprops = {'status-report-request': False, 'reject-duplicates': False, 'pid': 0, 'reply-path': False, 'message-reference': 0, 'alphabet': 'gsm_default', 'type': 'sms-submit'}
         sms = SMSSubmit()
         sms.da = PDUAddress.guess("+491234")
         self.assert_(sms.pdu() == "0001000691942143000000",
@@ -145,9 +147,9 @@ class SMSTests(unittest.TestCase):
 
         self.assert_(sms.pdu() == "00410006919421430A000B0500030A0201A8E5391D",
                 "SMS encoding incorrect, PDU is %s" %sms.pdu())
-        self.assert_(sms.properties == { "pid": 10, "csm_id": 10, "csm_num": 2, "csm_seq" : 1,
-            "alphabet": "gsm_default", "type": "sms-submit"}, "SMS properties not as expected: %s" %
-            sms.properties)
+        expected_props = defprops
+        expected_props.update( { "pid": 10, "csm_id": 10, "csm_num": 2, "csm_seq" : 1} )
+        self.assert_(sms.properties == expected_props, "SMS properties not as expected: %s" % sms.properties)
 
         # Extended plane
         sms.ud = "{}[]\\"
@@ -173,6 +175,21 @@ class SMSTests(unittest.TestCase):
         sms = SMS.decode(invalid_date_pdu, "sms-deliver")
         self.assert_(sms.properties["timestamp"] == "Tue Jan  1 00:00:00 1980 +0000")
         self.assert_(sms.properties.has_key("error"))
+
+    def test_profile_decoding(self):
+        """See how long it takes for one sms-deliver to be decoded"""
+
+        testpdu = "0791448720003023440C91449703529096000050016121855140A005000301060190F5F31C447F83C8E5327CEE0221EBE73988FE0691CB65F8DC05028190F5F31C447F83C8E5327CEE028140C8FA790EA2BF41E472193E7781402064FD3C07D1DF2072B90C9FBB402010B27E9E83E86F10B95C86CF5D2064FD3C07D1DF2072B90C9FBB40C8FA790EA2BF41E472193E7781402064FD3C07D1DF2072B90C9FBB402010B27E9E83E8"
+        n = 200
+
+        start = datetime.now()
+        for i in range(n):
+            sms = SMS.decode(testpdu, "sms-deliver")
+        end = datetime.now()
+        diff = end-start
+        diff = (diff.seconds + diff.microseconds/1000000.0)/n
+        print "%fs ... " % diff
+
 
 if __name__ == '__main__':
 
