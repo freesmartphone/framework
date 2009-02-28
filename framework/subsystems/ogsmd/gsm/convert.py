@@ -159,7 +159,7 @@ register( gsmcodec )
 def unpack_sevenbit( bs, chop = 0 ):
 #=========================================================================#
     """Unpack 7-bit characters"""
-    msgbytes = [] + bs
+    msgbytes = bs
     msgbytes.reverse()
     asbinary = "".join(map(tobinary, msgbytes))
     if chop != 0:
