@@ -67,7 +67,7 @@ class GTA02Device( UBXDevice ):
         # Enable NAV-POSECEF, AID-REQ (AID-DATA), AID-ALM, AID-EPH messages
         self.send("CFG-MSG", 3, {"Class" : CLIDPAIR["NAV-POSECEF"][0] , "MsgID" : CLIDPAIR["NAV-POSECEF"][1] , "Rate": 8 })
         self.send("CFG-MSG", 3, {"Class" : CLIDPAIR["AID-ALM"][0] , "MsgID" : CLIDPAIR["AID-ALM"][1] , "Rate": 1 })
-        #self.send("CFG-MSG", 3, {"Class" : CLIDPAIR["AID-EPH"][0] , "MsgID" : CLIDPAIR["AID-EPH"][1] , "Rate": 1 })
+        self.send("CFG-MSG", 3, {"Class" : CLIDPAIR["AID-EPH"][0] , "MsgID" : CLIDPAIR["AID-EPH"][1] , "Rate": 1 })
         self.huiTimeout = gobject.timeout_add_seconds( 300, self.requestHuiTimer )
 
     def shutdownDevice( self ):
@@ -75,7 +75,7 @@ class GTA02Device( UBXDevice ):
         self.send("CFG-MSG", 3, {"Class" : CLIDPAIR["NAV-POSECEF"][0] , "MsgID" : CLIDPAIR["NAV-POSECEF"][1] , "Rate" : 0 })
         self.send("CFG-MSG", 3, {"Class" : CLIDPAIR["AID-REQ"][0] , "MsgID" : CLIDPAIR["AID-REQ"][1] , "Rate" : 0 })
         self.send("CFG-MSG", 3, {"Class" : CLIDPAIR["AID-ALM"][0] , "MsgID" : CLIDPAIR["AID-ALM"][1] , "Rate" : 0 })
-        #self.send("CFG-MSG", 3, {"Class" : CLIDPAIR["AID-EPH"][0] , "MsgID" : CLIDPAIR["AID-EPH"][1] , "Rate" : 0 })
+        self.send("CFG-MSG", 3, {"Class" : CLIDPAIR["AID-EPH"][0] , "MsgID" : CLIDPAIR["AID-EPH"][1] , "Rate" : 0 })
         if self.huiTimeout is not None:
             gobject.source_remove( self.huiTimeout )
             self.huiTimeout = None
@@ -132,6 +132,12 @@ class GTA02Device( UBXDevice ):
         else:
             flags = 0x02
 
+        # Feed gps with ephemeris
+        if self.aidingData.get( "ephemeris", {} ):
+            for k, a in self.aidingData["ephemeris"].iteritems():
+                logger.debug("Loaded ephemeris for SV %d" % a["SVID"])
+                self.send("AID-EPH", 104, a);
+
         # Feed GPS with position and time
         self.send("AID-INI", 48, {"X" : pos.get("x", 0) , "Y" : pos.get("y", 0) , "Z" : pos.get("z", 0), \
                   "POSACC" : pacc, "TM_CFG" : 0 , "WN" : wn , "TOW" : tow , "TOW_NS" : 0 , \
@@ -145,13 +151,6 @@ class GTA02Device( UBXDevice ):
             for k, a in self.aidingData["almanac"].iteritems():
                 logger.debug("Loaded almanac for SV %d" % a["SVID"])
                 self.send("AID-ALM", 40, a);
-
-        # Don't feed gps with ephemeris as this seems to screw up the chip and significantly lengthens
-        # TTFF
-        #if self.aidingData.get( "ephemeris", {} ):
-        #    for k, a in self.aidingData["ephemeris"].iteritems():
-        #        logger.debug("Loaded ephemeris for SV %d" % a["SVID"])
-        #        self.send("AID-EPH", 104, a);
 
     def handle_AID_ALM( self, data ):
         data = data[0]
