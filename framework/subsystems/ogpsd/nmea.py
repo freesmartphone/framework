@@ -168,7 +168,6 @@ class NMEADevice( GPSDevice ):
             self.do_lat_lon(words[1:])
             self.altitude = string.atof(words[8])
             # FIXME: Mode
-            self._updateFixStatus( self.status + 1 )
             self._updatePosition( 7, self.lat, self.lon, self.altitude )
 
 #$GPGSA,A,1,,,,,,,,,,,,,50.0,50.0,50.0*05
@@ -200,6 +199,7 @@ class NMEADevice( GPSDevice ):
         self._updateSatellites(
             (self.prn[n],self.used[n],self.elevation[n],self.azimuth[n],self.ss[n]) for n in range(12)
             )
+        self._updateFixStatus( int(self.mode) )
 
 #$GPGSV,3,1,09,14,77,023,,21,67,178,,29,64,307,,30,42,095,*7E
 #$GPGSV,3,2,09,05,29,057,,11,15,292,,18,08,150,,23,08,143,*7A
