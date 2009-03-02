@@ -12,7 +12,7 @@ Module: pdu
 
 """
 from ogsmd.gsm.convert import *
-from ogsmd.gsm.const import CB_PDU_DCS_LANGUAGE, TP_MTI_INCOMING, TP_MTI_OUTGOING, SMS_ALPHABET_TO_ENCODING
+from ogsmd.gsm.const import CB_PDU_DCS_LANGUAGE, TP_MTI_INCOMING, TP_MTI_OUTGOING, SMS_ALPHABET_TO_ENCODING, TP_FCS
 import math
 from array import array
 from datetime import datetime
@@ -560,7 +560,190 @@ Message: %s
 """ % (self.type, self.sca, self.scts, self.pid, self.dcs, self.addr, self.udh, self.dcs_alphabet, repr(self.ud))
 
 class SMSDeliverReport(SMS):
-    pass
+
+    def parse( self, bytes, ack=True ):
+        """ Decode an sms-deliver-report message """
+
+        # self.ack indicates whether this is sms-deliver-report for RP-ACK or RP-ERROR
+        self.ack = ack
+
+        offset = 0
+
+        # PDU type
+        pdu_type = bytes[offset]
+
+        # pdu_mti should already be set by the class
+        if self.pdu_mti != pdu_type & 0x03:
+            self.error.append("Decoded MTI doesn't match %i != %i" % (self.pdu_mti, pdu_type & 0x03))
+
+        self.pdu_udhi = pdu_type & 0x40 != 0
+
+        offset += 1
+
+        if not self.ack:
+            self.fcs = bytes[offset]
+            offset += 1
+
+        # PI - Parameter Indicator
+        pi = bytes[offset]
+
+        self.pdu_pidi = pi & 0x01 != 0
+        self.pdu_dcsi = pi & 0x02 != 0
+        self.pdu_udli = pi & 0x04 != 0
+        offset += 1
+
+        # PID - Protocol identifier
+        if self.pdu_pidi:
+            self.pid = bytes[offset]
+            offset += 1
+
+        # DCS - Data Coding Scheme
+        if self.pdu_dcsi:
+            self.dcs = bytes[offset]
+            offset += 1
+
+        # UD - User Data
+        if self.pdu_udli:
+            ud_len = bytes[offset]
+            offset += 1
+            self._parse_userdata( ud_len, bytes[offset:] )
+
+    def __init__( self, ack=True ):
+        self.type = "sms-deliver-report"
+        self.ack = ack
+        self.pdu_udhi = False
+        self.pdu_pidi = False
+        self.pdu_dcsi = False
+        self.pdu_udli = False
+        self.udh = {}
+        self.ud = ""
+        self.pid = 0
+        self.fcs = 0xff
+        self.dcs_alphabet = "gsm_default"
+        self.dcs_compressed = False
+        self.dcs_discard = False
+        self.dcs_mwi_indication = None
+        self.dcs_mwi_type = None
+        self.dcs_mclass = None
+        self.error = []
+
+    def _getProperties( self ):
+        map = {}
+        map.update( SMS._getProperties( self ) )
+
+        if not self.ack:
+            map["fcs"] = self.fcs
+            if self.fcs in TP_FCS:
+                map["failure-cause"] = TP_FCS[self.fcs]
+
+        if self.pdu_pidi:
+            map["pid"] = self.pid
+        if self.pdu_dcsi:
+            map["alphabet"] = SMS_ALPHABET_TO_ENCODING.revlookup(self.dcs_alphabet)
+
+            if map["alphabet"] == "binary":
+                map["data"] = self.data
+
+        map.update(self._get_udh())
+
+        return map
+
+    def _setProperties( self, properties ):
+        self._set_udh( properties )
+
+        for k,v in properties.items():
+            if k == "fcs":
+                self.fcs = v
+            if k == "pid":
+                self.pdu_pidi = True
+                self.pid = v
+            if k == "alphabet":
+                self.pdu_dcsi = True
+                self.dcs_alphabet = SMS_ALPHABET_TO_ENCODING[v]
+            if k == "data":
+                    self.data = v
+
+    properties = property( _getProperties, _setProperties )
+
+    def pdu( self ):
+        pdubytes = array('B')
+
+        pdu_type = self.pdu_mti
+        if self.udhi:
+            pdu_type += 0x40
+
+        pdubytes.append( pdu_type )
+
+        if not self.ack:
+            pdubytes.append( self.fcs )
+
+        pi = 0x00
+        if self.pdu_pidi:
+            pi += 1
+        if self.pdu_dcsi:
+            pi += 2
+        if self.pdu_udli:
+            pi += 4
+
+        pdubytes.append( pi )
+
+        pdubytes.extend( encodePDUTime( self.scts ) )
+
+        # XXX Allow the optional fields to be present
+        return "".join( [ "%02X" % (i) for i in pdubytes ] )
+
+        if self.pdu_pidi:
+            pdubytes.append( self.pid )
+
+        # We need to check whether we can encode the message with the
+        # GSM default charset now, because self.dcs might change
+
+
+        if not self.dcs_alphabet is None:
+            try:
+                pduud = self.ud.encode( self.dcs_alphabet )
+            except UnicodeError:
+                self.dcs_alphabet = "utf_16_be"
+                pduud = self.ud.encode( self.dcs_alphabet )
+        else:
+            # Binary message
+            pduud = "".join([ chr(x) for x in self.data ])
+
+        pdubytes.append( self.dcs )
+
+
+        # User data
+        if self.udhi:
+            pduudh = flatten([ (k, len(v), v) for k,v in self.udh.items() ])
+            pduudhlen = len(pduudh)
+        else:
+            pduudhlen = -1
+            padding = 0
+
+
+        if self.dcs_alphabet == "gsm_default":
+            udlen = int( math.ceil( (pduudhlen*8 + 8 + len(pduud)*7)/7.0 ) )
+            padding = (7 * udlen - (8 + 8 * (pduudhlen))) % 7
+            pduud = pack_sevenbit( pduud, padding )
+        else:
+            pduud = map( ord, pduud )
+            udlen = len( pduud ) + 1 + pduudhlen
+
+        pdubytes.append( udlen )
+
+        if self.udhi:
+            pdubytes.append( pduudhlen )
+            pdubytes.extend( pduudh )
+        pdubytes.extend( pduud )
+
+        return "".join( [ "%02X" % (i) for i in pdubytes ] )
+
+
+    def __repr__( self ):
+            return """sms-deliver-report:
+Type: %s
+Timestamp: %s
+""" % (self.type, self.scts)
 
 class SMSSubmit(SMS):
 

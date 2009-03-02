@@ -917,36 +917,38 @@ TP_CT = { \
 
 #=========================================================================#
 TP_FCS = { \
-    "telematic-unsupported" : 0x80,
-    "sm-type0-unsupported" : 0x81,
-    "replace-sm-failed" : 0x82,
-    "tp-pid-error" : 0x8f,
+    0x80: "telematic-unsupported",
+    0x81: "sm-type0-unsupported",
+    0x82: "replace-sm-failed",
+    0x8f: "tp-pid-error",
 
-    "dcs-unsupported" : 0x90,
-    "message-class-unsupported" : 0x91,
-    "tp-dcs-error" : 0x9f,
+    0x90: "dcs-unsupported",
+    0x91: "message-class-unsupported",
+    0x9f: "tp-dcs-error",
 
-    "cmd-no-action" : 0xa0,
-    "cmd-unsupported" : 0xa1,
-    "tp-cmd-error" : 0xaf,
+    0xa0: "cmd-no-action",
+    0xa1: "cmd-unsupported",
+    0xaf: "tp-cmd-error",
 
-    "sc-busy" : 0xc0,
-    "sc-no-subscription" : 0xc1,
-    "sc-failure" : 0xc2,
-    "invalid-address" : 0xc3,
-    "destination-barred" : 0xc4,
-    "rejected-duplicaet" : 0xc5,
-    "tp-vfp-unsupported" : 0xc6,
-    "tp-vf-unsupported" : 0xc7,
+    0xb0: "tpdu-unsupported",
 
-    "sim-storage-full" : 0xd0,
-    "no-sim-storage" : 0xd1,
-    "ms-error" : 0xd2,
-    "memory-exceeded" : 0xd3,
-    "stk-busy" : 0xd4,
-    "data-download-error" : 0xd5,
+    0xc0: "sc-busy",
+    0xc1: "sc-no-subscription",
+    0xc2: "sc-failure",
+    0xc3: "invalid-address",
+    0xc4: "destination-barred",
+    0xc5: "rejected-duplicaet",
+    0xc6: "tp-vfp-unsupported",
+    0xc7: "tp-vf-unsupported",
 
-    "error" : 0xff,
+    0xd0: "sim-storage-full",
+    0xd1: "no-sim-storage",
+    0xd2: "ms-error",
+    0xd3: "memory-exceeded",
+    0xd4: "stk-busy",
+    0xd5: "data-download-error",
+
+    0xff: "unspecified-error",
 }
 
 #=========================================================================#
