@@ -969,8 +969,10 @@ Message: %s
 
 class SMSSubmitReport(SMS):
 
-    def parse( self, bytes ):
+    def parse( self, bytes, ack=True ):
         """ Decode an sms-submit-report message """
+
+        self.ack = ack
 
         offset = 0
 
@@ -989,6 +991,10 @@ class SMSSubmitReport(SMS):
         self.pdu_udhi = pdu_type & 0x40 != 0
 
         offset += 1
+
+        if not self.ack:
+            self.fcs = bytes[offset]
+            offset += 1
 
         # PI - Parameter Indicator
         pi = bytes[offset]
@@ -1021,7 +1027,8 @@ class SMSSubmitReport(SMS):
             offset += 1
             self._parse_userdata( ud_len, bytes[offset:] )
 
-    def __init__( self ):
+    def __init__( self, ack=True ):
+        self.ack = ack
         self.type = "sms-submit-report"
         self.scts = False
         self.pdu_udhi = False
@@ -1030,6 +1037,7 @@ class SMSSubmitReport(SMS):
         self.pdu_udli = False
         self.udh = {}
         self.ud = ""
+        self.fcs = 0xff
         self.dcs_alphabet = "gsm_default"
         self.dcs_compressed = False
         self.dcs_discard = False
@@ -1043,16 +1051,38 @@ class SMSSubmitReport(SMS):
         map = {}
         map.update( SMS._getProperties( self ) )
 
-        # FIXME Return correct time with timezoneinfo
         map["timestamp"] = self.scts[0].ctime() + " %+05i" % (self.scts[1]*100)
+        if not self.ack:
+            map["fcs"] = self.fcs
+            if self.fcs in TP_FCS:
+                map["failure-cause"] = TP_FCS[self.fcs]
 
-        #map.update( self._get_udh() )
+        if self.pdu_pidi:
+            map["pid"] = self.pid
+        if self.pdu_dcsi:
+            map["alphabet"] = SMS_ALPHABET_TO_ENCODING.revlookup(self.dcs_alphabet)
+
+            if map["alphabet"] == "binary":
+                map["data"] = self.data
+
+        map.update(self._get_udh())
 
         return map
 
     def _setProperties( self, properties ):
-        #self._set_udh( properties )
-        pass
+        self._set_udh( properties )
+
+        for k,v in properties.items():
+            if k == "fcs":
+                self.fcs = v
+            if k == "pid":
+                self.pdu_pidi = True
+                self.pid = v
+            if k == "alphabet":
+                self.pdu_dcsi = True
+                self.dcs_alphabet = SMS_ALPHABET_TO_ENCODING[v]
+            if k == "data":
+                    self.data = v
 
     properties = property( _getProperties, _setProperties )
 
@@ -1064,6 +1094,9 @@ class SMSSubmitReport(SMS):
             pdu_type += 0x40
 
         pdubytes.append( pdu_type )
+
+        if not self.ack:
+            pdubytes.append( self.fcs )
 
         pi = 0x00
         if self.pdu_pidi:
@@ -1077,7 +1110,49 @@ class SMSSubmitReport(SMS):
 
         pdubytes.extend( encodePDUTime( self.scts ) )
 
-        # XXX Allow the optional fields to be present
+        if self.pdu_pidi:
+            pdubytes.append( self.pid )
+
+        if self.pdu_dcsi:
+            # We need to check whether we can encode the message with the
+            # GSM default charset now, because self.dcs might change
+            if not self.dcs_alphabet is None:
+                try:
+                    pduud = self.ud.encode( self.dcs_alphabet )
+                except UnicodeError:
+                    self.dcs_alphabet = "utf_16_be"
+                    pduud = self.ud.encode( self.dcs_alphabet )
+            else:
+                # Binary message
+                pduud = "".join([ chr(x) for x in self.data ])
+
+            pdubytes.append( self.dcs )
+
+        if len(self.ud) > 0:
+            # User data
+            if self.udhi:
+                pduudh = flatten([ (k, len(v), v) for k,v in self.udh.items() ])
+                pduudhlen = len(pduudh)
+            else:
+                pduudhlen = -1
+                padding = 0
+
+
+            if self.dcs_alphabet == "gsm_default":
+                udlen = int( math.ceil( (pduudhlen*8 + 8 + len(pduud)*7)/7.0 ) )
+                padding = (7 * udlen - (8 + 8 * (pduudhlen))) % 7
+                pduud = pack_sevenbit( pduud, padding )
+            else:
+                pduud = map( ord, pduud )
+                udlen = len( pduud ) + 1 + pduudhlen
+
+            pdubytes.append( udlen )
+
+            if self.udhi:
+                pdubytes.append( pduudhlen )
+                pdubytes.extend( pduudh )
+            pdubytes.extend( pduud )
+
         return "".join( [ "%02X" % (i) for i in pdubytes ] )
 
         if self.pdu_pidi:
