@@ -28,7 +28,7 @@ class SMSTests(unittest.TestCase):
     def setUp(self):
         # This sms-deliver PDU would be reencoded with a different length value
         # "07918167830071F1040BD0C7F7FBCC2E0300008080203200748078D0473BED2697D9F3B20E442DCFE9A076793E0F9FCBA07B9A8E0691C3EEF41C0D1AA3C3F2F0985E96CF75A00EE301E22C1C2C109B217781642E50B87E76816433DD0C066A81E60CB70B347381C2F5B30B"
-        self.pdus_MT = [
+        self.pdus_sms_deliver = [
         "0791448720900253040C914497035290960000500151614414400DD4F29C9E769F41E17338ED06",
         "0791448720003023440C91449703529096000050015132532240A00500037A020190E9339A9D3EA3E920FA1B1466B341E472193E079DD3EE73D85DA7EB41E7B41C1407C1CBF43228CC26E3416137390F3AABCFEAB3FAAC3EABCFEAB3FAAC3EABCFEAB3FAAC3EABCFEAB3FADC3EB7CFED73FBDC3EBF5D4416D9457411596457137D87B7E16438194E86BBCF6D16D9055D429548A28BE822BA882E6370196C2A8950E291E822BA88",
         "0791448720003023440C91449703529096000050015132537240310500037A02025C4417D1D52422894EE5B17824BA8EC423F1483C129BC725315464118FCDE011247C4A8B44",
@@ -56,14 +56,19 @@ class SMSTests(unittest.TestCase):
         "0791947106004034040C9194713900303341008011312270804059D6B75B076A86D36CF11BEF024DD365103A2C2EBB413490BB5C2F839CE1315A9E1EA3E96537C805D2D6DBA0A0585E3797DDA0FB1ECD2EBB41D37419244ED3E965906845CBC56EB9190C069BCD6622",
         ]
 
-        self.pdus_MO = [
+        self.pdus_sms_submit = [
         "07910447946400F011000A9270042079330000AA0161",
         "079194710716000001310C919491103246570000061B1EBD3CA703",
         ]
 
-        self.pdus_ACKPDU = [
+        self.pdus_sms_submit_report = [
         "010080110191146140",
         "010080112102618040",
+        ]
+
+        self.pdus_sms_status_report = [
+        "07919730071111F106BD0B919750673814F3902090127043219020901270142100",
+        "079194710716000006B70C91943531946236903020308400409030203084004000"
         ]
 
         self.pdus_CB = [
@@ -81,33 +86,43 @@ class SMSTests(unittest.TestCase):
 
     def test_recode_sms_deliver(self):
         """Try to decode sms-deliver messages and reencode them to see if they match"""
-        for pdu in self.pdus_MT:
+        for pdu in self.pdus_sms_deliver:
             self._recodepdu(pdu, "sms-deliver")
 
     def test_recode_sms_submit(self):
         """Try to decode sms-submit messages and reencode them to see if they match"""
-        for pdu in self.pdus_MO:
+        for pdu in self.pdus_sms_submit:
             self._recodepdu(pdu, "sms-submit")
 
     def test_recode_sms_submit_report(self):
         """Try to decode sms-submit-report messages and reencode them to see if they match"""
-        for pdu in self.pdus_ACKPDU:
+        for pdu in self.pdus_sms_submit_report:
             self._recodepdu(pdu, "sms-submit-report")
+
+    def test_recode_sms_status_report(self):
+        """Try to decode sms-status-report messages and reencode them to see if they match"""
+        for pdu in self.pdus_sms_status_report:
+            self._recodepdu(pdu, "sms-status-report")
 
     def test_decode_sms_deliver(self):
         """Try to decode some sms-deliver messages"""
-        for pdu in self.pdus_MT:
+        for pdu in self.pdus_sms_deliver:
             SMS.decode(pdu, "sms-deliver")
 
     def test_decode_sms_submit(self):
         """Try to decode some sms-submit messages"""
-        for pdu in self.pdus_MO:
+        for pdu in self.pdus_sms_submit:
             SMS.decode(pdu, "sms-submit")
 
     def test_decode_sms_submit_report(self):
         """Try to decode some sms-submit-report messages"""
-        for pdu in self.pdus_ACKPDU:
+        for pdu in self.pdus_sms_submit_report:
             SMS.decode(pdu, "sms-submit-report")
+
+    def test_decode_sms_status_report(self):
+        """Try to decode some sms-status-report messages"""
+        for pdu in self.pdus_sms_status_report:
+            sms = SMS.decode(pdu, "sms-status-report")
 
     def test_decode_cb(self):
         """Try to decode CellBroadcast messages"""
@@ -132,6 +147,19 @@ class SMSTests(unittest.TestCase):
         defprops = {'timestamp': 'Tue Jan  1 00:00:00 1980 +0000', 'type': 'sms-submit-report'}
         sms = SMSSubmitReport()
         self.assert_(sms.properties == defprops, "Default sms-submit-report properties are wrong: %s" % sms.properties)
+
+    def test_default_sms_submit_report_err(self):
+        """Check the default properties of an sms-submit-report message for RP-ERROR"""
+        defprops = {'timestamp': 'Tue Jan  1 00:00:00 1980 +0000', 'type': 'sms-submit-report', 'fcs': 0xff, 'failure-cause': 'unspecified-error'}
+        sms = SMSSubmitReport(False)
+        self.assert_(sms.properties == defprops, "Default sms-submit-report properties are wrong: %s" % sms.properties)
+
+    def test_default_sms_status_report(self):
+        """Check the default properties of an sms-status-report message"""
+        defprops = {'status': 0, 'status-report-qualifier': 'sms-submit', 'more-messages-to-send': False, 'timestamp': 'Tue Jan  1 00:00:00 1980 +0000', 'status-message': 'Completed: Delivered', 'discharge-time': 'Tue Jan  1 00:00:00 1980 +0000', 'message-reference': 0, 'type': 'sms-status-report'}
+
+        sms = SMSStatusReport()
+        self.assert_(sms.properties == defprops, "Default sms-status-report properties are wrong: %s" % sms.properties)
 
     def test_generate_sms(self):
         """Create an SMS object and try to encode it"""
@@ -243,9 +271,9 @@ if __name__ == '__main__':
 #
 #    # Read PDUs from a file if passed as a parameter
 #    if len(sys.argv) >= 2:
-#        pdus_MT = readFromFile(sys.argv[1]).split("\n")
+#        pdus_sms_deliver = readFromFile(sys.argv[1]).split("\n")
 #    if len(sys.argv) == 3:
-#        pdus_MO = readFromFile(sys.argv[2]).split("\n")
+#        pdus_sms_submit = readFromFile(sys.argv[2]).split("\n")
 
 
 # vim: expandtab shiftwidth=4 tabstop=4
