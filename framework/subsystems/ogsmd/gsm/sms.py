@@ -113,7 +113,7 @@ class SMS(object):
             sms = SMSSubmitReport()
         elif smstype == "sms-deliver-report":
             sms = SMSDeliverReport()
-        elif smstype == "sms-status-repot":
+        elif smstype == "sms-status-report":
             sms = SMSStatusReport()
         elif smstype == "sms-command":
             sms = SMSCommand()
@@ -1155,52 +1155,6 @@ class SMSSubmitReport(SMS):
 
         return "".join( [ "%02X" % (i) for i in pdubytes ] )
 
-        if self.pdu_pidi:
-            pdubytes.append( self.pid )
-
-        # We need to check whether we can encode the message with the
-        # GSM default charset now, because self.dcs might change
-
-
-        if not self.dcs_alphabet is None:
-            try:
-                pduud = self.ud.encode( self.dcs_alphabet )
-            except UnicodeError:
-                self.dcs_alphabet = "utf_16_be"
-                pduud = self.ud.encode( self.dcs_alphabet )
-        else:
-            # Binary message
-            pduud = "".join([ chr(x) for x in self.data ])
-
-        pdubytes.append( self.dcs )
-
-
-        # User data
-        if self.udhi:
-            pduudh = flatten([ (k, len(v), v) for k,v in self.udh.items() ])
-            pduudhlen = len(pduudh)
-        else:
-            pduudhlen = -1
-            padding = 0
-
-
-        if self.dcs_alphabet == "gsm_default":
-            udlen = int( math.ceil( (pduudhlen*8 + 8 + len(pduud)*7)/7.0 ) )
-            padding = (7 * udlen - (8 + 8 * (pduudhlen))) % 7
-            pduud = pack_sevenbit( pduud, padding )
-        else:
-            pduud = map( ord, pduud )
-            udlen = len( pduud ) + 1 + pduudhlen
-
-        pdubytes.append( udlen )
-
-        if self.udhi:
-            pdubytes.append( pduudhlen )
-            pdubytes.extend( pduudh )
-        pdubytes.extend( pduud )
-
-        return "".join( [ "%02X" % (i) for i in pdubytes ] )
-
 
     def __repr__( self ):
             return """sms-submit-report:
@@ -1209,7 +1163,316 @@ Timestamp: %s
 """ % (self.type, self.scts)
 
 class SMSStatusReport(SMS):
-    pass
+
+    def parse( self, bytes ):
+        """ Decode an sms-status-report message """
+
+        offset = 0
+
+        (self.sca, skip) = self._parse_sca( bytes, offset )
+        offset += skip
+
+        # PDU type
+        pdu_type = bytes[offset]
+
+        # pdu_mti should already be set by the class
+        if self.pdu_mti != pdu_type & 0x03:
+            self.error.append("Decoded MTI doesn't match %i != %i" % (self.pdu_mti, pdu_type & 0x03))
+
+        self.pdu_mms = pdu_type & 0x04 != 0
+        self.pdu_srq = pdu_type & 0x20 != 0
+        self.pdu_udhi = pdu_type & 0x40 != 0
+
+        offset += 1
+
+        # MR - Message Reference
+        self.mr = bytes[offset]
+        offset += 1
+
+        (self.addr, skip) = self._parse_address( bytes, offset )
+        offset += skip
+
+        # SCTS - Service Centre Time Stamp
+        try:
+            self.scts = decodePDUTime( bytes[offset:offset+7] )
+        except ValueError, e:
+            self.error.append("Service Center Timestamp invalid")
+
+        offset += 7
+
+        # DT - Discharge Time
+        try:
+            self.dt = decodePDUTime( bytes[offset:offset+7] )
+        except ValueError, e:
+            self.error.append("Discharge Time invalid")
+
+        offset += 7
+
+        self.st = bytes[offset]
+
+        offset += 1
+
+        if len(bytes) == offset:
+            return
+
+        # PI - Parameter Indicator
+        pi = bytes[offset]
+
+        self.pdu_pidi = pi & 0x01 != 0
+        self.pdu_dcsi = pi & 0x02 != 0
+        self.pdu_udli = pi & 0x04 != 0
+        offset += 1
+
+        if self.pdu_pidi:
+            self.pid = bytes[offset]
+            offset += 1
+        if self.pdu_dcsi:
+            self.dcs = bytes[offset]
+            offset += 1
+
+        if self.pdu_udli:
+            # UD - User Data
+            ud_len = bytes[offset]
+            offset += 1
+            self._parse_userdata( ud_len, bytes[offset:] )
+
+    def __init__( self ):
+        self.type = "sms-status-report"
+        self.sca = False
+        self.pdu_mms = True # more-messages-to-send is backwards!
+        self.pdu_srq = False
+        self.pdu_udhi = False
+        self.pdu_pidi = False
+        self.pdu_dcsi = False
+        self.pdu_udli = False
+        self.st = 0
+        self.mr = 0
+        self.udh = {}
+        self.ud = ""
+        self.pid = 0
+        self.dcs_alphabet = "gsm_default"
+        self.dcs_compressed = False
+        self.dcs_discard = False
+        self.dcs_mwi_indication = None
+        self.dcs_mwi_type = None
+        self.dcs_mclass = None
+        self.scts = (datetime(1980, 01, 01, 00, 00, 00), 0)
+        self.dt = (datetime(1980, 01, 01, 00, 00, 00), 0)
+        self.error = []
+
+    def statusToString( self, status ):
+        message = "Reserved"
+        if status < 0x20:
+            message = "Completed: "
+            if status == 0:
+                message += "Delivered"
+            elif status == 1:
+                message += "Unconfirmed"
+            elif status == 2:
+                message += "Replaced"
+            else:
+                message += "Reserved"
+
+        elif 0x20 <= status < 0x40 or 0x60 <= status < 0x80:
+            message = "Temporary error"
+            if status & 0x40:
+                message += " (giving up)"
+            message += ": "
+            status = status & 0x1f
+            if status == 0x00:
+                message += "Congestion"
+            elif status == 0x01:
+                message += "SME busy"
+            elif status == 0x02:
+                message += "No response"
+            elif status == 0x03:
+                message += "Rejected"
+            elif status == 0x04:
+                message += "QoS N/A"
+            elif status == 0x05:
+                message += "Error in SME"
+            else:
+                message += "Reserved"
+
+        elif status < 0x50:
+            message = "Permanent error: "
+            if status == 0x40:
+                message += "Remote procedure"
+            elif status == 0x41:
+                message += "Incompatible destination"
+            elif status == 0x42:
+                message += "Connection rejected"
+            elif status == 0x43:
+                message += "Not obtainable"
+            elif status == 0x44:
+                message += "QoS N/A"
+            elif status == 0x45:
+                message += "No interworking available"
+            elif status == 0x46:
+                message += "SM Validity Period expired"
+            elif status == 0x47:
+                message += "SM deleted by originating SME"
+            elif status == 0x48:
+                message += "SM deleted by SC admin"
+            elif status == 0x49:
+                message += "SM does not exist"
+            else:
+                message += "Reserved"
+
+        return message
+
+    def _getProperties( self ):
+        map = {}
+        map.update( SMS._getProperties( self ) )
+
+        map["more-messages-to-send"] = not self.pdu_mms # This field is backwards!
+        if self.pdu_srq:
+            map["status-report-qualifier"] = "sms-command"
+        else:
+            map["status-report-qualifier"] = "sms-submit"
+
+        map["message-reference"] = self.mr
+        # XXX Do we want to convey more info here?
+        # map["destination-address"]
+        map["timestamp"] = self.scts[0].ctime() + " %+05i" % (self.scts[1]*100)
+        map["discharge-time"] = self.dt[0].ctime() + " %+05i" % (self.dt[1]*100)
+        map["status"] = self.st
+        map["status-message"] = self.statusToString(self.st)
+
+        if self.pdu_pidi:
+            map["pid"] = self.pid
+        if self.pdu_dcsi:
+            map["alphabet"] = SMS_ALPHABET_TO_ENCODING.revlookup(self.dcs_alphabet)
+
+            if map["alphabet"] == "binary":
+                map["data"] = self.data
+
+        map.update(self._get_udh())
+
+        return map
+
+    def _setProperties( self, properties ):
+        self._set_udh( properties )
+
+        for k,v in properties.items():
+            if k == "more-messages-to-send":
+                self.pdu_mms = not v
+            if k == "status-report-qualifier":
+                if v == "sms-submit":
+                    self.pdu_srq = False
+                elif v == "sms-command":
+                    self.pdu_srq = True
+            if k == "message-reference":
+                self.mr = v
+            if k == "status":
+                self.st = v
+            if k == "pid":
+                self.pdu_pidi = True
+                self.pid = v
+            if k == "alphabet":
+                self.pdu_dcsi = True
+                self.dcs_alphabet = SMS_ALPHABET_TO_ENCODING[v]
+            if k == "data":
+                    self.data = v
+
+    properties = property( _getProperties, _setProperties )
+
+    def pdu( self ):
+        pdubytes = array('B')
+
+        if self.sca:
+            scabcd = self.sca.pdu()
+            # SCA has non-standard length
+            scabcd[0] = len( scabcd ) - 1
+            pdubytes.extend( scabcd )
+        else:
+            pdubytes.append( 0 )
+
+        pdu_type = self.pdu_mti
+        if self.pdu_mms:
+            pdu_type += 0x04
+        if self.pdu_srq:
+            pdu_type += 0x20
+        if self.udhi:
+            pdu_type += 0x40
+
+        pdubytes.append( pdu_type )
+
+        pdubytes.append( self.mr )
+
+        pdubytes.extend( self.addr.pdu() )
+
+        pdubytes.extend( encodePDUTime( self.scts ) )
+
+        pdubytes.extend( encodePDUTime( self.dt ) )
+
+        pdubytes.append( self.st )
+
+        if self.pdu_pidi or self.pdu_dcsi or len(self.ud) > 0:
+            pi = 0x00
+            if self.pdu_pidi:
+                pi += 1
+            if self.pdu_dcsi:
+                pi += 2
+            if len(self.ud) > 0:
+                pi += 4
+
+            pdubytes.append( self.pi )
+
+            if self.pdu_pidi:
+                pdubytes.append( self.pid )
+            if self.pdu_dcsi:
+                pdubytes.append( self.dcs )
+                # We need to check whether we can encode the message with the
+                # GSM default charset now, because self.dcs might change
+                if not self.dcs_alphabet is None:
+                    try:
+                        pduud = self.ud.encode( self.dcs_alphabet )
+                    except UnicodeError:
+                        self.dcs_alphabet = "utf_16_be"
+                        pduud = self.ud.encode( self.dcs_alphabet )
+                else:
+                    # Binary message
+                    pduud = "".join([ chr(x) for x in self.data ])
+
+                pdubytes.append( self.dcs )
+
+            if len(self.ud > 0):
+                # User data
+                if self.udhi:
+                    pduudh = flatten([ (k, len(v), v) for k,v in self.udh.items() ])
+                    pduudhlen = len(pduudh)
+                else:
+                    pduudhlen = -1
+                    padding = 0
+
+
+                if self.dcs_alphabet == "gsm_default":
+                    udlen = int( math.ceil( (pduudhlen*8 + 8 + len(pduud)*7)/7.0 ) )
+                    padding = (7 * udlen - (8 + 8 * (pduudhlen))) % 7
+                    pduud = pack_sevenbit( pduud, padding )
+                else:
+                    pduud = map( ord, pduud )
+                    udlen = len( pduud ) + 1 + pduudhlen
+
+                pdubytes.append( udlen )
+
+                if self.udhi:
+                    pdubytes.append( pduudhlen )
+                    pdubytes.extend( pduudh )
+                pdubytes.extend( pduud )
+
+        return "".join( [ "%02X" % (i) for i in pdubytes ] )
+
+
+    def __repr__( self ):
+            return """sms-submit:
+Type: %s
+ServiceCenter: %s
+Timestamp: %s
+Discharge Time: %s
+Number: %s
+""" % (self.type, self.sca, self.scts, self.dt, self.addr)
 
 class SMSCommand(SMS):
     pass
