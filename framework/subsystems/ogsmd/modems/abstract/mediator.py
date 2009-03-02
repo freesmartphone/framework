@@ -1030,6 +1030,28 @@ class SmsSendMessage( SmsMediator ):
                 timestamp = ackpdu.properties["timestamp"]
             self._ok( int(mr), timestamp )
 
+#=========================================================================#
+class SmsAckMessage( SmsMediator ):
+#=========================================================================#
+    def trigger( self ):
+        sms = ogsmd.gsm.sms.SMSDeliverReport(True)
+        sms.ud = self.contents
+        sms.properties = self.properties
+        pdu = sms.pdu()
+        commchannel = self._object.modem.communicationChannel( "UnsolicitedMediator" )
+        commchannel.enqueue( '+CNMA=1,%i\r%s' % ( len(pdu)/2, pdu), self.responseFromChannel, self.errorFromChannel, timeout=currentModem().timeout("NETWORK"))
+
+#=========================================================================#
+class SmsNackMessage( SmsMediator ):
+#=========================================================================#
+    def trigger( self ):
+        sms = ogsmd.gsm.sms.SMSDeliverReport(False)
+        sms.ud = self.contents
+        sms.properties = self.properties
+        pdu = sms.pdu()
+        commchannel = self._object.modem.communicationChannel( "UnsolicitedMediator" )
+        commchannel.enqueue( '+CNMA=2,%i\r%s' % ( len(pdu)/2, pdu), self.responseFromChannel, self.errorFromChannel, timeout=currentModem().timeout("NETWORK"))
+
 #
 # Network Mediators
 #

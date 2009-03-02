@@ -682,59 +682,54 @@ class SMSDeliverReport(SMS):
             pi += 1
         if self.pdu_dcsi:
             pi += 2
-        if self.pdu_udli:
+        if len(self.ud) > 0:
             pi += 4
 
         pdubytes.append( pi )
 
-        pdubytes.extend( encodePDUTime( self.scts ) )
-
-        # XXX Allow the optional fields to be present
-        return "".join( [ "%02X" % (i) for i in pdubytes ] )
-
         if self.pdu_pidi:
             pdubytes.append( self.pid )
 
-        # We need to check whether we can encode the message with the
-        # GSM default charset now, because self.dcs might change
+        if self.pdu_dcsi:
+            # We need to check whether we can encode the message with the
+            # GSM default charset now, because self.dcs might change
+            if not self.dcs_alphabet is None:
+                try:
+                    pduud = self.ud.encode( self.dcs_alphabet )
+                except UnicodeError:
+                    self.dcs_alphabet = "utf_16_be"
+                    pduud = self.ud.encode( self.dcs_alphabet )
+            else:
+                # Binary message
+                pduud = "".join([ chr(x) for x in self.data ])
+
+            pdubytes.append( self.dcs )
 
 
-        if not self.dcs_alphabet is None:
-            try:
-                pduud = self.ud.encode( self.dcs_alphabet )
-            except UnicodeError:
-                self.dcs_alphabet = "utf_16_be"
-                pduud = self.ud.encode( self.dcs_alphabet )
-        else:
-            # Binary message
-            pduud = "".join([ chr(x) for x in self.data ])
-
-        pdubytes.append( self.dcs )
+        if len(self.ud) > 0:
+            # User data
+            if self.udhi:
+                pduudh = flatten([ (k, len(v), v) for k,v in self.udh.items() ])
+                pduudhlen = len(pduudh)
+            else:
+                pduudhlen = -1
+                padding = 0
 
 
-        # User data
-        if self.udhi:
-            pduudh = flatten([ (k, len(v), v) for k,v in self.udh.items() ])
-            pduudhlen = len(pduudh)
-        else:
-            pduudhlen = -1
-            padding = 0
+            if self.dcs_alphabet == "gsm_default":
+                udlen = int( math.ceil( (pduudhlen*8 + 8 + len(pduud)*7)/7.0 ) )
+                padding = (7 * udlen - (8 + 8 * (pduudhlen))) % 7
+                pduud = pack_sevenbit( pduud, padding )
+            else:
+                pduud = map( ord, pduud )
+                udlen = len( pduud ) + 1 + pduudhlen
 
+            pdubytes.append( udlen )
 
-        if self.dcs_alphabet == "gsm_default":
-            udlen = int( math.ceil( (pduudhlen*8 + 8 + len(pduud)*7)/7.0 ) )
-            padding = (7 * udlen - (8 + 8 * (pduudhlen))) % 7
-            pduud = pack_sevenbit( pduud, padding )
-        else:
-            pduud = map( ord, pduud )
-            udlen = len( pduud ) + 1 + pduudhlen
-
-        pdubytes.append( udlen )
-
-        if self.udhi:
-            pdubytes.append( pduudhlen )
-            pdubytes.extend( pduudh )
-        pdubytes.extend( pduud )
+            if self.udhi:
+                pdubytes.append( pduudhlen )
+                pdubytes.extend( pduudh )
+            pdubytes.extend( pduud )
 
         return "".join( [ "%02X" % (i) for i in pdubytes ] )
 

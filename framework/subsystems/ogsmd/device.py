@@ -375,6 +375,18 @@ class Device( resource.Resource ):
     def SendMessage( self, number, contents, properties, dbus_ok, dbus_error ):
         mediator.SmsSendMessage( self, dbus_ok, dbus_error, number=number, contents=contents, properties=properties )
 
+    @dbus.service.method( DBUS_INTERFACE_SMS, "sa{sv}", "",
+                          async_callbacks=( "dbus_ok", "dbus_error" ) )
+    @resource.checkedmethod
+    def AckMessage( self, contents, properties, dbus_ok, dbus_error ):
+        mediator.SmsAckMessage( self, dbus_ok, dbus_error, contents=contents, properties=properties )
+
+    @dbus.service.method( DBUS_INTERFACE_SMS, "sa{sv}", "",
+                          async_callbacks=( "dbus_ok", "dbus_error" ) )
+    @resource.checkedmethod
+    def NackMessage( self, contents, properties, dbus_ok, dbus_error ):
+        mediator.SmsNackMessage( self, dbus_ok, dbus_error, contents=contents, properties=properties )
+
     @resource.queuedsignal
     @dbus.service.signal( DBUS_INTERFACE_SMS, "ssa{sv}" )
     def IncomingMessage( self, address, text, properties ):
