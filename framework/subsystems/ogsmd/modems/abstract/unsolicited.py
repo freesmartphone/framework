@@ -154,7 +154,7 @@ class AbstractUnsolicitedResponseDelegate( object ):
         Incoming delivery report
         """
         sms = ogsmd.gsm.sms.SMS.decode( pdu, "sms-status-report" )
-        self._object.IncomingMessageReceipt( str(sms.addr), "delivered" )
+        self._object.IncomingMessageReceipt( str(sms.addr), sms.ud, sms.properties )
 
     # +CMTI: "SM",7
     def plusCMTI( self, righthandside ):

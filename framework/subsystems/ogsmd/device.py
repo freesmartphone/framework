@@ -377,12 +377,12 @@ class Device( resource.Resource ):
 
     @resource.queuedsignal
     @dbus.service.signal( DBUS_INTERFACE_SMS, "ssa{sv}" )
-    def IncomingMessage( self, address, text, features ):
+    def IncomingMessage( self, address, text, properties ):
         logger.info( "incoming message (unbuffered) from %s", address )
 
     @resource.queuedsignal
-    @dbus.service.signal( DBUS_INTERFACE_SMS, "ss" )
-    def IncomingMessageReceipt( self, number, text ):
+    @dbus.service.signal( DBUS_INTERFACE_SMS, "ssa{sv}" )
+    def IncomingMessageReceipt( self, number, text, properties ):
         logger.info( "incoming message delivery report from %s", number )
 
     #
