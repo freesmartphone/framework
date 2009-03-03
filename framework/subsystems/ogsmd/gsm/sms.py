@@ -442,6 +442,8 @@ class SMSDeliver(SMS):
         # XXX Do we want to convey more info here?
         # map["originating-address"]
         map["alphabet"] = SMS_ALPHABET_TO_ENCODING.revlookup(self.dcs_alphabet)
+        if self.dcs_mclass != None:
+            map["message-class"] = self.dcs_mclass
 
         if map["alphabet"] == "binary":
             map["data"] = self.data
@@ -467,6 +469,8 @@ class SMSDeliver(SMS):
                 self.pdu_sri = v
             if k == "alphabet":
                 self.dcs_alphabet = SMS_ALPHABET_TO_ENCODING[v]
+            if k == "message-class" and 0 <= v < 4:
+                self.dcs_mclass = v
             if k == "data":
                 self.data = v
             if k == "timestamp":
@@ -640,6 +644,8 @@ class SMSDeliverReport(SMS):
             map["pid"] = self.pid
         if self.pdu_dcsi:
             map["alphabet"] = SMS_ALPHABET_TO_ENCODING.revlookup(self.dcs_alphabet)
+            if self.dcs_mclass != None:
+                map["message-class"] = self.dcs_mclass
 
             if map["alphabet"] == "binary":
                 map["data"] = self.data
@@ -660,6 +666,9 @@ class SMSDeliverReport(SMS):
             if k == "alphabet":
                 self.pdu_dcsi = True
                 self.dcs_alphabet = SMS_ALPHABET_TO_ENCODING[v]
+            if k == "message-class" and 0 <= v < 4:
+                self.pdu_dcsi = True
+                self.dcs_mclass = v
             if k == "data":
                     self.data = v
 
@@ -837,6 +846,8 @@ class SMSSubmit(SMS):
         # XXX Validity period and format
         #map["validity-period"] = self.scts[0].ctime() + " %+05i" % (self.scts[1]*100)
         map["alphabet"] = SMS_ALPHABET_TO_ENCODING.revlookup(self.dcs_alphabet)
+        if self.dcs_mclass != None:
+            map["message-class"] = self.dcs_mclass
 
         if map["alphabet"] == "binary":
             map["data"] = self.data
@@ -862,6 +873,8 @@ class SMSSubmit(SMS):
                 self.pid = v
             if k == "alphabet":
                 self.dcs_alphabet = SMS_ALPHABET_TO_ENCODING[v]
+            if k == "message-class" and 0 <= v < 4:
+                self.dcs_mclass = v
             if k == "data":
                     self.data = v
 
@@ -1056,6 +1069,8 @@ class SMSSubmitReport(SMS):
             map["pid"] = self.pid
         if self.pdu_dcsi:
             map["alphabet"] = SMS_ALPHABET_TO_ENCODING.revlookup(self.dcs_alphabet)
+            if self.dcs_mclass != None:
+                map["message-class"] = self.dcs_mclass
 
             if map["alphabet"] == "binary":
                 map["data"] = self.data
@@ -1076,6 +1091,9 @@ class SMSSubmitReport(SMS):
             if k == "alphabet":
                 self.pdu_dcsi = True
                 self.dcs_alphabet = SMS_ALPHABET_TO_ENCODING[v]
+            if k == "message-class" and 0 <= v < 4:
+                self.pdu_dcsi = True
+                self.dcs_mclass = v
             if k == "data":
                     self.data = v
 
@@ -1338,6 +1356,8 @@ class SMSStatusReport(SMS):
             map["pid"] = self.pid
         if self.pdu_dcsi:
             map["alphabet"] = SMS_ALPHABET_TO_ENCODING.revlookup(self.dcs_alphabet)
+            if self.dcs_mclass != None:
+                map["message-class"] = self.dcs_mclass
 
             if map["alphabet"] == "binary":
                 map["data"] = self.data
@@ -1367,6 +1387,9 @@ class SMSStatusReport(SMS):
             if k == "alphabet":
                 self.pdu_dcsi = True
                 self.dcs_alphabet = SMS_ALPHABET_TO_ENCODING[v]
+            if k == "message-class" and 0 <= v < 4:
+                self.pdu_dcsi = True
+                self.dcs_mclass = v
             if k == "data":
                     self.data = v
 
