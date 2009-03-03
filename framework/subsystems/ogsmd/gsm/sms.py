@@ -378,7 +378,7 @@ class SMSDeliver(SMS):
 
         # pdu_mti should already be set by the class
         if self.pdu_mti != pdu_type & 0x03:
-            self.error.append("Decoded MTI doesn't match %i != %i" % (self.pdu_mti, pdu_type & 0x03))
+            raise SMSError, "Decoded MTI doesn't match %i != %i" % (self.pdu_mti, pdu_type & 0x03)
 
         self.pdu_mms = pdu_type & 0x04 != 0
         self.pdu_sri = pdu_type & 0x20 != 0
@@ -578,7 +578,7 @@ class SMSDeliverReport(SMS):
 
         # pdu_mti should already be set by the class
         if self.pdu_mti != pdu_type & 0x03:
-            self.error.append("Decoded MTI doesn't match %i != %i" % (self.pdu_mti, pdu_type & 0x03))
+            raise SMSError, "Decoded MTI doesn't match %i != %i" % (self.pdu_mti, pdu_type & 0x03)
 
         self.pdu_udhi = pdu_type & 0x40 != 0
 
@@ -764,7 +764,7 @@ class SMSSubmit(SMS):
 
         # pdu_mti should already be set by the class
         if self.pdu_mti != pdu_type & 0x03:
-            self.error.append("Decoded MTI doesn't match %i != %i" % (self.pdu_mti, pdu_type & 0x03))
+            raise SMSError, "Decoded MTI doesn't match %i != %i" % (self.pdu_mti, pdu_type & 0x03)
 
         self.pdu_rd = pdu_type & 0x04 != 0
         self.pdu_vpf =  (pdu_type & 0x18)>>3
@@ -989,7 +989,7 @@ class SMSSubmitReport(SMS):
 
         # pdu_mti should already be set by the class
         if self.pdu_mti != pdu_type & 0x03:
-            self.error.append("Decoded MTI doesn't match %i != %i" % (self.pdu_mti, pdu_type & 0x03))
+            raise SMSError, "Decoded MTI doesn't match %i != %i" % (self.pdu_mti, pdu_type & 0x03)
 
         # XXX Is 0x04 the correct bit for UDHI? GSM 03.40 says "Bits 7-2 in the TP-MTI are
         # presently unused...", but that leaves only room for the mti field...
@@ -1190,7 +1190,7 @@ class SMSStatusReport(SMS):
 
         # pdu_mti should already be set by the class
         if self.pdu_mti != pdu_type & 0x03:
-            self.error.append("Decoded MTI doesn't match %i != %i" % (self.pdu_mti, pdu_type & 0x03))
+            raise SMSError, "Decoded MTI doesn't match %i != %i" % (self.pdu_mti, pdu_type & 0x03)
 
         self.pdu_mms = pdu_type & 0x04 != 0
         self.pdu_srq = pdu_type & 0x20 != 0
