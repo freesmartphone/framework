@@ -117,6 +117,20 @@ class SMS(object):
             sms = SMSStatusReport()
         elif smstype == "sms-command":
             sms = SMSCommand()
+        elif smstype == "guess-submit":
+            try:
+                sms = SMSSubmit()
+                sms.parse( bytes )
+                return sms
+            except SMSError:
+                sms = SMSDeliver()
+        elif smstype == "guess-deliver":
+            try:
+                sms = SMSDeliver()
+                sms.parse( bytes )
+                return sms
+            except SMSError:
+                sms = SMSStatusReport()
         else:
             raise SMSError, "Invalid type %s" % (smstype)
 

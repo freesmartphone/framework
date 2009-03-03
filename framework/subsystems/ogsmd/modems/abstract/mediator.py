@@ -896,9 +896,9 @@ class SimRetrieveMessagebook( SimMediator ):
                     index = int(header.groupdict()["index"])
                     status = const.SMS_PDU_STATUS_OUT[int(header.groupdict()["status"])]
                     if "read" in status:
-                      direction = "sms-deliver"
+                      direction = "guess-deliver"
                     else:
-                      direction = "sms-submit"
+                      direction = "guess-submit"
                     length = int(header.groupdict()["pdulen"])
                     inbody = True
                 elif inbody == True:
@@ -937,9 +937,9 @@ class SimRetrieveMessage( SimMediator ):
                     header = const.PAT_SMS_PDU_HEADER_SINGLE.match( self._rightHandSide(line) )
                     status = const.SMS_PDU_STATUS_OUT[int(header.groupdict()["status"])]
                     if "read" in status:
-                      direction = "sms-deliver"
+                      direction = "guess-deliver"
                     else:
-                      direction = "sms-submit"
+                      direction = "guess-submit"
                     length = int(header.groupdict()["pdulen"])
                     inbody = True
                 elif inbody == True:
