@@ -10,7 +10,7 @@ Package: ogsmd.gsm
 Module: parser
 """
 
-__version__ = "0.8.1"
+__version__ = "0.8.2"
 
 import os
 DEBUG = os.environ.get( "FSO_DEBUG_PARSER", False )
@@ -191,7 +191,8 @@ class StateBasedLowlevelAtParser( object ):
             return False
 
     def isSolicitedPduLine( self ):
-        if self.curline.startswith( "+CMGL:" ):
+        if self.curline.startswith( "+CMGL:" ) \
+        or self.curline.startswith( "+CMGR:" ):
             return True
         else:
             return False
