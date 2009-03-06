@@ -11,7 +11,7 @@ Module: modem
 
 """
 
-__version__ = "0.9.9.8"
+__version__ = "0.9.9.9"
 MODULE_NAME = "ogsmd.modems.ti_calypso"
 
 DEVICE_CALYPSO_PATH             = "/dev/ttySAC0"
@@ -76,15 +76,15 @@ class TiCalypso( AbstractModem ):
         Lowlevel initialize this modem.
         """
         logger.debug( "reset-cycling modem" )
-        writeToFile( SYSFS_CALYPSO_POWER_PATH, "0" )
+        writeToFile( SYSFS_CALYPSO_POWER_PATH, "0\n" )
         sleep( 1 )
-        writeToFile( SYSFS_CALYPSO_RESET_PATH, "0" )
+        writeToFile( SYSFS_CALYPSO_RESET_PATH, "0\n" )
         sleep( 1 )
-        writeToFile( SYSFS_CALYPSO_POWER_PATH, "1" )
+        writeToFile( SYSFS_CALYPSO_POWER_PATH, "1\n" )
         sleep( 1 )
-        writeToFile( SYSFS_CALYPSO_RESET_PATH, "1" )
+        writeToFile( SYSFS_CALYPSO_RESET_PATH, "1\n" )
         sleep( 1 )
-        writeToFile( SYSFS_CALYPSO_RESET_PATH, "0" )
+        writeToFile( SYSFS_CALYPSO_RESET_PATH, "0\n" )
         sleep( 1 )
         logger.debug( "reset cycle complete" )
 
@@ -123,7 +123,7 @@ class TiCalypso( AbstractModem ):
         return ok
 
     def _modemOff( self ):
-        writeToFile( "0\n", SYSFS_CALYPSO_POWER_PATH )
+        writeToFile( SYSFS_CALYPSO_POWER_PATH, "0\n" )
 
     def close( self ): # SYNC
         """
