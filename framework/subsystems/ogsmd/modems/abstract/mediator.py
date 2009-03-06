@@ -1315,7 +1315,7 @@ class NetworkSendUssdRequest( NetworkMediator ): # s
         # when using UCS2 we need to encode the request, although it is just a number :/
         request = self.request.encode(charset)
         commchannel = self._object.modem.communicationChannel( "UnsolicitedMediator" ) # exceptional, since CUSD is semi-unsolicited
-        commchannel.enqueue( '+CUSD=1,"%s",15' % request, self.responseFromChannel, self.errorFromChannel )
+        commchannel.enqueue( '+CUSD=1,"%s",15' % request, self.responseFromChannel, self.errorFromChannel, prefixes=["NONE"] )
 
 #
 # Call Mediators
