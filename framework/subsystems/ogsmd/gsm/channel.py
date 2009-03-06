@@ -14,7 +14,7 @@ This module provides communication channel abstractions that
 transport their data over a (virtual) serial line.
 """
 
-__version__ = "0.9.14"
+__version__ = "0.9.15"
 MODULE_NAME = "ogsmd.channel"
 
 from ogsmd.gsm.decor import logged
@@ -589,7 +589,7 @@ class AtCommandChannel( DelegateChannel ):
         if len( commands ) == 1:
             QueuedVirtualChannel.enqueue( self, "AT%s\r\n" % command, response_cb, error_cb, prefixes )
         elif len( commands ) == 2:
-            QueuedVirtualChannel.enqueue( self, "AT%s\r" % commands[0], None, None, None, prefixes )
+            QueuedVirtualChannel.enqueue( self, "AT%s\r" % commands[0], None, None, prefixes )
             QueuedVirtualChannel.enqueue( self, "%s\x1A" % commands[1], response_cb, error_cb, prefixes )
         else:
             assert False, "your python interpreter is broken"
