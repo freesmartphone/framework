@@ -161,13 +161,13 @@ class NetworkGetStatus( NetworkMediator ):
                     roaming = self._object.modem.data( "roaming", False )
                     result["registration"] = "roaming" if roaming else "home"
 
-                    mccmni = values[2].strip( '"' ).replace( '-', '' )
-                    result["code"] = int( mccmni )
-                    network = const.NETWORK.get( ( mccmni[:3], mccmni[3:] ), {} )
-                    if "Brand" in network:
-                        result["provider"] = network["Brand"]
+                    mccmnc = values[2].strip( '"' ).replace( '-', '' )
+                    result["code"] = int( mccmnc )
+                    network = const.NETWORKS.get( ( mccmnc[:3], mccmnc[3:] ), {} )
+                    if "brand" in network:
+                        result["provider"] = network["brand"]
                     elif "Operator" in network:
-                        result["provider"] = network["Operator"]
+                        result["provider"] = network["operator"]
                     else:
                         result["provider"] = "Unknown"
 

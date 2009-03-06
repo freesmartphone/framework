@@ -13,7 +13,7 @@ Module: const
 GSM constants, strings, formats, parse patterns, timeouts, you name it.
 """
 
-__version__ = "0.8.0"
+__version__ = "0.8.1"
 MODULE_NAME = "ogsmd.const"
 
 from framework import config
@@ -1124,6 +1124,7 @@ def parseNetworks( filename ):
     common = {}
     network_header = []
     network = {}
+    # FIXME: Wrap this in try/except, the file may not be there or corrupt!
     for line in open( filename, "r" ):
         linenumber += 1
         line = line.decode( "UTF-8" ).rstrip()
@@ -1215,8 +1216,8 @@ if __name__ == "__main__":
     assert mccToCountryCode( 262 ) == ( "+49", "Germany" )
     assert mccToCountryCode( 700 ) == ( "+???", "<??? unknown ???>" )
     print "OK"
-    assert NETWORKS[( "262", "03" )] == "E-Plus"
+    assert NETWORKS[( "262", "03" )]["brand"] == "E-Plus"
     print "OK"
     assert ctzvToTimeZone( "25" ) == -11 # UTC-2:45
-    assert ctvzToTimeZone( "35" ) == 32  # UTC+8
-    assert ctvzToTimeZone( "105" ) == -15 # UTC-4
+    assert ctzvToTimeZone( "35" ) == 32  # UTC+8
+    assert ctzvToTimeZone( "105" ) == -16 # UTC-4

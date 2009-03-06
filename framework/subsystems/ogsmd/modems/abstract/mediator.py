@@ -22,7 +22,7 @@ TODO:
  * refactor parameter validation
 """
 
-__version__ = "0.9.14"
+__version__ = "0.9.15"
 MODULE_NAME = "ogsmd.modems.abstract.mediator"
 
 from ogsmd import error
@@ -1111,25 +1111,36 @@ class NetworkGetStatus( NetworkMediator ):
 
         # query operator name and numerical code
         request, response, error = yield( "+COPS=3,0;+COPS?;+COPS=3,2;+COPS?" )
+
         if error is not None:
             self.errorFromChannel( request, error )
         else:
             if response[-1] != "OK" or len( response ) != 3:
                 pass
             else:
+                # first parse the alphanumerical response set
                 values = safesplit( self._rightHandSide( response[-3] ), ',' )
-                if len( values ) < 3:
-                    result["mode"] = const.REGISTER_MODE[int(values[0])]
-                else:
-                    result["mode"] = const.REGISTER_MODE[int(values[0])]
+                result["mode"] = const.REGISTER_MODE[int(values[0])]
+                if len( values ) > 2:
                     result["provider"] = values[2].strip( '"' ).decode(charset)
                     if len( values ) == 4:
                         result["act"] = const.REGISTER_ACT[int( values[3] )]
                     else: # AcT defaults to GSM
                         result["act"] = const.REGISTER_ACT[ 0 ]
-                    values = safesplit( self._rightHandSide( response[-2] ), ',' )
-                    if len( values ) > 2:
-                        result["code"] = int( values[2].strip( '"' ).decode(charset) )
+                # then parse the numerical response set
+                values = safesplit( self._rightHandSide( response[-2] ), ',' )
+                if len( values ) > 2:
+                    mccmnc = values[2].strip( '"' ).decode(charset)
+                    result["code"] = int( mccmnc )
+                    # Some providers' name may be unknown to the modem hence not show up in +COPS=3,0;+COPS?
+                    # In this case try to gather the name from our network database
+                    network = const.NETWORKS.get( ( mccmnc[:3], mccmnc[3:] ), {} )
+                    if "brand" in network:
+                        result["provider"] = network["brand"]
+                    elif "Operator" in network:
+                        result["provider"] = network["operator"]
+                    else:
+                        result["provider"] = "Unknown"
         # UGLY special check for some modems, which return a strength of 0, if you
         # call +CSQ too early after a (re)registration. In that case, we just
         # leave the strength out of the result
