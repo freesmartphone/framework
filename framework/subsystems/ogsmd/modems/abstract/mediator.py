@@ -287,7 +287,12 @@ from .pdp import Pdp
 class DeviceGetInfo( DeviceMediator ):
 #=========================================================================#
     def trigger( self ):
-        self._commchannel.enqueue( "+CGMR;+CGMM;+CGMI;+CGSN", self.responseFromChannel, self.errorFromChannel )
+        # According to GSM 07.07, it's legal to not answer quoting the prefixes for these four informational
+        # requests, hence we allow all prefixes. NOTE: Yes, this opens a slight possibility of unsolicited
+        # creeping unnoticed into. To fix this properly, we would need to enhance the prefixmap to also specify
+        # something like: [ "+CGMR", "+CGMM", "+CGMI", "+CGSN", "plaintext" ], "plaintext" being everything
+        # else that does _not_ look like a response.
+        self._commchannel.enqueue( "+CGMR;+CGMM;+CGMI;+CGSN", self.responseFromChannel, self.errorFromChannel, prefixes=[""] )
 
     @logged
     def responseFromChannel( self, request, response ):
