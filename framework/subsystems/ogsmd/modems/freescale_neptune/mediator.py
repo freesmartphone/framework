@@ -59,6 +59,38 @@ class DeviceGetInfo( DeviceMediator ):
             self._ok( result )
 
 #=========================================================================#
+class DeviceSetAntennaPower( DeviceMediator ):
+#=========================================================================#
+    def trigger( self ):
+        self._commchannel.enqueue( "+CFUN=%d" % self.power, self.responseFromChannel, self.errorFromChannel, timeout=currentModem().timeout("CFUN") )
+
+        pin_state = self._object.modem._simPinState
+        if pin_state == "READY":
+            self._ok()
+        else:
+            self._error(error.SimAuthFailed("not READY"))
+
+    @logged
+    def responseFromChannel( self, request, response ):
+        if not response[-1] == "OK":
+            DeviceMediator.responseFromChannel( self, request, response )
+
+#=========================================================================#
+class SimGetAuthStatus( SimMediator ):
+#=========================================================================#
+    """
+    Modem violating GSM 07.07 here.
+
+    +CPIN? does not work
+    """
+    def trigger( self ):
+        pin_state = self._object.modem._simPinState
+        if pin_state == "READY":
+            self._ok( pin_state )
+        else:
+            self._ok( "SIM PIN" )
+
+#=========================================================================#
 class SimSendAuthCode( SimMediator ):
 #=========================================================================#
     """
