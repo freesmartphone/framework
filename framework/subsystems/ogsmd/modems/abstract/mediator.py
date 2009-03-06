@@ -22,7 +22,7 @@ TODO:
  * refactor parameter validation
 """
 
-__version__ = "0.9.13"
+__version__ = "0.9.14"
 MODULE_NAME = "ogsmd.modems.abstract.mediator"
 
 from ogsmd import error
@@ -1043,7 +1043,7 @@ class SmsAckMessage( SmsMediator ):
         sms.properties = self.properties
         pdu = sms.pdu()
         commchannel = self._object.modem.communicationChannel( "UnsolicitedMediator" )
-        commchannel.enqueue( '+CNMA=1,%i\r%s' % ( len(pdu)/2, pdu), self.responseFromChannel, self.errorFromChannel, timeout=currentModem().timeout("NETWORK"))
+        commchannel.enqueue( '+CNMA=1,%i\r%s' % ( len(pdu)/2, pdu), self.responseFromChannel, self.errorFromChannel )
 
 #=========================================================================#
 class SmsNackMessage( SmsMediator ):
@@ -1054,7 +1054,7 @@ class SmsNackMessage( SmsMediator ):
         sms.properties = self.properties
         pdu = sms.pdu()
         commchannel = self._object.modem.communicationChannel( "UnsolicitedMediator" )
-        commchannel.enqueue( '+CNMA=2,%i\r%s' % ( len(pdu)/2, pdu), self.responseFromChannel, self.errorFromChannel, timeout=currentModem().timeout("NETWORK"))
+        commchannel.enqueue( '+CNMA=2,%i\r%s' % ( len(pdu)/2, pdu), self.responseFromChannel, self.errorFromChannel )
 
 #
 # Network Mediators
