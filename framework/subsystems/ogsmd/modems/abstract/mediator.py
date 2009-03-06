@@ -22,7 +22,7 @@ TODO:
  * refactor parameter validation
 """
 
-__version__ = "0.9.15"
+__version__ = "0.9.16"
 MODULE_NAME = "ogsmd.modems.abstract.mediator"
 
 from ogsmd import error
@@ -181,7 +181,11 @@ class AbstractYieldSupport( object ):
         except StopIteration:
             pass
         else:
-            self._commchannel.enqueue( toEnqueue, self.genResponseFromChannel, self.genErrorFromChannel )
+            if type( toEnqueue ) == type( tuple() ):
+                command, prefixes = toEnqueue
+                self._commchannel.enqueue( command, self.genResponseFromChannel, self.genErrorFromChannel, prefixes )
+            else:
+                self._commchannel.enqueue( toEnqueue, self.genResponseFromChannel, self.genErrorFromChannel )
 
     @logged
     def genErrorFromChannel( self, request, error ):
@@ -190,7 +194,11 @@ class AbstractYieldSupport( object ):
         except StopIteration:
             pass
         else:
-            self._commchannel.enqueue( toEnqueue, self.genResponseFromChannel, self.genErrorFromChannel )
+            if type( toEnqueue ) == type( tuple() ):
+                command, prefixes = toEnqueue
+                self._commchannel.enqueue( command, self.genResponseFromChannel, self.genErrorFromChannel, prefixes )
+            else:
+                self._commchannel.enqueue( toEnqueue, self.genResponseFromChannel, self.genErrorFromChannel )
 
 #=========================================================================#
 class DeviceMediator( AbstractMediator, AbstractYieldSupport ):
@@ -292,9 +300,8 @@ class DeviceGetInfo( DeviceMediator ):
         # creeping unnoticed into. To fix this properly, we would need to enhance the prefixmap to also specify
         # something like: [ "+CGMR", "+CGMM", "+CGMI", "+CGSN", "plaintext" ], "plaintext" being everything
         # else that does _not_ look like a response.
-        self._commchannel.enqueue( "+CGMR;+CGMM;+CGMI;+CGSN", self.responseFromChannel, self.errorFromChannel, prefixes=[""] )
+        self._commchannel.enqueue( "+CGMR;+CGMM;+CGMI;+CGSN", self.responseFromChannel, self.errorFromChannel, prefixes=[] )
 
-    @logged
     def responseFromChannel( self, request, response ):
         if response[-1] != "OK":
             DeviceMediator.responseFromChannel( self, request, response )
@@ -361,20 +368,29 @@ class DeviceSetAntennaPower( DeviceMediator ):
 class DeviceGetFeatures( DeviceMediator ):
 #=========================================================================#
     def trigger( self ):
-        self._commchannel.enqueue( "+GCAP;+CGCLASS?;+FCLASS?", self.responseFromChannel, self.errorFromChannel )
-
-    def responseFromChannel( self, request, response ):
-        if response[-1] != "OK":
-            DeviceMediator.responseFromChannel( self, request, response )
-
         result = {}
-        if "GSM" in response[0]:
-            result["GSM"] = "TA" # Terminal Adapter
+        request, response, error = yield( "+GCAP" )
+        if error is None and response[-1] == "OK":
+            if "GSM" in response[0]:
+                result["GSM"] = "TA" # terminal adapter
+            else:
+                result["GSM"] = "?" # some modems lie about their GSM capabilities
+
+            if "FCLASS" in response[0]:
+                result["FAX"] = "" # basic capability, checking for details in a second
+
+        request, response, error = yield( "+FCLASS?", [] ) # free format
+
+        if error is None and response[-1] == "OK":
+            result["FAX"] = self._rightHandSide( response[0] ).strip( '"' )
+
+        request, response, error = yield( "+CGCLASS?" )
+
+        if error is None and response[-1] == "OK":
+            result["GPRS"] = self._rightHandSide( response[0] ).strip( '"' )
         else:
-            result["GSM"] = "" # Some GSM modems lie about their GSM capabilities
-        if "FCLASS" in response[0]:
-            result["FAX"] = self._rightHandSide( response[2] ).strip( '"' )
-        result["GPRS"] = self._rightHandSide( response[1] ).strip( '"' )
+            result["GPRS"] = "?"
+
         self._ok( result )
 
 #=========================================================================#

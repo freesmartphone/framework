@@ -255,10 +255,11 @@ class VirtualChannel( object ):
         assert condition == gobject.IO_OUT, "ready to write on bogus condition"
         logger.debug( "%s: _readyToSend: watch timeout = %s", self, repr( self.watchTimeout ) )
 
-        # make sure nothing has been queued up in the buffer in the meantime
-        while self.serial.inWaiting():
-            logger.warning( "_readyToSend, but new data already in the buffer. processing" )
-            self._readyToRead( self.serial.fd, gobject.IO_IN )
+        if False:
+            # make sure nothing has been queued up in the buffer in the meantime
+            while self.serial.inWaiting():
+                logger.warning( "_readyToSend, but new data already in the buffer. processing" )
+                self._readyToRead( self.serial.fd, gobject.IO_IN )
 
         self._hookPreSending()
         self.readyToSend()
