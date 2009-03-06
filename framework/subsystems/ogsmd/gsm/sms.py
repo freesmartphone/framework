@@ -195,7 +195,10 @@ class SMS(object):
                 self.ud = userdata.decode( self.dcs_alphabet )
             except UnicodeError, e:
                 self.error.append("Userdata corrupt")
-                self.ud = ""
+                try:
+                    self.ud = userdata.decode( self.dcs_alphabet, 'replace')
+                except UnicodeError, e:
+                    self.ud = ""
         else:
             # Binary message
             self.data = [ ord(x) for x in userdata ]
