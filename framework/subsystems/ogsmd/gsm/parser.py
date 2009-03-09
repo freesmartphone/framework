@@ -40,9 +40,13 @@ class StateBasedLowlevelAtParser( object ):
         self.unsolicited = unsolicited
         self.state = self.reset()
 
-    def reset( self, yankSolicited=True ):
+    def reset( self, yankSolicited=True, keepPrefixes=False ):
         if yankSolicited:
             self.lines = []
+        if keepPrefixes:
+            self.continuationPrefixes = self.validPrefixes
+        else:
+            self.continuationPrefixes = set([])
         self.ulines = []
         self.curline = ""
         self.hasPdu = False
@@ -55,12 +59,12 @@ class StateBasedLowlevelAtParser( object ):
         # to support handing a haveContinuation parameter over to here.
 
         self.haveCommand = haveCommand
-        self.validPrefixes = validPrefixes
+        self.validPrefixes = self.continuationPrefixes.union(validPrefixes)
 
         if bytes == "\r\n> ":
             if DEBUG: print "PARSER DEBUG: got continuation character. sending empty response"
             self.response( [] )
-            self.state = self.reset()
+            self.state = self.reset( keepPrefixes=True )
             return
 
         for b in bytes:
