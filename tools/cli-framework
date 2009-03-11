@@ -263,6 +263,12 @@ usageiface = getInterface( \
     "/org/freesmartphone/Usage",
     "org.freesmartphone.Usage" )
 
+# phone
+phone = getInterface( \
+    "org.freesmartphone.ophoned",
+    "/org/freesmartphone/Phone",
+    "org.freesmartphone.Phone" )
+
 # preferences
 preferences = getInterface( \
     "org.freesmartphone.opreferencesd",
