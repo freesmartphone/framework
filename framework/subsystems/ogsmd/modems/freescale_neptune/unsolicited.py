@@ -2,13 +2,16 @@
 """
 The Open GSM Daemon - Python Implementation
 
-(C) 2008 Michael 'Mickey' Lauer <mlauer@vanille-media.de>
+(C) 2008-2009 Michael 'Mickey' Lauer <mlauer@vanille-media.de>
 GPLv2 or later
 """
+
+__version__ = "0.8.0.0"
 
 from ogsmd.modems.abstract.unsolicited import AbstractUnsolicitedResponseDelegate
 from ogsmd.gsm import const
 from ogsmd.helpers import safesplit
+import ogsmd.gsm.sms
 
 #=========================================================================#
 class UnsolicitedResponseDelegate( AbstractUnsolicitedResponseDelegate ):
@@ -49,6 +52,17 @@ class UnsolicitedResponseDelegate( AbstractUnsolicitedResponseDelegate ):
             #
             # ...
             #
+
+    # +CMT: 139
+    # 07919471060040340409D041767A5C060000903021417134408A41767A5C0625DDE6B70E247D87DB69F719947683C86539A858D581C2E273195D7693CBA0A05B5E37974130568D062A56A5AF66DAED6285DDEB77BB5D7693CBA0A05B5E3797413096CC062A56A5AF66DAED0235CB683928E936BFE7A0BA9B5E968356B45CEC66C3E170369A8C5673818E757A19242DA7E7E510 
+    def plusCMT( self, righthandside, pdu ):
+        """
+        Message Transfer Indication. Modem violating 07.07 here, the header was NOT supposed to be optional.
+        """
+        length = int(righthandside)
+        # Now we decode the actual PDU
+        sms = ogsmd.gsm.sms.SMS.decode( pdu, "sms-deliver" )
+        self._object.IncomingMessage( str(sms.addr), sms.ud, sms.properties )
 
     def plusCIEV( self, righthandside ):
         """
@@ -125,7 +139,7 @@ class UnsolicitedResponseDelegate( AbstractUnsolicitedResponseDelegate ):
             status["registration"] = "unregistered"
         else:
             # FIXME: This is not correct. Need to listen for the roaming status as well
-            roaming = self._object.modem.data( "roaming", False )
+            roaming = self._object.modem.data( "network:roaming", False )
             status["registration"] = "roaming" if roaming else "home"
             status["provider"] = values[1]
         self._object.Status( status )

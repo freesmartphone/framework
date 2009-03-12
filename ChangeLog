@@ -1,7 +1,15 @@
+2009-03-12	Michael Lauer	<mlauer@vanille-media.de>
+
+	* [ogsmd] [FREESCALE NEPTUNE] Fixed a bunch of problems, including
+	  catching up with the new timeout handling, parsing of incoming
+	  SMS messages, network roaming indication, etc. NOTE that the
+	  channel mapping has changed again. Removed usage of the ThrowAway-
+	  parser as well.
+
 2009-02-23	Michael Lauer	<mlauer@vanille-media.de>
 
-	* ogsmd: Rewritten timeout handling and unsolicited message handling.
-      We now maintain a list of valid prefixes for every command
+	* [ogsmd] Rewritten timeout handling and unsolicited message handling.
+	  We now maintain a list of valid prefixes for every command
 	  in the Queue. Once the parser processes a complete line, it checks whether
 	  this line contains expected results. With this, it's safe to operate modems
 	  that mix unsolicited and solicited responses. It's also a safeguard against
@@ -9,11 +17,11 @@
 
 2009-02-12	Michael Lauer	<mlauer@vanille-media.de>
 
-	* ogsmd: Implemented org.freesmartphone.GSM.SIM.GetProviderList -> a{is}
+	* [ogsmd: Implemented org.freesmartphone.GSM.SIM.GetProviderList -> a{is}
 
 2009-02-06	Michael Lauer	<mlauer@vanille-media.de>
 
-	* ogsmd: [TI CALYPSO] Added support for the next-generation 07.10 multiplexer from FSO.
+	* [ogsmd] [TI CALYPSO] Added support for the next-generation 07.10 multiplexer from FSO.
 	  Set 'ti_calypso_muxer' to 'fso-abyss'. Default value is gsm0710muxd for the time being.
 
 2009-02-01	Stefan Schmidt	<stefan@openmoko.org>
@@ -26,12 +34,12 @@
 
 2009-01-28	Michael Lauer	<mlauer@vanille-media.de>
 
-	* [opimd]: Fixed dbus objects not appearing since they were registered on the initial dbus connection,
+	* [opimd] Fixed dbus objects not appearing since they were registered on the initial dbus connection,
 	the subsystems use individual connections though.
 
 2009-01-23	Michael Lauer	<mlauer@vanille-media.de>
 	
-	* [odeviced]: powercontrol_neo: Use bind/unbind way of controlling ar6k power to get the maximum
+	* [odeviced] powercontrol_neo: Use bind/unbind way of controlling ar6k power to get the maximum
 	power saving. This obsoletes wireless.pyx. At this point of time we no longer require Cython.
 
 2009-01-21	Michael Lauer	<mlauer@vanille-media.de>

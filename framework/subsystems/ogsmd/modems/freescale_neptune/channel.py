@@ -16,7 +16,6 @@ __version__ = "0.8.0"
 MODULE_NAME = "ogsmd.neptune_freescale"
 
 from ogsmd.modems.abstract.channel import AbstractModemChannel
-from ogsmd.gsm.parser import ThrowStuffAwayParser
 
 import gobject
 
@@ -44,17 +43,13 @@ class EzxMuxChannel( AbstractModemChannel ):
         c.append( "+CGREG=2" )
 
 #=========================================================================#
-class CallChannel( EzxMuxChannel ):
+class CallAndNetworkChannel( EzxMuxChannel ):
 #=========================================================================#
     def __init__( self, *args, **kwargs ):
         EzxMuxChannel.__init__( self, *args, **kwargs )
 
         # FIXME we can't do this, since it is modem-wide (not VC-wide)
         #self.enqueue( "+CMER=0,0,0,0,0" ) # unsolicited event reporting: none
-
-    def installParser( self ):
-        trash = [ "+CIEV:" ]
-        self.parser = ThrowStuffAwayParser( trash, self._handleResponseToRequest, self._handleUnsolicitedResponse )
 
 #=========================================================================#
 class MiscChannel( EzxMuxChannel ):
@@ -64,10 +59,6 @@ class MiscChannel( EzxMuxChannel ):
 
         # FIXME we can't do this, since it is modem-wide (not VC-wide)
         #self.enqueue( "+CMER=0,0,0,0,0" ) # unsolicited event reporting: none
-
-    def installParser( self ):
-        trash = [ "+CIEV:" ]
-        self.parser = ThrowStuffAwayParser( trash, self._handleResponseToRequest, self._handleUnsolicitedResponse )
 
     def modemStateSimUnlocked( self ):
         """
@@ -86,7 +77,7 @@ class MiscChannel( EzxMuxChannel ):
             self._modem._object.ReadyStatus( True )
 
 #=========================================================================#
-class UnsolicitedResponseChannel( EzxMuxChannel ):
+class SmsChannel( EzxMuxChannel ):
 #=========================================================================#
     def __init__( self, *args, **kwargs ):
         EzxMuxChannel.__init__( self, *args, **kwargs )

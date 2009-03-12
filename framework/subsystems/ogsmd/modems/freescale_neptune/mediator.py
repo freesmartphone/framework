@@ -9,10 +9,11 @@ Package: ogsmd.modems.freescale_neptune
 Module: mediator
 """
 
-__version__ = "0.5.1.0"
+__version__ = "0.5.1.1"
 MODULE_NAME = "ogsmd.modems.freescale_neptune.mediator"
 
 from ogsmd.modems.abstract.mediator import *
+import ogsmd.modems.abstract.mediator as AbstractMediator
 from ogsmd.gsm.decor import logged
 from ogsmd.gsm import const
 from ogsmd.helpers import safesplit
@@ -59,36 +60,17 @@ class DeviceGetInfo( DeviceMediator ):
             self._ok( result )
 
 #=========================================================================#
-class DeviceSetAntennaPower( DeviceMediator ):
-#=========================================================================#
-    def trigger( self ):
-        self._commchannel.enqueue( "+CFUN=%d" % self.power, self.responseFromChannel, self.errorFromChannel, timeout=currentModem().timeout("CFUN") )
-
-        pin_state = self._object.modem._simPinState
-        if pin_state == "READY":
-            self._ok()
-        else:
-            self._error(error.SimAuthFailed("not READY"))
-
-    @logged
-    def responseFromChannel( self, request, response ):
-        if not response[-1] == "OK":
-            DeviceMediator.responseFromChannel( self, request, response )
-
-#=========================================================================#
-class SimGetAuthStatus( SimMediator ):
+class DeviceSetAntennaPower( AbstractMediator.DeviceSetAntennaPower ):
 #=========================================================================#
     """
-    Modem violating GSM 07.07 here.
-
-    +CPIN? does not work
+    Modem freaks out, if we set antenna power to 0.
     """
+    
     def trigger( self ):
-        pin_state = self._object.modem._simPinState
-        if pin_state == "READY":
-            self._ok( pin_state )
+        if not self.power:
+            self._ok() # FIXME: Should error with unsupported command or invalid parameter
         else:
-            self._ok( "SIM PIN" )
+            AbstractMediator.DeviceSetAntennaPower( self )
 
 #=========================================================================#
 class SimSendAuthCode( SimMediator ):
@@ -158,7 +140,7 @@ class NetworkGetStatus( NetworkMediator ):
                     result["registration"] = "unregistered"
                 else:
                     result["mode"] = const.REGISTER_MODE[int(values[0])]
-                    roaming = self._object.modem.data( "roaming", False )
+                    roaming = self._object.modem.data( "network:roaming", False )
                     result["registration"] = "roaming" if roaming else "home"
 
                     mccmnc = values[2].strip( '"' ).replace( '-', '' )

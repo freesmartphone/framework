@@ -18,7 +18,7 @@ import mediator
 
 from ogsmd.modems.abstract.modem import AbstractModem
 
-from .channel import CallChannel, MiscChannel, UnsolicitedResponseChannel
+from .channel import CallAndNetworkChannel, MiscChannel, SmsChannel
 from .unsolicited import UnsolicitedResponseDelegate
 
 from ogsmd.gsm.decor import logged
@@ -60,13 +60,13 @@ class FreescaleNeptune( AbstractModem ):
     def __init__( self, *args, **kwargs ):
         AbstractModem.__init__( self, *args, **kwargs )
 
-        self._channels[ "UNSOL" ] = UnsolicitedResponseChannel( self.pathfactory, "/dev/mux0", modem=self ) # might also be callchannel, if /dev/mux2 does not want to
-        self._channels[ "CALL" ] = CallChannel( self.pathfactory, "/dev/mux2", modem=self )
-        #self._channels[ "MISC" ] = MiscChannel( self.pathfactory, "/dev/mux4", modem=self ) # needs to parse unsolicited
-        self._channels[ "MISC" ] = MiscChannel( self.pathfactory, "/dev/mux6", modem=self )
+        self._channels[ "Sms" ] = SmsChannel( self.pathfactory, "/dev/mux2", modem=self )
+        self._channels[ "CallAndNetwork" ] = CallAndNetworkChannel( self.pathfactory, "/dev/mux0", modem=self )
+        self._channels[ "Misc" ] = MiscChannel( self.pathfactory, "/dev/mux6", modem=self )
 
         # configure channels
-        self._channels["UNSOL"].setDelegate( UnsolicitedResponseDelegate( self._object, mediator ) )
+        self._channels["CallAndNetwork"].setDelegate( UnsolicitedResponseDelegate( self._object, mediator ) )
+        self._channels["Sms"].setDelegate( UnsolicitedResponseDelegate( self._object, mediator ) )
 
     def numberToPhonebookTuple( self, nstring ):
         """
@@ -84,11 +84,11 @@ class FreescaleNeptune( AbstractModem ):
 
     def channel( self, category ):
         if category == "CallMediator":
-            return self._channels["CALL"]
+            return self._channels["CallAndNetwork"]
         elif category == "UnsolicitedMediator":
-            return self._channels["UNSOL"]
+            return self._channels["Sms"]
         else:
-            return self._channels["MISC"]
+            return self._channels["Misc"]
 
     def pathfactory( self, name ):
         return name
