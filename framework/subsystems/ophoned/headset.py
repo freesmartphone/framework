@@ -27,6 +27,16 @@ class HeadsetManager( object ):
         self.pcm_cap = None
         self.enabled = False
         self.playing = False
+        self._kickPCM()
+
+    def _kickPCM( self ):
+        try:
+            hpcm_play = alsaaudio.PCM( alsaaudio.PCM_PLAYBACK, alsaaudio.PCM_NONBLOCK, "hw:0,0" )
+            hpcm_cap = alsaaudio.PCM( alsaaudio.PCM_CAPTURE, alsaaudio.PCM_NONBLOCK, "hw:0,0" )
+            del hpcm_play
+            del hpcm_cap
+        except alsaaudio.ALSAAudioError:
+            pass
 
     def _startPCM( self ):
         self._stopPCM()
@@ -85,7 +95,13 @@ class HeadsetManager( object ):
                 raise
 
     def _startBT( self ):
-        self.bluez_device_headset.Play()
+        try:
+            self.bluez_device_headset.Play()
+        except dbus.exceptions.DBusException as e:
+            if e.get_dbus_name() == "org.bluez.Error.AlreadyConnected":
+                pass
+            else:
+                raise
 
     def _stopBT( self ):
         self.bluez_device_headset.Stop()
@@ -111,9 +127,9 @@ class HeadsetManager( object ):
             self._disconnectBT()
 
     def setPlaying( self, playing ):
-        if not self.enabled:
-            raise HeadsetError("Not enabled")
         if not self.playing and playing:
+            if not self.enabled:
+                raise HeadsetError("Not enabled")
             self._startPCM()
             self._startBT()
             self.playing = True
