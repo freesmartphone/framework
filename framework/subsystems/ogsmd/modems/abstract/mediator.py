@@ -333,6 +333,7 @@ class DeviceGetAntennaPower( DeviceMediator ):
 #=========================================================================#
 class DeviceSetAntennaPower( DeviceMediator ):
 #=========================================================================#
+    # FIXME: Do not call CPIN? directly, use the GetAuthStatus mediator instead!
     def trigger( self ):
         self._commchannel.enqueue( "+CPIN?", self.intermediateResponse, self.errorFromChannel )
 
@@ -474,13 +475,15 @@ class DeviceSetMicrophoneMuted( DeviceMediator ):
 #=========================================================================#
 class SimGetAuthStatus( SimMediator ):
 #=========================================================================#
+    # FIXME: Add SIM PIN known/unknown logic here in order to prepare for changing SetAntennaPower() semantics
     def trigger( self ):
         self._commchannel.enqueue( "+CPIN?", self.responseFromChannel, self.errorFromChannel )
 
     @logged
     def responseFromChannel( self, request, response ):
         if response[-1] == "OK":
-            self._ok( self._rightHandSide( response[0] ) )
+            pin_state = self._rightHandSide( response[0] ).strip( '"' ) # some modems include "
+            self._ok( pin_state )
         else:
             SimMediator.responseFromChannel( self, request, response )
 
