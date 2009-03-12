@@ -14,7 +14,7 @@ This module provides communication channel abstractions that
 transport their data over a (virtual) serial line.
 """
 
-__version__ = "0.9.15"
+__version__ = "0.9.16"
 MODULE_NAME = "ogsmd.channel"
 
 from ogsmd.gsm.decor import logged
@@ -421,12 +421,12 @@ class QueuedVirtualChannel( VirtualChannel ):
 
         The default implementation calls the error callback pinned to the request.
         """
-        reqstring, ok_cb, error_cb, timeout = request
+        reqstring, ok_cb, error_cb, prefixes = request
         if not ok_cb and not error_cb:
             logger.debug( "%s: TIMEOUT '%s' => ???" % ( repr(self), reqstring.strip() ) )
         else:
             logger.debug( "%s: TIMEOUT '%s' => ???" % ( repr(self), reqstring.strip() ) )
-            error_cb( reqstring.strip(), ( "timeout", timeout ) )
+            error_cb( reqstring.strip(), ( "timeout", self.timeout ) )
 
     #
     # private API
