@@ -92,6 +92,12 @@ class InvertFilter( Filter ):
     def filter( self, **kargs ):
         return not self.__filter.filter( **kargs )
 
+    def enable( self ):
+        self.__filter.enable()
+
+    def disable( self ):
+        self.__filter.disable()
+
     def __repr__( self ):
         return "~(%s)" % self.__filter
 
@@ -107,6 +113,14 @@ class AndFilter( Filter ):
     def filter( self, **kargs ):
         return all( f.filter( **kargs ) for f in self.filters )
 
+    def enable( self ):
+        for f in self.filters:
+            f.enable()
+
+    def disable( self ):
+        for f in self.filters:
+            f.disable()
+
     def __repr__( self ):
         return "And(%s)" % ','.join( str( f ) for f in self.filters )
 
@@ -121,6 +135,14 @@ class OrFilter( Filter ):
 
     def filter( self, **kargs ):
         return any( f.filter( **kargs ) for f in self.filters )
+
+    def enable( self ):
+        for f in self.filters:
+            f.enable()
+
+    def disable( self ):
+        for f in self.filters:
+            f.disable()
 
     def __repr__( self ):
         return "Or(%s)" % ','.join( str( f ) for f in self.filters )
