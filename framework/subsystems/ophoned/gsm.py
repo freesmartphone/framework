@@ -46,6 +46,7 @@ class GSMProtocol(protocol.Protocol):
             # Don't forget to register the call gsm id :
             call.gsm_id = id
             self.calls_by_id[id] = call
+            call.on_call_status(status, properties)
         else:
             assert id in self.calls_by_id
             self.calls_by_id[id].on_call_status(status, properties)
@@ -64,7 +65,7 @@ class GSMProtocol(protocol.Protocol):
                 self.Activated()
             elif status == 'release':
                 self.Released()
-            self.state = status
+            self.status = status
 
         # We make the call asynchronous, because we can't block the framwork mainloop on it !
         @dbus.service.method(
