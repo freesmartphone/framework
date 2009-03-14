@@ -13,21 +13,29 @@ FIXME: This is still device specific...
 
 """
 
-import dbus, alsaaudio
+import dbus, alsaaudio, gobject
+
+import logging
+logger = logging.getLogger( "ophoned.headset" )
 
 class HeadsetError( dbus.DBusException ):
     _dbus_error_name = "org.freesmartphone.Phone.HeadsetError"
 
 class HeadsetManager( object ):
-    def __init__( self, bus ):
+    def __init__( self, bus, onAnswerRequested = None, onConnectionStatus = None ):
         self.bus = bus
+        self._onAnswerRequested = onAnswerRequested
+        self._matchAnswerRequested = None
+        self._onConnectionStatus = onConnectionStatus
         self.address = None
         self.pcm_device = "hw:0,1"
         self.pcm_play = None
         self.pcm_cap = None
         self.enabled = False
+        self.connected = False
         self.playing = False
         self._kickPCM()
+        self.monitor = gobject.timeout_add_seconds( 10.0, self._handleMonitorTimeout )
 
     def _kickPCM( self ):
         try:
@@ -88,6 +96,10 @@ class HeadsetManager( object ):
         )
         try:
             self.bluez_device_headset.Connect()
+            if self._onAnswerRequested:
+                self._matchAnswerRequested = self.bluez_device_headset.connect_to_signal(
+                    'AnswerRequested', self._onAnswerRequested
+                )
         except dbus.exceptions.DBusException as e:
             if e.get_dbus_name() == "org.bluez.Error.AlreadyConnected":
                 pass
@@ -107,7 +119,32 @@ class HeadsetManager( object ):
         self.bluez_device_headset.Stop()
 
     def _disconnectBT( self ):
+        if self._matchAnswerRequested:
+            self._matchAnswerRequested.remove()
+            self._matchAnswerRequested = None
         self.bluez_device_headset.Disconnect()
+        self.bluez_device_headset = None
+        self.bluez_adapter = None
+        self.bluez_manager = None
+
+    def _updateConnected( self ):
+        if self.enabled and not self.connected:
+            self._connectBT()
+            self.connected = True
+            if self._onConnectionStatus:
+                self._onConnectionStatus( self.connected )
+        elif not self.enabled and self.connected:
+            self._disconnectBT()
+            self.connected = False
+            if self._onConnectionStatus:
+                self._onConnectionStatus( self.connected )
+
+    def _handleMonitorTimeout( self ):
+        try:
+            self._updateConnected()
+        except:
+            logger.exception( "_handleMonitorTimeout failed:" )
+        return True
 
     def setAddress( self, address ):
         if self.enabled:
@@ -118,13 +155,18 @@ class HeadsetManager( object ):
         if not self.enabled and enabled:
             if not self.address:
                 raise HeadsetError("Address not set")
-            # we expect bluetooth to be enabled already, should we request the resource here?
-            self._connectBT()
             self.enabled = True
+            self._updateConnected()
         elif self.enabled and not enabled:
             self.setPlaying( False )
             self.enabled = False
-            self._disconnectBT()
+            self._updateConnected()
+
+    def getEnabled( self ):
+        return self.enabled
+
+    def getConnected( self ):
+        return self.connected
 
     def setPlaying( self, playing ):
         if not self.playing and playing:
@@ -137,6 +179,9 @@ class HeadsetManager( object ):
             self._stopBT()
             self._stopPCM()
             self.playing = False
+
+    def getPlaying( self ):
+        return self.playing
 
 if __name__=="__main__":
     m = HeadsetManager( dbus.SystemBus() )

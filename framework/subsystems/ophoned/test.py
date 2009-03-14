@@ -14,8 +14,8 @@ class TestProtocol(protocol.Protocol):
 
 
     class Call(protocol.Call):
-        def __init__(self, proto, number):
-            super(TestProtocol.Call, self).__init__(proto, number)
+        def __init__(self, proto, handle, peer):
+            super(TestProtocol.Call, self).__init__(proto, handle, peer)
 
         def Initiate(self):
             """Initiate the call"""
@@ -44,3 +44,4 @@ class TestProtocol(protocol.Protocol):
                     self.Released()
             gobject.timeout_add(1000, on_timeout)
             return super(TestProtocol.Call, self).Release()
+

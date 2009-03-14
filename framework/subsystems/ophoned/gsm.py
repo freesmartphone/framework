@@ -16,7 +16,6 @@ class GSMProtocol(protocol.Protocol):
         return 'GSM'
     
     def __init__(self, phone):
-        logger.info("init GSM Protocol")
         super(GSMProtocol, self).__init__(phone)
         # We create all the interfaces to GSM/Device
         try:
@@ -35,28 +34,26 @@ class GSMProtocol(protocol.Protocol):
         
         # If the call is incoming, we create a new call object for this call and notify the phone service
         # else, we dispatch the signal to the apropriate call object
-        if status == 'incoming':
+        if status in ['incoming', 'outgoing']:
             # XXX: one problem here : if no client is waiting for the event, then
             # The call object will never be removed.
             # Is there a way to check if the signal has listeners, and only create the call object if so ?
             if id in self.calls_by_id:
                 logger.warning("call %d already registered", id)
                 return
-            number = str(properties.get('peer', "Unknown"))
-            call = self.CreateCall(number, force = True)
+            peer = str(properties.get('peer', "Unknown"))
+            call = self.CreateCall(peer)
             # Don't forget to register the call gsm id :
             call.gsm_id = id
             self.calls_by_id[id] = call
-            
-            self.phone.Incoming(call)
         else:
             assert id in self.calls_by_id
             self.calls_by_id[id].on_call_status(status, properties)
-    
+
 
     class Call(protocol.Call):
-        def __init__(self, protocol, number):
-            super(GSMProtocol.Call, self).__init__(protocol, number)
+        def __init__(self, protocol, handle, peer):
+            super(GSMProtocol.Call, self).__init__(protocol, handle, peer)
             self.gsm_id = None  # Used to identify the call by the gsm protocole
             
         def on_call_status(self, status, properties ):

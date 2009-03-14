@@ -16,6 +16,7 @@ __version__ = "0.1.0"
 from protocol import Protocol, ProtocolUnusable
 from test import TestProtocol
 from gsm import GSMProtocol
+from headset import HeadsetManager
 
 import dbus
 import dbus.service
@@ -32,23 +33,34 @@ class Phone(dbus.service.Object):
         self.path = '/org/freesmartphone/Phone'
         self.interface = "org.freesmartphone.Phone"
         super(Phone, self).__init__(bus, self.path)
-        self.protocols = None
-
-    @dbus.service.method('org.freesmartphone.Phone', in_signature='', out_signature='as')
-    def InitProtocols(self):
-        """Initialize all the protocols
-
-           It is not compulsory to call this method, since it will be automatically called the first time
-           we attempt to create a call.
-        """
         self.protocols = {}
-        for protocol_cls in Protocol.all_instances:
-            try:
-                protocol = protocol_cls(self)
-                self.protocols[protocol.name()] = protocol
-            except ProtocolUnusable, e:
-                logger.info("can't use protocol %s : %s", protocol_cls, e)
-        return self.protocols.keys()
+        self.active_call = None
+        self.gsm = bus.get_object(
+            'org.freesmartphone.ousaged', '/org/freesmartphone/Usage',
+            follow_name_owner_changes = True
+        )
+        self.gsm.connect_to_signal( 'ResourceChanged', self.on_resource_changed )
+        self.headset = HeadsetManager( self.bus, self.on_bt_answer_requested, self.on_bt_connection_status )
+
+    def on_resource_changed( self, resourcename, state, attributes ):
+        if resourcename == "GSM":
+            if state and not "GSM" in self.protocols:
+                self.protocols["GSM"] = GSMProtocol( self )
+            elif not state and "GSM" in self.protocols:
+                self.protocols["GSM"].fini()
+                del self.protocols["GSM"]
+
+    def on_bt_answer_requested( self ):
+        logger.info("BT-Headset: AnswerRequested")
+        if self.active_call:
+            if self.active_call.GetStatus() in ['incoming']:
+                self.Accept( dbus_ok = lambda x: None, dbus_error = lambda x: None )
+            else:
+                self.Hangup( dbus_ok = lambda x: None, dbus_error = lambda x: None )
+
+    def on_bt_connection_status( self, connected ):
+        logger.info("BT-Headset: ConnectionStatus = %s", connected)
+        self.BTHeadsetConnected( connected )
 
     @dbus.service.method('org.freesmartphone.Phone', in_signature='ssb', out_signature='o')
     def CreateCall(self, number, protocol = None, force = True):
@@ -76,12 +88,53 @@ class Phone(dbus.service.Object):
         ret = protocol.CreateCall(number, force = force)
         return ret
 
-    @dbus.service.signal('org.freesmartphone.Phone', signature='o')
-    def Incoming(self, call):
-        """Emitted when a call is incoming"""
+    @dbus.service.method('org.freesmartphone.Phone', in_signature='s', out_signature='')
+    def SetBTHeadsetAddress( self, address ):
+        self.headset.setAddress( address )
+
+    @dbus.service.method('org.freesmartphone.Phone', in_signature='b', out_signature='')
+    def SetBTHeadsetEnabled( self, enabled ):
+        self.headset.setEnabled( enabled )
+        self.BTHeadsetEnabled( enabled )
+
+    @dbus.service.method('org.freesmartphone.Phone', in_signature='b', out_signature='')
+    def SetBTHeadsetPlaying( self, playing ):
+        self.headset.setPlaying( playing )
+
+    @dbus.service.signal('org.freesmartphone.Phone', signature='b')
+    def BTHeadsetEnabled(self, enabled):
         pass
 
+    @dbus.service.signal('org.freesmartphone.Phone', signature='b')
+    def BTHeadsetConnected(self, connected):
+        pass
 
+    # FIXME handle multiple calls correctly
+
+    @dbus.service.method('org.freesmartphone.Phone', in_signature='', out_signature='')
+    def Accept(self):
+        if self.active_call:
+            self.active_call.Activate()
+            if self.headset.isActive():
+                self.headset.setPlaying( True )
+
+    @dbus.service.method('org.freesmartphone.Phone', in_signature='', out_signature='')
+    def Hangup(self):
+        if self.active_call:
+            self.active_call.Release()
+            if self.headset.isActive():
+                self.headset.setPlaying( False )
+
+    @dbus.service.signal('org.freesmartphone.Phone', signature='o')
+    def CallCreated(self, call):
+        """Emitted when a new call has been created"""
+        self.active_call = call
+
+    @dbus.service.signal('org.freesmartphone.Phone', signature='o')
+    def CallReleased(self, call):
+        """Emitted when a call has been released"""
+        if self.active_call == call:
+            self.active_call = None
 
 def factory(prefix, controller):
     """This is the magic function that will be called bye the framework module manager"""
