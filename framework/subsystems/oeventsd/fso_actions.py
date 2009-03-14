@@ -169,6 +169,32 @@ class VibratorAction(Action):
                     'SetBrightness', 0).trigger()
 
 #============================================================================#
+class BTHeadsetPlayingAction(Action):
+#============================================================================#
+    """
+    A dbus action on the Bluetooth Headset API
+    """
+    function_name = 'BTHeadsetPlaying'
+    def __init__(self):
+        pass
+    def trigger(self, **kargs):
+        DBusAction(dbus.SystemBus(),
+                    'org.freesmartphone.ophoned',
+                    '/org/freesmartphone/Phone',
+                    'org.freesmartphone.Phone',
+                    'SetBTHeadsetPlaying', True).trigger()
+
+    def untrigger(self, **kargs):
+        DBusAction(dbus.SystemBus(),
+                    'org.freesmartphone.ophoned',
+                    '/org/freesmartphone/Phone',
+                    'org.freesmartphone.Phone',
+                    'SetBTHeadsetPlaying', False).trigger()
+
+    def __repr__(self):
+        return "BTHeadsetPlaying()"
+
+#============================================================================#
 class OccupyResourceAction(Action):
 #============================================================================#
     function_name = 'OccupyResource'
@@ -189,6 +215,9 @@ class OccupyResourceAction(Action):
                     '/org/freesmartphone/Usage',
                     'org.freesmartphone.Usage',
                     'ReleaseResource', self.resource).trigger()
+
+    def __repr__(self):
+        return "OccupyResource(%s)" % ( self.resource )
 
 #=========================================================================#
 class RingToneAction(Action):

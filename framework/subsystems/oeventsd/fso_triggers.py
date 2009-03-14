@@ -67,6 +67,46 @@ class CallListContains(WhileRule):
         return "CallListContains(%s)" % self.status
 
 #============================================================================#
+class BTHeadsetConnectedTrigger(DBusTrigger):
+#============================================================================#
+    function_name = 'BTHeadsetConnected'
+
+    def __init__(self):
+        bus = dbus.SystemBus()
+        super(BTHeadsetConnectedTrigger, self).__init__(
+            bus,
+            'org.freesmartphone.ophoned',
+            '/org/freesmartphone/Phone',
+            'org.freesmartphone.Phone',
+            'BTHeadsetConnected'
+        )
+    def on_signal(self, status):
+        logger.info("Receive BTConnectedEnabled, status = %s", status)
+        self._trigger(status=status)
+
+    def __repr__(self):
+        return "BTHeadsetConnected"
+
+#============================================================================#
+class BTHeadsetConnectedIs(WhileRule):
+#============================================================================#
+    function_name = "BTHeadsetConnectedIs"
+
+    def __init__(self, status):
+        self.status = status
+        super(BTHeadsetConnectedIs, self).__init__(BTHeadsetConnectedTrigger())
+
+    def trigger(self, status=None, **kargs):
+        logger.debug("Trigger %s", self)
+        if self.status == status:
+            super(BTHeadsetConnectedIs, self).trigger()
+        else:
+            super(BTHeadsetConnectedIs, self).untrigger()
+
+    def __repr__(self):
+        return "BTHeadsetConnectedIs(%s)" % self.status
+
+#============================================================================#
 class IncomingMessageTrigger(DBusTrigger):
 #============================================================================#
     """

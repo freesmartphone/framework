@@ -53,8 +53,23 @@
     while: CallStatus()
     filters: Or(HasAttr(status, "outgoing"), HasAttr(status, "active"))
     actions:
-            - SetScenario(gsmhandset)
             - OccupyResource(CPU)
+-
+    while: CallStatus()
+    filters:
+            - Or(HasAttr(status, "outgoing"), HasAttr(status, "active"))
+            - BTHeadsetConnectedIs(False)
+    actions:
+            - SetScenario(gsmhandset)
+-
+    while: CallStatus()
+    filters:
+            - Or(HasAttr(status, "outgoing"), HasAttr(status, "active"))
+            - BTHeadsetConnectedIs(True)
+    actions:
+            - SetScenario(gsmbluetooth)
+            - BTHeadsetPlaying()
+
 -
     while: PowerStatus()
     filters: HasAttr(status, "charging")
