@@ -128,6 +128,7 @@ class HeadsetManager( object ):
         self.bluez_manager = None
 
     def _updateConnected( self ):
+        # FIXME: handle disappearing BT device
         if self.enabled and not self.connected:
             self._connectBT()
             self.connected = True

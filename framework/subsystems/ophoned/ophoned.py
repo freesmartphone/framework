@@ -51,12 +51,12 @@ class Phone(dbus.service.Object):
                 del self.protocols["GSM"]
 
     def on_bt_answer_requested( self ):
-        logger.info("BT-Headset: AnswerRequested")
+        logger.info( "BT-Headset: AnswerRequested (active call = %s)", self.active_call )
         if self.active_call:
             if self.active_call.GetStatus() in ['incoming']:
-                self.Accept( dbus_ok = lambda x: None, dbus_error = lambda x: None )
+                self.Accept()
             else:
-                self.Hangup( dbus_ok = lambda x: None, dbus_error = lambda x: None )
+                self.Hangup()
 
     def on_bt_connection_status( self, connected ):
         logger.info("BT-Headset: ConnectionStatus = %s", connected)
@@ -113,17 +113,15 @@ class Phone(dbus.service.Object):
 
     @dbus.service.method('org.freesmartphone.Phone', in_signature='', out_signature='')
     def Accept(self):
+        logger.info( "Accept (active call = %s)", self.active_call )
         if self.active_call:
-            self.active_call.Activate()
-            if self.headset.isActive():
-                self.headset.setPlaying( True )
+            self.active_call.Activate( dbus_ok = lambda x: None, dbus_error = lambda x: None )
 
     @dbus.service.method('org.freesmartphone.Phone', in_signature='', out_signature='')
     def Hangup(self):
+        logger.info( "Hangup (active call = %s)", self.active_call )
         if self.active_call:
-            self.active_call.Release()
-            if self.headset.isActive():
-                self.headset.setPlaying( False )
+            self.active_call.Release( dbus_ok = lambda x: None, dbus_error = lambda x: None )
 
     @dbus.service.signal('org.freesmartphone.Phone', signature='o')
     def CallCreated(self, call):
