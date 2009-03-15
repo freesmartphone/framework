@@ -109,6 +109,12 @@ class WhileRule( Rule, Filter ):
         self._untrigger( **kargs )
         self.triggered = False
 
+    def enable( self ):
+        Rule.enable( self )
+
+    def disable( self ):
+        Rule.disable( self )
+
     def filter( self, **kargs ):
         """The filter is True if the rule is triggered"""
         return self.triggered
