@@ -18,7 +18,7 @@ from rule import WhileRule
 import dbus
 
 import logging
-logger = logging.getLogger('oeventsd')
+logger = logging.getLogger('oeventsd.fso_triggers')
 
 #============================================================================#
 class CallStatusTrigger(DBusTrigger):
