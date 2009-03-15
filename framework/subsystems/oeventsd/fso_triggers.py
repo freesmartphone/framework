@@ -88,23 +88,22 @@ class BTHeadsetConnectedTrigger(DBusTrigger):
         return "BTHeadsetConnected"
 
 #============================================================================#
-class BTHeadsetConnectedIs(WhileRule):
+class BTHeadsetIsConnected(WhileRule):
 #============================================================================#
-    function_name = "BTHeadsetConnectedIs"
+    function_name = "BTHeadsetIsConnected"
 
-    def __init__(self, status):
-        self.status = status
-        super(BTHeadsetConnectedIs, self).__init__(BTHeadsetConnectedTrigger())
+    def __init__(self):
+        super(BTHeadsetIsConnected, self).__init__(BTHeadsetConnectedTrigger())
 
     def trigger(self, status=None, **kargs):
         logger.debug("Trigger %s", self)
-        if self.status == status:
-            super(BTHeadsetConnectedIs, self).trigger()
+        if status:
+            super(BTHeadsetIsConnected, self).trigger()
         else:
-            super(BTHeadsetConnectedIs, self).untrigger()
+            super(BTHeadsetIsConnected, self).untrigger()
 
     def __repr__(self):
-        return "BTHeadsetConnectedIs(%s)" % self.status
+        return "BTHeadsetIsConnected()"
 
 #============================================================================#
 class IncomingMessageTrigger(DBusTrigger):

@@ -58,14 +58,14 @@
     while: CallStatus()
     filters:
             - Or(HasAttr(status, "outgoing"), HasAttr(status, "active"))
-            - BTHeadsetConnectedIs(False)
+            - Not(BTHeadsetIsConnected())
     actions:
             - SetScenario(gsmhandset)
 -
     while: CallStatus()
     filters:
             - Or(HasAttr(status, "outgoing"), HasAttr(status, "active"))
-            - BTHeadsetConnectedIs(True)
+            - BTHeadsetIsConnected()
     actions:
             - SetScenario(gsmbluetooth)
             - BTHeadsetPlaying()
