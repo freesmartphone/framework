@@ -340,6 +340,11 @@ class AlsaScenarios( object ):
         statename = "%s/%s.state" % ( self._statedir, scenario )
         result = subprocess.call( [ "alsactl", "-f", statename, "restore" ] )
         if result == 0:
+            # work around ASoC DAPM problem
+            if scenario == "gsmbluetooth":
+                result += subprocess.call( [ "amixer", "sset", "Capture Left Mixer", "Analogue Mix Right" ] )
+                result += subprocess.call( [ "amixer", "sset", "Capture Left Mixer", "Analogue Mix Left" ] )
+        if result == 0:
             self._current = scenario
             self._object.Scenario( scenario, "user" )
             return True
