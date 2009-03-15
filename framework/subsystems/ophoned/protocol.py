@@ -3,7 +3,7 @@ import dbus.service
 from dbus import DBusException
 
 import logging
-logger = logging.getLogger('ophoned')
+logger = logging.getLogger('ophoned.protocol')
 
 class ProtocolMetaClass(type):
     """The meta class for Protocole class

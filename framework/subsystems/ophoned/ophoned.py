@@ -13,6 +13,7 @@ Implementation of the dbus objects.
 MODULE_NAME = "ophoned"
 __version__ = "0.1.0"
 
+from framework import helpers
 from protocol import Protocol, ProtocolUnusable
 from test import TestProtocol
 from gsm import GSMProtocol
@@ -54,9 +55,9 @@ class Phone(dbus.service.Object):
         logger.info( "BT-Headset: AnswerRequested (active call = %s)", self.active_call )
         if self.active_call:
             if self.active_call.GetStatus() in ['incoming']:
-                self.Accept()
+                self.Accept( dbus_ok = helpers.drop_dbus_result, dbus_error = helpers.log_dbus_error )
             else:
-                self.Hangup()
+                self.Hangup( dbus_ok = helpers.drop_dbus_result, dbus_error = helpers.log_dbus_error )
 
     def on_bt_connection_status( self, connected ):
         logger.info("BT-Headset: ConnectionStatus = %s", connected)
@@ -111,26 +112,34 @@ class Phone(dbus.service.Object):
 
     # FIXME handle multiple calls correctly
 
-    @dbus.service.method('org.freesmartphone.Phone', in_signature='', out_signature='')
-    def Accept(self):
+    @dbus.service.method(
+        'org.freesmartphone.Phone', in_signature='', out_signature='',
+        async_callbacks=("dbus_ok","dbus_error")
+    )
+    def Accept(self, dbus_ok, dbus_error):
         logger.info( "Accept (active call = %s)", self.active_call )
         if self.active_call:
-            self.active_call.Activate( dbus_ok = lambda x: None, dbus_error = lambda x: None )
+            self.active_call.Activate( dbus_ok = dbus_ok, dbus_error = dbus_error )
 
-    @dbus.service.method('org.freesmartphone.Phone', in_signature='', out_signature='')
-    def Hangup(self):
+    @dbus.service.method(
+        'org.freesmartphone.Phone', in_signature='', out_signature='',
+        async_callbacks=("dbus_ok","dbus_error")
+    )
+    def Hangup(self, dbus_ok, dbus_error):
         logger.info( "Hangup (active call = %s)", self.active_call )
         if self.active_call:
-            self.active_call.Release( dbus_ok = lambda x: None, dbus_error = lambda x: None )
+            self.active_call.Release( dbus_ok = dbus_ok, dbus_error = dbus_error )
 
     @dbus.service.signal('org.freesmartphone.Phone', signature='o')
     def CallCreated(self, call):
         """Emitted when a new call has been created"""
+        logger.info( "CallCreated (%s)", call )
         self.active_call = call
 
     @dbus.service.signal('org.freesmartphone.Phone', signature='o')
     def CallReleased(self, call):
         """Emitted when a call has been released"""
+        logger.info( "CallReleased (%s)", call )
         if self.active_call == call:
             self.active_call = None
 

@@ -13,7 +13,7 @@ FIXME: This is still device specific...
 
 """
 
-import dbus, alsaaudio, gobject
+import dbus, alsaaudio, gobject, subprocess
 
 import logging
 logger = logging.getLogger( "ophoned.headset" )
@@ -35,7 +35,7 @@ class HeadsetManager( object ):
         self.connected = False
         self.playing = False
         self._kickPCM()
-        self.monitor = gobject.timeout_add_seconds( 10.0, self._handleMonitorTimeout )
+        self.monitor = gobject.timeout_add_seconds( 10, self._handleMonitorTimeout )
 
     def _kickPCM( self ):
         try:

@@ -2,11 +2,12 @@ import dbus
 import dbus.service
 from dbus import DBusException
 
+from framework import helpers
 from protocol import Protocol, Call, ProtocolUnusable
 import protocol
 
 import logging
-logger = logging.getLogger('ophoned')
+logger = logging.getLogger('ophoned.gsm')
 
 class GSMProtocol(protocol.Protocol):
     """Phone protocol using ogsm service
@@ -25,12 +26,14 @@ class GSMProtocol(protocol.Protocol):
             raise protocol.ProtocolUnusable(e.message)
         
         self.calls_by_id = {} # This will contain a list of all the created calls
-        
+
+    @helpers.exceptionlogger
     def on_call_status(self, id, status, properties ):
         """This method is called every time ogsmd emmits a status change"""
         # First we convert the arguments into python values
         id = int(id)
         status = str(status)
+        logger.debug("call_status: %d %s %s", id, status, properties)
         
         # If the call is incoming, we create a new call object for this call and notify the phone service
         # else, we dispatch the signal to the apropriate call object
@@ -50,7 +53,6 @@ class GSMProtocol(protocol.Protocol):
         else:
             assert id in self.calls_by_id
             self.calls_by_id[id].on_call_status(status, properties)
-
 
     class Call(protocol.Call):
         def __init__(self, protocol, handle, peer):
