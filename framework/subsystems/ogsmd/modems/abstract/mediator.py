@@ -1657,7 +1657,7 @@ class MonitorGetNeighbourCellInformation( MonitorMediator ):
 class DebugCommand( DebugMediator ):
 #=========================================================================#
     def trigger( self ):
-        self._commchannel.enqueueRaw( "%s" % self.command, self.responseFromChannel, self.errorFromChannel )
+        self._commchannel.enqueueRaw( "%s" % self.command, self.responseFromChannel, self.errorFromChannel, prefixes = [""] )
 
     def responseFromChannel( self, request, response ):
         self._ok( response )
