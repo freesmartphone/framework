@@ -63,14 +63,26 @@ class DeviceGetInfo( DeviceMediator ):
 class DeviceSetAntennaPower( AbstractMediator.DeviceSetAntennaPower ):
 #=========================================================================#
     """
-    Modem freaks out, if we set antenna power to 0.
+    We want to receive all initial status commands, so we always send +CFUN=0 first.
+
+    In contrast to AbstractMediator.DeviceSetAntennaPower, PIN handling
+    has been removed here, since after powercycling we will get an URC
+    indicating the PIN status.
     """
-    
+
     def trigger( self ):
-        if not self.power:
-            self._ok() # FIXME: Should error with unsupported command or invalid parameter
+        if self.power:
+            cmd = "+CFUN=0;+CFUN=1"
         else:
-            AbstractMediator.DeviceSetAntennaPower( self )
+            cmd = "+CFUN=1"
+
+        self._commchannel.enqueue( cmd, self.responseFromChannel, self.errorFromChannel )
+
+    def responseFromChannel( self, request, response ):
+        if response[-1] == "OK":
+            self._ok()
+        else:
+            DeviceMediator.responseFromChannel( self, request, response )
 
 #=========================================================================#
 class SimSendAuthCode( SimMediator ):

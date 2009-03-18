@@ -11,7 +11,7 @@ Module: modem
 Freescale Neptune modem class
 """
 
-__version__ = "0.2.1"
+__version__ = "0.3.1"
 MODULE_NAME = "ogsmd.modems.freescale_neptune"
 
 import mediator
@@ -40,7 +40,7 @@ class FreescaleNeptune( AbstractModem ):
         0   Control Channel         -          -
         1   Voice Call & Network    MM      /dev/mux0   Modem
         2   SMS                     MO      /dev/mux1   Phonebook
-        3   SMS MT                          /dev/mux2   Phonebook
+        3   SMS                     MT      /dev/mux2   Phonebook
         4   Phonebook               SIM     /dev/mux3   Phonebook
         5   Misc                            /dev/mux4   Phonebook
         6   CSD / Fax             /dev/mux5 /dev/mux8   Modem
@@ -60,13 +60,19 @@ class FreescaleNeptune( AbstractModem ):
     def __init__( self, *args, **kwargs ):
         AbstractModem.__init__( self, *args, **kwargs )
 
-        self._channels[ "Sms" ] = SmsChannel( self.pathfactory, "/dev/mux2", modem=self )
+        # /dev/mux0
         self._channels[ "CallAndNetwork" ] = CallAndNetworkChannel( self.pathfactory, "/dev/mux0", modem=self )
+        # /dev/mux2
+        self._channels[ "Sms" ] = SmsChannel( self.pathfactory, "/dev/mux2", modem=self )
+        # /dev/mux4
+        self._channels[ "Sim" ] = SimChannel( self.pathfactory, "/dev/mux4", modem=self )
+        # /dev/mux6
         self._channels[ "Misc" ] = MiscChannel( self.pathfactory, "/dev/mux6", modem=self )
 
         # configure channels
         self._channels["CallAndNetwork"].setDelegate( UnsolicitedResponseDelegate( self._object, mediator ) )
         self._channels["Sms"].setDelegate( UnsolicitedResponseDelegate( self._object, mediator ) )
+        self._channels["Sim"].setDelegate( UnsolicitedResponseDelegate( self._object, mediator ) )
 
     def numberToPhonebookTuple( self, nstring ):
         """
@@ -87,6 +93,8 @@ class FreescaleNeptune( AbstractModem ):
             return self._channels["CallAndNetwork"]
         elif category == "UnsolicitedMediator":
             return self._channels["Sms"]
+        elif category == "SimMediator":
+            return self._channels["Sim"]
         else:
             return self._channels["Misc"]
 

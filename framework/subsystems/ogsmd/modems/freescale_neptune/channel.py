@@ -81,3 +81,9 @@ class SmsChannel( EzxMuxChannel ):
 #=========================================================================#
     def __init__( self, *args, **kwargs ):
         EzxMuxChannel.__init__( self, *args, **kwargs )
+
+#=========================================================================#
+class SimChannel( EzxMuxChannel ):
+#=========================================================================#
+    def __init__( self, *args, **kwargs ):
+        EzxMuxChannel.__init__( self, *args, **kwargs )

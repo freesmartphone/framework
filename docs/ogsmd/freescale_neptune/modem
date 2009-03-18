@@ -33,5 +33,7 @@ INSERTED?)
 
 === Proprietary commands and URCs ===
 
-+CMSM: 3 means "SIM unlocked"; +CMSM: 0 means "SIM locked"
++CMSM: 3 means "SIM unlocked"; +CMSM: 0 means "SIM locked". If the SIM slot is empty, it will not appear at 
+all after +CFUN=1 (before +ESCR)
+
 

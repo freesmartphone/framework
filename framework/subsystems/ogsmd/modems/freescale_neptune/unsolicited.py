@@ -6,12 +6,16 @@ The Open GSM Daemon - Python Implementation
 GPLv2 or later
 """
 
-__version__ = "0.8.0.0"
+__version__ = "0.8.1.0"
+MODULE_NAME = "ogsmd.modems.freescale_neptune.unsolicited"
 
 from ogsmd.modems.abstract.unsolicited import AbstractUnsolicitedResponseDelegate
 from ogsmd.gsm import const
 from ogsmd.helpers import safesplit
 import ogsmd.gsm.sms
+
+import logging
+logger = logging.getLogger( MODULE_NAME )
 
 #=========================================================================#
 class UnsolicitedResponseDelegate( AbstractUnsolicitedResponseDelegate ):
@@ -24,14 +28,6 @@ class UnsolicitedResponseDelegate( AbstractUnsolicitedResponseDelegate ):
     # GSM standards
     #
 
-    # EZX does not honor +CRM, hence +CRING is not being sent
-    def plusCRING( self, calltype ):
-        pass
-
-    # +CLIP: "+4969123456789",145
-    def plusCLIP( self, righthandside ):
-        pass
-
     # +CCWA:
     def plusCCWA( self, righthandside ):
         pass
@@ -39,30 +35,6 @@ class UnsolicitedResponseDelegate( AbstractUnsolicitedResponseDelegate ):
     # +CESS: 3, 14
     def plusCESS( self, righthandside ):
         print "EZX: CESS", righthandside
-
-    # +CSSU: 2,,"",128
-    # +CSSU: 10
-    def plusCSSU( self, righthandside ):
-        print "EZX: CSSU", righthandside
-        values = safesplit( righthandside, ',' )
-        if len( values ) == 4:
-            code, index, number, type_ = values
-        else:
-            code = values[0]
-            #
-            # ...
-            #
-
-    # +CMT: 139
-    # 07919471060040340409D041767A5C060000903021417134408A41767A5C0625DDE6B70E247D87DB69F719947683C86539A858D581C2E273195D7693CBA0A05B5E37974130568D062A56A5AF66DAED6285DDEB77BB5D7693CBA0A05B5E3797413096CC062A56A5AF66DAED0235CB683928E936BFE7A0BA9B5E968356B45CEC66C3E170369A8C5673818E757A19242DA7E7E510 
-    def plusCMT( self, righthandside, pdu ):
-        """
-        Message Transfer Indication. Modem violating 07.07 here, the header was NOT supposed to be optional.
-        """
-        length = int(righthandside)
-        # Now we decode the actual PDU
-        sms = ogsmd.gsm.sms.SMS.decode( pdu, "sms-deliver" )
-        self._object.IncomingMessage( str(sms.addr), sms.ud, sms.properties )
 
     def plusCIEV( self, righthandside ):
         """
@@ -118,13 +90,51 @@ class UnsolicitedResponseDelegate( AbstractUnsolicitedResponseDelegate ):
         print "EZX: ROAMING:", roaming
         self._object.modem.setData( "network:roaming", bool(roaming) )
 
+    # +CLIP: "+4969123456789",145
+    def plusCLIP( self, righthandside ):
+        pass
+
+    # +CMT: 139
+    # 07919471060040340409D041767A5C060000903021417134408A41767A5C0625DDE6B70E247D87DB69F719947683C86539A858D581C2E273195D7693CBA0A05B5E37974130568D062A56A5AF66DAED6285DDEB77BB5D7693CBA0A05B5E3797413096CC062A56A5AF66DAED0235CB683928E936BFE7A0BA9B5E968356B45CEC66C3E170369A8C5673818E757A19242DA7E7E510 
+    def plusCMT( self, righthandside, pdu ):
+        """
+        Message Transfer Indication. Modem violating 07.07 here, the header was NOT supposed to be optional.
+        """
+        length = int(righthandside)
+        # Now we decode the actual PDU
+        sms = ogsmd.gsm.sms.SMS.decode( pdu, "sms-deliver" )
+        self._object.IncomingMessage( str(sms.addr), sms.ud, sms.properties )
+
+    # EZX does not honor +CRM, hence +CRING is not being sent
+    def plusCRING( self, calltype ):
+        pass
+
+    # +CSSU: 2,,"",128
+    # +CSSU: 10
+    def plusCSSU( self, righthandside ):
+        values = safesplit( righthandside, ',' )
+        if len( values ) == 4:
+            code, index, number, type_ = values
+        else:
+            code = values[0]
+            #
+            # ...
+            #
+
     #
-    # Motorola EZX proprietary
+    # Freescale Neptune proprietary URCs
     #
 
-    # RING: 1
-    def RING( self, calltype ):
-        self._syncCallStatus( "RING" )
+    # +CMSM: 0
+    # 0 = SIM inserted, locked
+    # 3 = SIM inserted, unlocked
+    def plusCMSM( self, righthandside ):
+        # FIXME: Some firmware versions support +CPIN?, so we better use SimGetAuthStatus here.
+        code = int( righthandside )
+        if code == 0:
+            self._object.AuthStatus( "SIM PIN" )
+        else:
+            self._object.AuthStatus( "READY" )
 
     # +EOPER: 5,"262-03"
     # +EOPER: 7
@@ -132,7 +142,6 @@ class UnsolicitedResponseDelegate( AbstractUnsolicitedResponseDelegate ):
     # 7 = unregistered
 
     def plusEOPER( self, righthandside ):
-        print "EOPER:", righthandside
         values = safesplit( righthandside, ',' )
         status = {}
         if len( values ) == 1:
@@ -143,6 +152,10 @@ class UnsolicitedResponseDelegate( AbstractUnsolicitedResponseDelegate ):
             status["registration"] = "roaming" if roaming else "home"
             status["provider"] = values[1]
         self._object.Status( status )
+
+    # RING: 1
+    def RING( self, calltype ):
+        self._syncCallStatus( "RING" )
 
     #
     # helpers
@@ -163,5 +176,5 @@ class UnsolicitedResponseDelegate( AbstractUnsolicitedResponseDelegate ):
             self._callHandler.statusChangeFromNetwork( 2, {"status": "release"} )
 
     def _syncCallStatus_err( self, request, error ):
-        print "EZX: AT ERROR FROM CLCC", error
+        logger.warning( "AT ERROR from CLCC: %s", error )
 
