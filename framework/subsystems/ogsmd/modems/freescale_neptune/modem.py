@@ -18,7 +18,7 @@ import mediator
 
 from ogsmd.modems.abstract.modem import AbstractModem
 
-from .channel import CallAndNetworkChannel, MiscChannel, SmsChannel
+from .channel import CallAndNetworkChannel, MiscChannel, SmsChannel, SimChannel
 from .unsolicited import UnsolicitedResponseDelegate
 
 from ogsmd.gsm.decor import logged

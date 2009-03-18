@@ -71,10 +71,14 @@ class MiscChannel( EzxMuxChannel ):
         self.enqueue( "+EPMS?" )
         self.enqueue( "+EMGL=4", self._ezxEgmlAnswer )
 
+        return False # gobject: don't call me again
+
     def _ezxEgmlAnswer( self, request, response ):
-        if True: #if response[0] == "OK":
+        if response[-1] == "OK":
             # send SIM is ready command
             self._modem._object.ReadyStatus( True )
+        else:
+            gobject.timeout_add( 3, self.modemStateSimUnlocked )
 
 #=========================================================================#
 class SmsChannel( EzxMuxChannel ):

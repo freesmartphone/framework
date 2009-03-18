@@ -9,7 +9,7 @@ Package: ogsmd.modems.freescale_neptune
 Module: mediator
 """
 
-__version__ = "0.5.1.1"
+__version__ = "0.5.1.2"
 MODULE_NAME = "ogsmd.modems.freescale_neptune.mediator"
 
 from ogsmd.modems.abstract.mediator import *
@@ -71,11 +71,10 @@ class DeviceSetAntennaPower( AbstractMediator.DeviceSetAntennaPower ):
     """
 
     def trigger( self ):
-        if self.power:
-            cmd = "+CFUN=0;+CFUN=1"
-        else:
-            cmd = "+CFUN=1"
+        self._commchannel.enqueue( "+CFUN=0", self.responseFromChannel1, self.errorFromChannel )
 
+    def responseFromChannel1( self, request, response ):
+        cmd = "+CFUN=%d" % ( 1 if self.power else 0 )
         self._commchannel.enqueue( cmd, self.responseFromChannel, self.errorFromChannel )
 
     def responseFromChannel( self, request, response ):
@@ -126,7 +125,7 @@ class NetworkGetStatus( NetworkMediator ):
     an empty string for me. So until this is cleared, we have to use code matching
     with our database (mobile_network_code).
 
-    Oh, by the way, +CREG? is not implemented either. *sigh*
+    Oh, by the way, did I mention that +CREG? is not implemented either? *sigh*
     """
     def trigger( self ):
         request, response, error = yield( "+CSQ" )
@@ -156,14 +155,18 @@ class NetworkGetStatus( NetworkMediator ):
                     result["registration"] = "roaming" if roaming else "home"
 
                     mccmnc = values[2].strip( '"' ).replace( '-', '' )
-                    result["code"] = int( mccmnc )
-                    network = const.NETWORKS.get( ( mccmnc[:3], mccmnc[3:] ), {} )
-                    if "brand" in network:
-                        result["provider"] = network["brand"]
-                    elif "Operator" in network:
-                        result["provider"] = network["operator"]
+                    try: # might be an empty string, if the modem is busy
+                        result["code"] = int( mccmnc )
+                    except ValueError:
+                        result["registration"] = "busy"
                     else:
-                        result["provider"] = "Unknown"
+                        network = const.NETWORKS.get( ( mccmnc[:3], mccmnc[3:] ), {} )
+                        if "brand" in network:
+                            result["provider"] = network["brand"]
+                        elif "Operator" in network:
+                            result["provider"] = network["operator"]
+                        else:
+                            result["provider"] = "Unknown"
 
         self._ok( result )
 
