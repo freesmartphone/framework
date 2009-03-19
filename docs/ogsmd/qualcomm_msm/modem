@@ -1,0 +1,12 @@
+== Qualcomm MSM modem specific notes ==
+
+=== Behaviour ===
+
+* Modem starts out with V0, ATZ resets to V0, be careful with your parser.
+
+* Range for +CLVL is 0-5
+
+=== GSM standards violations ===
+
+=== Proprietary commands and URCs ===
+
