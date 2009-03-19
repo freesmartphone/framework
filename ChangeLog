@@ -1,3 +1,9 @@
+2009-03-19	Michael Lauer	<mlauer@vanille-media.de>
+
+	* [ogsmd] Implement org.freesmartphone.GSM.Device.GetPowerStatus()
+	  for modems that support this call (e.g. FREESCALE NEPTUNE) to get
+	  the power status. Note that sysfs power supply classes are preferred though...
+
 2009-03-12	Michael Lauer	<mlauer@vanille-media.de>
 
 	* [ogsmd] [FREESCALE NEPTUNE] Fixed a bunch of problems, including

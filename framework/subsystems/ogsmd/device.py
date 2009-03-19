@@ -11,7 +11,7 @@ Module: device
 """
 
 MODULE_NAME = "ogsmd.device"
-__version__ = "0.9.11.0"
+__version__ = "0.9.12.0"
 
 from framework import resource
 from framework.config import config
@@ -174,6 +174,12 @@ class Device( resource.Resource ):
     @resource.checkedmethod
     def SetMicrophoneMuted( self, muted, dbus_ok, dbus_error ):
         mediator.DeviceSetMicrophoneMuted( self, dbus_ok, dbus_error, muted=muted )
+
+    @dbus.service.method( DBUS_INTERFACE_DEVICE, "", "si",
+                          async_callbacks=( "dbus_ok", "dbus_error" ) )
+    @resource.checkedmethod
+    def GetPowerStatus( self, dbus_ok, dbus_error ):
+        mediator.DeviceGetPowerStatus( self, dbus_ok, dbus_error )
 
     #
     # dbus org.freesmartphone.GSM.SIM

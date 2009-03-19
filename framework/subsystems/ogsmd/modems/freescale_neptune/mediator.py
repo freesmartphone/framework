@@ -39,6 +39,7 @@ PAT_SMS_PDU_HEADER_SINGLE = re.compile( '(?P<status>\d+)(?:,"(?P<name>[^"]*)")?,
 const.PAT_SMS_PDU_HEADER = PAT_SMS_PDU_HEADER
 const.PAT_SMS_PDU_HEADER_SINGLE = PAT_SMS_PDU_HEADER_SINGLE
 
+import time
 
 #=========================================================================#
 class DeviceGetInfo( DeviceMediator ):
@@ -74,6 +75,8 @@ class DeviceSetAntennaPower( AbstractMediator.DeviceSetAntennaPower ):
         self._commchannel.enqueue( "+CFUN=0", self.responseFromChannel1, self.errorFromChannel )
 
     def responseFromChannel1( self, request, response ):
+        # FIXME: make async
+        time.sleep( 1.0 )
         cmd = "+CFUN=%d" % ( 1 if self.power else 0 )
         self._commchannel.enqueue( cmd, self.responseFromChannel, self.errorFromChannel )
 

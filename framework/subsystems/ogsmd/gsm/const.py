@@ -13,7 +13,7 @@ Module: const
 GSM constants, strings, formats, parse patterns, timeouts, you name it.
 """
 
-__version__ = "0.8.1"
+__version__ = "0.8.2"
 MODULE_NAME = "ogsmd.const"
 
 from framework import config
@@ -805,6 +805,14 @@ CALL_IDENTIFICATION_RESTRICTION = BiDict( { \
 
 #=========================================================================#
 CALL_VALID_DTMF = "0123456789*#ABCD"
+
+#=========================================================================#
+DEVICE_POWER_STATUS = { \
+    0: "battery",
+    1: "ac",
+    2: "usb",
+    3: "failure",
+}
 
 #=========================================================================#
 NETWORK_USSD_MODE = { \

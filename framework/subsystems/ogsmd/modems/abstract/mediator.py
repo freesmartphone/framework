@@ -22,7 +22,7 @@ TODO:
  * refactor parameter validation
 """
 
-__version__ = "0.9.16"
+__version__ = "0.9.17.0"
 MODULE_NAME = "ogsmd.modems.abstract.mediator"
 
 from ogsmd import error
@@ -467,6 +467,28 @@ class DeviceSetMicrophoneMuted( DeviceMediator ):
 #=========================================================================#
     def trigger( self ):
             self._commchannel.enqueue( "+CMUT=%d" % self.muted, self.responseFromChannel, self.errorFromChannel )
+
+#=========================================================================#
+class DeviceGetPowerStatus( DeviceMediator ):
+#=========================================================================#
+    def trigger( self ):
+        self._commchannel.enqueue( "+CBC", self.responseFromChannel, self.errorFromChannel )
+
+    def responseFromChannel( self, request, response ):
+        if response[-1] != "OK":
+            DeviceMediator.responseFromChannel( self, request, response )
+        else:
+            values = safesplit( self._rightHandSide( response[0] ), ',' )
+            if len( values ) > 0:
+                status = const.DEVICE_POWER_STATUS.get( int(values[0]), "unknown" )
+            else:
+                status = "unknown"
+            if len( values ) > 1:
+                level = int(values[1])
+            else:
+                level = -1
+
+            self._ok( status, level )
 
 #
 # SIM Mediators
