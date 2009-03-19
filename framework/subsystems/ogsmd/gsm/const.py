@@ -13,7 +13,7 @@ Module: const
 GSM constants, strings, formats, parse patterns, timeouts, you name it.
 """
 
-__version__ = "0.8.2"
+__version__ = "0.8.3"
 MODULE_NAME = "ogsmd.const"
 
 from framework import config
@@ -689,6 +689,7 @@ PHONEBOOK_CATEGORY = BiDict ( { \
     "own": "ON",
     "missed": "MC",
     "emergency": "EN",
+    "fixed": "FD",
     # FIXME: Do we need more?
 } )
 
