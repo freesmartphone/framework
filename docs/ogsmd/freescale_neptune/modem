@@ -2,7 +2,8 @@
 
 === Behaviour ===
 
-* +CFUN=0;+CFUN=1 does _not_ reset the PIN lock
+* +CFUN=0;+CFUN=1 does _not_ reset the PIN lock; sending these commands too often / too fast confuses the 
+modem.
 
 * Giving a valid PIN to unlock starts autoregister
   (likewise, for an unlocked SIM +CFUN=1 will autoregister)
@@ -14,8 +15,10 @@
   2008.07.02 22:19:38 ogsmd    DEBUG    <MiscChannel via /dev/mux6>: got 31 bytes from: '\r\n+COPS: 0,2,"\x10*Zd\x12\x04I\xdc"\r\n\r\nOK\r\n'      
   Without antenna off/on, it doesn't seem to be possible to reregister again
 
-* After +CFUN=1 (previously +CFUN=0), the modem sends +CMSM: 3 and +EMSR: 0. No idea what these mean. (SIM READY? SIM 
-INSERTED?)
+* After +CFUN=1 (previously +CFUN=0), the modem sends quite a bunch of URCs, e.g. +CMSM: 3 and +EMSR: 0, 
++EFLEX, and much more.
+
+* To enable USB charging, you need to issue +USBSTAT=255,1
 
 === GSM standards violations ===
 
@@ -31,9 +34,13 @@ INSERTED?)
 
 * +CSCB: format violation, not accepting any parameters but '0' (all) and '1' (none)
 
+* +CMT: format violation, missing a ',' (PDU header)
+
 === Proprietary commands and URCs ===
 
-+CMSM: 3 means "SIM unlocked"; +CMSM: 0 means "SIM locked". If the SIM slot is empty, it will not appear at 
+* +CMSM: 3 means "SIM unlocked"; +CMSM: 0 means "SIM locked". If the SIM slot is empty, it will not appear at 
 all after +CFUN=1 (before +ESCR)
+
+* See http://wiki.openezx.org/AT_commands -- we might add more commands here as well, if ogsmd is using them.
 
 
