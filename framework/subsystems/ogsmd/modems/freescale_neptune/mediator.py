@@ -116,7 +116,7 @@ class SimListPhonebooks( SimMediator ):
     the list of known phonebooks trying to select them.
     """
     def trigger( self ):
-        self._ok( "contacts own".split() )
+        self._ok( "contacts own fixed".split() )
 
 #=========================================================================#
 class NetworkGetStatus( NetworkMediator ):
