@@ -103,14 +103,14 @@
 	  now be implemented by dbus-hlid (a seperate FSO project).
 	* [oeventsd] Added OccupyResource action and add some convenient rules.
 
-2008-12-30	Michael Lauer	<mickey@openmoko.org>
+2008-12-30	Michael Lauer	<mlauer@vanille-media.de>
 
 	* [odeviced] Register objects under /org/freesmartphone/Device/Display/ also
 	  with an numerical incremental alias -- e.g. the first display can now 
 	  also be accessed via /org/freesmartphone/Device/Display/0.
 	* [rules] Adjust the default backlight brightness rule to use display "0".
 
-2008-12-29	Michael lauer	<mickey@openmoko.org>
+2008-12-29	Michael lauer	<mlauer@vanille-media.de>
 
 	* Support external subsystems. If you add a section with an 'external' attribute, then
 	the section will be treated as an external subsystem to launch with the path given as an attribute:
@@ -120,7 +120,7 @@
 	NOTE: This is the first step towards integrating Vala/C subsystems to frameworkd.
 	NOTE2: You can also "override" internal subsystems by giving the 'external' attribute.
 
-2008-12-27	Michael Lauer	<mickey@openmoko.org>
+2008-12-27	Michael Lauer	<mlauer@vanille-media.de>
 
 	* [ogsmd] Refactored Modem.dataOptions() into "pppd-configuration" attribute in modem data storage.
 	* [ogsmd] Added TI-Calypso specific configuration option "ti_calypso_dsp_mode" to configure
@@ -132,11 +132,11 @@
 	* [ogsmd] Support for Ericsson F3507g modem (as found in Thinkpads)
 	* [ogsmd] Preliminary support for Option UMTS cards
 
-2008-12-20	Michael Lauer	<mickey@openmoko.org>
+2008-12-20	Michael Lauer	<mlauer@vanille-media.de>
 
 	* [ogsmd] Create qualcomm_msm modem abstraction based on singleline with minimal changes.
 
-2008-12-18	Michael Lauer	<mickey@openmoko.org>
+2008-12-18	Michael Lauer	<mlauer@vanille-media.de>
 
 	* [ousaged] Check resume reason and launch emergency shutdown, if we
 	  woke up due to low battery. NOTE: This is only supported on Openmoko
@@ -147,7 +147,7 @@
 
 	* [otimed] Add simple timesync to NTP and GPS
 
-2008-12-12	Michael Lauer	<mickey@openmoko.org>
+2008-12-12	Michael Lauer	<mlauer@vanille-media.de>
 
 	* [ogsmd] Implemented org.freesmartphone.GSM.Phone.[Start|Stop]AutoRegister()
 	  and its signal org.freesmartphone.GSM.Phone.ServiceStatus()
@@ -155,14 +155,14 @@
 	  and register with a provider, if necessary.
 	  (Corresponding functionality for Gprs is under discussion).
 
-2008-12-11	Michael Lauer	<mickey@openmoko.org>
+2008-12-11	Michael Lauer	<mlauer@vanille-media.de>
 
 	* [ogsmd] Implemented org.freesmartphone.GSM.PDP.NetworkStatus()
 	* [ogsmd] Implemented org.freesmartphone.GSM.PDP.GetNetworkStatus()
 	* [ogsmd] Implemented org.freesmartphone.GSM.Network.TimeZoneReport()
 	* [ogsmd] Refactored PDP handling for more stability
 
-2008-12-06	Michael Lauer	<mickey@openmoko.org>
+2008-12-06	Michael Lauer	<mlauer@vanille-media.de>
 
 	* [ogsmd] Added 'cid' and 'lac' results to org.freesmartphone.GSM.Network.GetStatus()
 	* [ogsmd] Implemented org.freesmartphone.GSM.SIM.GetIssuer()
@@ -171,17 +171,17 @@
 	* [ogsmd] Added codeToOperator function and a mobile network operator database
 	* [ogsmd] [FREESCALE NEPTUNE] Query our MNO database to show the alphanumeric operator name.
 
-2008-12-05	Michael Lauer	<mickey@openmoko.org>
+2008-12-05	Michael Lauer	<mlauer@vanille-media.de>
 
 	* [odeviced] Implemented org.freesmartphone.Device.LED.SetNetworking(s,s) -> ()
 
-2008-12-04	Michael Lauer	<mickey@openmoko.org>
+2008-12-04	Michael Lauer	<mlauer@vanille-media.de>
 
 	* Added necessary methods for a clean system -> subsystems -> objects shutdown.
 	* [ousaged] Disabled resource on shutdown.
 	* [ogsmd] Implemented org.freesmartphone.GSM.Device.[Get|Set]MicrophoneMuted
 
-2008-12-02	Michael Lauer	<mickey@openmoko.org>
+2008-12-02	Michael Lauer	<mlauer@vanille-media.de>
 
 	* [onetworkd] Simple connection sharing now works. See
 	  org.freesmartphone.Network.StartConnectionSharingWithInterface(s) -> ()
@@ -201,26 +201,26 @@
 	  before suspending, after resuming, before shutting down, before rebooting.
 	  This fixes FSO ticket #287.
 
-2008-12-01	Michael Lauer	<mickey@openmoko.org>
+2008-12-01	Michael Lauer	<mlauer@vanille-media.de>
 
 	* [ogsmd] Implement org.freesmartphone.GSM.Device.[Get|Set]SpeakerVolume
 
-2008-11-30	Michael Lauer	<mickey@openmoko.org>
+2008-11-30	Michael Lauer	<mlauer@vanille-media.de>
 
 	* [ogsmd] Start with CINTERION MC75 support
 
-2008-11-28	Michael Lauer	<mickey@openmoko.org>
+2008-11-28	Michael Lauer	<mlauer@vanille-media.de>
 
 	* [ogsmd] Revamped callhandling. Refactored the state-based call handler
 	  from TI Calypso (and Freescale Neptune) into a generic class that will
 	  be used from all modem abstractions. Ported singleline to use the new
 	  call handler. More tests needed for TI Calypso and Freescale Neptune.
 
-2008-11-27	Michael Lauer	<mickey@openmoko.org>
+2008-11-27	Michael Lauer	<mlauer@vanille-media.de>
 
 	* [tests] Started with dbus API tests
 
-2008-11-23	Michael Lauer	<mickey@openmoko.org>
+2008-11-23	Michael Lauer	<mlauer@vanille-media.de>
 
 	* [ogsmd] Added reinit method to abstract modem class,
 	   added hook for handling a HUP in the low level channel class,
@@ -229,7 +229,7 @@
 	   that the gsm0710muxd has probably been killed).
 	   NOTE: We now survive a killall gsm0710muxd transparently!
 
-2008-11-21	Michael Lauer	<mickey@openmoko.org>
+2008-11-21	Michael Lauer	<mlauer@vanille-media.de>
 
 	* [odeviced] Fixed a couple of problems in the Audio problem and support new features
 	  such as a loop parameter and an optional length override (time in seconds).
@@ -246,24 +246,24 @@
 
 	* Support audio file options in org.freesmartphone.Device.Audio
 
-2008-11-14	Michael Lauer	<mickey@openmoko.org>
+2008-11-14	Michael Lauer	<mlauer@vanille-media.de>
 
 	* Implement org.freesmartphone.GSM.Network.GetCountryCode() -> ss
 	* [odeviced] Added kernel26 option called 'fb_blank' (default=1).
 	  If you suffer from the Om bug WSOD (white screen of death), try
 	  setting this option to 0.
 
-2008-11-02	Michael Lauer	<mickey@openmoko.org>
+2008-11-02	Michael Lauer	<mlauer@vanille-media.de>
 
 	* python-hotshot is deprecated and give bogus results. Switch to cProfile and
 	  import http://www.gnome.org/~johan/lsprofcalltree.py, that way we can view
 	  the profile results in kcachegrind.
 
-2008-11-01	Michael Lauer	<mickey@openmoko.org>
+2008-11-01	Michael Lauer	<mlauer@vanille-media.de>
 
 	* Add command line argument for profiling with the python-hotshot profiler
 
-2008-10-31	Michael Lauer	<mickey@openmoko.org>
+2008-10-31	Michael Lauer	<mlauer@vanille-media.de>
 
 	* [ogsmd] Added TI-Calypso specific modem option called 'ti_calypso_deep_sleep'.
 	  Valid values are: 'never', 'adaptive' (default), and 'always'. See Om bug #1024.
@@ -274,18 +274,18 @@
 
 	* [oeventsd] Handled suspending after pressing the powerbutton in the rules
 
-2008-10-26	Michael Lauer	<mickey@openmoko.org>
+2008-10-26	Michael Lauer	<mlauer@vanille-media.de>
 
 	* [odeviced] Supported .ogg in GStreamerPlayer and code more defensively
 	(checking whether decoders are available before trying to instanciate them)
 
-2008-10-21	Michael Lauer	<mickey@openmoko.org>
+2008-10-21	Michael Lauer	<mlauer@vanille-media.de>
 
 	* [ousaged] Removed dummy resources encapsulating odeviced objects
 	* [odeviced] Added ResourceAwarePowerControl class and use it
 	* [odeviced] Added powercontrol_ibm.py for IBM ACPI Resources
 
-2008-10-19	Michael Lauer	<mickey@openmoko.org>
+2008-10-19	Michael Lauer	<mlauer@vanille-media.de>
 
 	* Command line parameter '-d' now triggers daemonizing the process.
 
@@ -301,7 +301,7 @@
 
 	* [odeviced] [PATCH] use /dev/fb0 ioctl based screen blanking
 
-2008-10-09	Michael Lauer	<mickey@openmoko.org>
+2008-10-09	Michael Lauer	<mlauer@vanille-media.de>
 
 	* [ogsmd] Add parameter validation to org.freesmartphone.GSM.Call.Initiate
 
@@ -315,14 +315,14 @@
 	  Warning: API breakage in org.freesmartphone.GSM.SIM !
 	* [ogsmd] Add org.freesmartphone.GSM.SMS.SendMessage method
 
-2008-10-06	Michael Lauer	<mickey@openmoko.org>
+2008-10-06	Michael Lauer	<mlauer@vanille-media.de>
 
 	* [ogsmd] [TI CALYPSO] work around deep sleep mode recamping bug
 	as documented in http://docs.openmoko.org/trac/ticket/1024
 	* [ogsmd] change SIM phonebook API to support multiple phonebooks
 	Warning: API breakage in org.freesmartphone.GSM.SIM !
 
-2008-09-30	Michael Lauer	<mickey@openmoko.org>
+2008-09-30	Michael Lauer	<mlauer@vanille-media.de>
 
 	* [ogsmd] Fully implemented the Resource interface.
 	  You can now open/close this an unlimited number of times.
@@ -352,13 +352,13 @@
 	* [ousaged] RequestResource no longer returns a boolean. An exception is
 	  returned if the resource can't be requested.
 
-2008-09-28	Michael Lauer	<mickey@openmoko.org>
+2008-09-28	Michael Lauer	<mlauer@vanille-media.de>
 
 	* [rules] Added IdleState DBus trigger and SetDisplayBrightness action
 	  We are handling the display dimming through the rules only now.
 	* ogsmd: Added new Resource handling support (except 'disable')
 
-2008-09-27  Michael Lauer	<mickey@openmoko.org>
+2008-09-27  Michael Lauer	<mlauer@vanille-media.de>
 
 	* Added configuring initial logging destination in config file. Use:
 	  log_to = syslog | file | stderr. If you log to a file, also add
@@ -370,7 +370,7 @@
 	* [ogsmd] Phonebook entries are now set to UCS2 mode for
 	  internationalization support
 
-2008-09-22	Michael Lauer	<mickey@openmoko.org>
+2008-09-22	Michael Lauer	<mlauer@vanille-media.de>
 
 	* [ogsmd] Add Emergency(number) call
 
@@ -378,7 +378,7 @@
 
 	* [ogsmd] SMS messages are now de-/encoded according to GSM default alphabet
 
-2008-09-05	Michael Lauer	<mickey@openmoko.org>
+2008-09-05	Michael Lauer	<mlauer@vanille-media.de>
 
 	* [odeviced] Add PowerControl class for UsbHost
 
@@ -386,7 +386,7 @@
 
 	* [ogsmd] Added and activated SMS-PDU mode
 
-2008-08-27	Michael Lauer	<mickey@openmoko.org>
+2008-08-27	Michael Lauer	<mlauer@vanille-media.de>
 
 	* Removed remaining LOG calls. We are now fully converted to Python logging!
 
@@ -394,12 +394,12 @@
 
 	* [ousaged] The ResourceChanged signal now contains more information
 
-2008-08-27	Michael Lauer	<mickey@openmoko.org>
+2008-08-27	Michael Lauer	<mlauer@vanille-media.de>
 
 	* [odeviced] Implemented power status notifications using netlink socket
 	* [oeventsd] Added triggers and rule for power management and LEDs
 
-2008-08-26	Michael Lauer	<mickey@openmoko.org>
+2008-08-26	Michael Lauer	<mlauer@vanille-media.de>
 
 	* org.freesmartphone.Objects.ListObjectsByInterface is now implemented
 	  using introspection.
@@ -408,20 +408,20 @@
 
 	* [oeventsd] Revamped oevents subsystem to be more flexible using yaml rules
 
-2008-08-09	Michael Lauer	<mickey@vanille-media.de>
+2008-08-09	Michael Lauer	<mlauer@vanille-media.de>
 
 	* [ogsmd] Implemented basic USSD support
 
-2008-08-03	Michael Lauer	<mickey@vanille-media.de>
+2008-08-03	Michael Lauer	<mlauer@vanille-media.de>
 
 	* Unified configuration nodes to use the same name we
 	  are using for logging, i.e. [subsystem.module].
 
-2008-08-01	Michael Lauer	<mickey@vanille-media.de>
+2008-08-01	Michael Lauer	<mlauer@vanille-media.de>
 
 	* Added dbus interface to configure debug loggers at runtime
 
-2008-07-30	Michael Lauer	<mickey@vanille-media.de>
+2008-07-30	Michael Lauer	<mlauer@vanille-media.de>
 
 	* Released as freesmartphone.org framework milestone 2
 
@@ -430,7 +430,7 @@
 	* [ogpsd] Gypsy API is now implemented and applications using
 	  Gypsy dbus API should just work.
 
-2008-07-25	Michael Lauer	<mickey@vanille-media.de>
+2008-07-25	Michael Lauer	<mlauer@vanille-media.de>
 
 	* [odeviced] Use hierarchical loggers.
 	* [odeviced] Commit first bits of pattern library and use asyncworker
@@ -449,7 +449,7 @@
 	* [ogpsd] Most of the Gypsy DBus interface is now implemented.
 	  What's missing are the GypsyDevice.Start/Stop and Control functions
 
-2008-07-18	Michael Lauer	<mickey@vanille-media.de>
+2008-07-18	Michael Lauer	<mlauer@vanille-media.de>
 
 	* [odeviced] Added audio device plugin listening 
 	  at/org/freesmartphone/Device/Audio serving interface
@@ -460,38 +460,38 @@
 	* [ogpsd] UBXDevice basic functionality is now complete
 	  The Gypsy DBus interface is partly implemented.
 
-2008-07-17	Michael Lauer	<mickey@vanille-media.de>
+2008-07-17	Michael Lauer	<mlauer@vanille-media.de>
 
 	* [odeviced] Removed hardcoded button/switches, from now
 	  on define them in the configuration file.
 
-2008-07-16	Michael Lauer	<mickey@vanille-media.de>
+2008-07-16	Michael Lauer	<mlauer@vanille-media.de>
 
 	* [ogsmd] Basic call handling for Freescale Neptune
 
-2008-07-14	Michael Lauer	<mickey@vanille-media.de>
+2008-07-14	Michael Lauer	<mlauer@vanille-media.de>
 
 	* [ogsmd] Switched to new AT low level parser
 	* [ogsmd] Implemented cell broadcast handling
 	* [ogsmd] Added dbus method to retrieve home zone name and coordinates
 
-2008-07-12	Michael Lauer	<mickey@vanille-media.de>
+2008-07-12	Michael Lauer	<mlauer@vanille-media.de>
 
 	* [ogsmd] Implemented generic and restricted SIM access commands
 
-2008-07-10	Michael Lauer	<mickey@vanille-media.de>
+2008-07-10	Michael Lauer	<mlauer@vanille-media.de>
 
 	* [ogsmd] Implemented DTMF sending
 	* [ogsmd] Implemented call deflection
 
-2008-07-09	Michael Lauer	<mickey@vanille-media.de>
+2008-07-09	Michael Lauer	<mlauer@vanille-media.de>
 
 	* [ogsmd] Implemented call forwarding handling
 	* [ogsmd] Implemented calling line identification handling
 	* [ogsmd] Added first bits of Freescale Neptune support
 	* [ogsmd] Refactored getting the port out of VirtualChannel
 
-2008-07-08	Michael Lauer 	<mickey@vanille-media.de>
+2008-07-08	Michael Lauer 	<mlauer@vanille-media.de>
 
 	* [ogsmd] Implemented org.freesmartphone.GSM.PDP
 
@@ -499,13 +499,13 @@
 
 	* [ophoned] Add new highlevel ophoned subsystem.
 
-2008-07-02	Michael Lauer	<mickey@vanille-media.de>
+2008-07-02	Michael Lauer	<mlauer@vanille-media.de>
 
 	* [ogsmd] Renamed subsystem ophoned into ogsmd: Reason:
 	  ophoned specifically deals with GSM. There will
 	  be a new subsystem that is more abstract.
 
-2008-06-25	Michael Lauer	<mickey@vanille-media.de>
+2008-06-25	Michael Lauer	<mlauer@vanille-media.de>
 
 	* Restructured bus names to match subsystem names:
 		org.freesmartphone.odeviced
@@ -521,7 +521,7 @@
 
 	* Moved individual daemons into a common framework daemon
 
-2008-06-17	Michael Lauer   <mickey@vanille-media.de>
+2008-06-17	Michael Lauer   <mlauer@vanille-media.de>
 
 	* Released 0.1.0 (Framework Milestone 1)
 
