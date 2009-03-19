@@ -4,9 +4,15 @@
 
 * Modem starts out with V0, ATZ resets to V0, be careful with your parser.
 
+* Modem responds with +CME ERROR 10 (SIM not inserted), if you query for PIN before +CFUN=1
+
 * Range for +CLVL is 0-5
 
 === GSM standards violations ===
 
+* Even after setting V1, +CME ERRORS are not correctly terminated with \r\n, but only \r
+
 === Proprietary commands and URCs ===
+
+* +PB_READY: indicating the SIM phonebook is ready
 
