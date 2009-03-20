@@ -22,7 +22,7 @@ TODO:
  * refactor parameter validation
 """
 
-__version__ = "0.9.17.0"
+__version__ = "0.9.17.1"
 MODULE_NAME = "ogsmd.modems.abstract.mediator"
 
 from ogsmd import error
@@ -370,7 +370,7 @@ class DeviceGetFeatures( DeviceMediator ):
 #=========================================================================#
     def trigger( self ):
         result = {}
-        request, response, error = yield( "+GCAP" )
+        request, response, error = yield( "+GCAP", [""] ) # free format allowed as per GSM 07.07
         if error is None and response[-1] == "OK":
             if "GSM" in response[0]:
                 result["GSM"] = "TA" # terminal adapter
@@ -380,12 +380,12 @@ class DeviceGetFeatures( DeviceMediator ):
             if "FCLASS" in response[0]:
                 result["FAX"] = "" # basic capability, checking for details in a second
 
-        request, response, error = yield( "+FCLASS?", [] ) # free format
+        request, response, error = yield( "+FCLASS?", [""] ) # free format allowed as per GSM 07.07
 
         if error is None and response[-1] == "OK":
             result["FAX"] = self._rightHandSide( response[0] ).strip( '"' )
 
-        request, response, error = yield( "+CGCLASS?" )
+        request, response, error = yield( "+CGCLASS?", [""] ) # free format allowed as per GSM 07.07
 
         if error is None and response[-1] == "OK":
             result["GPRS"] = self._rightHandSide( response[0] ).strip( '"' )
@@ -574,7 +574,7 @@ class SimGetSimInfo( SimMediator ):
         result = {}
 
         # imsi
-        request, response, error = yield( "+CIMI", [] ) # all prefixes valid for this command
+        request, response, error = yield( "+CIMI", [""] ) # free format allowed as per GSM 07.07
         if error is not None:
             self.errorFromChannel( request, error )
         else:
