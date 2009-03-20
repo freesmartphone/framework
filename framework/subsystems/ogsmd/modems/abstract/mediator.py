@@ -22,10 +22,10 @@ TODO:
  * refactor parameter validation
 """
 
-__version__ = "0.9.17.1"
+__version__ = "0.9.18.0"
 MODULE_NAME = "ogsmd.modems.abstract.mediator"
 
-from ogsmd import error
+from ogsmd import error as DBusError
 from ogsmd.gsm import const, convert
 from ogsmd.gsm.decor import logged
 from ogsmd.helpers import safesplit
@@ -56,7 +56,7 @@ class AbstractMediator( object ):
     @logged
     def responseFromChannel( self, request, response ):
         if response[-1].startswith( "ERROR" ):
-            self._error( error.DeviceFailed( "command %s failed" % request ) )
+            self._error( DBusError.DeviceFailed( "command %s failed" % request ) )
         elif response[-1].startswith( "+CM" ) or response[-1].startswith( "+EXT" ):
             self._handleCmeCmsExtError( response[-1] )
         elif response[-1].startswith( "OK" ):
@@ -68,9 +68,9 @@ class AbstractMediator( object ):
     def errorFromChannel( self, request, err ):
         category, details = err
         if category == "timeout":
-            self._error( error.DeviceTimeout( "device did not answer within %d seconds" % details ) )
+            self._error( DBusError.DeviceTimeout( "device did not answer within %d seconds" % details ) )
         else:
-            self._error( error.DeviceFailed( "%s: %s" % ( category, repr(details ) ) ) )
+            self._error( DBusError.DeviceFailed( "%s: %s" % ( category, repr(details ) ) ) )
 
     @logged
     def __del__( self, *args, **kwargs ):
@@ -96,48 +96,48 @@ class AbstractMediator( object ):
     def _handleCmeCmsExtError( self, line ):
         category, text = const.parseError( line )
         code = int( line.split( ':', 1 )[1] )
-        e = error.DeviceFailed( "Unhandled %s ERROR: %s" % ( category, text ) )
+        e = DBusError.DeviceFailed( "Unhandled %s ERROR: %s" % ( category, text ) )
 
         if category == "CME":
             if code == 3:
                 # seen as result of +COPS=0 or +CLCK=... w/ auth state = SIM PIN
                 # seen as result of +CPBR w/ index out of bounds
-                e = error.NetworkUnauthorized()
+                e = DBusError.NetworkUnauthorized()
             elif code == 4:
                 # seen as result of +CCFC=4,2
-                e = error.NetworkNotSupported()
+                e = DBusError.NetworkNotSupported()
             elif code == 10:
-                e = error.SimNotPresent()
+                e = DBusError.SimNotPresent()
             elif code == 16:
-                e = error.SimAuthFailed( "SIM Authorization code not accepted" )
+                e = DBusError.SimAuthFailed( "SIM Authorization code not accepted" )
             elif code in ( 21, 22 ): # invalid phonebook index, phonebook entry not found
-                e = error.SimInvalidIndex()
+                e = DBusError.SimInvalidIndex()
             elif code == 30:
-                e = error.NetworkNotPresent()
+                e = DBusError.NetworkNotPresent()
             elif code in ( 32, 262 ): # 32 if SIM card is not activated
-                e = error.SimBlocked( text )
+                e = DBusError.SimBlocked( text )
             elif code in ( 5, 6, 7, 11, 12, 15, 17, 18, 48 ):
-                e = error.SimAuthFailed( text )
+                e = DBusError.SimAuthFailed( text )
             elif code == 100:
-                e = error.SimNotReady( "Antenna powered off or SIM not unlocked yet" )
+                e = DBusError.SimNotReady( "Antenna powered off or SIM not unlocked yet" )
             # TODO launch idle task that sends an new auth status signal
 
         elif category == "CMS":
             if code == 310:
-                e = error.SimNotPresent()
+                e = DBusError.SimNotPresent()
             elif code in ( 311, 312, 316, 317, 318 ):
-                e = error.SimAuthFailed()
+                e = DBusError.SimAuthFailed()
             elif code == 321: # invalid message index
-                e = error.SimNotFound()
+                e = DBusError.SimNotFound()
             elif code == 322:
-                e = error.SimMemoryFull()
+                e = DBusError.SimMemoryFull()
 
         elif category == "EXT":
             if code == 0:
                 if isinstance( self, SimMediator ):
-                    e = error.SimInvalidIndex() # invalid parameter on phonebook index e.g.
+                    e = DBusError.SimInvalidIndex() # invalid parameter on phonebook index e.g.
                 else:
-                    e = error.InvalidParameter()
+                    e = DBusError.InvalidParameter()
 
         else:
             assert False, "should never reach that"
@@ -428,12 +428,24 @@ class DeviceSetSimBuffersSms( DeviceMediator ):
 class DeviceGetSpeakerVolume( DeviceMediator ):
 #=========================================================================#
     def trigger( self ):
-        self._commchannel.enqueue( "+CLVL?", self.responseFromChannel, self.errorFromChannel )
+        low, high = self._object.modem.data( "speaker-volume-range", ( None, None ) )
+        if low is None:
+            request, response, error = yield( "+CLVL=?" )
 
-    @logged
-    def responseFromChannel( self, request, response ):
+            if error is None and response[-1] == "OK":
+                low, high = int(low), int(high)
+                self._object.modem.setData( "speaker-volume-range", ( low, high ) )
+
+            else:
+                # command not supported, assume 0-255
+                self._object.modem.setData( "speaker-volume-range", ( 0, 255 ) )
+
+        # send it
+        request, response, error = yield( "+CLVL?" )
+
         if response[-1] == "OK" and response[0].startswith( "+CLVL" ):
-            value = int( self._rightHandSide( response[0] ) ) * 100 / 255
+            low, high = self._object.modem.data( "speaker-volume-range", ( None, None ) )
+            value = int( self._rightHandSide( response[0] ) ) * 100 / ( high-low )
             self._ok( value )
         else:
             DeviceMediator.responseFromChannel( self, request, response )
@@ -443,10 +455,28 @@ class DeviceSetSpeakerVolume( DeviceMediator ):
 #=========================================================================#
     def trigger( self ):
         if 0 <= self.modem_volume <= 100:
-            value = self.modem_volume * 255 / 100
-            self._commchannel.enqueue( "+CLVL=%d" % value, self.responseFromChannel, self.errorFromChannel )
+
+            low, high = self._object.modem.data( "speaker-volume-range", ( None, None ) )
+            if low is None:
+                request, response, error = yield( "+CLVL=?" )
+                if error is None and response[-1] == "OK":
+                    low, high = self._rightHandSide( response[0] ).strip( "()" ).split( '-' )
+                    low, high = int(low), int(high)
+                    self._object.modem.setData( "speaker-volume-range", ( low, high ) )
+                else:
+                    # command not supported, assume 0-255
+                    self._object.modem.setData( "speaker-volume-range", ( 0, 255 ) )
+
+            value = low + self.modem_volume * (high-low) / 100
+
+            request, response, error = yield( "+CLVL=%d" % value )
+            if error is not None:
+                self.errorFromChannel( request, error )
+            else:
+                self.responseFromChannel( request, response )
+
         else:
-            self._error( error.InvalidParameter( "Volume needs to be within [ 0, 100 ]." ) )
+            self._error( DBusError.InvalidParameter( "Volume needs to be within [ 0, 100 ]." ) )
 
 #=========================================================================#
 class DeviceGetMicrophoneMuted( DeviceMediator ):
@@ -692,10 +722,10 @@ class SimGetIssuer( SimMediator ): # s
         try:
             sw1, sw2, payload = safesplit( self._rightHandSide( response[0] ), "," )
         except ValueError: # response did not include a payload
-            self._error( error.SimNotFound( "Elementary record not present or unreadable" ) )
+            self._error( DBusError.SimNotFound( "Elementary record not present or unreadable" ) )
         else:
             if int(sw1) != 144 or int(sw2) != 0: # command succeeded as per GSM 11.11, 9.4.1
-                self._error( error.SimNotFound( "Elementary record not present or unreadable" ) )
+                self._error( DBusError.SimNotFound( "Elementary record not present or unreadable" ) )
             else:
                 nameraw = payload[2:]
                 name = ""
@@ -761,7 +791,7 @@ class SimGetPhonebookInfo( SimMediator ):
         try:
             self.pbcategory = const.PHONEBOOK_CATEGORY[self.category]
         except KeyError:
-            self._error( error.InvalidParameter( "valid categories are %s" % const.PHONEBOOK_CATEGORY.keys() ) )
+            self._error( DBusError.InvalidParameter( "valid categories are %s" % const.PHONEBOOK_CATEGORY.keys() ) )
         else:
             self._commchannel.enqueue( '+CPBS="%s";+CPBR=?' % self.pbcategory.encode(charset), self.responseFromChannel, self.errorFromChannel )
 
@@ -793,7 +823,7 @@ class SimRetrievePhonebook( SimMediator ):
         try:
             self.pbcategory = const.PHONEBOOK_CATEGORY[self.category]
         except KeyError:
-            self._error( error.InvalidParameter( "valid categories are %s" % const.PHONEBOOK_CATEGORY.keys() ) )
+            self._error( DBusError.InvalidParameter( "valid categories are %s" % const.PHONEBOOK_CATEGORY.keys() ) )
         else:
             minimum, maximum = self._object.modem.phonebookIndices( self.pbcategory )
             if minimum is None: # don't know yet
@@ -822,7 +852,7 @@ class SimRetrievePhonebook( SimMediator ):
         charset = currentModem()._charsets["DEFAULT"]
         minimum, maximum = self._object.modem.phonebookIndices( self.pbcategory )
         if minimum is None: # still?
-            raise error.InternalException( "can't get valid phonebook indices for phonebook %s from modem" % self.pbcategory )
+            raise DBusError.InternalException( "can't get valid phonebook indices for phonebook %s from modem" % self.pbcategory )
         else:
             self._commchannel.enqueue( '+CPBS="%s";+CPBR=%d,%d' % ( self.pbcategory.encode(charset), minimum, maximum ), self.responseFromChannel, self.errorFromChannel )
 
@@ -836,7 +866,7 @@ class SimDeleteEntry( SimMediator ):
         try:
             self.pbcategory = const.PHONEBOOK_CATEGORY[self.category]
         except KeyError:
-            self._error( error.InvalidParameter( "valid categories are %s" % const.PHONEBOOK_CATEGORY.keys() ) )
+            self._error( DBusError.InvalidParameter( "valid categories are %s" % const.PHONEBOOK_CATEGORY.keys() ) )
         else:
             self._commchannel.enqueue( '+CPBS="%s";+CPBW=%d,,,' % ( self.pbcategory, self.index ), self.responseFromChannel, self.errorFromChannel )
 
@@ -849,7 +879,7 @@ class SimStoreEntry( SimMediator ):
         try:
             self.pbcategory = const.PHONEBOOK_CATEGORY[self.category]
         except KeyError:
-            self._error( error.InvalidParameter( "valid categories are %s" % const.PHONEBOOK_CATEGORY.keys() ) )
+            self._error( DBusError.InvalidParameter( "valid categories are %s" % const.PHONEBOOK_CATEGORY.keys() ) )
         else:
             number, ntype = currentModem().numberToPhonebookTuple( self.number )
             name = self.name.strip('"').encode(charset)
@@ -863,7 +893,7 @@ class SimRetrieveEntry( SimMediator ):
         try:
             self.pbcategory = const.PHONEBOOK_CATEGORY[self.category]
         except KeyError:
-            self._error( error.InvalidParameter( "valid categories are %s" % const.PHONEBOOK_CATEGORY.keys() ) )
+            self._error( DBusError.InvalidParameter( "valid categories are %s" % const.PHONEBOOK_CATEGORY.keys() ) )
         else:
             self._commchannel.enqueue( '+CPBS="%s";+CPBR=%d' % ( self.pbcategory.encode(charset), self.index ), self.responseFromChannel, self.errorFromChannel )
 
@@ -927,7 +957,7 @@ class SimRetrieveMessagebook( SimMediator ):
         try:
             category = const.SMS_PDU_STATUS_IN[self.category]
         except KeyError:
-            self._error( error.InvalidParameter( "valid categories are %s" % const.SMS_PDU_STATUS_IN.keys() ) )
+            self._error( DBusError.InvalidParameter( "valid categories are %s" % const.SMS_PDU_STATUS_IN.keys() ) )
         else:
             self._commchannel.enqueue( '+CMGL=%i' % category, self.responseFromChannel, self.errorFromChannel )
 
@@ -1261,7 +1291,7 @@ class NetworkGetCountryCode( NetworkMediator ):
         if response[-1] == "OK" and len( response ) > 1:
             values = self._rightHandSide( response[0] ).split( ',' )
             if len( values ) != 3:
-                self._error( error.NetworkNotFound( "Not registered to any provider" ) )
+                self._error( DBusError.NetworkNotFound( "Not registered to any provider" ) )
             else:
                 mcc = int( values[2].strip( '"' )[:3] )
                 code, name = const.mccToCountryCode( mcc )
@@ -1274,7 +1304,7 @@ class NetworkGetCallForwarding( NetworkMediator ): # a{sv}
         try:
             reason = const.CALL_FORWARDING_REASON[self.reason]
         except KeyError:
-            self._error( error.InvalidParameter( "valid reasons are %s" % const.CALL_FORWARDING_REASON.keys() ) )
+            self._error( DBusError.InvalidParameter( "valid reasons are %s" % const.CALL_FORWARDING_REASON.keys() ) )
         else:
             self._commchannel.enqueue( "+CCFC=%d,2" % reason, self.responseFromChannel, self.errorFromChannel )
 
@@ -1307,12 +1337,12 @@ class NetworkEnableCallForwarding( NetworkMediator ):
         try:
             reason = const.CALL_FORWARDING_REASON[self.reason]
         except KeyError:
-            self._error( error.InvalidParameter( "valid reasons are %s" % const.CALL_FORWARDING_REASON.keys() ) )
+            self._error( DBusError.InvalidParameter( "valid reasons are %s" % const.CALL_FORWARDING_REASON.keys() ) )
 
         try:
             class_ = const.CALL_FORWARDING_CLASS[self.class_]
         except KeyError:
-            self._error( error.InvalidParameter( "valid classes are %s" % const.CALL_FORWARDING_CLASS.keys() ) )
+            self._error( DBusError.InvalidParameter( "valid classes are %s" % const.CALL_FORWARDING_CLASS.keys() ) )
 
         number, ntype = currentModem().numberToPhonebookTuple( self.number )
 
@@ -1328,12 +1358,12 @@ class NetworkDisableCallForwarding( NetworkMediator ):
         try:
             reason = const.CALL_FORWARDING_REASON[self.reason]
         except KeyError:
-            self._error( error.InvalidParameter( "valid reasons are %s" % const.CALL_FORWARDING_REASON.keys() ) )
+            self._error( DBusError.InvalidParameter( "valid reasons are %s" % const.CALL_FORWARDING_REASON.keys() ) )
 
         try:
             class_ = const.CALL_FORWARDING_CLASS[self.class_]
         except KeyError:
-            self._error( error.InvalidParameter( "valid classes are %s" % const.CALL_FORWARDING_CLASS.keys() ) )
+            self._error( DBusError.InvalidParameter( "valid classes are %s" % const.CALL_FORWARDING_CLASS.keys() ) )
 
         self._commchannel.enqueue( "+CCFC=%d,4,,,%d" % ( reason, class_ ), self.responseFromChannel, self.errorFromChannel )
 
@@ -1359,7 +1389,7 @@ class NetworkSetCallingIdentification( NetworkMediator ): # s
         try:
             restriction = const.CALL_IDENTIFICATION_RESTRICTION[self.status]
         except KeyError:
-            self._error( error.InvalidParameter( "valid restrictions are %s" % const.CALL_IDENTIFICATION_RESTRICTION.keys() ) )
+            self._error( DBusError.InvalidParameter( "valid restrictions are %s" % const.CALL_IDENTIFICATION_RESTRICTION.keys() ) )
         self._commchannel = self._object.modem.communicationChannel( "CallMediator" ) # exceptional, since this is a call-specific command
         self._commchannel.enqueue( "+CLIR=%d" % restriction, self.responseFromChannel, self.errorFromChannel )
 
@@ -1388,7 +1418,7 @@ class CallEmergency( CallMediator ):
             self._commchannel.enqueue( '+CFUN=1;+COPS=0,0' )
             self._commchannel.enqueue( 'D%s;' % self.number ) # dial emergency number
         else:
-            self._error( error.CallNotAnEmergencyNumber( "valid emergency numbers are %s" % const.EMERGENCY_NUMBERS ) )
+            self._error( DBusError.CallNotAnEmergencyNumber( "valid emergency numbers are %s" % const.EMERGENCY_NUMBERS ) )
 
 #=========================================================================#
 class CallTransfer( CallMediator ):
@@ -1438,7 +1468,7 @@ class CallSendDtmf( CallMediator ):
         self.tonelist = [ tone.upper() for tone in self.tones if tone.upper() in const.CALL_VALID_DTMF ]
         self.tonelist.reverse()
         if not self.tonelist:
-            self._error( error.InvalidParameter( "not enough valid tones" ) )
+            self._error( DBusError.InvalidParameter( "not enough valid tones" ) )
         else:
             self._commchannel.enqueue( "+VTS=%s" % self.tonelist.pop(), self.responseFromChannel, self.errorFromChannel )
 
@@ -1457,11 +1487,11 @@ class CallInitiate( CallMediator ):
     def trigger( self ):
         # check parameters
         if self.calltype not in const.PHONE_CALL_TYPES:
-            self._error( error.InvalidParameter( "invalid call type. Valid call types are: %s" % const.PHONE_CALL_TYPES ) )
+            self._error( DBusError.InvalidParameter( "invalid call type. Valid call types are: %s" % const.PHONE_CALL_TYPES ) )
             return
         for digit in self.number:
             if digit not in const.PHONE_NUMBER_DIGITS:
-                self._error( error.InvalidParameter( "invalid number digit. Valid number digits are: %s" % const.PHONE_NUMBER_DIGITS ) )
+                self._error( DBusError.InvalidParameter( "invalid number digit. Valid number digits are: %s" % const.PHONE_NUMBER_DIGITS ) )
                 return
         # do the work
         if self.calltype == "voice":
@@ -1471,7 +1501,7 @@ class CallInitiate( CallMediator ):
 
         line = CallHandler.getInstance().initiate( dialstring, self._commchannel )
         if line is None:
-            self._error( error.CallNoCarrier( "unable to dial" ) )
+            self._error( DBusError.CallNoCarrier( "unable to dial" ) )
         else:
             self._ok( line )
 
@@ -1482,7 +1512,7 @@ class CallRelease( CallMediator ):
         if CallHandler.getInstance().release( self.index, self._commchannel ) is not None:
             self._ok()
         else:
-            self._error( error.CallNotFound( "no such call to release" ) )
+            self._error( DBusError.CallNotFound( "no such call to release" ) )
 
 #=========================================================================#
 class CallReleaseAll( CallMediator ):
@@ -1500,7 +1530,7 @@ class CallActivate( CallMediator ):
         if CallHandler.getInstance().activate( self.index, self._commchannel ) is not None:
             self._ok()
         else:
-            self._error( error.CallNotFound( "no such call to activate" ) )
+            self._error( DBusError.CallNotFound( "no such call to activate" ) )
 
 #=========================================================================#
 class CallHoldActive( CallMediator ):
@@ -1509,7 +1539,7 @@ class CallHoldActive( CallMediator ):
         if CallHandler.getInstance().hold( self._commchannel ) is not None:
             self._ok()
         else:
-            self._error( error.CallNotFound( "no such call to hold" ) )
+            self._error( DBusError.CallNotFound( "no such call to hold" ) )
 
 #
 # PDP Mediators
@@ -1641,7 +1671,7 @@ class CbGetCellBroadcastSubscriptions( CbMediator ): # s
                 else:
                     if channels == "": # drop nothing = accept 0-999
                         self._ok( "all" )
-                    self._error( error.InternalException( "+CSCB: 1 not yet handled" ) )
+                    self._error( DBusError.InternalException( "+CSCB: 1 not yet handled" ) )
 
 #=========================================================================#
 class CbSetCellBroadcastSubscriptions( CbMediator ):
@@ -1663,13 +1693,13 @@ class CbSetCellBroadcastSubscriptions( CbMediator ):
 class MonitorGetServingCellInformation( MonitorMediator ):
 #=========================================================================#
     def trigger( self ):
-        self._error( error.UnsupportedCommand( "org.freesmartphone.GSM.Monitor.GetServingCellInformation" ) )
+        self._error( DBusError.UnsupportedCommand( "org.freesmartphone.GSM.Monitor.GetServingCellInformation" ) )
 
 #=========================================================================#
 class MonitorGetNeighbourCellInformation( MonitorMediator ):
 #=========================================================================#
     def trigger( self ):
-        self._error( error.UnsupportedCommand( "org.freesmartphone.GSM.Monitor.GetNeighbourCellInformation" ) )
+        self._error( DBusError.UnsupportedCommand( "org.freesmartphone.GSM.Monitor.GetNeighbourCellInformation" ) )
 
 #
 # Debug Mediators

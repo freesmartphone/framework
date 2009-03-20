@@ -1,6 +1,12 @@
+2009-03-20	Michael Lauer	<mlauer@vanille-media.de>
+
+	* [ogsmd] Do not assume a range of 0-255 for +CLVL, rather
+	  query the modem first. If the respective query is not supported,
+	  _then_ assume 0-255. QUALCOMM MSM uses a range of 0-5.
+
 2009-03-19	Michael Lauer	<mlauer@vanille-media.de>
 
-	* [ogsmd] Implement org.freesmartphone.GSM.Device.GetPowerStatus()
+	* [ogsmd] Implemented org.freesmartphone.GSM.Device.GetPowerStatus()
 	  for modems that support this call (e.g. FREESCALE NEPTUNE) to get
 	  the power status. Note that sysfs power supply classes are preferred though...
 
