@@ -13,10 +13,13 @@ FIXME: This is still device specific...
 
 """
 
+__version__ = "0.9.0.0"
+MODULE_NAME = "ophoned.headset"
+
 import dbus, alsaaudio, gobject, subprocess
 
 import logging
-logger = logging.getLogger( "ophoned.headset" )
+logger = logging.getLogger( MODULE_NAME )
 
 class HeadsetError( dbus.DBusException ):
     _dbus_error_name = "org.freesmartphone.Phone.HeadsetError"
@@ -100,7 +103,7 @@ class HeadsetManager( object ):
                 self._matchAnswerRequested = self.bluez_device_headset.connect_to_signal(
                     'AnswerRequested', self._onAnswerRequested
                 )
-        except dbus.exceptions.DBusException as e:
+        except dbus.exceptions.DBusException, e:
             if e.get_dbus_name() == "org.bluez.Error.AlreadyConnected":
                 pass
             else:
@@ -109,7 +112,7 @@ class HeadsetManager( object ):
     def _startBT( self ):
         try:
             self.bluez_device_headset.Play()
-        except dbus.exceptions.DBusException as e:
+        except dbus.exceptions.DBusException, e:
             if e.get_dbus_name() == "org.bluez.Error.AlreadyConnected":
                 pass
             else:
