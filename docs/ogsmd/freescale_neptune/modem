@@ -38,8 +38,24 @@ modem.
 
 === Proprietary commands and URCs ===
 
+* +CCTP: 1, "+49xxxxxxxx" indicates an outgoing call (on line 1?)
+
+* +CLIN: 0 indicates an incoming call on line 0
+
 * +CMSM: 3 means "SIM unlocked"; +CMSM: 0 means "SIM locked". If the SIM slot is empty, it will not appear at 
 all after +CFUN=1 (before +ESCR)
+
+* +EHOZ: 0,"" (homezone indication, homezone name)
+
+* +ESATP: 81 (SIM Application Toolkit P?)
+
+* +EMSR: 0 ?
+
+* +ESMT: 1 ?
+
+* +EFLEX: 99,FE ?
+
+* +ESCR ? (Sim Card Ready?)
 
 * See http://wiki.openezx.org/AT_commands -- we might add more commands here as well, if ogsmd is using them.
 

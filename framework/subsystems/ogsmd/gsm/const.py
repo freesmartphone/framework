@@ -13,7 +13,7 @@ Module: const
 GSM constants, strings, formats, parse patterns, timeouts, you name it.
 """
 
-__version__ = "0.8.3"
+__version__ = "0.8.3.1"
 MODULE_NAME = "ogsmd.const"
 
 from framework import config
@@ -160,6 +160,8 @@ CME = { \
     261:  "SS not executed",
     262:  "SIM Blocked",
     263:  "Invalid block",
+    # 265: Freescale Neptune Proprietary
+    265:  "Busy, try again",
     # 512-514: TI Calypso Proprietary
     512:  "Failed to abort command",
     513:  "ACM Reset needed",

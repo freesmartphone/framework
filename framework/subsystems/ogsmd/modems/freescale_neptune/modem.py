@@ -2,7 +2,7 @@
 """
 The Open GSM Daemon - Python Implementation
 
-(C) 2008 Michael 'Mickey' Lauer <mlauer@vanille-media.de>
+(C) 2008-2009 Michael 'Mickey' Lauer <mlauer@vanille-media.de>
 GPLv2 or later
 
 Package: ogsmd.modems.freescale_neptune
@@ -14,6 +14,8 @@ Freescale Neptune modem class
 __version__ = "0.3.1"
 MODULE_NAME = "ogsmd.modems.freescale_neptune"
 
+EZXD_PROCESS_NAME = "ezxd"
+
 import mediator
 
 from ogsmd.modems.abstract.modem import AbstractModem
@@ -23,6 +25,8 @@ from .unsolicited import UnsolicitedResponseDelegate
 
 from ogsmd.gsm.decor import logged
 from ogsmd.gsm.channel import AtCommandChannel
+
+from ogsmd.helpers import killall
 
 import types
 
@@ -74,6 +78,8 @@ class FreescaleNeptune( AbstractModem ):
         self._channels["Sms"].setDelegate( UnsolicitedResponseDelegate( self._object, mediator ) )
         self._channels["Sim"].setDelegate( UnsolicitedResponseDelegate( self._object, mediator ) )
 
+        self._initDone = None
+
     def numberToPhonebookTuple( self, nstring ):
         """
         Modem violating GSM 07.07 here. It always includes the '+' for international numbers,
@@ -99,4 +105,10 @@ class FreescaleNeptune( AbstractModem ):
             return self._channels["Misc"]
 
     def pathfactory( self, name ):
+        """
+        Overridden for internal purposes. Shut down OpenEZX lowlevel initialization daemon.
+        """
+        if self._initDone is None:
+            self._initDone = True
+            killall( EZXD_PROCESS_NAME )
         return name

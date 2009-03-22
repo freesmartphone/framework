@@ -36,7 +36,11 @@ class AbstractModemChannel( AtCommandChannel ):
         self._populateCommands()
         self._sendCommands( "init" )
 
-        # FIXME add warm start handling (querying CFUN and CPIN status) here
+        # FIXME add warm start handling (querying CFUN and CPIN status) here:
+        # 1. Query CFUN to check whether we are powered
+        # 2. Query CPIN to check whether we are READY
+        # 3. Try to read a message or a phonebook entry
+        # 4. If that works, send the SIM ready signal
 
     def modemStateAntennaOn( self ):
         """

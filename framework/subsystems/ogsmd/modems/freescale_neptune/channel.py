@@ -60,25 +60,20 @@ class MiscChannel( EzxMuxChannel ):
         # FIXME we can't do this, since it is modem-wide (not VC-wide)
         #self.enqueue( "+CMER=0,0,0,0,0" ) # unsolicited event reporting: none
 
-    def modemStateSimUnlocked( self ):
-        """
-        Called, when the modem signalizes the SIM being unlocked.
-        """
-
         # This modem needs a special SIM init sequence otherwise GSM 07.07 SMS commands won't succeed
-        self.enqueue( "+CRRM" )
+        c = self._commands["sim"] = []
+        c.append( "+CRRM" )
         # FIXME if this returns an error, we might have no SIM inserted
-        self.enqueue( "+EPMS?" )
-        self.enqueue( "+EMGL=4", self._ezxEgmlAnswer )
+        c.append( "+EPMS?" )
 
-        return False # gobject: don't call me again
+        def lastCommand( self=self ):
+            self.enqueue( "+EMGL=4", self.simReadyNow, self.simReadyNow )
 
-    def _ezxEgmlAnswer( self, request, response ):
-        if response[-1] == "OK":
-            # send SIM is ready command
-            self._modem._object.ReadyStatus( True )
-        else:
-            gobject.timeout_add( 3, self.modemStateSimUnlocked )
+        c.append( lastCommand )
+
+    def simReadyNow( self, *args, **kwargs ):
+        # we _should_ be ready now, alas we can't check for sure :(
+        self._modem._object.ReadyStatus( True )
 
 #=========================================================================#
 class SmsChannel( EzxMuxChannel ):

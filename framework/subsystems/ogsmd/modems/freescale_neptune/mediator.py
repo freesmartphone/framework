@@ -2,7 +2,7 @@
 """
 The Open GSM Daemon - Python Implementation
 
-(C) 2008 Michael 'Mickey' Lauer <mlauer@vanille-media.de>
+(C) 2008-2009 Michael 'Mickey' Lauer <mlauer@vanille-media.de>
 GPLv2 or later
 
 Package: ogsmd.modems.freescale_neptune

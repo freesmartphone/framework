@@ -6,7 +6,7 @@ The Open GSM Daemon - Python Implementation
 GPLv2 or later
 """
 
-__version__ = "0.8.1.0"
+__version__ = "0.8.2.0"
 MODULE_NAME = "ogsmd.modems.freescale_neptune.unsolicited"
 
 from ogsmd.modems.abstract.unsolicited import AbstractUnsolicitedResponseDelegate
@@ -125,6 +125,14 @@ class UnsolicitedResponseDelegate( AbstractUnsolicitedResponseDelegate ):
     # Freescale Neptune proprietary URCs
     #
 
+    # +CCTP: 1, "+491234567"
+    def plusCCTP( self, righthandside ):
+        callnumber, peer = safesplit( righthandside, ',' )
+        callnumber = int(callnumber)
+        peer = peer.strip( '"' )
+        # synthesize call status
+        self._callHandler.statusChangeFromNetwork( callnumber, {"status": "outgoing", "peer":peer } )
+
     # +CMSM: 0
     # 0 = SIM inserted, locked
     # 3 = SIM inserted, unlocked
@@ -138,6 +146,7 @@ class UnsolicitedResponseDelegate( AbstractUnsolicitedResponseDelegate ):
 
     # +EOPER: 5,"262-03"
     # +EOPER: 7
+    # 0 = busy
     # 5 = home
     # 7 = unregistered
 
