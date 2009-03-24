@@ -36,3 +36,13 @@ message-length:
     profilable: yes
     default: 0
 
+bt-headset-enabled:
+    type: bool
+    profilable: no
+    default: False
+
+bt-headset-address:
+    type: str
+    profilable: no
+    default: ""
+

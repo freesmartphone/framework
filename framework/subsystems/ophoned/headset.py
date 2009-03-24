@@ -147,7 +147,7 @@ class HeadsetManager( object ):
         try:
             self._updateConnected()
         except:
-            logger.exception( "_handleMonitorTimeout failed:" )
+            logger.debug( "_handleMonitorTimeout failed:", exc_info=True )
         return True
 
     def setAddress( self, address ):
@@ -160,11 +160,9 @@ class HeadsetManager( object ):
             if not self.address:
                 raise HeadsetError("Address not set")
             self.enabled = True
-            self._updateConnected()
         elif self.enabled and not enabled:
             self.setPlaying( False )
             self.enabled = False
-            self._updateConnected()
 
     def getEnabled( self ):
         return self.enabled

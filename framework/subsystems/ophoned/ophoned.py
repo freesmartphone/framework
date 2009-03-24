@@ -14,6 +14,7 @@ MODULE_NAME = "ophoned"
 __version__ = "0.1.0"
 
 from framework import helpers
+from framework.controller import Controller
 from protocol import Protocol, ProtocolUnusable
 from test import TestProtocol
 from gsm import GSMProtocol
@@ -22,6 +23,8 @@ from headset import HeadsetManager
 import dbus
 import dbus.service
 from dbus import DBusException
+
+import gobject
 
 import logging
 logger = logging.getLogger( MODULE_NAME )
@@ -42,6 +45,34 @@ class Phone(dbus.service.Object):
         )
         self.gsm.connect_to_signal( 'ResourceChanged', self.on_resource_changed )
         self.headset = HeadsetManager( self.bus, self.on_bt_answer_requested, self.on_bt_connection_status )
+        gobject.idle_add( self.on_startup )
+
+    def on_startup( self ):
+        self.bus.add_signal_receiver(
+            self.on_preferences_changed, 'Notify', 'org.freesmartphone.Preferences.Service',
+            'org.freesmartphone.opreferencesd', '/org/freesmartphone/Preferences/phone'
+        )
+
+        opreferencesd = Controller.object( "/org/freesmartphone/Preferences" )
+        self.preferences = opreferencesd.GetService( "phone" )
+        address = self.preferences.GetValue( "bt-headset-address" )
+        enabled = self.preferences.GetValue( "bt-headset-enabled" )
+        self.headset.setAddress( address )
+        if address and enabled:
+            self.headset.setEnabled( True )
+            self.BTHeadsetEnabled( True )
+
+        self.bus.add_signal_receiver(
+            self.on_preferences_changed, 'Notify', 'org.freesmartphone.Preferences.Service',
+            'org.freesmartphone.opreferencesd', '/org/freesmartphone/Preferences/phone'
+        )
+
+    def on_preferences_changed (self, key, value ):
+        if key == "bt-headset-address":
+            self.headset.setAddress( value )
+        elif key == "bt-headset-enabled":
+            self.headset.setEnabled( value )
+            self.BTHeadsetEnabled( value )
 
     def on_resource_changed( self, resourcename, state, attributes ):
         if resourcename == "GSM":
@@ -88,15 +119,6 @@ class Phone(dbus.service.Object):
         # Then we just ask the protocol class
         ret = protocol.CreateCall(number, force = force)
         return ret
-
-    @dbus.service.method('org.freesmartphone.Phone', in_signature='s', out_signature='')
-    def SetBTHeadsetAddress( self, address ):
-        self.headset.setAddress( address )
-
-    @dbus.service.method('org.freesmartphone.Phone', in_signature='b', out_signature='')
-    def SetBTHeadsetEnabled( self, enabled ):
-        self.headset.setEnabled( enabled )
-        self.BTHeadsetEnabled( enabled )
 
     @dbus.service.method('org.freesmartphone.Phone', in_signature='b', out_signature='')
     def SetBTHeadsetPlaying( self, playing ):
