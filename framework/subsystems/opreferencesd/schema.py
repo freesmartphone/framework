@@ -1,4 +1,6 @@
 
+from framework import helpers
+
 import dbus
 import yaml # To parse the yaml files
 
@@ -55,7 +57,7 @@ class Parameter(object):
         profilable = d.get('profilable', False)
         return cls(type, default, profilable)
         
-    def dbus(self, v):
+    def to_dbus(self, v):
         """Convert a value to a dbus object of the parameter type"""
         if self.type == int: return dbus.Int32(v)
         if self.type == str: return dbus.String(v)
@@ -66,4 +68,11 @@ class Parameter(object):
         if v is None:
             return ''
         raise TypeError, "can't convert parameter of type %s to dbus object" % self.type
-        
+
+    def from_dbus(self, v):
+        v = helpers.dbus_to_python(v)
+        if isinstance(v, self.type):
+            return v
+        else:
+            raise TypeError, "type %s does not match schema (%s)" % (type(v), self.type)
+

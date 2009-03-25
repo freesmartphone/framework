@@ -6,7 +6,7 @@ import dbus.service
 from schema import Schema
 from configuration import Configuration
 
-from helpers import dbus_to_python
+from framework import helpers
 
 import logging
 logger = logging.getLogger('opreferencesd')
@@ -102,10 +102,11 @@ class Service(dbus.service.Object):
         if ret is None:
             raise NoValueError
         # We have to call this method to give the proper type to the ret value
-        ret = parameter.dbus(ret)
+        ret = parameter.to_dbus(ret)
         return ret
     
     @dbus.service.method('org.freesmartphone.Preferences.Service', in_signature='sv', out_signature='')
+    @helpers.exceptionlogger
     def SetValue(self, key, value):
         """set a parameter value for a service, in the current profile"""
         key = str(key)
@@ -116,7 +117,7 @@ class Service(dbus.service.Object):
         # Here we always set the value into the top profile configuration file
         # Shouldn't we use the profile that actually defines the value if there is one ?
         profile = self.manager.profiles[0] if parameter.profilable else 'default'
-        value = dbus_to_python(value)
+        value = parameter.from_dbus(value)
         conf = self.get_conf(profile)
         conf[key] = value
     
