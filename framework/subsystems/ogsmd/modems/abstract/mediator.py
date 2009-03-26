@@ -2,9 +2,9 @@
 """
 The Open GSM Daemon - Python Implementation
 
-(C) 2008 Daniel Willmann <daniel@totalueberwachung.de>
-(C) 2008 Michael 'Mickey' Lauer <mlauer@vanille-media.de>
-(C) 2008 Openmoko, Inc.
+(C) 2008-2009 Daniel Willmann <daniel@totalueberwachung.de>
+(C) 2008-2009 Michael 'Mickey' Lauer <mlauer@vanille-media.de>
+(C) 2008-2009 Openmoko, Inc.
 GPLv2 or later
 
 Package: ogsmd.modems.abstract

@@ -1,3 +1,10 @@
+2009-03-26	Michael Lauer	<mlauer@vanille-media.de>
+
+	* [oeventsd] Refactor RingToneAction and MessageToneAction into a common
+	  UserAlertAction. Add enabling/disabling the vibrator for both as per
+	  'ring-vibration' respectively 'message-vibration' attribute in the profile.
+	* [odeviced] Implement org.freesmartphone.Device.LED.BlinkSeconds( iii ) -> ()
+
 2009-03-20	Michael Lauer	<mlauer@vanille-media.de>
 
 	* [ogsmd] Do not assume a range of 0-255 for +CLVL, rather

@@ -13,7 +13,7 @@ Module: fso_actions
 
 """
 
-__VERSION__ = "0.4.3"
+__VERSION__ = "0.4.4.0"
 MODULE_NAME = "oeventsd"
 
 import framework.patterns.tasklet as tasklet
@@ -152,14 +152,25 @@ class VibratorAction(Action):
     """
     function_name = 'Vibration'
     # FIXME: device specific, needs to go away from here / made generic (parametric? just take the first?)
-    def __init__(self, target = 'neo1973_vibrator'):
+    def __init__(self, target = 'neo1973_vibrator', mode = "continuous"):
+        self.mode = mode
         self.target = target
+
     def trigger(self, **kargs):
-        DBusAction(dbus.SystemBus(),
-                    'org.freesmartphone.odeviced',
-                    '/org/freesmartphone/Device/LED/%s' % self.target,
-                    'org.freesmartphone.Device.LED',
-                    'SetBlinking', 300, 700).trigger()
+        if self.mode == "continuous":
+            DBusAction(dbus.SystemBus(),
+                        'org.freesmartphone.odeviced',
+                        '/org/freesmartphone/Device/LED/%s' % self.target,
+                        'org.freesmartphone.Device.LED',
+                        'SetBlinking', 300, 700).trigger()
+        elif self.mode == "oneshot":
+            DBusAction(dbus.SystemBus(),
+                        'org.freesmartphone.odeviced',
+                        '/org/freesmartphone/Device/LED/%s' % self.target,
+                        'org.freesmartphone.Device.LED',
+                        'BlinkSeconds', 1, 300, 700).trigger()
+        else:
+            logger.warning( "invalid vibration mode '%s', valid are 'continuous' or 'oneshot'" )
 
     def untrigger(self, **kargs):
         DBusAction(dbus.SystemBus(),
@@ -220,15 +231,17 @@ class OccupyResourceAction(Action):
         return "OccupyResource(%s)" % ( self.resource )
 
 #=========================================================================#
-class RingToneAction(Action):
+class UserAlertAction(Action):
 #=========================================================================#
-    function_name = 'RingTone'
+    function_name = '___abstract_dont_use_this_directly____'
 
     def __init__( self, *args, **kwargs ):
         Action.__init__( self )
         logger.debug( "%s: init" )
         self.audio_action = None
         self.vibrator_action = None
+        self.eventname = self.__class__.event_name # needs to be populated in derived classes
+        self.vibratormode = self.__class__.vibrator_mode # dito
         gobject.idle_add( self.initFromMainloop )
 
     def initFromMainloop( self ):
@@ -240,37 +253,39 @@ class RingToneAction(Action):
         Audio preferences have changed. Reload.
         """
         k = str(key)
-        if k == "ring-tone":
-            self.ring_tone = value
-        elif k == "ring-volume":
-            self.ring_volume = value
-        elif k == "ring-loop":
-            self.ring_loop = value
-        elif k == "ring-length":
-            self.ring_length = value
+        if k == "%s-tone" % self.eventname:
+            self.tone = value
+        elif k == "%s-volume" % self.eventname:
+            self.volume = value
+        elif k == "%s-loop" % self.eventname:
+            self.loop = value
+        elif k == "%s-length" % self.eventname:
+            self.length = value
+        elif k == "%s-vibration" % self.eventname:
+            self.vibrate = value
 
-        self.sound_path = os.path.join( installprefix, "share/sounds/", self.ring_tone )
-        self.audio_action = AudioAction(self.sound_path, self.ring_loop, self.ring_length) if self.ring_volume != 0 else None
-        self.vibrator_action = VibratorAction()
+        self.sound_path = os.path.join( installprefix, "share/sounds/", self.tone )
+        self.audio_action = AudioAction( self.sound_path, self.loop, self.length ) if self.volume != 0 else None
+        self.vibrator_action = VibratorAction( mode=self.vibratormode ) if self.vibrate != 0 else None
 
-        logger.debug( "ring tone action changed: audio=%s, vibrator=%s", self.audio_action, self.vibrator_action )
+        logger.debug( "user alert action changed for %s: audio=%s, vibrator=%s", self.eventname, self.audio_action, self.vibrator_action )
 
     @tasklet.tasklet
-    def __init(self):
+    def __init( self ):
         """
         We need to make DBus calls and wait for the result,
         So we use a tasklet to avoid blocking the mainloop.
         """
 
-        logger.debug( "ring tone action init from mainloop" )
+        logger.debug( "user alert action init from mainloop for %s", self.eventname )
         # We get the 'phone' preferences service and
-        # retreive the ring-tone and ring-volume config values
+        # retreive the tone and volume config values
         # We are careful to use 'yield' cause the calls could be blocking.
         try:
             prefs = dbus.SystemBus().get_object( "org.freesmartphone.opreferencesd", "/org/freesmartphone/Preferences" )
             prefs = dbus.Interface( prefs, "org.freesmartphone.Preferences" )
         except dbus.DBusException: # preferences daemon probably not present
-            logger.warning( "org.freesmartphone.opreferencesd not present. Can't get ring tones." )
+            logger.warning( "org.freesmartphone.opreferencesd not present. Can't get alert tones." )
         else:
             phone_prefs = yield tasklet.WaitDBus( prefs.GetService, "phone" )
             phone_prefs = dbus.SystemBus().get_object( "org.freesmartphone.opreferencesd", phone_prefs )
@@ -280,77 +295,54 @@ class RingToneAction(Action):
             phone_prefs.connect_to_signal( "Notify", self.cbPreferencesServiceNotify )
 
             # FIXME does that still work if (some of) the entries are missing?
-            self.ring_tone = yield tasklet.WaitDBus( phone_prefs.GetValue, "ring-tone" )
-            self.ring_volume = yield tasklet.WaitDBus( phone_prefs.GetValue, "ring-volume" )
-            self.ring_loop = yield tasklet.WaitDBus( phone_prefs.GetValue, "ring-loop" )
-            self.ring_length = yield tasklet.WaitDBus( phone_prefs.GetValue, "ring-length" )
+            self.tone = yield tasklet.WaitDBus( phone_prefs.GetValue, "%s-tone" % self.eventname )
+            self.volume = yield tasklet.WaitDBus( phone_prefs.GetValue, "%s-volume" % self.eventname )
+            self.loop = yield tasklet.WaitDBus( phone_prefs.GetValue, "%s-loop" % self.eventname )
+            self.length = yield tasklet.WaitDBus( phone_prefs.GetValue, "%s-length" % self.eventname )
+            self.vibrate = yield tasklet.WaitDBus( phone_prefs.GetValue, "%s-vibration" % self.eventname )
 
-            self.sound_path = os.path.join( installprefix, "share/sounds/", self.ring_tone )
-            self.audio_action = AudioAction(self.sound_path, self.ring_loop, self.ring_length) if self.ring_volume != 0 else None
-            self.vibrator_action = VibratorAction()
+            self.sound_path = os.path.join( installprefix, "share/sounds/", self.tone )
+            self.audio_action = AudioAction( self.sound_path, self.loop, self.length ) if self.volume != 0 else None
+            self.vibrator_action = VibratorAction( mode=self.vibratormode ) if self.vibrate != 0 else None
 
-        logger.debug( "ring tone action: audio=%s, vibrator=%s", self.audio_action, self.vibrator_action )
+        logger.debug( "user alert action for %s: audio=%s, vibrator=%s", self.eventname, self.audio_action, self.vibrator_action )
 
     def trigger(self, **kargs):
-        logger.info( "RingToneAction play" )
-        if self.audio_action:
+        logger.info( "UserAlertAction %s play", self.eventname )
+        if self.audio_action is not None:
             self.audio_action.trigger()
-        self.vibrator_action.trigger()
+        if self.vibrator_action is not None:
+            self.vibrator_action.trigger()
 
     def untrigger(self, **kargs):
-        logger.info( "RingToneAction stop" )
-        if self.audio_action:
+        logger.info( "UserAlertAction %s stop", self.eventname )
+        if self.audio_action is not None:
             self.audio_action.untrigger()
-        if self.vibrator_action:
+        if self.vibrator_action is not None:
             self.vibrator_action.untrigger()
+
+    def __repr__(self):
+        return "Abstract UserAlertAction()"
+
+#=========================================================================#
+class RingToneAction(UserAlertAction):
+#=========================================================================#
+    function_name = 'RingTone'
+    event_name = "ring"
+    vibrator_mode = "continuous"
 
     def __repr__(self):
         return "RingToneAction()"
 
 #=========================================================================#
-class MessageToneAction(Action):
+class MessageToneAction(UserAlertAction):
 #=========================================================================#
     function_name = 'MessageTone'
-
-    def __init__( self, cmd = 'play' ):
-        self.cmd = cmd
-
-    def trigger(self, **kargs):
-        logger.info( "MessageToneAction %s", self.cmd )
-
-        # We use the global Controller class to directly get the object
-        prefs = Controller.object( "/org/freesmartphone/Preferences" )
-        if prefs is None:
-            logger.error( "preferences not available and no default values defined." )
-            return
-        phone_prefs = prefs.GetService( "phone" )
-        tone = phone_prefs.GetValue( "message-tone" )
-        volume = phone_prefs.GetValue( "message-volume" )
-        loop = phone_prefs.GetValue( "message-loop" )
-        length = phone_prefs.GetValue( "message-length" )
-        sound_path = os.path.join( installprefix, "share/sounds/", tone )
-
-        # XXX: We don't set the ringing volume.
-        #      Here we only disable the audio action if the volume is 0
-        self.audio_action = AudioAction(sound_path, loop, length) if volume != 0 else None
-        #self.vibrator_action = VibratorAction()
-
-        if self.cmd == "play":
-            logger.info( "Start message tone : tone=%s, volume=%s, loop=%d, length=%d", tone, volume, loop, length )
-            if self.audio_action:
-                self.audio_action.trigger()
-            #self.vibrator_action.trigger()
-
-        elif self.cmd == "stop":
-            logger.info( "Stop message tone : tone=%s, volume=%s, loop=%d, length=%d", tone, volume, loop, length )
-            if self.audio_action: self.audio_action.untrigger()
-            if self.vibrator_action : self.vibrator_action.untrigger()
-        else:
-            logger.error( "Unknown MessageToneAction!" )
-            assert False, "unknown message tone action"
+    event_name = "message"
+    vibrator_mode = "oneshot"
 
     def __repr__(self):
-        return "MessageToneAction(%s)" % self.cmd
+        return "MessageToneAction()"
 
 #=========================================================================#
 class CommandAction(Action):
