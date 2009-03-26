@@ -186,6 +186,16 @@ class LED( dbus.service.Object ):
             writeToFile( "%s/delay_on" % self.node, str( abs( delay_on ) ) )
             writeToFile( "%s/delay_off" % self.node, str( abs( delay_off ) ) )
 
+    @dbus.service.method( DBUS_INTERFACE, "iii", "" )
+    def BlinkSeconds( self, seconds, delay_on, delay_off ):
+        # define stop function
+        def stopIt( self=self ):
+            self.SetBrightness( 0 )
+            return False # remove timer, don't call again
+        # start
+        self.SetBlinking( delay_on, delay_off )
+        gobject.timeout_add_seconds( seconds, stopIt )
+
     @dbus.service.method( DBUS_INTERFACE, "ss", "" )
     def SetNetworking( self, interface, mode ):
         # validate parameters
