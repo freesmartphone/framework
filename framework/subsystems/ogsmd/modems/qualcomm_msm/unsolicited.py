@@ -33,6 +33,14 @@ class UnsolicitedResponseDelegate( AbstractUnsolicitedResponseDelegate ):
     # Proprietary URCs
     #
 
+    # @HTCCSQ: 2
+    def atHTCCSQ( self, righthandside ):
+        """Indicates signal strength"""
+        value = int( righthandside )
+        self._object.SignalStrength( 20*value )
+
     # +PB_READY
     def plusPB_READY( self, righthandside ):
+        """Indicates phonebook readyness"""
         self._object.ReadyStatus( True )
+
