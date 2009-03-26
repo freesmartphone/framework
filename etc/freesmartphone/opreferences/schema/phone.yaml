@@ -17,6 +17,11 @@ ring-length:
     profilable: yes
     default: 0
 
+ring-vibration:
+    type: int
+    profilable: yes
+    default: 1
+
 message-tone:
     type: str
     profilable: yes
@@ -32,6 +37,11 @@ message-loop:
     default: 0
 
 message-length:
+    type: int
+    profilable: yes
+    default: 0
+
+message-vibration:
     type: int
     profilable: yes
     default: 0
