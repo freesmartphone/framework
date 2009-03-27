@@ -10,7 +10,7 @@ Package: ogsmd.gsm
 Module: parser
 """
 
-__version__ = "0.8.5"
+__version__ = "0.8.5.1"
 
 import os
 DEBUG = os.environ.get( "FSO_DEBUG_PARSER", False )
@@ -130,6 +130,10 @@ class StateBasedLowlevelAtParser( object ):
 
     def solicitedLineCompleted( self, multipleR = False ):
         if DEBUG: print "PARSER DEBUG: [perhaps solicited] line completed, line=", repr(self.curline), "previous lines=", self.lines
+
+        # skip empty lines [is this always legal?]
+        if self.curline == "":
+            return self.state_start
 
         if self.isTerminationLine():
             if DEBUG: print "PARSER DEBUG: [solicited] response completed"

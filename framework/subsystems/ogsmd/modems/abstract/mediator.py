@@ -22,7 +22,7 @@ TODO:
  * refactor parameter validation
 """
 
-__version__ = "0.9.18.0"
+__version__ = "0.9.18.1"
 MODULE_NAME = "ogsmd.modems.abstract.mediator"
 
 from ogsmd import error as DBusError
@@ -300,7 +300,7 @@ class DeviceGetInfo( DeviceMediator ):
         # creeping unnoticed into. To fix this properly, we would need to enhance the prefixmap to also specify
         # something like: [ "+CGMR", "+CGMM", "+CGMI", "+CGSN", "plaintext" ], "plaintext" being everything
         # else that does _not_ look like a response.
-        self._commchannel.enqueue( "+CGMR;+CGMM;+CGMI;+CGSN", self.responseFromChannel, self.errorFromChannel, prefixes=[] )
+        self._commchannel.enqueue( "+CGMR;+CGMM;+CGMI;+CGSN", self.responseFromChannel, self.errorFromChannel, prefixes=[""] )
 
     def responseFromChannel( self, request, response ):
         if response[-1] != "OK":
