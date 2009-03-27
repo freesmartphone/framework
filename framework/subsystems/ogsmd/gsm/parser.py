@@ -10,7 +10,7 @@ Package: ogsmd.gsm
 Module: parser
 """
 
-__version__ = "0.8.5.1"
+__version__ = "0.8.5.2"
 
 import os
 DEBUG = os.environ.get( "FSO_DEBUG_PARSER", False )
@@ -258,9 +258,7 @@ class QualcommGsmViolationParser( StateBasedLowlevelAtParser ):
             return self.state_inline
         else:
             if b == "\r":
-                if self.curline == "OK" \
-                or self.curline == "ERROR" \
-                or self.curline.startswith( "+CME ERROR" ) \
+                if self.curline.startswith( "+CME ERROR" ) \
                 or self.curline.startswith( "+CMS ERROR" ) \
                 or self.curline.startswith( "+EXT ERROR" ):
                     return self.lineCompleted()
