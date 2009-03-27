@@ -10,7 +10,7 @@ Package: ogsmd.gsm
 Module: parser
 """
 
-__version__ = "0.8.4"
+__version__ = "0.8.5"
 
 import os
 DEBUG = os.environ.get( "FSO_DEBUG_PARSER", False )
@@ -236,6 +236,35 @@ class StateBasedLowlevelAtParser( object ):
 #=========================================================================#
 LowlevelAtParser = StateBasedLowlevelAtParser
 #=========================================================================#
+
+#=========================================================================#
+class QualcommGsmViolationParser( StateBasedLowlevelAtParser ):
+#=========================================================================#
+    """
+    The HTC modems violate v250.ter AT format specification. Although v1 is
+    set, they omit the '\n' as error termination. We need to check after
+    every \r whether it's a termination, since the error may not come.
+    """
+    def state_inline( self, b ):
+        # FIXME checking the number of " in self.curline violates
+        # the state machine layer and slows down the parser.
+        # We better map this to the state machine instead.
+        if b not in "\r\n" or self.curline.count('"')%2:
+            self.curline += b
+            return self.state_inline
+        else:
+            if b == "\r":
+                if self.curline == "OK" \
+                or self.curline == "ERROR" \
+                or self.curline.startswith( "+CME ERROR" ) \
+                or self.curline.startswith( "+CMS ERROR" ) \
+                or self.curline.startswith( "+EXT ERROR" ):
+                    return self.lineCompleted()
+                else:
+                    return self.state_inline_r
+            # usually this should not happen, but some SMS are badly formatted
+            if b == '\n':
+                return self.lineCompleted()
 
 #=========================================================================#
 if __name__ == "__main__":

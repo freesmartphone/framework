@@ -10,9 +10,11 @@ Package: ogsmd.modems.qualcomm_msm
 Module: channel
 """
 
+__version__ = "0.4.0"
 MODULE_NAME = "ogsmd.modems.qualcomm_msm.channel"
 
 from ogsmd.modems.abstract.channel import AbstractModemChannel
+from ogsmd.gsm import parser
 
 import itertools, select
 
@@ -31,7 +33,6 @@ class SingleLineChannel( AbstractModemChannel ):
         """
         Populate the command queues to be sent on modem state changes.
         """
-
         AbstractModemChannel._populateCommands( self ) # prepopulated
 
         c = self._commands["init"]
@@ -49,6 +50,12 @@ class SingleLineChannel( AbstractModemChannel ):
         # GPRS unsolicited
         c.append( "+CGEREP=2,1" )
         c.append( "+CGREG=2" )
+
+    def installParser( self ):
+        """
+        Install a specific low level parser for this channel.
+        """
+        self.parser = parser.QualcommGsmViolationParser( self._handleResponseToRequest, self._handleUnsolicitedResponse )
 
     def _hookLowLevelInit( self ):
         """

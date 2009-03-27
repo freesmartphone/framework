@@ -1,3 +1,7 @@
+2009-03-28	Michael Lauer	<mlauer@vanille-media.de>
+
+	* [ogsmd] [QUALCOMM MSM] Add specific parser that covers the v250.ter violation.
+
 2009-03-26	Michael Lauer	<mlauer@vanille-media.de>
 
 	* [oeventsd] Refactor RingToneAction and MessageToneAction into a common
