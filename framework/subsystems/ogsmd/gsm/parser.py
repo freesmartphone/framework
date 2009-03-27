@@ -10,7 +10,7 @@ Package: ogsmd.gsm
 Module: parser
 """
 
-__version__ = "0.8.2"
+__version__ = "0.8.3"
 
 import os
 DEBUG = os.environ.get( "FSO_DEBUG_PARSER", False )
@@ -267,33 +267,6 @@ class ThrowStuffAwayParser( StateBasedLowlevelAtParser ):
             return StateBasedLowlevelAtParser.unsolicitedLineCompleted( self, multipleR )
         else:
             return self.state_inline
-
-#=========================================================================#
-class AlwaysUnsolicitedParser( StateBasedLowlevelAtParser ):
-#=========================================================================#
-    """
-    This parser treats certain responses always as unsolicited, based on
-    prefix matching. It is useful for modems which do not support deferring
-    unsolicited responses between sending a query and returning the (solicited)
-    response -- such as the TI Calypso with regards to +CRING, +CLIP, and %CPI.
-    """
-
-    def __init__( self, alwaysUnsolicited, response, unsolicited ):
-        StateBasedLowlevelAtParser.__init__( self, response, unsolicited )
-        self.alwaysUnsolicited = alwaysUnsolicited
-
-    def lineCompleted( self, multipleR = False ):
-        # FIXME update self.haveCommand for next command
-        if self.haveCommand and not self.isAlwaysUnsolicited():
-            return self.solicitedLineCompleted( multipleR )
-        else:
-            return self.unsolicitedLineCompleted( multipleR )
-
-    def isAlwaysUnsolicited( self ):
-        for u in self.alwaysUnsolicited:
-            if self.curline.startswith( u ):
-                return True
-        return False
 
 #=========================================================================#
 if __name__ == "__main__":
