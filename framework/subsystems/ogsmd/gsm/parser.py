@@ -10,7 +10,7 @@ Package: ogsmd.gsm
 Module: parser
 """
 
-__version__ = "0.8.3"
+__version__ = "0.8.4"
 
 import os
 DEBUG = os.environ.get( "FSO_DEBUG_PARSER", False )
@@ -236,37 +236,6 @@ class StateBasedLowlevelAtParser( object ):
 #=========================================================================#
 LowlevelAtParser = StateBasedLowlevelAtParser
 #=========================================================================#
-
-#=========================================================================#
-class ThrowStuffAwayParser( StateBasedLowlevelAtParser ):
-#=========================================================================#
-    """
-    This parser has the ability to consume certain lines.
-    """
-
-    def __init__( self, trash, response, unsolicited ):
-        StateBasedLowlevelAtParser.__init__( self, response, unsolicited )
-        self.trash = trash
-
-    def consume( self ):
-        for t in self.trash:
-            if self.curline.startswith( t ):
-                print "PARSER: throwing away line starting with", t
-                self.curline = ""
-                return True # throw it away
-        return False # process as usual
-
-    def solicitedLineCompleted( self, multipleR = False ):
-        if not self.consume():
-            return StateBasedLowlevelAtParser.solicitedLineCompleted( self, multipleR )
-        else:
-            return self.state_inline
-
-    def unsolicitedLineCompleted( self, multipleR = False ):
-        if not self.consume():
-            return StateBasedLowlevelAtParser.unsolicitedLineCompleted( self, multipleR )
-        else:
-            return self.state_inline
 
 #=========================================================================#
 if __name__ == "__main__":
