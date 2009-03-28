@@ -3,3 +3,5 @@ Qualcomm MSM Proprietary URCs
 
 @HTCCSQ: 0010,1    signal strength (0-4)
 @HTCSID: 4         disconnect reason
+
+[WCDMA] Current RRC Status = 0
