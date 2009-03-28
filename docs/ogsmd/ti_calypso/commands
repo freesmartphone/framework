@@ -1,7 +1,7 @@
-AT%CSQ
-AT%ALS
+AT%CSQ             enable signal strength URC (%CSQ: <SNR>)
+AT%ALS             alternate line select
 AT%ATR
-AT%BAND
+AT%BAND            manual GSM band select
 AT%CACM
 AT%CAOC
 AT%CCBS
@@ -16,10 +16,11 @@ AT%CPRIM
 AT%CTV
 AT%CUNS
 AT%NRG
-AT%SATC
-AT%SATE
-AT%SATR
-AT%SATT
+AT%SATC            configuration for SAT; %SATC=<n>,<sat profile>
+AT%SATE            send SAT envelope command; %SATE=<satCmd>, response will be %SATE: <satRsp>
+AT%SATR            send SAT command response; $SATR=<satRsp>
+AT%SATT            terminate SAT command or session; %SATT=<cs>
+                   (0=user stopped redialing, 1 end of redialing, 2 user ends session)
 AT%SNCNT
 AT%VER
 AT%CGCLASS
