@@ -250,6 +250,21 @@ class SMSTests(unittest.TestCase):
         diff = (diff.seconds*1000 + diff.microseconds/1000.0)/n
         print "%.3fms ... " % diff
 
+    def test_profile_encoding(self):
+        """See how long it takes for one sms-deliver to be reencoded"""
+
+        testpdu = "0791448720003023440C91449703529096000050016121855140A005000301060190F5F31C447F83C8E5327CEE0221EBE73988FE0691CB65F8DC05028190F5F31C447F83C8E5327CEE028140C8FA790EA2BF41E472193E7781402064FD3C07D1DF2072B90C9FBB402010B27E9E83E86F10B95C86CF5D2064FD3C07D1DF2072B90C9FBB40C8FA790EA2BF41E472193E7781402064FD3C07D1DF2072B90C9FBB402010B27E9E83E8"
+        n = 200
+
+        sms = SMS.decode(testpdu, "sms-deliver")
+        start = datetime.now()
+        for i in range(n):
+            sms.pdu()
+        end = datetime.now()
+        diff = end-start
+        diff = (diff.seconds*1000 + diff.microseconds/1000.0)/n
+        print "%.3fms ... " % diff
+
 
 if __name__ == '__main__':
 
