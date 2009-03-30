@@ -100,15 +100,6 @@ def encodePDUTime(timeobj):
         td.minute%10, td.second/10, td.second%10, zone/10, zone%10 ] )
 
 #=========================================================================#
-def tobinary( n ):
-#=========================================================================#
-    s = ""
-    for i in range(8):
-        s = ("%1d" % (n & 1)) + s
-        n >>= 1
-    return s
-
-#=========================================================================#
 def gsm_default_encode( input, errors = 'strict' ):
 #=========================================================================#
         result = []
@@ -159,50 +150,44 @@ register( gsmcodec )
 def unpack_sevenbit( bs, chop = 0 ):
 #=========================================================================#
     """Unpack 7-bit characters"""
-    msgbytes = bs
-    msgbytes.reverse()
-    asbinary = "".join(map(tobinary, msgbytes))
-    if chop != 0:
-        asbinary = asbinary[:-chop]
-    chars = []
-    while len(asbinary) >= 7:
-        chars.append(int(asbinary[-7:], 2))
-        asbinary = asbinary[:-7]
-    return "".join( map(chr, chars) )
+    result = []
+    offset = (7 - chop) % 7
+    carry = 0
+    for b in bs:
+        if not chop:
+            result.append( carry | (b & (0xff >> offset + 1)) << offset )
+        else:
+            chop = 0
+        if offset == 6:
+            result.append( b >> 1 )
+            carry = offset = 0
+        else:
+            carry = b >> 7 - offset
+            offset += 1
+    return "".join( map(chr, result) )
 
 #=========================================================================#
 def pack_sevenbit( text, crop=0 ):
 #=========================================================================#
     """Pack 7-bit characters"""
-    bytes = map( ord, text )
+    bs = [ 0 ] + map( ord, text ) + [ 0 ]
+    result = []
+    shift = 7 - crop
+    for i in range(len(bs)-1):
+        if shift == 7:
+            shift = 0
+            continue
 
-    bytes.reverse()
+        ch1 = bs[i] & 0x7F
+        ch1 = ch1 >> shift
+        ch2 = bs[(i+1)] & 0x7F
+        ch2 = ch2 << (7-shift)
 
-    msgbits = []
-    msgbytes = []
-    for char in bytes:
-        bits = []
-        for i in range(0, 7):
-            bits.append( char%2 )
-            char /= 2
-        bits.reverse()
-        msgbits.extend( bits )
+        result.append( ( ch1 | ch2 ) & 0xFF )
 
-    msgbits.extend( [0]*crop )
-    padding = (8 - len(msgbits)%8) % 8
-    msgbits = ( [0]* padding ) + msgbits
-    while len(msgbits) >= 8:
-        byte = 0
-        length = min( len(msgbits), 8 )
+        shift += 1
 
-        for i in range(0,length):
-            byte = byte * 2 + msgbits[0]
-            msgbits = msgbits[1:]
-
-        msgbytes.append( byte )
-
-    msgbytes.reverse()
-    return msgbytes
+    return result
 
 #=========================================================================#
 def ira_pdu_to_string( pdu ):
