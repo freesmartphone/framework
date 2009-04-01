@@ -15,7 +15,7 @@ __version__ = "0.2.0"
 
 from framework import resource
 from framework.patterns import tasklet
-from gsm import const
+from gsm import const, celldb
 
 import dbus
 import dbus.service
@@ -160,6 +160,20 @@ class Server( dbus.service.Object ):
     @dbus.service.method( DBUS_INTERFACE_DATA, "ss", "a{sv}" )
     def GetNetworkInfo( self, mcc, mnc ):
         return const.NETWORKS.get( ( mcc, mnc ), {} )
+
+    # FIXME Return NaN when no cell found? Support signal strengths?
+    @dbus.service.method( DBUS_INTERFACE_DATA, "ssa(uu)", "bddddu" )
+    def GetCellLocation( self, mcc, mnc, cells ):
+        mcc = int( mcc )
+        mnc = int( mnc )
+        cells = [map(int, cell) for cell in cells]
+        center = celldb.get_center( mcc, mnc, cells )
+        if center:
+            return ( True, ) +center
+        la = celldb.get_la( mcc, mnc, cells[0][0] )
+        if la:
+            return ( True, ) + la + ( 0, )
+        return ( False, 0.0, 0.0, 0.0, 0.0, 0 )
 
     #
     # dbus org.freesmartphone.GSM.HZ
