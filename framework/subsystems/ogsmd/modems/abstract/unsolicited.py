@@ -158,6 +158,13 @@ class AbstractUnsolicitedResponseDelegate( object ):
         sms = ogsmd.gsm.sms.SMS.decode( pdu, "sms-status-report" )
         self._object.IncomingMessageReceipt( str(sms.addr), sms.ud, sms.properties )
 
+        # Always acknoledge a status report right away
+        sms = ogsmd.gsm.sms.SMSDeliverReport(True)
+        pdu = sms.pdu()
+        commchannel = self._object.modem.communicationChannel( "UnsolicitedMediator" )
+	# XXX: Replace the lambda with an actual funtion in error case?
+        commchannel.enqueue( '+CNMA=1,%i\r%s' % ( len(pdu)/2, pdu), lambda x,y: None, lambda x,y: None )
+
     # +CMTI: "SM",7
     def plusCMTI( self, righthandside ):
         """
