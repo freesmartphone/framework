@@ -1167,7 +1167,9 @@ def parseNetworks( filename ):
                 common = dict( zip( common_header, data ) )
             elif data[1]: # new network, flush old
                 if network:
-                    networks[( network["mcc"], network["mnc"] )] = network
+                    if len( network["mnc"] ) == 0:
+                        network["mnc"] = u"0"
+                    networks[( int( network["mcc"] ), int( network["mnc"] ) )] = network
                     del network["mcc"]
                     del network["mnc"]
                 if not common: raise "Missing common info near line %i" % linenumber

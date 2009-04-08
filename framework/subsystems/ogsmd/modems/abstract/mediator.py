@@ -1210,7 +1210,7 @@ class NetworkGetStatus( NetworkMediator ):
                     result["code"] = int( mccmnc )
                     # Some providers' name may be unknown to the modem hence not show up in +COPS=3,0;+COPS?
                     # In this case try to gather the name from our network database
-                    network = const.NETWORKS.get( ( mccmnc[:3], mccmnc[3:] ), {} )
+                    network = const.NETWORKS.get( ( int( mccmnc[:3]), int( mccmnc[3:] ) ), {} )
                     if "brand" in network:
                         result["provider"] = network["brand"]
                     elif "Operator" in network:
