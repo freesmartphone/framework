@@ -433,6 +433,7 @@ class DeviceGetSpeakerVolume( DeviceMediator ):
             request, response, error = yield( "+CLVL=?" )
 
             if error is None and response[-1] == "OK":
+                low, high = self._rightHandSide( response[0] ).strip( "()" ).split( '-' )
                 low, high = int(low), int(high)
                 self._object.modem.setData( "speaker-volume-range", ( low, high ) )
 
