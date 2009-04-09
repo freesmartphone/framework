@@ -18,6 +18,7 @@ from framework.patterns.null import Null
 import dbus.service
 import gobject
 import os, time, sys, fcntl
+import calendar
 
 import logging
 logger = logging.getLogger( MODULE_NAME )
@@ -440,39 +441,42 @@ class RealTimeClock( dbus.service.Object ):
     def GetName( self ):
         return self.node.split("/")[-1]
 
-    @dbus.service.method( DBUS_INTERFACE, "", "s" )
+    @dbus.service.method( DBUS_INTERFACE, "", "i" )
     def GetCurrentTime( self ):
         """Return seconds since epoch (UTC)"""
-        return readFromFile( "%s/since_epoch" % self.node )
+        return int( readFromFile( "%s/since_epoch" % self.node ) )
 
-    @dbus.service.method( DBUS_INTERFACE, "s", "" )
+    @dbus.service.method( DBUS_INTERFACE, "i", "" )
     def SetCurrentTime( self, t ):
         """Set time by seconds since epoch (UTC)"""
         pyrtc.rtcSetTime( time.gmtime( t ) )
 
-    @dbus.service.method( DBUS_INTERFACE, "", "s" )
+    @dbus.service.method( DBUS_INTERFACE, "", "i" )
     def GetWakeupTime( self ):
         """Return wakeup time in seconds since epoch (UTC) if a wakeup
         time has been set. Return 0, otherwise."""
         # the wakealarm attribute is not always present
         if os.path.exists( "%s/wakealarm" % self.node ):
-            return readFromFile( "%s/wakealarm" % self.node )
+            wake = readFromFile( "%s/wakealarm" % self.node )
+            if wake == "":
+                wake = 0;
+            return int( wake )
         else:
             # use ioctl interface
             ( enabled, pending ), t = pyrtc.rtcReadAlarm()
-            return "0" if not enabled else str( time.mktime( t ) )
+            return 0 if not enabled else calendar.timegm( t )
 
-    @dbus.service.method( DBUS_INTERFACE, "s", "" )
+    @dbus.service.method( DBUS_INTERFACE, "i", "" )
     def SetWakeupTime( self, t ):
         """Set wakeup time in seconds since epoch (UTC). Set 0 to disable."""
         if os.path.exists( "%s/wakealarm" % self.node ):
             writeToFile( "%s/wakealarm" % self.node, t )
         else:
             # use ioctl interface
-            if t == "0":
+            if t == 0:
                 pyrtc.rtcDisableAlarm()
             else:
-                pyrtc.rtcSetAlarm( time.gmtime( float(t) ) )
+                pyrtc.rtcSetAlarm( time.gmtime( t ) )
 
 #----------------------------------------------------------------------------#
 def factory( prefix, controller ):
