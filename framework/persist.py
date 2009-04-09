@@ -54,7 +54,7 @@ class Persist( object ):
                 with file( filename, "r" ) as f:
                     data = f.read()
             except:
-                logger.error( "no persist data for subsystem %s" % subsystem )
+                logger.info( "no persist data for subsystem %s" % subsystem )
                 data = ""
             if data == "": # empty file
                 data = {}
