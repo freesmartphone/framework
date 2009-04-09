@@ -1167,8 +1167,6 @@ def parseNetworks( filename ):
                 common = dict( zip( common_header, data ) )
             elif data[1]: # new network, flush old
                 if network:
-                    if len( network["mnc"] ) == 0:
-                        network["mnc"] = u"0"
                     networks[( int( network["mcc"] ), int( network["mnc"] ) )] = network
                     del network["mcc"]
                     del network["mnc"]
@@ -1229,7 +1227,7 @@ if __name__ == "__main__":
     assert mccToCountryCode( 262 ) == ( "+49", "Germany" )
     assert mccToCountryCode( 700 ) == ( "+???", "<??? unknown ???>" )
     print "OK"
-    assert NETWORKS[( "262", "03" )]["brand"] == "E-Plus"
+    assert NETWORKS[( 262, 3 )]["brand"] == "E-Plus"
     print "OK"
     assert ctzvToTimeZone( "25" ) == -11 # UTC-2:45
     assert ctzvToTimeZone( "35" ) == 32  # UTC+8
