@@ -1211,13 +1211,14 @@ class NetworkGetStatus( NetworkMediator ):
                     result["code"] = int( mccmnc )
                     # Some providers' name may be unknown to the modem hence not show up in +COPS=3,0;+COPS?
                     # In this case try to gather the name from our network database
-                    network = const.NETWORKS.get( ( int( mccmnc[:3]), int( mccmnc[3:] ) ), {} )
-                    if "brand" in network:
-                        result["provider"] = network["brand"]
-                    elif "Operator" in network:
-                        result["provider"] = network["operator"]
-                    else:
-                        result["provider"] = "Unknown"
+                    if not "provider" in result:
+                        network = const.NETWORKS.get( ( int( mccmnc[:3]), int( mccmnc[3:] ) ), {} )
+                        if "brand" in network:
+                            result["provider"] = network["brand"]
+                        elif "operator" in network:
+                            result["provider"] = network["operator"]
+                        else:
+                            result["provider"] = "Unknown"
         # UGLY special check for some modems, which return a strength of 0, if you
         # call +CSQ too early after a (re)registration. In that case, we just
         # leave the strength out of the result
