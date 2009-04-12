@@ -104,7 +104,14 @@ class Device( resource.Resource ):
         """
         Resume (inherited from Resource)
         """
-        self.modem.recoverFromSuspend( on_ok, on_error )
+        self.modem.recoverFromSuspend( lambda: self._recoverOk( on_ok, on_error ), on_error )
+
+    def _recoverOk( self, on_ok, on_error):
+        mediator.NetworkGetStatus( self, lambda x: self._recoverStatusOk( x, on_ok, on_error ), on_error )
+
+    def _recoverStatusOk( self, status, on_ok, on_error ):
+        self.Status( status )
+        on_ok()
 
     #
     # dbus org.freesmartphone.GSM.Device
