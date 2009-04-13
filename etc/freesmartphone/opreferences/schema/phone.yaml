@@ -8,7 +8,7 @@ ring-volume:
     default: 10
 
 ring-loop:
-    type: int
+    type: bool
     profilable: yes
     default: 0
 
@@ -18,7 +18,7 @@ ring-length:
     default: 0
 
 ring-vibration:
-    type: int
+    type: bool
     profilable: yes
     default: 1
 
@@ -32,7 +32,7 @@ message-volume:
     default: 10
 
 message-loop:
-    type: int
+    type: bool
     profilable: yes
     default: 0
 
@@ -42,7 +42,7 @@ message-length:
     default: 0
 
 message-vibration:
-    type: int
+    type: bool
     profilable: yes
     default: 0
 
