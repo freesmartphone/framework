@@ -1,0 +1,28 @@
+DTest
+-----
+DTest is a framework to test the high level DBus API of FSO. It uses gabriel to
+connect to the mobile device and control/query the DBus API. DTest can also use
+two different FSO devices to test usage scenarios that need the control of both
+ends.
+
+Requirements
+------------
+ * gabriel on the testing machine
+ * socat on the FSO device(s)
+
+Usage
+-----
+Just run
+./dtest -p <IP of primary FSO device> [-s <IP of secondary FSO device>]
+and all tests in tests/ will be run. If you only want to run tests found in
+certain files you need to add the files with the -t option ( -t sample will
+only run tests found in tests/sample.py).
+
+Testing
+-------
+To add your own test cases just add a file in tests/ and subclass
+fsotest.FSOTestCase.
+This class gives you access to the different DBus busses and will provide some
+more convenience functions like DBus interface and object caches.
+
+# vim: textwidth=80

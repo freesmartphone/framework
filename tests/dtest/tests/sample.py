@@ -8,7 +8,8 @@ Sample testing file
 """
 
 import unittest
-import fsotest
+import fsotest, dbus
+
 
 class SampleTest(fsotest.FSOTestCase):
     def test_foo( self ):
@@ -16,7 +17,7 @@ class SampleTest(fsotest.FSOTestCase):
 	return
 
     def test_usage( self ):
-        """ Just try some static tests for now """
+        """ Try to get the resource list """
         test = self.bus_pri.get_object( 'org.freesmartphone.ousaged', '/org/freesmartphone/Usage' )
         testiface = dbus.Interface( test, 'org.freesmartphone.Usage' )
         result = testiface.ListResources()
