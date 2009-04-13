@@ -1029,7 +1029,7 @@ class SimRetrieveMessage( SimMediator ):
                     sms = ogsmd.gsm.sms.SMS.decode( line, direction )
                     result = ( status, str(sms.addr), sms.ud, sms.properties )
                 else:
-                    logger.warning( "SinRetrieveMessage encountered strange answer to AT+CMGR: '%s'" % line )
+                    logger.warning( "SimRetrieveMessage encountered strange answer to AT+CMGR: '%s'" % line )
 
             self._ok( *result )
 
