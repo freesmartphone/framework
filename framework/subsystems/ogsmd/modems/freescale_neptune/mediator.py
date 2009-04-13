@@ -158,15 +158,14 @@ class NetworkGetStatus( NetworkMediator ):
                     result["registration"] = "roaming" if roaming else "home"
 
                     mccmnc = values[2].strip( '"' ).replace( '-', '' )
-                    try: # might be an empty string, if the modem is busy
-                        result["code"] = int( mccmnc )
-                    except ValueError:
+                    if mccmnc == "":
                         result["registration"] = "busy"
                     else:
+                        result["code"] = mccmnc
                         network = const.NETWORKS.get( ( mccmnc[:3], mccmnc[3:] ), {} )
                         if "brand" in network:
                             result["provider"] = network["brand"]
-                        elif "Operator" in network:
+                        elif "operator" in network:
                             result["provider"] = network["operator"]
                         else:
                             result["provider"] = "Unknown"

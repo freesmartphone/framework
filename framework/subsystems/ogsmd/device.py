@@ -277,7 +277,7 @@ class Device( resource.Resource ):
     def GetIssuer( self, dbus_ok, dbus_error ):
         mediator.SimGetIssuer( self, dbus_ok, dbus_error )
 
-    @dbus.service.method( DBUS_INTERFACE_SIM, "", "a{is}",
+    @dbus.service.method( DBUS_INTERFACE_SIM, "", "a{ss}",
                           async_callbacks=( "dbus_ok", "dbus_error" ) )
     @resource.checkedmethod
     def GetProviderList( self, dbus_ok, dbus_error ):
@@ -447,13 +447,13 @@ class Device( resource.Resource ):
     def SignalStrength( self, strength ):
         logger.info( "org.freesmartphone.GSM.Network.SignalStrength: %s", strength )
 
-    @dbus.service.method( DBUS_INTERFACE_NETWORK, "", "a(issss)",
+    @dbus.service.method( DBUS_INTERFACE_NETWORK, "", "a(sssss)",
                           async_callbacks=( "dbus_ok", "dbus_error" ) )
     @resource.checkedmethod
     def ListProviders( self, dbus_ok, dbus_error ):
         mediator.NetworkListProviders( self, dbus_ok, dbus_error )
 
-    @dbus.service.method( DBUS_INTERFACE_NETWORK, "i", "",
+    @dbus.service.method( DBUS_INTERFACE_NETWORK, "s", "",
                           async_callbacks=( "dbus_ok", "dbus_error" ) )
     @resource.checkedmethod
     def RegisterWithProvider( self, operator_code, dbus_ok, dbus_error ):

@@ -157,7 +157,7 @@ class GSMZoneSource( object ):
 
     def _handleNetworkStatusChanged( self, status ):
         if "code" in status:
-            code = str( status["code"] )
+            code = status["code"]
             if self.mccmnc == code:
                 return
             self.mccmnc = code

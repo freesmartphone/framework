@@ -739,7 +739,7 @@ class SimGetIssuer( SimMediator ): # s
                 self._ok( name )
 
 #=========================================================================#
-class SimGetProviderList( SimMediator ): # a{is}
+class SimGetProviderList( SimMediator ): # a{ss}
 #=========================================================================#
     def trigger( self ):
         self._commchannel.enqueue( "+COPN", self.responseFromChannel, self.errorFromChannel )
@@ -748,15 +748,19 @@ class SimGetProviderList( SimMediator ): # a{is}
         if response[-1] != "OK":
             SimMediator.responseFromChannel( self, request, response )
         else:
+            charset = currentModem()._charsets["DEFAULT"]
             result = {}
             for line in response[:-1]:
                 mccmnc, name = safesplit( self._rightHandSide( line ), ',' )
                 # Some modems contain provider tables with illegal characters
                 try:
-                    uname = unicode( name )
-                except UnicodeDecodeError:
+                    uname = name.strip('" ').decode(charset)
+                except UnicodeError:
+                    # Should we even add this to the list if we cannot decode it?
+                    # XXX: It looks like this should actually be decodable, it's just (again)
+                    # a problem with different charsets...
                     uname = "<undecodable>"
-                result[ int(mccmnc.strip( '" ') ) ] = uname
+                result[ mccmnc.strip( '" ').decode(charset) ] = uname
             return self._ok( result )
 
 #=========================================================================#
@@ -1208,7 +1212,7 @@ class NetworkGetStatus( NetworkMediator ):
                 values = safesplit( self._rightHandSide( response[-2] ), ',' )
                 if len( values ) > 2:
                     mccmnc = values[2].strip( '"' ).decode(charset)
-                    result["code"] = int( mccmnc )
+                    result["code"] = mccmnc
                     # Some providers' name may be unknown to the modem hence not show up in +COPS=3,0;+COPS?
                     # In this case try to gather the name from our network database
                     if not "provider" in result:
@@ -1257,7 +1261,7 @@ class NetworkListProviders( NetworkMediator ): # a{sv}
         if response[-1] == "OK":
             result = []
             for operator in const.PAT_OPERATOR_LIST.finditer( response[0] ):
-                index = int(operator.groupdict()["code"].decode(charset))
+                index = operator.groupdict()["code"].decode(charset)
                 status = const.PROVIDER_STATUS[int(operator.groupdict()["status"])]
                 name = operator.groupdict()["name"].decode(charset)
                 shortname = operator.groupdict()["shortname"].decode(charset)
@@ -1270,17 +1274,18 @@ class NetworkListProviders( NetworkMediator ): # a{sv}
         else:
             NetworkMediator.responseFromChannel( self, request, response )
 
+    # XXX: Where is this used?
     def _providerTuple( self, provider ):
         provider.replace( '"', "" )
         values = safesplit( provider[1:-1], ',' )
-        return int(values[3]), const.PROVIDER_STATUS[int(values[0])], values[1], values[2]
+        return int( values[3] ), const.PROVIDER_STATUS[int(values[0])], values[1], values[2]
 
 #=========================================================================#
 class NetworkRegisterWithProvider( NetworkMediator ):
 #=========================================================================#
     def trigger( self ):
         charset = currentModem()._charsets["DEFAULT"]
-        opcode = ("%05d" % ( self.operator_code )).encode(charset)
+        opcode = self.operator_code.encode(charset)
         self._commchannel.enqueue( '+COPS=1,2,"%s"' % opcode, self.responseFromChannel, self.errorFromChannel )
 
 #=========================================================================#
