@@ -9,6 +9,7 @@ GPLv2 or later
 import dbus, glib, gobject
 import sys, os, optparse, time
 import subprocess, signal
+import testloader
 
 class MyOptionParser( optparse.OptionParser ):
     def __init__( self ):
@@ -27,12 +28,15 @@ class MyOptionParser( optparse.OptionParser ):
         )
         self.add_option( "-s", "--secondary",
             metavar = "IP",
-            dest = "seconary",
+            dest = "secondary",
             help = "IP of the secondary phone (for gabriel)",
             action = "store",
         )
 
 if __name__ == "__main__":
+    bus_pri = None
+    bus_sec = None
+
     options = MyOptionParser()
     options.parse_args( sys.argv )
 
@@ -65,16 +69,12 @@ if __name__ == "__main__":
         os.environ['DBUS_SESSION_BUS_ADDRESS'] = "unix:abstract=secondary"
         bus_sec = dbus.bus.BusConnection( dbus.bus.BUS_SESSION )
 
-
-    # Some static tests for now
-    test = bus_pri.get_object( 'org.freesmartphone.ousaged', '/org/freesmartphone/Usage' )
-    testiface = dbus.Interface( test, 'org.freesmartphone.Usage' )
-
-    print testiface.ListResources()
-    testiface.SetResourcePolicy("Display", "enabled")
-    testiface.SetResourcePolicy("Display", "auto")
+    testLoader = testloader.TestLoader.getInstance( options.values.tests, bus_pri, bus_sec )
+    testLoader.runTests()
 
     # This only works for python >2.6
     #gabriel_pri.kill()
     # XXX: Why doesn't TERM work here?!
     os.kill( gabriel_pri.pid, signal.SIGKILL )
+    if not gabriel_sec == None:
+        os.kill( gabriel_sec.pid, signal.SIGKILL )
