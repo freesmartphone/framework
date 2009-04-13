@@ -255,7 +255,9 @@ class UnsolicitedResponseChannel( CalypsoModemChannel ):
         c.append( "%CPRI=1" ) # gsm cipher indication: send unsol. code
         c.append( "%CNIV=1" )
         c.append( "%CSTAT=1" )
+        # machine specific (might not be the best place here)
         c.append( '@ST="-26"' ) # audio side tone: set to minimum
+        c.append( "AT+CLVL=255" ) # audio output: set to maximum
 
         deepSleepMode = config.getValue( "ogsmd", "ti_calypso_deep_sleep", "adaptive" )
         if deepSleepMode == "never":
