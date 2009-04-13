@@ -131,9 +131,15 @@ def gsm_default_decode( input, error = 'strict' ):
                 continue
             if extchar:
                 extchar = False
-                result += GSMEXTALPHABET[byte]
+                try:
+                    result += GSMEXTALPHABET[byte]
+                except IndexError, e:
+                    raise UnicodeError, "character %i unknown in GSM extended plane" % (byte)
             else:
-                result += GSMALPHABET[byte]
+                try:
+                    result += GSMALPHABET[byte]
+                except IndexError, e:
+                    raise UnicodeError, "character %i unknown in GSM basic plane" % (byte)
         return u"".join( result ), len(input)
 
 #=========================================================================#
