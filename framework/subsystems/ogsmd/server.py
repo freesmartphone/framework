@@ -159,7 +159,7 @@ class Server( dbus.service.Object ):
     #
     @dbus.service.method( DBUS_INTERFACE_DATA, "ss", "a{sv}" )
     def GetNetworkInfo( self, mcc, mnc ):
-        return const.NETWORKS.get( ( mcc, mnc ), {} )
+        return const.NETWORKS.get( ( int(mcc), int(mnc) ), {} )
 
     # FIXME Return NaN when no cell found? Support signal strengths?
     @dbus.service.method( DBUS_INTERFACE_DATA, "ssa(uu)", "bddddu" )
