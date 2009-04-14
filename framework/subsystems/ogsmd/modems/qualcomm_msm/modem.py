@@ -10,7 +10,7 @@ Package: ogsmd.modems.qualcomm_msm
 Module: modem
 """
 
-__version__ = "1.0.0"
+__version__ = "1.1.0"
 MODULE_NAME = "ogsmd.modems.qualcomm_msm.modem"
 
 import mediator
@@ -34,6 +34,24 @@ class QualcommMsm( AbstractModem ):
         # configure channels
         self._channels["SINGLE"].setDelegate( UnsolicitedResponseDelegate( self._object, mediator ) )
 
+        # This modem handles setup and teardown of data connections on its own
+        self._data["pppd-does-setup-and-teardown"] = False
+
+        # This modem has a special ppp configuration
+        self._data["pppd-configuration"] = [ \
+            'nodetach',
+            'debug',
+            'defaultroute',
+            "local",
+            'noipdefault',
+            'novj',
+            "novjcomp",
+            #'persist',
+            'proxyarp',
+            'replacedefaultroute',
+            'usepeerdns',
+        ]
+
     def channel( self, category ):
         # we do not care about a category here, we only have one channel
         return self._channels["SINGLE"]
@@ -43,4 +61,4 @@ class QualcommMsm( AbstractModem ):
 
     def dataPort( self ):
         # FIXME remove duplication and just use pathfactory
-        return "/dev/smd1"
+        return config.getValue( "ogsmd", "data", default="/dev/smd7" )

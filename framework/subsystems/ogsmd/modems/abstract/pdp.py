@@ -67,8 +67,12 @@ class Pdp( AbstractMediator ):
 
         apn, user, password = str(apn), str(user), str(password)
 
-        # merge with modem specific options
-        self.ppp_options = self.__class__.PPP_OPTIONS_GENERAL + self._object.modem.data( "pppd-configuration" )
+        # check whether pppd needs to handle setup and teardown
+        if self._object.modem.data( "pppd-does-setup-and-teardown" ):
+            # merge with modem specific options
+            self.ppp_options = self.__class__.PPP_OPTIONS_GENERAL + self._object.modem.data( "pppd-configuration" )
+        else:
+            self.ppp_options = self._object.modem.data( "pppd-configuration" )
 
         # merge with user and password settings
         if user:

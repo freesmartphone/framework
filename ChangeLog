@@ -1,3 +1,8 @@
+2009-04-14	Michael Lauer	<mlauer@vanille-media.de>
+
+	* [ogsmd] Support handling setup and tethering of PDP connections on our own.
+	* [ogsmd] [QUALCOMM MSM]: Handle setup the PDP connection.
+
 2009-03-28	Michael Lauer	<mlauer@vanille-media.de>
 
 	* [ogsmd] [QUALCOMM MSM] Add specific parser that covers the v250.ter violation.

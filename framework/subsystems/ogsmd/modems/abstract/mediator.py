@@ -55,7 +55,7 @@ class AbstractMediator( object ):
 
     @logged
     def responseFromChannel( self, request, response ):
-        if response[-1].startswith( "ERROR" ):
+        if response[-1].startswith( "ERROR" ) or response[-1].startswith( "NO CARRIER" ):
             self._error( DBusError.DeviceFailed( "command %s failed" % request ) )
         elif response[-1].startswith( "+CM" ) or response[-1].startswith( "+EXT" ):
             self._handleCmeCmsExtError( response[-1] )

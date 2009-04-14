@@ -13,7 +13,7 @@ Module: modem
 
 # FIXME: The modem should really be a sigleton
 
-__version__ = "0.9.9.3"
+__version__ = "0.9.9.4"
 MODULE_NAME = "ogsmd.modem.abstract"
 
 import gobject
@@ -77,6 +77,8 @@ class AbstractModem( object ):
             'replacedefaultroute',
             'usepeerdns',
         ]
+
+        self._data["pppd-does-setup-and-teardown"] = True # default is using connect and disconnect scripts
 
         self._charsets = { \
             "DEFAULT":      "gsm_default",
