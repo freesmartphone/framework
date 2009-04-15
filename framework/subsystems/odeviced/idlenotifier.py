@@ -29,6 +29,7 @@ from framework import resource
 import gobject
 import dbus.service
 import itertools, os, sys
+import errno
 
 import logging
 logger = logging.getLogger( MODULE_NAME )
@@ -60,7 +61,8 @@ class IdleNotifier( dbus.service.Object ):
         self.defaultTimeouts = dict( awake=-1, busy=-1, idle=10, idle_dim=20, idle_prelock=12, lock=2, suspend=20 )
         self.timeouts = self.defaultTimeouts.copy()
         self.states = "awake busy idle idle_dim idle_prelock lock suspend".split()
-        self.validStates = self.states[:]
+        self.validStates = set(self.states)
+        self.allowedStates = set(self.states)
         self.state = self.states[0]
 
         configvalue = config.getValue( MODULE_NAME, "ignoreinput", "" )
@@ -81,77 +83,81 @@ class IdleNotifier( dbus.service.Object ):
 
         logger.info( "opened %d input file descriptors" % len( self.input ) )
 
-        self.readTimeoutsFromConfig()
-        self.timeout = None
-
-        if len( self.input ):
-            self.launchStateMachine()
-
-    def readTimeoutsFromConfig( self ):
         # override default timeouts with configuration (if set)
         for key in self.timeouts:
-            self.timeouts[key] = config.getInt( MODULE_NAME, key, self.defaultTimeouts[key] )
+            timeout = config.getInt( MODULE_NAME, key, self.defaultTimeouts[key] )
+            self.timeouts[key] = timeout
+            if timeout == 0:
+                self.allowedStates.remove( key )
             logger.debug( "(re)setting %s timeout to %d" % ( key, self.timeouts[key] ) )
 
+        self.next = None
+        self.timeout = 0
+
+        self.setState( "busy" )
+
+        if len( self.input ):
+            self.timer = gobject.timeout_add_seconds( 1, self.onTimer )
+
     def prohibitStateTransitionTo( self, state ):
-        # stop falling into in the future
-        self.timeouts[state] = 0
-        # check whether said state would be the next state
-        if state == self.nextState( self.state ):
-            # kill timeout
-            if self.timeout is not None:
-                gobject.source_remove( self.timeout )
-        # then, check whether we _are_ in that state
-        if state == self.state:
-            # kill timeout
-            if self.timeout is not None:
-                gobject.source_remove( self.timeout )
-            # and go into the previous state
-            self.onState( self.previousState( self.state ) )
+        # FIXME do some reference counting?
+        self.allowedStates.remove( state )
+        logger.info( "allowed idle states now: %s " % self.allowedStates )
+        self.setState( self.state )
 
     def allowStateTransitionTo( self, state ):
-        self.readTimeoutsFromConfig()
-        # stop timer
-        if self.timeout is not None:
-            gobject.source_remove( self.timeout )
-        # relaunch timer
-        self.onState( self.state )
+        self.allowedStates.add( state )
+        logger.info( "allowed idle states now: %s " % self.allowedStates )
+        self.setState( self.state )
 
-    def launchStateMachine( self ):
+    def onTimer( self ):
+        active = False
         for i in self.input:
-            gobject.io_add_watch( i, gobject.IO_IN, self.onInputActivity )
-        self.timeout = gobject.timeout_add_seconds( 2, self.onState, "idle" )
-
-    def previousState( self, state ):
-        index = self.states.index( state )
-        nextIndex = ( index - 1 ) % len(self.states)
-        return self.states[nextIndex]
-
-    def nextState( self, state ):
-        index = self.states.index( state )
-        nextIndex = ( index + 1 ) % len(self.states)
-        return self.states[nextIndex]
-
-    def onInputActivity( self, source, condition ):
-        try:
-            data = os.read( source, 512 )
-            if __debug__: logger.debug( "read %d bytes from fd %d ('%s')" % ( len( data ), source, self.input[source] ) )
-            if self.state != "busy":
-                if self.timeout is not None:
-                    gobject.source_remove( self.timeout )
-                self.onState( "busy" )
-        except:
-            logger.exception( 'failed to handle input activity for source %s (condition %s):', self.input[source], condition )
+            active |= self.checkActivity( i )
+        logger.debug( "active = %s", active )
+        if active:
+            self.setState( "busy" )
+        else:
+            self.idletime += 1
+            self.checkTimeout()
         return True
 
-    def onState( self, state ):
-        self.State( state )
-        nextState = self.nextState( state )
-        timeout = self.timeouts[ nextState ]
-        if timeout > 0:
-            self.timeout = gobject.timeout_add_seconds( timeout, self.onState, nextState )
-        else:
-            logger.debug( "Timeout for %s disabled, not falling into this state next." % nextState )
+    def checkActivity( self, source ):
+        active = False
+        try:
+            data = True
+            while data:
+                data = os.read( source, 4096 )
+                if data:
+                    active = True
+                #logger.debug( "read %d bytes from fd %d ('%s')" % ( len( data ), source, self.input[source] ) )
+            return active
+        except OSError, e:
+            if e[0] == errno.EAGAIN:
+                return active
+            logger.exception( "error while reading:" )
+            return False
+
+    def checkTimeout( self ):
+        if self.idletime >= self.timeout:
+            self.setState( self.next )
+
+    def setState( self, state ):
+        newIndex = 0
+        for x in self.states[1:self.states.index( state )+1]:
+            if not x in self.allowedStates:
+                break
+            newIndex += 1
+        newState = self.states[newIndex]
+        if not self.state == newState:
+            self.State( newState )
+            self.state = newState
+        nextIndex = min( newIndex + 1, len( self.states) - 1 )
+        while nextIndex and not self.states[nextIndex] in self.allowedStates:
+            nextIndex -= 1
+        self.idletime = 0
+        self.next = self.states[nextIndex]
+        self.timeout = self.timeouts[ self.next ]
 
     #
     # dbus signals
@@ -175,10 +181,14 @@ class IdleNotifier( dbus.service.Object ):
     def SetTimeout( self, state, timeout ):
         if not state in self.validStates:
             raise InvalidState( "valid states are: %s" % self.validStates )
-        elif timeout is not None:
-            self.timeouts[state] = timeout
-            config.setValue(MODULE_NAME, state, timeout)
-            config.sync()
+        self.timeouts[state] = timeout
+        # FIXME refcounts instead?
+        if timeout:
+            self.allowedStates.add( state )
+        else:
+            self.allowedStates.discard( state )
+        config.setValue(MODULE_NAME, state, timeout)
+        config.sync()
 
     @dbus.service.method( DBUS_INTERFACE, "s", "" )
     def SetState( self, state ):
@@ -190,7 +200,7 @@ class IdleNotifier( dbus.service.Object ):
         else:
             if self.timeout is not None:
                 gobject.source_remove( self.timeout )
-            self.onState( state )
+            self.setState( state )
 
 #=========================================================================#
 class CpuResource( resource.Resource ):
@@ -255,8 +265,6 @@ class DisplayResource( resource.Resource ):
         Enable (inherited from Resource)
         """
         IdleNotifier.instance().prohibitStateTransitionTo( "idle_dim" )
-        IdleNotifier.instance().SetState( "busy" )
-        # FIXME should we do something else here?
         on_ok()
 
     def _disable( self, on_ok, on_error ):
@@ -264,7 +272,6 @@ class DisplayResource( resource.Resource ):
         Disable (inherited from Resource)
         """
         IdleNotifier.instance().allowStateTransitionTo( "idle_dim" )
-        # FIXME should we do something else here?
         on_ok()
 
     def _suspend( self, on_ok, on_error ):
