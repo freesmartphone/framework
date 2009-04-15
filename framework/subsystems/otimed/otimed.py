@@ -95,7 +95,7 @@ class GPSTimeSource( TimeSource ):
 #============================================================================#
 class NTPTimeSource( TimeSource ):
 #============================================================================#
-    def __init__( self, bus, server = "134.169.172.1", interval = 600 ):
+    def __init__( self, bus, server, interval = 600 ):
         TimeSource.__init__( self, bus )
         self.server = server
         self.interval = interval
@@ -207,12 +207,13 @@ class Time( dbus.service.Object ):
 
         timesources = [x.strip().upper() for x in config.getValue( "otimed", "timesources", "GPS,NTP").split( ',' )]
         zonesources = [x.strip().upper() for x in config.getValue( "otimed", "zonesources", "GSM").split( ',' )]
+        ntpserver = config.getValue( "otimed", "ntpserver", "134.169.172.1").strip()
 
         self.timesources = []
         if 'GPS' in timesources:
             self.timesources.append( GPSTimeSource( self.bus ) )
         if 'NTP' in timesources:
-            self.timesources.append( NTPTimeSource( self.bus ) )
+            self.timesources.append( NTPTimeSource( self.bus, ntpserver ) )
 
         logger.info( "loaded timesources %s", self.timesources )
 
