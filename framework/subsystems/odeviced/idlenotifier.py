@@ -133,12 +133,15 @@ class IdleNotifier( dbus.service.Object ):
         return self.states[nextIndex]
 
     def onInputActivity( self, source, condition ):
-        data = os.read( source, 512 )
-        if __debug__: logger.debug( "read %d bytes from fd %d ('%s')" % ( len( data ), source, self.input[source] ) )
-        if self.state != "busy":
-            if self.timeout is not None:
-                gobject.source_remove( self.timeout )
-            self.onState( "busy" )
+        try:
+            data = os.read( source, 512 )
+            if __debug__: logger.debug( "read %d bytes from fd %d ('%s')" % ( len( data ), source, self.input[source] ) )
+            if self.state != "busy":
+                if self.timeout is not None:
+                    gobject.source_remove( self.timeout )
+                self.onState( "busy" )
+        except:
+            logger.exception( 'failed to handle input activity for source %s (condition %s):', self.input[source], condition )
         return True
 
     def onState( self, state ):
