@@ -582,7 +582,7 @@ class QueryManager(DBusFBObject):
         """
         Checks whether a query ID is existing. Raises InvalidQueryID, if not.
         """
-        if not num_id in self._queries:
+        if not query_id in self._queries:
             raise InvalidQueryID( "Existing query IDs: %s" % self._queries.keys() )
 
     @dbus_method(_DIN_QUERY, "", "i", rel_path_keyword="rel_path")
