@@ -563,7 +563,7 @@ class QueryManager(DBusFBObject):
 
         self._queries[query_id] = query_handler
 
-        return 'dbus://' + _DBUS_PATH_QUERIES + '/' + str(query_id)
+        return _DBUS_PATH_QUERIES + '/' + str(query_id)
 
 
     def check_new_message(self, message_id):
