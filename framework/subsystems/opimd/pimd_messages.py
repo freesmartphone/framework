@@ -325,7 +325,6 @@ class Message():
                     field_match = float(match_len) / seq2_len
 
                     if field_match > best_field_match: best_field_match = field_match
-                    syslog(LOG_DEBUG, "Messages: Field match for %s / %s: %f" % (comp_value, field_value, field_match))
 
             except KeyError:
                 # Message has no data for this field contained in the query, so this entry cannot match
