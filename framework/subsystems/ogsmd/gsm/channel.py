@@ -14,7 +14,7 @@ This module provides communication channel abstractions that
 transport their data over a (virtual) serial line.
 """
 
-__version__ = "0.9.16"
+__version__ = "0.9.17"
 MODULE_NAME = "ogsmd.channel"
 
 from ogsmd.gsm.decor import logged
@@ -159,8 +159,24 @@ class VirtualChannel( object ):
 
     @logged
     def write( self, data ):
-        """Write data to the modem."""
+        """Write data to the transport."""
         self._write( data )
+
+    @logged
+    def freeze( self ):
+        """Pause reading from the transport."""
+        if not self.watchReadyToRead:
+            logger.warning( "%s: freeze() called without watch being setup", self )
+        else:
+            gobject.source_remove( self.watchReadyToRead )
+
+    @logged
+    def thaw( self ):
+        """Resume reading from the transport."""
+        if not self.watchReadyToRead:
+            logger.warning( "%s: thaw() called with watch being already setup!", self )
+        else:
+            self.watchReadyToRead = gobject.io_add_watch( self.serial.fd, gobject.IO_IN, self._readyToRead, priority=PRIORITY_RTR )
 
     @logged
     def close( self ):
