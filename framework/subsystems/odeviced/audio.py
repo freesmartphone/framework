@@ -11,7 +11,7 @@ Module: audio
 """
 
 MODULE_NAME = "odeviced.audio"
-__version__ = "0.5.1.2"
+__version__ = "0.5.9.9"
 
 from framework.config import config
 from framework.patterns import asyncworker
@@ -19,20 +19,20 @@ from helpers import DBUS_INTERFACE_PREFIX, DBUS_PATH_PREFIX, readFromFile, write
 
 import gobject
 import dbus.service
-import sys, os, time, struct, subprocess
+import sys, os, time, types, subprocess
 
 import logging
 logger = logging.getLogger( "odeviced.audio" )
-
-try:
-    import gst
-except ImportError:
-    logger.warning( "Could not import gst module (python-gst installed?)" )
 
 #----------------------------------------------------------------------------#
 class UnknownFormat( dbus.DBusException ):
 #----------------------------------------------------------------------------#
     _dbus_error_name = "org.freesmartphone.Device.Audio.UnknownFormat"
+
+#----------------------------------------------------------------------------#
+class UnsupportedFormat( dbus.DBusException ):
+#----------------------------------------------------------------------------#
+    _dbus_error_name = "org.freesmartphone.Device.Audio.UnsupportedFormat"
 
 #----------------------------------------------------------------------------#
 class PlayerError( dbus.DBusException ):
@@ -99,6 +99,10 @@ class Player( asyncworker.AsyncWorker ):
     def task_panic( self, ok_cb, error_cb ):
         ok_cb()
 
+    @classmethod
+    def supportedFormats( cls ):
+        return []
+
 #----------------------------------------------------------------------------#
 class NullPlayer( Player ):
 #----------------------------------------------------------------------------#
@@ -126,20 +130,30 @@ class GStreamerPlayer( Player ):
 
     decoderMap = {}
 
-    def __init__( self, *args, **kwargs ):
-        Player.__init__( self, *args, **kwargs )
-        # set up decoder map as instance
-        if self.decoderMap == {}:
-            self._trySetupDecoder( "mod", "modplug" )
-            self._trySetupDecoder( "mp3", "mad" )
-            self._trySetupDecoder( "sid", "siddec" )
-            self._trySetupDecoder( "wav", "wavparse" )
-            haveit = self._trySetupDecoder( "ogg", "oggdemux ! ivorbisdec ! audioconvert" )
-            if not haveit:
-                self._trySetupDecoder( "ogg", "oggdemux ! vorbisdec ! audioconvert" )
-        self.pipelines = {}
+    @classmethod
+    def supportedFormats( cls ):
+        try:
+            global gst
+            import gst as gst
+        except ImportError:
+            logger.warning( "Could not setup gstreamer player (python-gst not installed?)" )
+            return []
 
-    def _trySetupDecoder( self, ext, dec ):
+        # set up decoder map
+        if cls.decoderMap == {}:
+            cls._trySetupDecoder( "mod", "modplug" )
+            cls._trySetupDecoder( "mp3", "mad" )
+            cls._trySetupDecoder( "sid", "siddec" )
+            cls._trySetupDecoder( "wav", "wavparse" )
+            # ogg w/ integer vorbis decoder, found on embedded systems
+            haveit = cls._trySetupDecoder( "ogg", "oggdemux ! ivorbisdec ! audioconvert" )
+            if not haveit:
+                # ogg w/ floating point vorbis decoder, found on desktop systems
+                cls._trySetupDecoder( "ogg", "oggdemux ! vorbisdec ! audioconvert" )
+        return cls.decoderMap.keys()
+
+    @classmethod
+    def _trySetupDecoder( cls, ext, dec ):
         # FIXME might even save the bin's already, not just the description
         try:
             gst.parse_bin_from_description( dec, 0 )
@@ -147,8 +161,12 @@ class GStreamerPlayer( Player ):
             logger.warning( "GST can't parse %s; Not adding %s to decoderMap" % ( dec, ext ) )
             return False
         else:
-            self.decoderMap[ext] = dec
+            cls.decoderMap[ext] = dec
             return True
+
+    def __init__( self, *args, **kwargs ):
+        Player.__init__( self, *args, **kwargs )
+        self.pipelines = {}
 
     def _onMessage( self, bus, message, name ):
         pipeline, status, loop, length, ok_cb, error_cb = self.pipelines[name]
@@ -363,21 +381,40 @@ class Audio( dbus.service.Object ):
     """
     DBUS_INTERFACE = DBUS_INTERFACE_PREFIX + ".Audio"
 
+    players = {}
+
     def __init__( self, bus, index, node ):
         self.interface = self.DBUS_INTERFACE
         self.path = DBUS_PATH_PREFIX + "/Audio"
         dbus.service.Object.__init__( self, bus, self.path )
-        logger.info( "%s %s initialized. Serving %s at %s" % ( self.__class__.__name__, __version__, self.interface, self.path ) )
-        # FIXME make it configurable or autodetect which player is to be used
-        try:
-            self.player = GStreamerPlayer( self )
-        except NameError:
-            logger.exception( "Could not instanciate GStreamerPlayer; Falling back to NullPlayer" )
-            self.player = NullPlayer( self )
-        # FIXME gather scenario path from configuration
+
+        for player in ( GStreamerPlayer, ):
+            supportedFormats = player.supportedFormats()
+            instance = player( self )
+            for format in supportedFormats:
+                self.players[format] = instance
+
         scenario_dir = config.getValue( MODULE_NAME, "scenario_dir", "/etc/alsa/scenario" )
         default_scenario = config.getValue( MODULE_NAME, "default_scenario", "default" )
         self.scenario = AlsaScenarios( self, scenario_dir, default_scenario )
+
+        logger.info( "%s %s initialized. Serving %s at %s" % ( self.__class__.__name__, __version__, self.interface, self.path ) )
+        logger.debug( "^^^ found players for following formats: '%s'" % self.players.keys() )
+
+    def playerForFile( self, name ):
+        try:
+            base, ext = name.rsplit( '.', 1 )
+        except ValueError: # no extension provided
+            raise UnknownFormat( "Can't guess format from extension" )
+        options = ext.split( ';' )
+        ext = options.pop( 0 )
+
+        try:
+            player = self.players[ext]
+        except KeyError:
+            raise UnsupportedFormat( "No player registered for format '%s'" % ext )
+
+        return player
 
     #
     # dbus info methods
@@ -393,17 +430,18 @@ class Audio( dbus.service.Object ):
     @dbus.service.method( DBUS_INTERFACE, "sii", "",
                           async_callbacks=( "dbus_ok", "dbus_error" ) )
     def PlaySound( self, name, loop, length, dbus_ok, dbus_error ):
-        self.player.enqueueTask( dbus_ok, dbus_error, "play", name, loop, length )
+        self.playerForFile( name ).enqueueTask( dbus_ok, dbus_error, "play", name, loop, length )
 
     @dbus.service.method( DBUS_INTERFACE, "s", "",
                           async_callbacks=( "dbus_ok", "dbus_error" ) )
     def StopSound( self, name, dbus_ok, dbus_error ):
-        self.player.enqueueTask( dbus_ok, dbus_error, "stop", name )
+        self.playerForFile( name ).enqueueTask( dbus_ok, dbus_error, "stop", name )
 
     @dbus.service.method( DBUS_INTERFACE, "", "",
                           async_callbacks=( "dbus_ok", "dbus_error" ) )
     def StopAllSounds( self, dbus_ok, dbus_error ):
-        self.player.enqueueTask( dbus_ok, dbus_error, "panic" )
+        for player in self.players.values():
+            player.enqueueTask( dbus_ok, dbus_error, "panic" )
 
     #
     # dbus scenario methods
