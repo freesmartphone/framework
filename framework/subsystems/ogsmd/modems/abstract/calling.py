@@ -197,6 +197,7 @@ class CallHandler( object ):
             kwargs["channel"].enqueue( 'H' )
             return True
         elif action == "activate" and kwargs["index"] == 1:
+            # FIXME handle data calls here
             kwargs["channel"].enqueue( 'A' )
             return True
 
