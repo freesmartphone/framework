@@ -12,7 +12,8 @@ Package: ogsmd.modems.abstract
 Module: unsolicited
 """
 
-__version__ = "0.9.9.4"
+__version__ = "0.9.9.5"
+MODULE_NAME = "ogsmd.modems.abstract.unsolicited"
 
 import calling, pdp
 
@@ -23,7 +24,7 @@ from ogsmd.modems import currentModem
 import ogsmd.gsm.sms
 
 import logging
-logger = logging.getLogger( "ogsmd.modems.abstract.unsolicited" )
+logger = logging.getLogger( MODULE_NAME )
 
 import gobject
 
@@ -177,15 +178,13 @@ class AbstractUnsolicitedResponseDelegate( object ):
             self._object.IncomingStoredMessage( int(index) )
 
     # +CRING: VOICE
+    # +CRING: REL ASYNC
     def plusCRING( self, calltype ):
         """
         Incoming call
         """
-        if calltype == "VOICE":
-            self._syncCallStatus( "RING" )
-            self._startTimeoutIfNeeded()
-        else:
-            logger.warning( "unhandled call type, ignoring for now. Please fix me..." )
+        self._syncCallStatus( "RING" )
+        self._startTimeoutIfNeeded()
 
     # +CMS ERROR: 322
     def plusCMS_ERROR( self, righthandside ):
