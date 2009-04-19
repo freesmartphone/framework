@@ -7,7 +7,7 @@ The Open GSM Daemon - Python Implementation
 GPLv2 or later
 """
 
-__version__ = "0.8.4"
+__version__ = "0.8.5"
 
 from .channel import createDspCommand
 
@@ -229,6 +229,7 @@ class UnsolicitedResponseDelegate( AbstractUnsolicitedResponseDelegate ):
 
         info = {}
 
+        # Report number, reason, and line, if available
         if number and ntype:
             info["peer"] = const.phonebookTupleToNumber( number[1:-1], int(ntype) )
         if cause:
@@ -241,6 +242,12 @@ class UnsolicitedResponseDelegate( AbstractUnsolicitedResponseDelegate ):
             info.update ( { "direction": "outgoing" } )
         elif direction == "1":
             info.update ( { "direction": "incoming" } )
+
+        # Report mode
+        if mode:
+            info["mode"] = const.CALL_MODE.revlookup( int(mode) )
+
+        # Compute status
 
         if msgType == "0": # setup (MT)
             info.update ( { "status": "incoming" } )
