@@ -10,7 +10,7 @@ Package: framework.patterns
 Module: processguard
 """
 
-__version__ = "0.2.2"
+__version__ = "0.3.0"
 
 import gobject
 
@@ -38,6 +38,7 @@ class ProcessGuard( object ):
         self._childwatch = None
         self._stdoutwatch = None
         self._stderrwatch = None
+        self.hadpid = None
         self._reset()
         logger.debug( "Created process guard for %s" % repr(self._cmdline) )
 
@@ -116,8 +117,10 @@ class ProcessGuard( object ):
         """
         exitcode = (condition >> 8) & 0xFF
         exitsignal = condition & 0xFF
-        pid = self.pid
+
+        self.hadpid = pid
         self._reset() # self.pid now None
+
         if self._onExit is not None:
             self._onExit( pid, exitcode, exitsignal )
 
