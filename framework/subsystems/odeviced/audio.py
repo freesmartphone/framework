@@ -17,6 +17,7 @@ from framework.config import config
 from framework.patterns import asyncworker, processguard
 from helpers import DBUS_INTERFACE_PREFIX, DBUS_PATH_PREFIX, readFromFile, writeToFile, cleanObjectName
 
+APLAY_COMMAND = "/usr/bin/aplay"
 
 import gobject
 import dbus.service
@@ -91,7 +92,7 @@ class Player( asyncworker.AsyncWorker ):
             method( ok_cb, error_cb, *args )
         return True
 
-    def task_play( self, ok_cb, error_cb, name, repeat ):
+    def task_play( self, ok_cb, error_cb, name, loop, length ):
         ok_cb()
 
     def task_stop( self, ok_cb, error_cb, name ):
@@ -110,7 +111,7 @@ class NullPlayer( Player ):
     """
     A dummy player, useful e.g. if no audio subsystem is available.
     """
-    def task_play( self, ok_cb, error_cb, name, repeat ):
+    def task_play( self, ok_cb, error_cb, name, loop, length ):
         logger.info( "NullPlayer [not] playing sound %s" % name )
         ok_cb()
 
@@ -293,19 +294,55 @@ class AlsaPlayer( Player ):
     """
     @classmethod
     def supportedFormats( cls ):
-        return [ "wav" ]
+        if os.path.exists( APLAY_COMMAND ):
+            return [ "wav" ]
+        else:
+            return []
 
-    def task_play( self, ok_cb, error_cb, name, repeat ):
-        logger.info( "AlsaPlayer playing sound %s" % name )
-        ok_cb()
+    sounds = {}
+
+    def task_play( self, ok_cb, error_cb, name, loop, length ):
+        if name in self.sounds:
+            error_cb( AlreadyPlaying() )
+        else:
+            p = processguard.ProcessGuard( [ "/usr/bin/aplay", str(name) ] )
+            p.execute( onExit = self._onPlayingFinished )
+            self.sounds[name] = p, loop, length
+            ok_cb()
+            logger.info( "AlsaPlayer playing sound %s" % name )
 
     def task_stop( self, ok_cb, error_cb, name ):
-        logger.info( "AlsaPlayer stopping sound %s" % name )
-        ok_cb()
+        if name not in self.sounds:
+            error_cb( NotPlaying() )
+        else:
+            p, loop, length = self.sounds[name]
+            p.shutdown()
+            del self.sounds[name]
+            ok_cb()
+            logger.info( "AlsaPlayer stopped sound %s" % name )
 
     def task_panic( self, ok_cb, error_cb ):
         logger.info( "AlsaPlayer stopping all sounds" )
+        for key, value in self.sounds.items():
+            p, loop, length = value
+            p.shutdown()
+            del self.sounds[key]
         ok_cb()
+
+    def _onPlayingFinished( self, pid, exitcode, exitsignal ):
+        logger.info( "AlsaPlayer %d exited with exitcode %d (signal %d)" % ( pid, exitcode, exitsignal ) )
+
+        normalShutdown = ( exitcode == 0 )
+
+        for key, value in self.sounds.items():
+            p, loop, length = value
+            if p.hadpid == pid or p.pid == pid:
+
+                if normalShutdown and loop:
+                    logger.debug( "AlsaPlayer restarting sound %s due to loop value" % key )
+                    p.execute( onExit = self._onPlayingFinished )
+                else:
+                    del self.sounds[name]
 
 #----------------------------------------------------------------------------#
 class AlsaScenarios( object ):
@@ -412,11 +449,12 @@ class Audio( dbus.service.Object ):
         self.path = DBUS_PATH_PREFIX + "/Audio"
         dbus.service.Object.__init__( self, bus, self.path )
 
-        for player in ( GStreamerPlayer, ):
+        for player in ( AlsaPlayer, GStreamerPlayer, ):
             supportedFormats = player.supportedFormats()
             instance = player( self )
             for format in supportedFormats:
-                self.players[format] = instance
+                if format not in self.players:
+                    self.players[format] = instance
 
         scenario_dir = config.getValue( MODULE_NAME, "scenario_dir", "/etc/alsa/scenario" )
         default_scenario = config.getValue( MODULE_NAME, "default_scenario", "default" )
