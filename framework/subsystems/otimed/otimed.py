@@ -149,11 +149,41 @@ class GSMZoneSource( object ):
             None,
             None
         )
+        self.bus.add_signal_receiver(
+            self._handleTimeZoneReport,
+            "TimeZoneReport",
+            "org.freesmartphone.GSM.Network",
+            None,
+            None
+        )
         proxy = bus.get_object( "org.freesmartphone.ogsmd",
                                 "/org/freesmartphone/GSM/Server",
                                 follow_name_owner_changes=True,
                                 introspect=False )
         self.gsmdata = dbus.Interface( proxy, "org.freesmartphone.GSM.Data",  )
+
+    def _handleTimeZoneReport( self, report ):
+	# this can be improved - AA
+	# if we know the country, the offset and if this zone supports daylight savings
+	# the proper timezone can be derived.
+	# so opreferencesd needs to have a <this zone uses daylight savings> flag
+	# and we need a /usr/share/zoneinfo parser
+
+	# CTZV is offset * 4
+	offset = report / 4
+	# offset need to be inverted to get the correct TZ
+	zone = "Etc/GMT"
+	if offset <= 0 :
+		zone += "+" + str( offset * -1 )
+	else :
+		zone += "-" + str( offset )
+	logger.debug( "TimeZoneReport :" + str( report ) + " offset " + str( offset ) + " zone " + zone )
+	if zone != self.zone :
+            try:
+                shutil.copyfile( "/usr/share/zoneinfo/"+zone, "/etc/localtime" )
+		self.zone = zone
+            except:
+                logger.warning( "failed to install time zone file " + zone + " to /etc/localtime" )
 
     def _handleNetworkStatusChanged( self, status ):
         if "code" in status:
