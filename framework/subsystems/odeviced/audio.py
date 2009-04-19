@@ -11,11 +11,12 @@ Module: audio
 """
 
 MODULE_NAME = "odeviced.audio"
-__version__ = "0.5.9.9"
+__version__ = "0.5.9.10"
 
 from framework.config import config
-from framework.patterns import asyncworker
+from framework.patterns import asyncworker, processguard
 from helpers import DBUS_INTERFACE_PREFIX, DBUS_PATH_PREFIX, readFromFile, writeToFile, cleanObjectName
+
 
 import gobject
 import dbus.service
@@ -281,6 +282,29 @@ class GStreamerPlayer( Player ):
     def task_panic( self, ok_cb, error_cb ):
         for name in self.pipelines:
             self.pipelines[name][0].set_state( gst.STATE_READY )
+        ok_cb()
+
+#----------------------------------------------------------------------------#
+class AlsaPlayer( Player ):
+#----------------------------------------------------------------------------#
+    """
+    An alsa player, useful for wav format, when the latency of the GStreamerPlayer
+    is too heavy.
+    """
+    @classmethod
+    def supportedFormats( cls ):
+        return [ "wav" ]
+
+    def task_play( self, ok_cb, error_cb, name, repeat ):
+        logger.info( "AlsaPlayer playing sound %s" % name )
+        ok_cb()
+
+    def task_stop( self, ok_cb, error_cb, name ):
+        logger.info( "AlsaPlayer stopping sound %s" % name )
+        ok_cb()
+
+    def task_panic( self, ok_cb, error_cb ):
+        logger.info( "AlsaPlayer stopping all sounds" )
         ok_cb()
 
 #----------------------------------------------------------------------------#

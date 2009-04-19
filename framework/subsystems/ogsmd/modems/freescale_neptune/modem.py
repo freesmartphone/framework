@@ -18,6 +18,8 @@ EZXD_PROCESS_NAME = "ezxd"
 
 import mediator
 
+from framework.patterns.utilities import killall
+
 from ogsmd.modems.abstract.modem import AbstractModem
 
 from .channel import CallAndNetworkChannel, MiscChannel, SmsChannel, SimChannel
@@ -25,8 +27,6 @@ from .unsolicited import UnsolicitedResponseDelegate
 
 from ogsmd.gsm.decor import logged
 from ogsmd.gsm.channel import AtCommandChannel
-
-from ogsmd.helpers import killall
 
 import types
 

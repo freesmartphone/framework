@@ -11,7 +11,7 @@ Module: modem
 
 """
 
-__version__ = "0.9.9.9"
+__version__ = "0.9.9.10"
 MODULE_NAME = "ogsmd.modems.ti_calypso"
 
 DEVICE_CALYPSO_PATH             = "/dev/ttySAC0"
@@ -22,6 +22,7 @@ SYSFS_CALYPSO_FLOW_CONTROL_PATH = "/sys/bus/platform/devices/neo1973-pm-gsm.0/fl
 import mediator
 
 from framework.config import config
+from framework.patterns.utilities import killall
 
 from ogsmd.modems.abstract.modem import AbstractModem
 
@@ -31,7 +32,6 @@ from .unsolicited import UnsolicitedResponseDelegate
 from ogsmd.gsm.channel import AtCommandChannel
 from ogsmd.helpers import writeToFile
 
-from ogsmd.helpers import killall
 
 from dbus import Interface
 from time import sleep

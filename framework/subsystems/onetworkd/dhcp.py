@@ -2,8 +2,7 @@
 """
 Network
 
-(C) 2008 Michael 'Mickey' Lauer <mlauer@vanille-media.de>
-(C) 2008 Openmoko, Inc.
+(C) 2009 Michael 'Mickey' Lauer <mlauer@vanille-media.de>
 GPLv2 or later
 
 Package: onetworkd
@@ -14,6 +13,8 @@ Support for the Dynamic Host Configuration Protocol
 
 MODULE_NAME = "onetworkd"
 __version__ = "0.0.1"
+
+from framework.patterns.utilities import killall
 
 from helpers import readFromFile, writeToFile
 
@@ -28,7 +29,7 @@ ETC_UDHCPD_CONF = "/etc/udhcpd.conf"
 #============================================================================#
 def launchDaemon():
 #============================================================================#
-    subprocess.call( "killall udhcpd".split() )
+    killall( "udhcpd" )
     subprocess.call( "udhcpd" )
 
 #============================================================================#
