@@ -21,6 +21,7 @@ from framework.config import config
 
 from datetime import datetime, timedelta
 from math import sqrt
+import os
 import shutil
 import socket
 import struct
@@ -169,8 +170,8 @@ class GSMZoneSource( object ):
         self.gsmdata = dbus.Interface( proxy, "org.freesmartphone.GSM.Data",  )
 
     def _handleTimeZoneReport( self, report ):
-        # CTZV is offset * 4 and needs to be inverted to get the correct TZ
-        offset = -1 * report / 4
+        # CTZV is offset * 4
+        offset = report / 4.0
         self.offset_ts = time.time()
         if self.offset == offset:
             return
@@ -210,39 +211,41 @@ class GSMZoneSource( object ):
         self.update()
 
     def update( self ):
-        logger.debug( "GSM: loading zone.tab" )
         if not self.zonetab:
+            logger.debug( "GSM: loading zone.tab" )
             for line in open( "/usr/share/zoneinfo/zone.tab", "r" ):
                 if line:
                     self.zonetab.append( line.rstrip().split( "\t" ) )
         self.zone = None
         now = time.time()
-        if now - self.mccmnc_ts < self.TIMEOUT:
+        if now - self.mccmnc_ts > self.TIMEOUT:
             self.mccmnc = None
             self.isocode = None
-        if now - self.offset_ts < self.TIMEOUT:
+        if now - self.offset_ts > self.TIMEOUT:
             self.offset = None
         logger.debug( "GSM: determining time zone (isocode=%s offset=%s)", self.isocode, self.offset )
         zones = []
-        if self.isocode:
+        if not self.isocode is None:
             for zone in self.zonetab:
                 if zone[0] == self.isocode:
                     logger.debug( "GSM: found zone %s", zone )
                     zones.append( zone[2] )
-        if self.offset:
+        if not self.offset is None:
             if not len( zones ) == 1:
-                if offset == 0:
+                if round(self.offset) == 0.0:
                     zone = "Etc/GMT"
                 else:
-                    zone = "Etc/GMT%+i" % self.offset
+                    # CTZV needs to be inverted to get the TZ used in zoneinfo
+                    # and we don't have fractional offsets :/
+                    zone = "Etc/GMT%+i" % round(self.offset*-1)
                 zones = [ zone ]
         if not zones:
             logger.debug( "GSM: no zone found" )
             return
-        if self.zone == zones[1]:
+        if self.zone == zones[0]:
             return
-        self.zone = zones[1]
-        logger.info( "GSM: Zone %s", self.zone )
+        self.zone = zones[0]
+        logger.info( "GSM: timezone '%s'", self.zone )
         try:
             os.remove( "/etc/localtime" )
             shutil.copyfile( "/usr/share/zoneinfo/"+self.zone, "/etc/localtime" )
