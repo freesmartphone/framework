@@ -137,10 +137,15 @@ class NTPTimeSource( TimeSource ):
 #============================================================================#
 class GSMZoneSource( object ):
 #============================================================================#
+    TIMEOUT = 24*60*60
     def __init__( self, bus ):
+        self.zonetab = []
         self.zone = None
         self.mccmnc = None
+        self.mccmnc_ts = 0.0
         self.isocode = None
+        self.offset = None
+        self.offset_ts = 0.0
         self.bus = bus
         self.bus.add_signal_receiver(
             self._handleNetworkStatusChanged,
@@ -161,67 +166,87 @@ class GSMZoneSource( object ):
                                 follow_name_owner_changes=True,
                                 introspect=False )
         self.gsmdata = dbus.Interface( proxy, "org.freesmartphone.GSM.Data",  )
+        self.updateTimeout = gobject.timeout_add_seconds( self.interval, self._handleUpdateTimeout )
+        self._handleUpdateTimeout()
 
     def _handleTimeZoneReport( self, report ):
-	# this can be improved - AA
-	# if we know the country, the offset and if this zone supports daylight savings
-	# the proper timezone can be derived.
-	# so opreferencesd needs to have a <this zone uses daylight savings> flag
-	# and we need a /usr/share/zoneinfo parser
-
-	# CTZV is offset * 4
-	offset = report / 4
-	# offset need to be inverted to get the correct TZ
-	zone = "Etc/GMT"
-	if offset <= 0 :
-		zone += "+" + str( offset * -1 )
-	else :
-		zone += "-" + str( offset )
-	logger.debug( "TimeZoneReport :" + str( report ) + " offset " + str( offset ) + " zone " + zone )
-	if zone != self.zone :
-            try:
-                shutil.copyfile( "/usr/share/zoneinfo/"+zone, "/etc/localtime" )
-		self.zone = zone
-            except:
-                logger.warning( "failed to install time zone file " + zone + " to /etc/localtime" )
+        # CTZV is offset * 4 and needs to be inverted to get the correct TZ
+        offset = -1 * report / 4
+        self.offset_ts = time.time()
+        if self.offset == offset:
+            return
+        self.offset = offset
+        logger.debug( "GSM: Offset=%i", offset )
 
     def _handleNetworkStatusChanged( self, status ):
-        if "code" in status:
-            code = status["code"]
-            if self.mccmnc == code:
-                return
-            self.mccmnc = code
-            mcc = code[:3]
-            mnc = code[3:]
-            logger.debug( "GSM: MCC=%s MNC=%s", mcc, mnc )
-            self.gsmdata.GetNetworkInfo(
-                mcc, mnc,
-                reply_handler=self._handleNetworkInfoReply,
-                error_handler=log_dbus_error( "error while calling org.freesmartphone.GSM.Data.GetNetworkInfo" )
-            )
-        else:
-            self.zone = None
+        self.mccmnc = None
+        self.mccmnc_ts = 0.0
+        self.isocode = None
+        if not "code" in status:
             logger.debug( "GSM: no network code" )
+        code = status["code"]
+        self.mccmnc_ts = time.time()
+        if self.mccmnc == code:
+            return
+        self.mccmnc = code
+        mcc = code[:3]
+        mnc = code[3:]
+        logger.debug( "GSM: MCC=%s MNC=%s", mcc, mnc )
+        self.gsmdata.GetNetworkInfo(
+            mcc, mnc,
+            reply_handler=self._handleNetworkInfoReply,
+            error_handler=log_dbus_error( "error while calling org.freesmartphone.GSM.Data.GetNetworkInfo" )
+        )
 
     def _handleNetworkInfoReply( self, info ):
-        if "iso" in info:
-            if self.isocode == info["iso"]:
-                return
-            self.isocode = info["iso"]
-            logger.debug( "GSM: ISO-Code %s", info["iso"] )
-            for line in open( "/usr/share/zoneinfo/zone.tab", "r" ):
-                data = line.rstrip().split( "\t" )
-                if self.isocode == data[0]:
-                    self.zone = data[2]
-                    break
-            logger.info( "GSM: Zone %s", self.zone )
-            try:
-                shutil.copyfile( "/usr/share/zoneinfo/"+self.zone, "/etc/localtime" )
-            except:
-                logger.warning( "failed to install time zone file to /etc/localtime" )
-        else:
-            self.zone = None
+        self.isocode = None
+        if not "iso" in info:
             logger.debug( "GSM: no ISO-Code for this network" )
+            return
+        if self.isocode == info["iso"]:
+            return
+        self.isocode = info["iso"]
+        logger.debug( "GSM: ISO-Code %s", info["iso"] )
+
+    def _handleUpdateTimeout( self ):
+        logger.debug( "GSM: loading zone.tab" )
+        if not self.zonetab:
+            for line in open( "/usr/share/zoneinfo/zone.tab", "r" ):
+                if line:
+                    self.zonetab.append( line.rstrip().split( "\t" ) )
+        logger.debug( "GSM: determinating time zone" )
+        self.zone = None
+        now = time.time()
+        if now - self.mccmnc_ts < self.TIMEOUT:
+            self.mccmnc = None
+            self.isocode = None
+        if now - self.offset_ts < self.TIMEOUT:
+            self.offset = None
+        zones = []
+        if self.isocode:
+            for zone in self.zonetab:
+                if zone[0] == self.isocode:
+                    zones.append( zone[2] )
+        if self.offset:
+            if not len( zones ) == 1:
+                if offset == 0:
+                    zone = "Etc/GMT"
+                else:
+                    zone = "Etc/GMT%+i" % self.offset
+                else :
+                zones = [ zone ]
+        if not zones:
+            logger.debug( "GSM: no zone found" )
+        if self.zone == zones[1]:
+            return
+        self.zone = zones[1]
+        logger.info( "GSM: Zone %s", self.zone )
+        try:
+            os.remove( "/etc/localtime" )
+            shutil.copyfile( "/usr/share/zoneinfo/"+self.zone, "/etc/localtime" )
+        except:
+            logger.warning( "failed to install time zone file to /etc/localtime" )
+        return True
 
     def __repr__( self ):
         return "<%s>" % ( self.__class__.__name__, )
