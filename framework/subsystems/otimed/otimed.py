@@ -138,6 +138,7 @@ class NTPTimeSource( TimeSource ):
 class GSMZoneSource( object ):
 #============================================================================#
     TIMEOUT = 24*60*60
+
     def __init__( self, bus ):
         self.zonetab = []
         self.zone = None
@@ -166,8 +167,6 @@ class GSMZoneSource( object ):
                                 follow_name_owner_changes=True,
                                 introspect=False )
         self.gsmdata = dbus.Interface( proxy, "org.freesmartphone.GSM.Data",  )
-        self.updateTimeout = gobject.timeout_add_seconds( self.interval, self._handleUpdateTimeout )
-        self._handleUpdateTimeout()
 
     def _handleTimeZoneReport( self, report ):
         # CTZV is offset * 4 and needs to be inverted to get the correct TZ
@@ -177,6 +176,7 @@ class GSMZoneSource( object ):
             return
         self.offset = offset
         logger.debug( "GSM: Offset=%i", offset )
+        self.update()
 
     def _handleNetworkStatusChanged( self, status ):
         self.mccmnc = None
@@ -207,14 +207,14 @@ class GSMZoneSource( object ):
             return
         self.isocode = info["iso"]
         logger.debug( "GSM: ISO-Code %s", info["iso"] )
+        self.update()
 
-    def _handleUpdateTimeout( self ):
+    def update( self ):
         logger.debug( "GSM: loading zone.tab" )
         if not self.zonetab:
             for line in open( "/usr/share/zoneinfo/zone.tab", "r" ):
                 if line:
                     self.zonetab.append( line.rstrip().split( "\t" ) )
-        logger.debug( "GSM: determinating time zone" )
         self.zone = None
         now = time.time()
         if now - self.mccmnc_ts < self.TIMEOUT:
@@ -222,10 +222,12 @@ class GSMZoneSource( object ):
             self.isocode = None
         if now - self.offset_ts < self.TIMEOUT:
             self.offset = None
+        logger.debug( "GSM: determining time zone (isocode=%s offset=%s)", self.isocode, self.offset )
         zones = []
         if self.isocode:
             for zone in self.zonetab:
                 if zone[0] == self.isocode:
+                    logger.debug( "GSM: found zone %s", zone )
                     zones.append( zone[2] )
         if self.offset:
             if not len( zones ) == 1:
@@ -233,10 +235,10 @@ class GSMZoneSource( object ):
                     zone = "Etc/GMT"
                 else:
                     zone = "Etc/GMT%+i" % self.offset
-                else :
                 zones = [ zone ]
         if not zones:
             logger.debug( "GSM: no zone found" )
+            return
         if self.zone == zones[1]:
             return
         self.zone = zones[1]
