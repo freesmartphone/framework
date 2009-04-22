@@ -14,6 +14,8 @@
 
 * +CFUN=1 resets previous +CPIN="abcd" (even with 2nd parameter?)
 
+* +CFUN=1 resets +CLVL, so it needs to be sent afterwards
+
 * +CFUN=1 always "succeeds" even if it answers with ERROR (SIM PIN Required)
 
 * I always receive CME ERROR 32 on +COPS=? until +CREG=1
