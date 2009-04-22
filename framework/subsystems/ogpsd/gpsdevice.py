@@ -231,7 +231,10 @@ class GPSDevice( resource.Resource ):
                 if not self.usageiface:
                     usage = self.bus.get_object( "org.freesmartphone.ousaged", "/org/freesmartphone/Usage", follow_name_owner_changes=True )
                     self.usageiface = dbus.Interface( usage, "org.freesmartphone.Usage" )
-                self.usageiface.RequestResource("GPS", reply_handler=dbus_ok, error_handler=dbus_error )
+                def on_error( error ):
+                    self._users.remove( sender )
+                    dbus_error( dbus.DBusException("RequestResource failed") )
+                self.usageiface.RequestResource("GPS", reply_handler=dbus_ok, error_handler=on_error)
             else:
                 dbus_ok()
         else:
