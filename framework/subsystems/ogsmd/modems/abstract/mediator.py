@@ -1105,7 +1105,7 @@ class SmsSendMessage( SmsMediator ):
 
     def responseFromChannel( self, request, response ):
         if response[-1] != "OK":
-            SimMediator.responseFromChannel( self, request, response )
+            SmsMediator.responseFromChannel( self, request, response )
         else:
             timestamp = ""
             result = safesplit( self._rightHandSide(response[0]), ',' )
@@ -1466,7 +1466,7 @@ class CallListCalls( NetworkMediator ): # a(isa{sv})
                 result.append( c )
             self._ok( result )
         else:
-            CallMediator.responseFromChannel( self, request, response )
+            NetworkMediator.responseFromChannel( self, request, response )
 
 #=========================================================================#
 class CallSendDtmf( CallMediator ):
