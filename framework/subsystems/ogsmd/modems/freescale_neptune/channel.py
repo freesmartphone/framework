@@ -65,11 +65,7 @@ class MiscChannel( EzxMuxChannel ):
         c.append( "+CRRM" )
         # FIXME if this returns an error, we might have no SIM inserted
         c.append( "+EPMS?" )
-
-        def lastCommand( self=self ):
-            self.enqueue( "+EMGL=4", self.simReadyNow, self.simReadyNow )
-
-        c.append( lastCommand )
+        c.append( "+EMGL=4" )
 
     def simReadyNow( self, *args, **kwargs ):
         # we _should_ be ready now, alas we can't check for sure :(
