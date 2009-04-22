@@ -13,7 +13,7 @@ Module: channel
 TI Calypso specific modem channels
 """
 
-__version__ = "0.9.10.4"
+__version__ = "0.9.10.5"
 
 from framework.config import config
 
@@ -257,7 +257,6 @@ class UnsolicitedResponseChannel( CalypsoModemChannel ):
         c.append( "%CSTAT=1" )
         # machine specific (might not be the best place here)
         c.append( '@ST="-26"' ) # audio side tone: set to minimum
-        c.append( "AT+CLVL=255" ) # audio output: set to maximum
 
         deepSleepMode = config.getValue( "ogsmd", "ti_calypso_deep_sleep", "adaptive" )
         if deepSleepMode == "never":
@@ -267,7 +266,8 @@ class UnsolicitedResponseChannel( CalypsoModemChannel ):
 
         c.append( createDspCommand() )
 
-        c = self._commands["sim"]
+        c = self._commands["antenna"]
+        c.append( "+CLVL=255" ) # audio output: set to maximum
 
         c = self._commands["suspend"]
         c.append( "+CTZU=0" )
