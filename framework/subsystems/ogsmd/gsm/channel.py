@@ -14,7 +14,7 @@ This module provides communication channel abstractions that
 transport their data over a (virtual) serial line.
 """
 
-__version__ = "0.9.17"
+__version__ = "0.9.18"
 MODULE_NAME = "ogsmd.channel"
 
 from ogsmd.gsm.decor import logged
@@ -603,13 +603,18 @@ class AtCommandChannel( DelegateChannel ):
         a '\r' (NOT '\r\n') embedded after the first line.
         """
         commands = command.split( '\r', 1 )
+
         if len( commands ) == 1:
             QueuedVirtualChannel.enqueue( self, "AT%s\r\n" % command, response_cb, error_cb, prefixes )
+
         elif len( commands ) == 2:
-            QueuedVirtualChannel.enqueue( self, "AT%s\r" % commands[0], None, None, prefixes )
-            QueuedVirtualChannel.enqueue( self, "%s\x1A" % commands[1], response_cb, error_cb, prefixes )
-        else:
-            assert False, "your python interpreter is broken"
+            def enqueueSecondOne( request, response, self=self, command = "%s\x1A" % commands[1], response_cb = response_cb, error_cb = error_cb, prefixes = prefixes ):
+                if response == []:
+                    QueuedVirtualChannel.enqueue( self, command, response_cb, error_cb, prefixes )
+                else:
+                    logger.error( "multiline command got '%s' response instead of '""'. What now?", response )
+
+            QueuedVirtualChannel.enqueue( self, "AT%s\r" % commands[0], enqueueSecondOne, error_cb, prefixes )
 
     # you should not need to call this anymore
     enqueueRaw = QueuedVirtualChannel.enqueue
