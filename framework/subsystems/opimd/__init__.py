@@ -20,6 +20,7 @@ import pimd_messages
 import pimb_sim_contacts_fso
 import pimb_sim_messages_fso
 import pimb_csv_contacts
+import pimb_sqlite_contacts
 
 import logging
 logger = logging.getLogger( MODULE_NAME )
