@@ -1,3 +1,7 @@
+2009-04-25	Michael Lauer	<mlauer@vanille-media.de>
+
+	* [ousaged] Serialize resource requests using an asynchrous queue.
+
 2009-04-19	Michael Lauer	<mlauer@vanille-media.de>
 
 	* [odeviced] Introduce multiple audio player backends. Add AlsaPlayer backend

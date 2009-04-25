@@ -3,7 +3,7 @@
 freesmartphone.org Framework Daemon
 
 (C) 2008 Guillaume 'Charlie' Chereau <charlie@openmoko.org>
-(C) 2008 Michael 'Mickey' Lauer <mlauer@vanille-media.de>
+(C) 2008-2009 Michael 'Mickey' Lauer <mlauer@vanille-media.de>
 (C) 2008 Jan 'Shoragan' Lübbe <jluebbe@lasnet.de>
 (C) 2008 Openmoko, Inc.
 GPLv2 or later
@@ -13,10 +13,10 @@ Module: resource
 """
 
 MODULE_NAME = "frameworkd.resource"
-__version__ = "0.4.1"
+__version__ = "0.5.0"
 
 from framework.config import config
-from framework.patterns import decorator
+from framework.patterns import decorator, asyncworker
 
 import gobject
 import dbus.service
@@ -95,7 +95,7 @@ class ResourceError( dbus.DBusException ):
     _dbus_error_name = "org.freesmartphone.Resource.Error"
 
 #----------------------------------------------------------------------------#
-class Resource( dbus.service.Object ):
+class Resource( dbus.service.Object, asyncworker.AsyncWorker ):
 #----------------------------------------------------------------------------#
     """
     Base class for all the resources
@@ -135,6 +135,8 @@ class Resource( dbus.service.Object ):
         self._resourceStatus = "unknown"
         self._delayedSignalQueue = Queue.Queue()
 
+        asyncworker.AsyncWorker.__init__( self )
+
         # We need to call the ousaged.Register method, but we can't do it
         # imediatly for the ousaged object may not be present yet.
         # We use gobject.idle_add method to make the call only at the next
@@ -157,6 +159,30 @@ class Resource( dbus.service.Object ):
             return False # mainloop: don't call me again
 
         gobject.idle_add( on_idle, self )
+
+    def onProcessElement( self, element ):
+        command, ok_callback, err_callback = element
+        if command == "enable":
+            self._updateResourceStatus( "enabling" )
+            self._enable( ok_callback, err_callback )
+        elif command == "disable":
+            self._updateResourceStatus( "disabling" )
+            self._disable( ok_callback, err_callback )
+        elif command == "suspend":
+            # FIXME: What do we do if status is disabling?
+            if self._resourceStatus == "disabled":
+                dbus_ok()
+            else:
+                self._updateResourceStatus( "suspending" )
+                self._suspend( ok_callback, err_callback )
+        elif command == "resume":
+            if self._resourceStatus == "disabled":
+                dbus_ok()
+            else:
+                self._updateResourceStatus( "resuming" )
+                self._resume( ok_callback, err_callback )
+        else:
+            logger.error( "Unknown resource command '%s'. Ignoring", command )
 
     def shutdown( self ):
         """
@@ -198,36 +224,26 @@ class Resource( dbus.service.Object ):
     def Enable( self, dbus_ok, dbus_error ):
         ok_callback = self.cbFactory( "enabled", dbus_ok )
         err_callback = self.cbFactory( self._resourceStatus, dbus_error, ResourceError( "could not enable resource" ) )
-        self._updateResourceStatus( "enabling" )
-        self._enable( ok_callback, err_callback )
+        self.enqueue( "enable", ok_callback, err_callback )
 
     @dbus.service.method( DBUS_INTERFACE, "", "", async_callbacks=( "dbus_ok", "dbus_error" ) )
     def Disable( self, dbus_ok, dbus_error ):
         ok_callback = self.cbFactory( "disabled", dbus_ok )
         err_callback = self.cbFactory( self._resourceStatus, dbus_error, ResourceError( "could not disable resource" ) )
-        self._updateResourceStatus( "disabling" )
-        self._disable( ok_callback, err_callback )
+        self.enqueue( "disable", ok_callback, err_callback )
 
     @dbus.service.method( DBUS_INTERFACE, "", "", async_callbacks=( "dbus_ok", "dbus_error" ) )
     def Suspend( self, dbus_ok, dbus_error ):
         ok_callback = self.cbFactory( "suspended", dbus_ok )
         err_callback = self.cbFactory( self._resourceStatus, dbus_error, ResourceError( "could not suspend resource" ) )
-        # FIXME: What do we do if status is disabling?
-        if self._resourceStatus == "disabled":
-            dbus_ok()
-        else:
-            self._updateResourceStatus( "suspending" )
-            self._suspend( ok_callback, err_callback )
+        self.enqueue( "suspend", ok_callback, err_callback )
+
 
     @dbus.service.method( DBUS_INTERFACE, "", "", async_callbacks=( "dbus_ok", "dbus_error" ) )
     def Resume( self, dbus_ok, dbus_error ):
         ok_callback = self.cbFactory( "enabled", dbus_ok )
         err_callback = self.cbFactory( self._resourceStatus, dbus_error, ResourceError( "could not resume resource" ) )
-        if self._resourceStatus == "disabled":
-            dbus_ok()
-        else:
-            self._updateResourceStatus( "resuming" )
-            self._resume( ok_callback, err_callback )
+        self.enqueue( "resume", ok_callback, err_callback )
 
     # Subclass of Service should reimplement these methods
     def _enable( self, on_ok, on_error ):
