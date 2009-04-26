@@ -179,13 +179,8 @@ class SQLiteContactBackend(Backend):
         cur.execute('INSERT INTO contacts (Name, Surname, Nickname, Birthdate, MarrDate, Partner, Spouse, MetAt, HomeLoc, Department, added) VALUES (?,?,?,?,?,?,?,?,?,?,?)',(contact_data['Name'], contact_data['Surname'], contact_data['Nickname'], contact_data['Birthdate'], contact_data['MarrDate'], contact_data['Partner'], contact_data['Spouse'], contact_data['MetAt'], contact_data['HomeLoc'], contact_data['Department'], 1))
         cid = cur.lastrowid
         for field in contact_data:
-            try:
-                (field_name, field_data) = field
-            except ValueError:
-                field_name = field
-                field_data = ''
-            if not field_name in reqfields:
-                cur.execute('INSERT INTO contact_values (contactId, Field, Value) VALUES (?,?,?)',(cid, field_name, field_data))
+            if not field in reqfields:
+                cur.execute('INSERT INTO contact_values (contactId, Field, Value) VALUES (?,?,?)',(cid, field, contact_data[field]))
         self.con.commit()
         cur.close()
 
