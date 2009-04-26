@@ -112,10 +112,6 @@ class BackendManager(DBusFBObject):
                 if b.name == backend_name:
                     backend = b
                     break
-                # If we don't have default backend specified, use the one, which supports requested domain
-                for dom in b.get_supported_domains():
-                    if dom==domain:
-                        backend=b
 
         except KeyError:
             pass
