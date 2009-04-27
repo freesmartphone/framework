@@ -349,6 +349,12 @@ class DeviceSetAntennaPower( DeviceMediator ):
 
     @logged
     def responseFromChannel( self, request, response ):
+        # FIXME: So far I have not seen any modem where +CFUN=1 _really_ fails
+        # (yes, they may respond with a +CME error, but still they turn on full functionality)
+        # If this is not the case, then we need to add a +CFUN? check here, before toggling
+        # stateAntennaOn
+        if self.power:
+            self._object.modem.stateAntennaOn()
         if response[-1] == "OK":
             self._ok()
         else:
