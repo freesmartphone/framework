@@ -171,13 +171,13 @@ class Resource( dbus.service.Object, asyncworker.AsyncWorker ):
         elif command == "suspend":
             # FIXME: What do we do if status is disabling?
             if self._resourceStatus == "disabled":
-                dbus_ok()
+                ok_callback()
             else:
                 self._updateResourceStatus( "suspending" )
                 self._suspend( ok_callback, err_callback )
         elif command == "resume":
             if self._resourceStatus == "disabled":
-                dbus_ok()
+                ok_callback()
             else:
                 self._updateResourceStatus( "resuming" )
                 self._resume( ok_callback, err_callback )
@@ -220,6 +220,8 @@ class Resource( dbus.service.Object, asyncworker.AsyncWorker ):
         return status_callback
 
     # The DBus methods update the resource status and call the python implementation
+    # FIXME for the err_callback, do we really want to go back to the status which
+    # was active during to call? it could have changed in between!
     @dbus.service.method( DBUS_INTERFACE, "", "", async_callbacks=( "dbus_ok", "dbus_error" ) )
     def Enable( self, dbus_ok, dbus_error ):
         ok_callback = self.cbFactory( "enabled", dbus_ok )
