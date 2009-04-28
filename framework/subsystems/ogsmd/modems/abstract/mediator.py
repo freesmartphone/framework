@@ -22,7 +22,7 @@ TODO:
  * refactor parameter validation
 """
 
-__version__ = "0.9.18.1"
+__version__ = "0.9.19.0"
 MODULE_NAME = "ogsmd.modems.abstract.mediator"
 
 from ogsmd import error as DBusError
@@ -33,7 +33,7 @@ from ogsmd.modems import currentModem
 import ogsmd.gsm.sms
 
 import gobject
-import re, time
+import re, time, calendar
 
 import logging
 logger = logging.getLogger( MODULE_NAME )
@@ -503,7 +503,7 @@ class DeviceGetMicrophoneMuted( DeviceMediator ):
 class DeviceSetMicrophoneMuted( DeviceMediator ):
 #=========================================================================#
     def trigger( self ):
-            self._commchannel.enqueue( "+CMUT=%d" % self.muted, self.responseFromChannel, self.errorFromChannel )
+        self._commchannel.enqueue( "+CMUT=%d" % self.muted, self.responseFromChannel, self.errorFromChannel )
 
 #=========================================================================#
 class DeviceGetPowerStatus( DeviceMediator ):
@@ -526,6 +526,36 @@ class DeviceGetPowerStatus( DeviceMediator ):
                 level = -1
 
             self._ok( status, level )
+
+#=========================================================================#
+class DeviceSetRTC( DeviceMediator ):
+#=========================================================================#
+    def trigger( self ):
+        # FIXME: gather timezone offset and supply
+        timezone = "+00"
+        timestring = time.strftime("%y/%m/%d,%H:%M:%S" + timezone)
+        self._commchannel.enqueue( "+CCLK=\"%s\"" % timestring, self.responseFromChannel, self.errorFromChannel )
+
+#=========================================================================#
+class DeviceGetRTC( DeviceMediator ): # i
+#=========================================================================#
+    def trigger( self ):
+        self._commchannel.enqueue( "+CCLK?", self.responseFromChannel, self.errorFromChannel )
+
+    def responseFromChannel( self, request, response ):
+        if response[-1] != "OK":
+            DeviceMediator.responseFromChannel( self, request, response )
+        else:
+            dat, tim = self._rightHandSide( response[0] ).strip( '"' ).split( ',' )
+            # timezone not yet supported
+            if tim[-3] == '+':
+                tim = tim[-3]
+            # some modems strip the leading zero for one-digit chars, hence we need to split and reassemble on our own
+            year, month, day = dat.split( '/' )
+            hour, minute, second = tim.split( ':' )
+
+            timestruct = time.strptime( "%02d/%02d/%02d,%02d:%02d:%02d" % ( int(year), int(month), int(day), int(hour), int(minute), int(second) ), "%y/%m/%d,%H:%M:%S" )
+            self._ok( calendar.timegm( timestruct ) )
 
 #
 # SIM Mediators

@@ -11,7 +11,7 @@ Module: device
 """
 
 MODULE_NAME = "ogsmd.device"
-__version__ = "0.9.12.0"
+__version__ = "0.9.13.0"
 
 from framework import resource
 from framework.config import config
@@ -187,6 +187,18 @@ class Device( resource.Resource ):
     @resource.checkedmethod
     def GetPowerStatus( self, dbus_ok, dbus_error ):
         mediator.DeviceGetPowerStatus( self, dbus_ok, dbus_error )
+
+    @dbus.service.method( DBUS_INTERFACE_DEVICE, "", "",
+                          async_callbacks=( "dbus_ok", "dbus_error" ) )
+    @resource.checkedmethod
+    def SetRTC( self, dbus_ok, dbus_error ):
+        mediator.DeviceSetRTC( self, dbus_ok, dbus_error )
+
+    @dbus.service.method( DBUS_INTERFACE_DEVICE, "", "i",
+                          async_callbacks=( "dbus_ok", "dbus_error" ) )
+    @resource.checkedmethod
+    def GetRTC( self, dbus_ok, dbus_error ):
+        mediator.DeviceGetRTC( self, dbus_ok, dbus_error )
 
     #
     # dbus org.freesmartphone.GSM.SIM

@@ -1,6 +1,10 @@
+2009-04-29	Michael Lauer	<mlauer@vanille-media.de>
+
+	* [ogsmd] Implement org.freesmartphone.GSM.Device.GetRTC() -> (i)
+
 2009-04-25	Michael Lauer	<mlauer@vanille-media.de>
 
-	* [ousaged] Serialize resource requests using an asynchrous queue.
+	* [ousaged] Serialize resource requests using an asynchronous queue.
 
 2009-04-19	Michael Lauer	<mlauer@vanille-media.de>
 
