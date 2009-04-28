@@ -104,8 +104,12 @@ class AsyncWorker( object ):
             logger.debug( "no more elements: stopping idle task." )
             self._source = None
             return False # don't call me again
+        next = self._queue.get()
         logger.debug( "got an element from the queue" )
-        self.onProcessElement( self._queue.get() )
+        try:
+            self.onProcessElement( next )
+        except:
+            logger.exception( 'exception while processing element %s:', next )
         return True
 
 #============================================================================#
