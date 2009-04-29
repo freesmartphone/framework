@@ -185,6 +185,7 @@ class GSMZoneSource( object ):
         self.isocode = None
         if not "code" in status:
             logger.debug( "GSM: no network code" )
+            return
         code = status["code"]
         self.mccmnc_ts = time.time()
         if self.mccmnc == code:
