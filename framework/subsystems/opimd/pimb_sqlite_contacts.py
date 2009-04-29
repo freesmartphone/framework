@@ -178,8 +178,6 @@ class SQLiteContactBackend(Backend):
         return contact_id
 
     def add_contact_to_db(self, contact_data):
-        contact_id = self._domain_handlers['Contacts'].register_contact(self, contact_data)
-
         reqfields = ['Name', 'Surname', 'Nickname', 'Birthdate', 'MarrDate', 'Partner', 'Spouse', 'MetAt', 'HomeLoc', 'Department']
 
         for field in reqfields:
@@ -194,7 +192,11 @@ class SQLiteContactBackend(Backend):
         for field in contact_data:
             if not field in reqfields:
                 cur.execute('INSERT INTO contact_values (contactId, Field, Value) VALUES (?,?,?)',(cid, field, contact_data[field]))
+        
         self.con.commit()
         cur.close()
 
+        contact_data['_backend_entry_id']=str(cid)
+
+        contact_id = self._domain_handlers['Contacts'].register_contact(self, contact_data)
         return contact_id
