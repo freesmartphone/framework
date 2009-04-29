@@ -21,7 +21,7 @@ logger = logging.getLogger('opimd')
 from difflib import SequenceMatcher
 
 from backend_manager import BackendManager
-from backend_manager import PIMB_CAN_ADD_ENTRY
+from backend_manager import PIMB_CAN_ADD_ENTRY, PIMB_CAN_DEL_ENTRY, PIMB_CAN_UPD_ENTRY
 
 from domain_manager import DomainManager, Domain
 from helpers import *
@@ -821,4 +821,37 @@ class ContactDomain(Domain):
             if field_name: new_field_list.append(field_name)
 
         return self._contacts[num_id].get_fields(new_field_list)
+
+
+    @dbus_method(_DIN_ENTRY, "", "", rel_path_keyword="rel_path")
+    def Delete(self, rel_path):
+        num_id = int(rel_path[1:])
+
+        # Make sure the requested contact exists
+        if num_id >= len(self._contacts):
+            raise InvalidContactID()
+
+        for backend_name in self._contacts[num_id]._used_backends:
+            backend = self._backends[backend_name]
+            if not PIMB_CAN_DEL_ENTRY in backend.properties:
+                raise InvalidBackend( "Backend properties not including PIMB_CAN_DEL_ENTRY" )
+
+            try:
+                backend.del_contact(self._contacts[num_id])
+            except AttributeError:
+                raise InvalidBackend( "Backend does not feature del_contact" )
+
+        del self._contacts[num_id]
+
+    @dbus_method(_DIN_ENTRY, "a{sv}", "", rel_path_keyword="rel_path")
+    def Update(self, data, rel_path):
+        num_id = int(rel_path[1:])
+
+        # Make sure the requested contact exists
+        if num_id >= len(self._contacts):
+            raise InvalidContactID()
+
+        #TODO: implement something :P
+
+        #return self._contacts[num_id].get_content()
 
