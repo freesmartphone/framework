@@ -80,7 +80,7 @@ class SIMContactBackendFSO(Backend):
             # Remove special characters that indicate groups
             
             # TODO Do this in a non-unicode-destructing manner
-            name = name.encode('ascii', 'ignore')
+#            name = name.encode('ascii', 'ignore')
 #            name.translate({"\xbf":None, "$":None})
             
             entry = {}
