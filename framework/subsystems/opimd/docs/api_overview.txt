@@ -53,7 +53,7 @@ PIM/
      - GetContent()			OK
      - GetMultipleFields()		OK
      - Update()				--
-     - Delete()				--
+     - Delete()				OK
 
  + Sources/				OK	.PIM.Sources
    - GetEntryCount()			OK

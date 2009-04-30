@@ -153,7 +153,7 @@ class Contact():
 
 
     def __repr__(self):
-        return str(get_content())
+        return str(self.get_content())
 
 
     def rebuild_index(self):
@@ -842,6 +842,13 @@ class ContactDomain(Domain):
                 raise InvalidBackend( "Backend does not feature del_contact" )
 
         del self._contacts[num_id]
+
+        # update Path fields, as IDs may be changed
+        for id in range(0,len(self._contacts)):
+            path = _DBUS_PATH_CONTACTS+ '/' + str(id)
+            for field in self._contacts[id]._fields:
+                if field[0]=='Path':
+                    field[1]=path
 
     @dbus_method(_DIN_ENTRY, "a{sv}", "", rel_path_keyword="rel_path")
     def Update(self, data, rel_path):
