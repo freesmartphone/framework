@@ -95,7 +95,7 @@ class ResourceError( dbus.DBusException ):
     _dbus_error_name = "org.freesmartphone.Resource.Error"
 
 #----------------------------------------------------------------------------#
-class Resource( dbus.service.Object, asyncworker.AsyncWorker ):
+class Resource( dbus.service.Object, asyncworker.SynchronizedAsyncWorker ):
 #----------------------------------------------------------------------------#
     """
     Base class for all the resources
@@ -135,7 +135,7 @@ class Resource( dbus.service.Object, asyncworker.AsyncWorker ):
         self._resourceStatus = "unknown"
         self._delayedSignalQueue = Queue.Queue()
 
-        asyncworker.AsyncWorker.__init__( self )
+        asyncworker.SynchronizedAsyncWorker.__init__( self )
 
         # We need to call the ousaged.Register method, but we can't do it
         # imediatly for the ousaged object may not be present yet.
@@ -170,13 +170,13 @@ class Resource( dbus.service.Object, asyncworker.AsyncWorker ):
             self._disable( ok_callback, err_callback )
         elif command == "suspend":
             # FIXME: What do we do if status is disabling?
-            if self._resourceStatus == "disabled":
+            if self._resourceStatus.startswith( "disabl" ):
                 ok_callback()
             else:
                 self._updateResourceStatus( "suspending" )
                 self._suspend( ok_callback, err_callback )
         elif command == "resume":
-            if self._resourceStatus == "disabled":
+            if self._resourceStatus.startswith( "disabl" ):
                 ok_callback()
             else:
                 self._updateResourceStatus( "resuming" )
@@ -208,43 +208,70 @@ class Resource( dbus.service.Object, asyncworker.AsyncWorker ):
 
     # callback factory
     def cbFactory( self, next, dbus_callback, *args ):
-        def status_callback( next=next, dbus_callback=dbus_callback, self=self, args=args ):
-            #print "args are: %s" % repr(args)
-            #import inspect
-            #print inspect.getargspec( dbus_callback )
-            self._updateResourceStatus( next )
-            if len( args ):
-                dbus_callback( *args )
-            else:
-                dbus_callback()
+
+        if next != "":
+            # create ok callback
+            def status_ok_callback( next=next, dbus_callback=dbus_callback, self=self, args=args ):
+                #print "args are: %s" % repr(args)
+                #import inspect
+                #print inspect.getargspec( dbus_callback )
+                self._updateResourceStatus( next )
+                if len( args ):
+                    dbus_callback( *args )
+                else:
+                    dbus_callback()
+                # command done, ready to process next one
+                self.trigger()
+
+            status_callback = status_ok_callback
+        else:
+            # create error callback
+            def status_error_callback( next=next, dbus_callback=dbus_callback, self=self, args=args ):
+                #print "args are: %s" % repr(args)
+                #import inspect
+                #print inspect.getargspec( dbus_callback )
+
+                logger.error( "Error during resource '%s' status transition. Trying to disable.", self )
+                # send error back to caller
+                if len( args ):
+                    dbus_callback( *args )
+                else:
+                    dbus_callback()
+
+                def status_error_forced_disabling_done( self=self ):
+                    self._updateResourceStatus( "disabled" )
+                    # command done, ready to process next one
+                    self.trigger()
+
+                self._disable( status_error_forced_disabling_done, status_error_forced_disabling_done )
+
+            status_callback = status_error_callback
+
         return status_callback
 
     # The DBus methods update the resource status and call the python implementation
-    # FIXME for the err_callback, do we really want to go back to the status which
-    # was active during to call? it could have changed in between!
     @dbus.service.method( DBUS_INTERFACE, "", "", async_callbacks=( "dbus_ok", "dbus_error" ) )
     def Enable( self, dbus_ok, dbus_error ):
         ok_callback = self.cbFactory( "enabled", dbus_ok )
-        err_callback = self.cbFactory( self._resourceStatus, dbus_error, ResourceError( "could not enable resource" ) )
+        err_callback = self.cbFactory( "", dbus_error, ResourceError( "could not enable resource" ) )
         self.enqueue( "enable", ok_callback, err_callback )
 
     @dbus.service.method( DBUS_INTERFACE, "", "", async_callbacks=( "dbus_ok", "dbus_error" ) )
     def Disable( self, dbus_ok, dbus_error ):
         ok_callback = self.cbFactory( "disabled", dbus_ok )
-        err_callback = self.cbFactory( self._resourceStatus, dbus_error, ResourceError( "could not disable resource" ) )
+        err_callback = self.cbFactory( "", dbus_error, ResourceError( "could not disable resource" ) )
         self.enqueue( "disable", ok_callback, err_callback )
 
     @dbus.service.method( DBUS_INTERFACE, "", "", async_callbacks=( "dbus_ok", "dbus_error" ) )
     def Suspend( self, dbus_ok, dbus_error ):
         ok_callback = self.cbFactory( "suspended", dbus_ok )
-        err_callback = self.cbFactory( self._resourceStatus, dbus_error, ResourceError( "could not suspend resource" ) )
+        err_callback = self.cbFactory( "", dbus_error, ResourceError( "could not suspend resource" ) )
         self.enqueue( "suspend", ok_callback, err_callback )
-
 
     @dbus.service.method( DBUS_INTERFACE, "", "", async_callbacks=( "dbus_ok", "dbus_error" ) )
     def Resume( self, dbus_ok, dbus_error ):
         ok_callback = self.cbFactory( "enabled", dbus_ok )
-        err_callback = self.cbFactory( self._resourceStatus, dbus_error, ResourceError( "could not resume resource" ) )
+        err_callback = self.cbFactory( "", dbus_error, ResourceError( "could not resume resource" ) )
         self.enqueue( "resume", ok_callback, err_callback )
 
     # Subclass of Service should reimplement these methods
