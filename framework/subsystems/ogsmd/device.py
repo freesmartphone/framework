@@ -11,7 +11,7 @@ Module: device
 """
 
 MODULE_NAME = "ogsmd.device"
-__version__ = "0.9.13.0"
+__version__ = "0.9.13.1"
 
 from framework import resource
 from framework.config import config
@@ -98,13 +98,15 @@ class Device( resource.Resource ):
         """
         Suspend (inherited from Resource)
         """
-        self.modem.prepareForSuspend( on_ok, on_error )
+        if self.modem is not None:
+            self.modem.prepareForSuspend( on_ok, on_error )
 
     def _resume( self, on_ok, on_error ):
         """
         Resume (inherited from Resource)
         """
-        self.modem.recoverFromSuspend( lambda: self._recoverOk( on_ok, on_error ), on_error )
+        if self.modem is not None:
+            self.modem.recoverFromSuspend( lambda: self._recoverOk( on_ok, on_error ), on_error )
 
     def _recoverOk( self, on_ok, on_error):
         mediator.NetworkGetStatus( self, lambda x: self._recoverStatusOk( x, on_ok, on_error ), on_error )
