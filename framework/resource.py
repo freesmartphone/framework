@@ -13,7 +13,7 @@ Module: resource
 """
 
 MODULE_NAME = "frameworkd.resource"
-__version__ = "0.5.1"
+__version__ = "0.5.2"
 
 from framework.config import config
 from framework.patterns import decorator, asyncworker
@@ -162,6 +162,7 @@ class Resource( dbus.service.Object, asyncworker.SynchronizedAsyncWorker ):
 
     def onProcessElement( self, element ):
         command, ok_callback, err_callback = element
+        logger.debug( "processing command '%s' for resource '%s'", command, self )
         if command == "enable":
             self._updateResourceStatus( "enabling" )
             self._enable( ok_callback, err_callback )
@@ -169,11 +170,17 @@ class Resource( dbus.service.Object, asyncworker.SynchronizedAsyncWorker ):
             self._updateResourceStatus( "disabling" )
             self._disable( ok_callback, err_callback )
         elif command == "suspend":
-            self._updateResourceStatus( "suspending" )
-            self._suspend( ok_callback, err_callback )
+            if self._resourceStatus.startswith( "disabl" ):
+                ok_callback()
+            else:
+                self._updateResourceStatus( "suspending" )
+                self._suspend( ok_callback, err_callback )
         elif command == "resume":
-            self._updateResourceStatus( "resuming" )
-            self._resume( ok_callback, err_callback )
+            if self._resourceStatus.startswith( "disabl" ):
+                ok_callback()
+            else:
+                self._updateResourceStatus( "resuming" )
+                self._resume( ok_callback, err_callback )
         else:
             logger.error( "Unknown resource command '%s'. Ignoring", command )
 
@@ -208,7 +215,11 @@ class Resource( dbus.service.Object, asyncworker.SynchronizedAsyncWorker ):
                 #print "args are: %s" % repr(args)
                 #import inspect
                 #print inspect.getargspec( dbus_callback )
-                self._updateResourceStatus( next )
+
+                if self._resourceStatus == "disabled":
+                   pass
+                else:
+                    self._updateResourceStatus( next )
                 if len( args ):
                     dbus_callback( *args )
                 else:
@@ -257,23 +268,15 @@ class Resource( dbus.service.Object, asyncworker.SynchronizedAsyncWorker ):
 
     @dbus.service.method( DBUS_INTERFACE, "", "", async_callbacks=( "dbus_ok", "dbus_error" ) )
     def Suspend( self, dbus_ok, dbus_error ):
-        # Ignore suspending a disabled resource.
-        if self._resourceStatus.startswith( "disabl" ):
-            dbus_ok()
-        else:
-            ok_callback = self.cbFactory( "suspended", dbus_ok )
-            err_callback = self.cbFactory( "", dbus_error, ResourceError( "could not suspend resource" ) )
-            self.enqueue( "suspend", ok_callback, err_callback )
+        ok_callback = self.cbFactory( "suspended", dbus_ok )
+        err_callback = self.cbFactory( "", dbus_error, ResourceError( "could not suspend resource" ) )
+        self.enqueue( "suspend", ok_callback, err_callback )
 
     @dbus.service.method( DBUS_INTERFACE, "", "", async_callbacks=( "dbus_ok", "dbus_error" ) )
     def Resume( self, dbus_ok, dbus_error ):
-        # Ignore resuming a disabled resource.
-        if self._resourceStatus.startswith( "disabl" ):
-            dbus_ok()
-        else:
-            ok_callback = self.cbFactory( "enabled", dbus_ok )
-            err_callback = self.cbFactory( "", dbus_error, ResourceError( "could not resume resource" ) )
-            self.enqueue( "resume", ok_callback, err_callback )
+        ok_callback = self.cbFactory( "enabled", dbus_ok )
+        err_callback = self.cbFactory( "", dbus_error, ResourceError( "could not resume resource" ) )
+        self.enqueue( "resume", ok_callback, err_callback )
 
     # Subclass of Service should reimplement these methods
     def _enable( self, on_ok, on_error ):
