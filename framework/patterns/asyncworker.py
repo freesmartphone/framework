@@ -113,12 +113,56 @@ class AsyncWorker( object ):
         return True
 
 #============================================================================#
+class SynchronizedAsyncWorker( AsyncWorker ):
+#============================================================================#
+    """
+    This class implements a synchronized asynchronous worker queue.
+    """
+
+    #
+    # public API
+    #
+
+    def trigger( self ):
+        """
+        Call, when you are ready to process the next element.
+        """
+        if not self._queue.empty():
+           self._source = gobject.idle_add( self._processElement )
+
+    #
+    # private API
+    #
+    def _processElement( self ):
+        """
+        Process an element. Stop idle processing.
+        """
+        logger.debug( "_processElement()" )
+
+        if self._queue.empty():
+            logger.warning( "no more elements" )
+            self._source = None
+            return False # don't call me again
+
+        next = self._queue.get()
+        logger.debug( "got an element from the queue" )
+        try:
+            self.onProcessElement( next )
+        except:
+            logger.exception( 'exception while processing element %s:', next )
+        self._source = None
+        return False
+
+#============================================================================#
 if __name__ == "__main__":
 #============================================================================#
 
-    class TestAsyncWorker( AsyncWorker ):
+    class TestAsyncWorker( SynchronizedAsyncWorker ):
         def onProcessElement( self, element ):
             print ( "processing %s\n>>>" % repr(element) )
+            self.trigger()
+
+    import logging
 
     logging.basicConfig( \
         level=logging.DEBUG,
