@@ -274,13 +274,14 @@ class Contact():
 
         duplicated = True
         for field_name in contact_fields:
-            try:
-                if self.get_content()[field_name]!=contact_fields[field_name]:
+            if not field_name.startswith("_backend"):
+                try:
+                    if self.get_content()[field_name]!=contact_fields[field_name]:
+                        duplicated = False
+                        break
+                except KeyError:
                     duplicated = False
                     break
-            except KeyError:
-                duplicated = False
-                break
 
         if duplicated:
             return True # That contacts exists, so we doesn't have to do anything to have it merged.
