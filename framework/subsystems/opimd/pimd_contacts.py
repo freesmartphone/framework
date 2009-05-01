@@ -178,7 +178,9 @@ class Contact():
 
         # We add all fields as they come, not checking for duplicate data
 
-        self._used_backends.append(backend_name)
+        if backend_name!='':
+            if not backend_name in self._used_backends:
+                self._used_backends.append(backend_name)
 
         for field_name in contact_data:
             field_value = contact_data[field_name]
