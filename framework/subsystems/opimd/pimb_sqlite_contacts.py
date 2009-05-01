@@ -47,7 +47,7 @@ _SQLITE_FILE_NAME = os.path.join(rootdir,'sqlite-contacts.db')
 class SQLiteContactBackend(Backend):
 #----------------------------------------------------------------------------#
     name = 'SQLite-Contacts'
-    properties = [PIMB_CAN_ADD_ENTRY, PIMB_CAN_DEL_ENTRY, PIMB_CAN_UPD_ENTRY]
+    properties = [PIMB_CAN_ADD_ENTRY, PIMB_CAN_DEL_ENTRY]
 
     _domain_handlers = None           # Map of the domain handler objects we support
     _entry_ids = None                 # List of all entry IDs that have data from us
