@@ -117,6 +117,12 @@ class CSVContactBackend(Backend):
         file.close()
 
 
+    def del_contact(self, contact_data):
+        pass
+
+    def upd_contact(self, old_contact_data, new_contact_data):
+        self.save_entries_to_file()
+
     def add_contact(self, contact_data):
         contact_id = self._domain_handlers['Contacts'].register_contact(self, contact_data)
         # TODO Delayed writing to prevent performance issues when adding lots of contacts
