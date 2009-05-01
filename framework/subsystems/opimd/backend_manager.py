@@ -147,6 +147,23 @@ class BackendManager(DBusFBObject):
         init_all().start_dbus(dbus_ok, dbus_error)
 
 
+    @dbus_method(_DIN_SOURCE, "", "", rel_path_keyword="rel_path", async_callbacks=( "dbus_ok", "dbus_error" ))
+    def Init(self, rel_path, dbus_ok, dbus_error):
+        num_id = int(rel_path[1:])
+        backend = None
+
+        if (num_id < len(self._backends)):
+            backend = self._backends[num_id]
+        else:
+            raise error.InvalidBackendID( "Maximum backend ID is %d" % len(self._backends)-1 )
+
+        @tasklet.tasklet
+        def init():
+            logger.debug("loading entries for backend %s", backend)
+            yield backend.load_entries()
+        # start the tasklet connected to the dbus callbacks
+        init().start_dbus(dbus_ok, dbus_error)
+
     @dbus_method(_DIN_SOURCE, "", "s", rel_path_keyword="rel_path")
     def GetName(self, rel_path):
         num_id = int(rel_path[1:])
