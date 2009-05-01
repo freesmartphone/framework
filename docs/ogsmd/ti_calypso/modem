@@ -11,6 +11,9 @@
 
 * On channel init, we better send \x1a first -- just in case something crashed while we
   were inside a multiline request command
+  
+* +CCLK? violates 07.07, it doesn't use %02d, but %d for the individual components.
+  Moreover, +CCLK needs the UTC offset, but doesn't honor it.
 
 * +CFUN=1 resets previous +CPIN="abcd" (even with 2nd parameter?)
 
