@@ -272,7 +272,23 @@ class Contact():
         @param backend_name Backend that owns the contact data
         @return True on successful merge, False otherwise"""
 
+        duplicated = True
+        for field_name in contact_fields:
+            try:
+                if self.get_content()[field_name]!=contact_fields[field_name]:
+                    duplicated = False
+                    break
+            except KeyError:
+                duplicated = False
+                break
+
+        if duplicated:
+            return True # That contacts exists, so we doesn't have to do anything to have it merged.
+
         # Don't merge if we already have data from $backend_name as one backend can't contain two mergeable contacts
+        if backend_name in self._used_backends:
+            return False
+
         # TODO Implement this method
         return False
 
