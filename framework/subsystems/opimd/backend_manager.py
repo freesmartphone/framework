@@ -82,6 +82,14 @@ class BackendManager(DBusFBObject):
         for backend_cls in Backend._all_backends_cls:
             self.register_backend(backend_cls())
 
+        @tasklet.tasklet
+        def init_all():
+            for backend in self._backends:
+                logger.debug("loading entries for backend %s", backend)
+                yield backend.load_entries()
+        init_all().start()
+
+
     @classmethod
     def register_backend(cls, backend):
         """Register a backend and register it with all supported PIM domains
