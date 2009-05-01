@@ -858,7 +858,15 @@ class ContactDomain(Domain):
         if num_id >= len(self._contacts):
             raise InvalidContactID()
 
-        #TODO: implement something :P
+        new_contact = self._contacts[num_id] # TODO: FIXME: implement updating fields HERE!
 
-        #return self._contacts[num_id].get_content()
+        for backend_name in self._contacts[num_id]._used_backends:
+            backend = self._backends[backend_name]
+            if not PIMB_CAN_UPD_ENTRY in backend.properties:
+                raise InvalidBackend( "Backend properties not including PIMB_CAN_UPD_ENTRY" )
+
+            try:
+                backend.upd_contact(self._contacts[num_id],new_contact)
+            except AttributeError:
+                raise InvalidBackend( "Backend does not feature del_contact" )
 
