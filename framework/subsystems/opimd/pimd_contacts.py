@@ -183,22 +183,25 @@ class Contact():
                 self._used_backends.append(backend_name)
 
         for field_name in contact_data:
-            field_value = contact_data[field_name]
+            try:
+                self._fields[self._field_idx[field_name]]=contact_data[field_name]
+            except KeyError:
+                field_value = contact_data[field_name]
 
-            # We only generate compare values for specific fields
-            compare_value = ""
+                # We only generate compare values for specific fields
+                compare_value = ""
 
-            # TODO Do this in a more extensible way
-            # if ("phone" in field_name) or (field_name == "Phone"): compare_value = get_compare_for_tel(field_value)
+                # TODO Do this in a more extensible way
+                # if ("phone" in field_name) or (field_name == "Phone"): compare_value = get_compare_for_tel(field_value)
 
-            our_field = [field_name, field_value, compare_value, backend_name]
+                our_field = [field_name, field_value, compare_value, backend_name]
 
-            self._fields.append(our_field)
-            field_idx = len(self._fields) - 1
+                self._fields.append(our_field)
+                field_idx = len(self._fields) - 1
 
-            # Keep the index happy, too
-            if not field_name in self._field_idx.keys(): self._field_idx[field_name] = []
-            self._field_idx[field_name].append(field_idx)
+                # Keep the index happy, too
+                if not field_name in self._field_idx.keys(): self._field_idx[field_name] = []
+                self._field_idx[field_name].append(field_idx)
 
 #        for (field_idx, field) in enumerate(self._fields):
 #            print "%s: %s" % (field_idx, field)
@@ -274,7 +277,7 @@ class Contact():
 
         duplicated = True
         for field_name in contact_fields:
-            if not field_name.startswith("_backend"):
+            if not field_name.startswith("_"):
                 try:
                     if self.get_content()[field_name]!=contact_fields[field_name]:
                         duplicated = False
@@ -850,7 +853,9 @@ class ContactDomain(Domain):
         if num_id >= len(self._contacts):
             raise InvalidContactID()
 
-        for backend_name in self._contacts[num_id]._used_backends:
+        backends = self._contacts[num_id]._used_backends
+
+        for backend_name in backends:
             backend = self._backends[backend_name]
             if not PIMB_CAN_DEL_ENTRY in backend.properties:
                 raise InvalidBackend( "Backend properties not including PIMB_CAN_DEL_ENTRY" )
@@ -869,6 +874,15 @@ class ContactDomain(Domain):
                 if field[0]=='Path':
                     field[1]=path
 
+        for backend_name in backends:
+            try:
+                backend = self._backends[backend_name]
+                backend.sync() # If backend needs - sync entries
+            except:
+                pass
+
+
+
     @dbus_method(_DIN_ENTRY, "a{sv}", "", rel_path_keyword="rel_path")
     def Update(self, data, rel_path):
         num_id = int(rel_path[1:])
@@ -877,15 +891,25 @@ class ContactDomain(Domain):
         if num_id >= len(self._contacts):
             raise InvalidContactID()
 
-        new_contact = self._contacts[num_id] # TODO: FIXME: implement updating fields HERE!
+        contact = self._contacts[num_id]
 
-        for backend_name in self._contacts[num_id]._used_backends:
-            backend = self._backends[backend_name]
-            if not PIMB_CAN_UPD_ENTRY in backend.properties:
-                raise InvalidBackend( "Backend properties not including PIMB_CAN_UPD_ENTRY" )
+        for field_name in data:
+            if not field_name.startswith('_'):
+                for field_nr in contact._field_idx[field_name]:
+                    backend_name=contact._fields[field_nr][3]
+                    backend = self._backends[backend_name]
+                    if contact[field_name]!=data[field_name]:
+                        if not PIMB_CAN_UPD_ENTRY in backend.properties:
+                            raise InvalidBackend( "Backend properties not including PIMB_CAN_UPD_ENTRY" )
+                        try:
+                            backend.upd_contact(contact,field_name,data[field_name])
+                        except AttributeError:
+                            raise InvalidBackend( "Backend does not feature upd_contact" )
+                    contact._fields[field_nr][1]=data[field_name]
+                    try:
+                        backend.sync() # If backend needs - sync entries
+                    except:
+                        print "sync failed"
+                        pass
 
-            try:
-                backend.upd_contact(self._contacts[num_id],new_contact)
-            except AttributeError:
-                raise InvalidBackend( "Backend does not feature del_contact" )
 

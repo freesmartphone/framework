@@ -109,25 +109,22 @@ class CSVContactBackend(Backend):
         
         for entry in self._domain_handlers['Contacts'].enumerate_contacts(self):
             line = ""
-            save = 1
             for field in entry:
                 (field_name, field_data) = field
-                if field_name=='_backend_deleting':
-                    save = 0
-                else:
-                    line += field_name + '=' + field_data + ','
-            if save:
-                file.write(line[:-1] + "\n")
+                line += field_name + '=' + field_data + ','
+            file.write(line[:-1] + "\n")
         
         file.close()
 
 
     def del_contact(self, contact):
-        contact.import_fields( {'_backend_deleting':'yes'}, self.name )
+        pass
+
+    def sync(self):
         self.save_entries_to_file()
 
-    def upd_contact(self, old_contact_data, new_contact_data):
-        self.save_entries_to_file()
+    def upd_contact(self, contact_data, field_name, field_value):
+        pass
 
     def add_contact(self, contact_data):
         contact_id = self._domain_handlers['Contacts'].register_contact(self, contact_data)

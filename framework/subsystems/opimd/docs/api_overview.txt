@@ -52,7 +52,7 @@ PIM/
    + n					OK	.PIM.Contact
      - GetContent()			OK
      - GetMultipleFields()		OK
-     - Update()				--
+     - Update()				OK
      - Delete()				OK
 
  + Sources/				OK	.PIM.Sources
