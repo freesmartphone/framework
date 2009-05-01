@@ -85,8 +85,16 @@ class BackendManager(DBusFBObject):
         @tasklet.tasklet
         def init_all():
             for backend in self._backends:
-                logger.debug("loading entries for backend %s", backend)
-                yield backend.load_entries()
+                try:
+                    key = str(backend).lower() + "_disable"
+                    disabled = int(config.getValue('opimd', key, 0))
+                except KeyError:
+                    disabled = 0
+                if disabled:
+                    logger.debug("not loading entries for backend %s, cause it was disabled in config", backend)
+                else:
+                    logger.debug("loading entries for backend %s", backend)
+                    yield backend.load_entries()
         init_all().start()
 
 
@@ -141,8 +149,16 @@ class BackendManager(DBusFBObject):
         @tasklet.tasklet
         def init_all():
             for backend in self._backends:
-                logger.debug("loading entries for backend %s", backend)
-                yield backend.load_entries()
+                try:
+                    key = str(backend).lower() + "_disable"
+                    disabled = int(config.getValue('opimd', key, 0))
+                except KeyError:
+                    disabled = 0
+                if disabled:
+                    logger.debug("not loading entries for backend %s, cause it was disabled in config", backend)
+                else:
+                    logger.debug("loading entries for backend %s", backend)
+                    yield backend.load_entries()
         # start the tasklet connected to the dbus callbacks
         init_all().start_dbus(dbus_ok, dbus_error)
 
