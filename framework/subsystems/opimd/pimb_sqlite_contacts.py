@@ -47,7 +47,7 @@ _SQLITE_FILE_NAME = os.path.join(rootdir,'sqlite-contacts.db')
 class SQLiteContactBackend(Backend):
 #----------------------------------------------------------------------------#
     name = 'SQLite-Contacts'
-    properties = [PIMB_CAN_ADD_ENTRY, PIMB_CAN_DEL_ENTRY]
+    properties = [PIMB_CAN_ADD_ENTRY, PIMB_CAN_DEL_ENTRY, PIMB_CAN_UPD_ENTRY]
 
     _domain_handlers = None           # Map of the domain handler objects we support
     _entry_ids = None                 # List of all entry IDs that have data from us
@@ -172,6 +172,16 @@ class SQLiteContactBackend(Backend):
         self.con.commit()
         cur.close()
 
+    def upd_contact(self, contact_data, field, value):
+        reqfields = ['Name', 'Surname', 'Nickname', 'Birthdate', 'MarrDate', 'Partner', 'Spouse', 'MetAt', 'HomeLoc', 'Department']
+        cur = self.con.cursor()
+        contactId = int(contact_data['_backend_entry_id'])
+        if field in reqfields:
+            cur.execute('UPDATE contacts SET '+field+'=? WHERE id=?',(value,contactId,))
+        else:
+            cur.execute('UPDATE contact_values SET value=? WHERE field=? AND contactId=?',(value,field,contactId,)) # TODO: Implement adding new fields
+        self.con.commit()
+        cur.close()
 
     def add_contact(self, contact_data):
         contact_id = self.add_contact_to_db(contact_data)
