@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 #
 #   Openmoko PIM Daemon
 #   SIM-Contacts Backend Plugin for FSO
@@ -48,7 +49,7 @@ _OGSMD_POLL_INTERVAL = 7500
 class SIMContactBackendFSO(Backend):
 #----------------------------------------------------------------------------#
     name = 'SIM-Contacts-FSO'
-    properties = [PIMB_CAN_DEL_ENTRY]
+    properties = [PIMB_CAN_DEL_ENTRY, PIMB_CAN_UPD_ENTRY]
 
     # Dict containing the domain handler objects we support
     _domain_handlers = None
@@ -93,8 +94,18 @@ class SIMContactBackendFSO(Backend):
             self._entry_ids.append(entry_id)
 
 
+    def upd_contact(self, contact_data, field, value):
+        name=contact_data['Name']
+        phone=contact_data['Phone']
+        if field=='Name':
+            name=value
+        elif field=='Phone':
+            phone=value
+        self.gsm_sim_iface.StoreEntry('contacts', int(contact_data['_backend_entry_id']), name, phone)
+
+
     def del_contact(self, contact_data):
-        self.gsm_sim_iface.DeleteEntry('contacts',int(contact_data['_backend_entry_id']))
+        self.gsm_sim_iface.DeleteEntry('contacts', int(contact_data['_backend_entry_id']) )
 
 
     @tasklet.tasklet
