@@ -909,7 +909,6 @@ class ContactDomain(Domain):
                     try:
                         backend.sync() # If backend needs - sync entries
                     except:
-                        print "sync failed"
                         pass
 
 
