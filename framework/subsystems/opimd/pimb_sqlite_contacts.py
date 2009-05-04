@@ -177,9 +177,14 @@ class SQLiteContactBackend(Backend):
         cur = self.con.cursor()
         contactId = int(contact_data['_backend_entry_id'])
         if field in reqfields:
-            cur.execute('UPDATE contacts SET '+field+'=? WHERE id=?',(value,contactId,))
+            cur.execute('UPDATE contacts SET '+field+'=? WHERE id=?',(value,contactId))
         else:
-            cur.execute('UPDATE contact_values SET value=? WHERE field=? AND contactId=?',(value,field,contactId,)) # TODO: Implement adding new fields
+            cur.execute('SELECT id FROM contact_values WHERE contactId=? AND field=?',(contactId,field))
+            if cur.fetchone() == None:
+                cur.execute('INSERT INTO contact_values (field,value,contactId) VALUES (?,?,?)',(field,value,contactId))
+            else:
+                cur.execute('UPDATE contact_values SET value=? WHERE field=? AND contactId=?',(value,field,contactId))
+        cur.execute('UPDATE contacts SET updated=1 WHERE id=?',(contactId,))
         self.con.commit()
         cur.close()
 

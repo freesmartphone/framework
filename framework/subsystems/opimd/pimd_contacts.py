@@ -892,6 +892,8 @@ class ContactDomain(Domain):
 
         contact = self._contacts[num_id]
 
+        # TODO: handle adding new fields
+
         for field_name in data:
             if not field_name.startswith('_'):
                 for field_nr in contact._field_idx[field_name]:
