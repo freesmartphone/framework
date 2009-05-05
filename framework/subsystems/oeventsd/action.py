@@ -16,9 +16,8 @@ MODULE_NAME = "oeventsd.action"
 
 from parser import AutoFunction
 
-from framework.patterns import decorator
+from framework.patterns import decorator, dbuscache
 
-import dbus
 import Queue
 
 import logging
@@ -93,8 +92,6 @@ class DBusAction(Action):
     A special action that will call a DBus method.
     """
 
-    #FIXME: Add Cache for dbus objects
-
     def __init__(self, bus, service, obj, interface, method, *args):
         Action.__init__( self )
         self.bus = bus
@@ -111,15 +108,13 @@ class DBusAction(Action):
         self.args = args
 
     def trigger(self, **kargs):
-        # Get the Dbus object
-        object = self.bus.get_object(self.service, self.obj)
-        iface = dbus.Interface(object, dbus_interface=self.interface)
+        iface = dbuscache.dbusInterfaceForObjectWithInterface( self.service, self.obj, self.interface )
         logger.info("call dbus method %s %s(%s)", self.obj, self.method, self.args)
         # Get the method
         method = getattr(iface, self.method)
         # We make the call asynchronous, cause we don't want to block the main loop
-        kargs = {'reply_handler':self.on_reply, 'error_handler':self.on_error}
-        method(*self.args, **kargs)
+        method( *self.args, reply_handler=self.on_reply, error_handler=self.on_error )
+        logger.debug( "method called..." )
 
     def on_reply(self, *args):
         # We don't pass the reply to anything
@@ -164,15 +159,11 @@ class QueuedDBusAction( DBusAction ):
             method( *args, **kargs )
 
     def trigger( self, **kargs ):
-        # Get the Dbus object
-        object = self.bus.get_object(self.service, self.obj)
-        iface = dbus.Interface(object, dbus_interface=self.interface)
-        logger.info("call dbus signal %s %s(%s)", self.obj, self.method, self.args)
-        # Get the method
+        iface = dbuscache.dbusInterfaceForObjectWithInterface( self.service, self.obj, self.interface )
+        logger.info("queued call dbus method %s %s(%s)", self.obj, self.method, self.args)
         method = getattr(iface, self.method)
-        kargs = {'reply_handler':self.on_reply, 'error_handler':self.on_error}
-        # Enqueue / Launch
-        self.enqueue( method, self.args, kargs )
+        self.enqueue( method, self.args, reply_handler=self.on_reply, error_handler=self.on_error )
+        logger.debug( "method enqueued..." )
 
     def on_reply(self, *args):
         # We don't pass the reply to anything

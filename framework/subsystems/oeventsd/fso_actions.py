@@ -13,7 +13,7 @@ Module: fso_actions
 
 """
 
-__VERSION__ = "0.4.4.0"
+__VERSION__ = "0.5.0.0"
 MODULE_NAME = "oeventsd"
 
 import framework.patterns.tasklet as tasklet
@@ -22,6 +22,7 @@ from action import Action
 from action import QueuedDBusAction, DBusAction
 from framework.controller import Controller
 from framework.config import installprefix
+from framework.patterns import dbuscache
 
 import gobject
 import dbus
@@ -40,13 +41,12 @@ class SetProfile( Action ):
 
     @tasklet.tasklet
     def __trigger( self ):
-        # We store the current profile
+        prefs = dbuscache.dbusInterfaceForObjectWithInterface(
+            "org.freesmartphone.opreferencesd",
+            "/org/freesmartphone/Preferences",
+            "org.freesmartphone.Preferences" )
+        # First, store the current profile
         # FIXME: we should use profile push and pop instead
-        prefs = dbus.SystemBus().get_object(
-            'org.freesmartphone.opreferencesd',
-            '/org/freesmartphone/Preferences'
-        )
-        prefs = dbus.Interface(prefs, 'org.freesmartphone.Preferences')
         self.backup_profile = yield tasklet.WaitDBus( prefs.GetProfile )
         # Then we can set the profile
         yield tasklet.WaitDBus( prefs.SetProfile, self.profile )
@@ -282,14 +282,18 @@ class UserAlertAction(Action):
         # retreive the tone and volume config values
         # We are careful to use 'yield' cause the calls could be blocking.
         try:
-            prefs = dbus.SystemBus().get_object( "org.freesmartphone.opreferencesd", "/org/freesmartphone/Preferences" )
-            prefs = dbus.Interface( prefs, "org.freesmartphone.Preferences" )
+            prefs = dbuscache.dbusInterfaceForObjectWithInterface(
+                "org.freesmartphone.opreferencesd",
+                "/org/freesmartphone/Preferences",
+                "org.freesmartphone.Preferences" )
         except dbus.DBusException: # preferences daemon probably not present
             logger.warning( "org.freesmartphone.opreferencesd not present. Can't get alert tones." )
         else:
             phone_prefs = yield tasklet.WaitDBus( prefs.GetService, "phone" )
-            phone_prefs = dbus.SystemBus().get_object( "org.freesmartphone.opreferencesd", phone_prefs )
-            phone_prefs = dbus.Interface( phone_prefs, "org.freesmartphone.Preferences.Service" )
+            phone_prefs = dbuscache.dbusInterfaceForObjectWithInterface(
+                "org.freesmartphone.opreferencesd",
+                phone_prefs,
+                "org.freesmartphone.Preferences.Service" )
 
             # connect to signal for later notifications
             phone_prefs.connect_to_signal( "Notify", self.cbPreferencesServiceNotify )

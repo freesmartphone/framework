@@ -82,6 +82,7 @@ class EventsManager(dbus.service.Object):
             logger.warning( "Can't access /org/freesmartphone/Preferences. Rules will be limited." )
             # FIXME can we do something (limited) without preferences or not?
             return False
+
         rules_prefs = prefs.GetService( "rules" )
         enabled_rules = rules_prefs.GetValue( "enabled-rules" )
         enabled_rules = [str(x) for x in enabled_rules]
