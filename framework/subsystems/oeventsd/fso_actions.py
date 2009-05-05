@@ -365,9 +365,9 @@ class CommandAction(Action):
         env.update( self.env )
 
         # FIXME if we are interested in tracking the process, then we
-        # should use glib's spawn async and add a chile watch
+        # should use glib's spawn async and add a child watch
         try:
-            subprocess.Popen( shlex.split( self.cmd ), env = env )
+            subprocess.call( shlex.split( self.cmd ), env = env )
         except Exception, e:
             logger.error( "Error while executing external command '%s': %s", self.cmd, e )
 
