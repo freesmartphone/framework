@@ -86,7 +86,7 @@ class BackendManager(DBusFBObject):
         def init_all():
             for backend in self._backends:
                 try:
-                    key = str(backend).lower() + "_disable"
+                    key = backend.name.lower() + "_disable"
                     disabled = int(config.getValue('opimd', key, 0))
                 except KeyError:
                     disabled = 0
@@ -140,6 +140,10 @@ class BackendManager(DBusFBObject):
         """Return the number of backends we know of"""
         return len(self._backends)
 
+    @dbus_method(_DIN_SOURCES, "s", "s")
+    def GetDefaultBackend(self, domain):
+        return self.get_default_backend(domain).name
+
     @dbus_method(_DIN_SOURCES, "", "", async_callbacks=( "dbus_ok", "dbus_error" ))
     def InitAllEntries(self, dbus_ok, dbus_error):
         """Initialize all the entries"""
@@ -150,7 +154,7 @@ class BackendManager(DBusFBObject):
         def init_all():
             for backend in self._backends:
                 try:
-                    key = str(backend).lower() + "_disable"
+                    key = backend.name.lower() + "_disable"
                     disabled = int(config.getValue('opimd', key, 0))
                 except KeyError:
                     disabled = 0
@@ -204,6 +208,39 @@ class BackendManager(DBusFBObject):
             raise error.InvalidBackendID( "Maximum backend ID is %d" % len(self._backends)-1 )
 
         return backend.get_supported_domains()
+
+
+    @dbus_method(_DIN_SOURCE, "", "b", rel_path_keyword="rel_path")
+    def GetEnabled(self, rel_path):
+        num_id = int(rel_path[1:])
+        backend = None
+
+        if (num_id < len(self._backends)):
+            backend = self._backends[num_id]
+        else:
+            raise error.InvalidBackendID( "Maximum backend ID is %d" % len(self._backends)-1 )
+
+
+        try:
+            key = backend.name.lower() + "_disable"
+            disabled = int(config.getValue('opimd', key, 0))
+        except KeyError:
+            disabled = 0
+
+        return not(disabled)
+
+
+    @dbus_method(_DIN_SOURCE, "", "as", rel_path_keyword="rel_path")
+    def GetProperties(self, rel_path):
+        num_id = int(rel_path[1:])
+        backend = None
+
+        if (num_id < len(self._backends)):
+            backend = self._backends[num_id]
+        else:
+            raise error.InvalidBackendID( "Maximum backend ID is %d" % len(self._backends)-1 )
+
+        return backend.properties
 
 
     @dbus_method(_DIN_SOURCE, "", "s", rel_path_keyword="rel_path")
