@@ -230,6 +230,51 @@ class BackendManager(DBusFBObject):
         return not(disabled)
 
 
+    @dbus_method(_DIN_SOURCE, "", "", rel_path_keyword="rel_path")
+    def Enable(self, rel_path):
+        num_id = int(rel_path[1:])
+        backend = None
+
+        if (num_id < len(self._backends)):
+            backend = self._backends[num_id]
+        else:
+            raise error.InvalidBackendID( "Maximum backend ID is %d" % len(self._backends)-1 )
+
+        key = backend.name.lower() + "_disable"
+        config.setValue('opimd', key, 0)
+        config.sync()
+
+    @dbus_method(_DIN_SOURCE, "", "", rel_path_keyword="rel_path")
+    def Disable(self, rel_path):
+        num_id = int(rel_path[1:])
+        backend = None
+
+        if (num_id < len(self._backends)):
+            backend = self._backends[num_id]
+        else:
+            raise error.InvalidBackendID( "Maximum backend ID is %d" % len(self._backends)-1 )
+
+        key = backend.name.lower() + "_disable"
+        config.setValue('opimd', key, 1)
+        config.sync()
+
+    @dbus_method(_DIN_SOURCE, "s", "", rel_path_keyword="rel_path")
+    def SetAsDefault(self, domain, rel_path):
+        num_id = int(rel_path[1:])
+        backend = None
+
+        if (num_id < len(self._backends)):
+            backend = self._backends[num_id]
+        else:
+            raise error.InvalidBackendID( "Maximum backend ID is %d" % len(self._backends)-1 )
+
+        # TODO: check, if domain exists
+
+        key = domain.lower() + "_default_backend"
+        config.setValue('opimd', key, backend.name)
+        config.sync()
+
+
     @dbus_method(_DIN_SOURCE, "", "as", rel_path_keyword="rel_path")
     def GetProperties(self, rel_path):
         num_id = int(rel_path[1:])
