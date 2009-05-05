@@ -16,6 +16,9 @@ import thread
 import code
 import sys
 
+import gobject
+gobject.threads_init()
+
 if __debug__:
     class logger():
         @staticmethod
@@ -37,10 +40,10 @@ class Writer( object ):
 #============================================================================#
 class NetworkInterpreterConsole( code.InteractiveConsole ):
 #============================================================================#
-    def __init__( self, request, *args, **kwargs ):
+    def __init__( self, request, locals_, *args, **kwargs ):
         self.request = request
         self.exitflag = False
-        code.InteractiveConsole.__init__( self, *args, **kwargs )
+        code.InteractiveConsole.__init__( self, locals_, *args, **kwargs )
 
         self.oldstdout = sys.stdout
         sys.stdout = Writer( self.write )
@@ -77,12 +80,10 @@ class InterpreterRequestHandler( SocketServer.BaseRequestHandler ):
         try:
             self.myinterpreter = self.interpreters[self.client_address]
         except KeyError:
-            self.myinterpreter = self.interpreters[self.client_address] = NetworkInterpreterConsole( self.request )
+            self.myinterpreter = self.interpreters[self.client_address] = NetworkInterpreterConsole( self.request, self.locals_ )
 
     def handle( self ):
-        print "=>interact"
         self.myinterpreter.interact()
-        print "<=interact"
 
     def finish( self ):
         self.myinterpreter.close()
@@ -92,8 +93,9 @@ class InterpreterRequestHandler( SocketServer.BaseRequestHandler ):
 #============================================================================#
 class LoopHole( object ):
 #============================================================================#
-    def __init__( self ):
-        self.server = SocketServer.ThreadingTCPServer( ( "", 8822 ), InterpreterRequestHandler)
+    def __init__( self, locals_  = {} ):
+        InterpreterRequestHandler.locals_ = locals_
+        self.server = SocketServer.ThreadingTCPServer( ( "", 8822 ), InterpreterRequestHandler )
         thread.start_new_thread( self.run, () )
 
     def run( self, *args, **kwargs ):
