@@ -1422,6 +1422,10 @@ class NetworkGetCallingIdentification( NetworkMediator ): # s
         if response[-1] == "OK" and len( response ) > 1:
             status, adjustment = safesplit( self._rightHandSide( response[0] ), ',' )
             self._ok( const.CALL_IDENTIFICATION_RESTRICTION.revlookup( int(status) ) )
+        # We can't rely on NetworkMediator.responseFromChannel since dbus_ok
+        # needs to be called with arguments
+        elif response[-1] == "OK":
+                self._ok( "unknown" )
         else:
             NetworkMediator.responseFromChannel( self, request, response )
 
