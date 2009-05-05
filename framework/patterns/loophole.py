@@ -9,7 +9,7 @@ Package: framework.patterns
 Module: loophole
 """
 
-__version__ = "0.1.0"
+__version__ = "0.2.0"
 
 import SocketServer
 import thread
@@ -57,7 +57,15 @@ class NetworkInterpreterConsole( code.InteractiveConsole ):
         if data == "\x04":
             raise EOFError
 
-        return data[:-2] # omit trailing \r\n
+        # omit trailing line terminators
+        if data.endswith( "\r\n" ):
+            command = data[:-2]
+        elif data.endswith( "\n" ):
+            command = data[:-1]
+        else:
+            command = data
+
+        return command
 
     def close( self ):
         self.exitflag = True
