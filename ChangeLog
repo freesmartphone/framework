@@ -1,3 +1,7 @@
+2009-05-04	Michael Lauer	<mlauer@vanille-media.de>
+
+	* Add loophole.py to facilitate post-mortem/live debugging
+
 2009-04-29	Michael Lauer	<mlauer@vanille-media.de>
 
 	* [ogsmd] Implement org.freesmartphone.GSM.Device.GetRTC() -> (i)
