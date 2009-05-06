@@ -11,7 +11,7 @@ Package: oeventsd
 Module: action
 """
 
-__version__ = "0.2.0"
+__version__ = "0.2.1"
 MODULE_NAME = "oeventsd.action"
 
 from parser import AutoFunction
@@ -162,7 +162,7 @@ class QueuedDBusAction( DBusAction ):
         iface = dbuscache.dbusInterfaceForObjectWithInterface( self.service, self.obj, self.interface )
         logger.info("queued call dbus method %s %s(%s)", self.obj, self.method, self.args)
         method = getattr(iface, self.method)
-        self.enqueue( method, self.args, reply_handler=self.on_reply, error_handler=self.on_error )
+        self.enqueue( method, self.args, dict( reply_handler=self.on_reply, error_handler=self.on_error ) )
         logger.debug( "method enqueued..." )
 
     def on_reply(self, *args):
