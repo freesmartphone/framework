@@ -144,13 +144,19 @@ class BackendManager(DBusFBObject):
     def GetDefaultBackend(self, domain):
         return self.get_default_backend(domain).name
 
-    @dbus_method(_DIN_SOURCES, "", "as", rel_path_keyword="rel_path")
-    def GetBackends(self, rel_path):
+    @dbus_method(_DIN_SOURCES, "", "as")
+    def GetBackends(self):
         backends = []
         for backend in self._backends:
             backends.append(backend.name)
         return backends
 
+    @dbus_method(_DIN_SOURCES, "", "as")
+    def GetDomains(self):
+        domains = []
+        for domain in DomainManager._domains:
+            domains.append(domain)
+        return domains
 
     @dbus_method(_DIN_SOURCES, "", "", async_callbacks=( "dbus_ok", "dbus_error" ))
     def InitAllEntries(self, dbus_ok, dbus_error):
