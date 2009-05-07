@@ -43,6 +43,12 @@ class InvalidBackend( DBusException ):
     _dbus_error_name = "org.freesmartphone.PIM.InvalidBackend"
 
 #----------------------------------------------------------------------------#
+class InvalidDomain( DBusException ):
+#----------------------------------------------------------------------------#
+    """Raised when a domain is invalid"""
+    _dbus_error_name = "org.freesmartphone.PIM.InvalidDomain"
+
+#----------------------------------------------------------------------------#
 class InvalidBackendID( DBusException ):
 #----------------------------------------------------------------------------#
     """Raised when a submitted backend ID is invalid / out of range"""
