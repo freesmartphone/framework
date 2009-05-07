@@ -113,7 +113,7 @@ class DBusAction(Action):
         # Get the method
         method = getattr(iface, self.method)
         # We make the call asynchronous, cause we don't want to block the main loop
-        method( *self.args, reply_handler=self.on_reply, error_handler=self.on_error )
+        method( *self.args, **dict( reply_handler=self.on_reply, error_handler=self.on_error ) )
         logger.debug( "method called..." )
 
     def on_reply(self, *args):
