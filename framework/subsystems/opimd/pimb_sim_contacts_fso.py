@@ -94,18 +94,24 @@ class SIMContactBackendFSO(Backend):
             self._entry_ids.append(entry_id)
 
 
-    def upd_contact(self, contact_data, field, value):
-        name=contact_data['Name']
-        phone=contact_data['Phone']
-        if field=='Name':
-            name=value
-        elif field=='Phone':
-            phone=value
-        self.gsm_sim_iface.StoreEntry('contacts', int(contact_data['_backend_entry_id']), name, phone)
+    def upd_contact(self, contact_data):
+        name=''
+        value=''
+        for (field,value) in contact_data:
+            if field=='Name':
+                name=value
+            elif field=='Phone':
+                phone=value
+            elif field=='_backend_entry_id':
+                entry_id=int(value)
+        self.gsm_sim_iface.StoreEntry('contacts', entry_id, name, phone)
 
 
     def del_contact(self, contact_data):
-        self.gsm_sim_iface.DeleteEntry('contacts', int(contact_data['_backend_entry_id']) )
+        for (field,value) in contact_data:
+            if field=='_backend_entry_id':
+                entry_id=int(value)
+        self.gsm_sim_iface.DeleteEntry('contacts', entry_id )
 
 
     @tasklet.tasklet

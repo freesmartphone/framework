@@ -107,7 +107,7 @@ class CSVContactBackend(Backend):
         path = os.path.join(rootdir, _CSV_FILE_NAME)
         file = open(path, 'w')
         
-        for entry in self._domain_handlers['Contacts'].enumerate_contacts(self):
+        for entry in self._domain_handlers['Contacts'].enumerate_items(self):
             line = ""
             for field in entry:
                 (field_name, field_data) = field
@@ -123,7 +123,7 @@ class CSVContactBackend(Backend):
     def sync(self):
         self.save_entries_to_file()
 
-    def upd_contact(self, contact_data, field_name, field_value):
+    def upd_contact(self, contact_data):
         pass
 
     def add_contact(self, contact_data):

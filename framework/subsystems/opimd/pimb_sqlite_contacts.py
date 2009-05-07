@@ -165,25 +165,30 @@ class SQLiteContactBackend(Backend):
 
     def del_contact(self, contact_data):
         cur = self.con.cursor()
-        contactId = int(contact_data['_backend_entry_id'])
+        for (field_name, field_value) in contact_data:
+            if field_name=='_backend_entry_id':
+                contactId=int(field_value)
         cur.execute('UPDATE contacts SET deleted=1 WHERE id=?',(contactId,))
     #    cur.execute('DELETE FROM contacts WHERE id=?',(contactId,))
     #    cur.execute('DELETE FROM contact_values WHERE contactId=?',(contactId,))
         self.con.commit()
         cur.close()
 
-    def upd_contact(self, contact_data, field, value):
+    def upd_contact(self, contact_data):
         reqfields = ['Name', 'Surname', 'Nickname', 'Birthdate', 'MarrDate', 'Partner', 'Spouse', 'MetAt', 'HomeLoc', 'Department']
         cur = self.con.cursor()
-        contactId = int(contact_data['_backend_entry_id'])
-        if field in reqfields:
-            cur.execute('UPDATE contacts SET '+field+'=? WHERE id=?',(value,contactId))
-        else:
-            cur.execute('SELECT id FROM contact_values WHERE contactId=? AND field=?',(contactId,field))
-            if cur.fetchone() == None:
-                cur.execute('INSERT INTO contact_values (field,value,contactId) VALUES (?,?,?)',(field,value,contactId))
+        for (field, value) in contact_data:
+            if field=='_backend_entry_id':
+                contactId=int(value)
+        for (field, value) in contact_data:
+            if field in reqfields:
+                cur.execute('UPDATE contacts SET '+field+'=? WHERE id=?',(value,contactId))
             else:
-                cur.execute('UPDATE contact_values SET value=? WHERE field=? AND contactId=?',(value,field,contactId))
+                cur.execute('SELECT id FROM contact_values WHERE contactId=? AND field=?',(contactId,field))
+                if cur.fetchone() == None:
+                    cur.execute('INSERT INTO contact_values (field,value,contactId) VALUES (?,?,?)',(field,value,contactId))
+                else:
+                    cur.execute('UPDATE contact_values SET value=? WHERE field=? AND contactId=?',(value,field,contactId))
         cur.execute('UPDATE contacts SET updated=1 WHERE id=?',(contactId,))
         self.con.commit()
         cur.close()

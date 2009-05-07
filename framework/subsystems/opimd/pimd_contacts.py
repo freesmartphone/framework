@@ -149,7 +149,16 @@ class Contact():
                 field = self._fields[n]
                 result.append(field[1])
 
-            return result
+            thesame = 1
+            prev = self._fields[field_ids[0]]
+            for n in field_ids:
+                if prev!=self._fields[n]:
+                    thesame = 0
+
+            if thesame:
+                return result[0]
+            else:
+                return result
 
 
     def __repr__(self):
@@ -176,15 +185,20 @@ class Contact():
         @param contact_data Contact data; format: ((Key,Value), (Key,Value), ...)
         @param backend_name Name of the backend to which those fields belong"""
 
-        # We add all fields as they come, not checking for duplicate data
-
         if backend_name!='':
             if not backend_name in self._used_backends:
                 self._used_backends.append(backend_name)
 
         for field_name in contact_data:
             try:
-                self._fields[self._field_idx[field_name]]=contact_data[field_name]
+                if field_name.startswith('_'):
+                    raise KeyError
+                for field in self._field_idx[field_name]:
+                    if self._fields[field][3]==backend_name:
+                        self._fields[field][1]=contact_data[field_name]
+                    else:
+                        self._fields.append([field_name, contact_data[field_name], '', backend_name])
+                        self._field_idx[field_name].append(len(self._fields)-1)
             except KeyError:
                 field_value = contact_data[field_name]
 
@@ -248,7 +262,17 @@ class Contact():
                     field_values.append(field_value)
 
                 value = ','.join(field_values)
-                result[field_name] = field_values
+
+                thesame = 1
+                prev = field_values[0]
+                for n in field_ids:
+                    if prev!=self._fields[n][1]:
+                        thesame = 0
+
+                if thesame:
+                    result[field_name] = field_values[0]
+                else:
+                    result[field_name] = field_values
 
             else:
                 field_value = (self._fields[field_ids[0]])[1]
@@ -292,8 +316,28 @@ class Contact():
         if backend_name in self._used_backends:
             return False
 
-        # TODO Implement this method
-        return False
+        merge = [1, 0]
+        for field_name in contact_fields:
+            if not field_name.startswith('_'):
+                if field_name!='Path':
+                    field_value=contact_fields[field_name]
+                    try:
+                        if self.get_content()[field_name]!=field_value:
+                            merge[0] = 0
+                            break
+                        else:
+                            merge[1] = 1
+                    except KeyError:
+                        pass
+
+        if merge[0]:
+            if merge[1]:
+                self.import_fields(contact_fields, backend_name)
+                return True
+            else:
+                return False
+        else:
+            return False
 
 
     def incorporates_data_from(self, backend_name):
@@ -736,7 +780,7 @@ class ContactDomain(Domain):
         return contact_id
 
 
-    def enumerate_contacts(self, backend):
+    def enumerate_items(self, backend):
         """Enumerates all contact data belonging to a specific backend
 
         @param backend Backend object whose contacts should be enumerated
@@ -860,7 +904,7 @@ class ContactDomain(Domain):
                 raise InvalidBackend( "Backend properties not including PIMB_CAN_DEL_ENTRY" )
 
             try:
-                backend.del_contact(self._contacts[num_id])
+                backend.del_contact(self._contacts[num_id].export_fields(backend_name))
             except AttributeError:
                 raise InvalidBackend( "Backend does not feature del_contact" )
 
@@ -900,13 +944,13 @@ class ContactDomain(Domain):
                     backend_name=contact._fields[field_nr][3]
                     backend = self._backends[backend_name]
                     if contact[field_name]!=data[field_name]:
+                        contact._fields[field_nr][1]=data[field_name]
                         if not PIMB_CAN_UPD_ENTRY in backend.properties:
                             raise InvalidBackend( "Backend properties not including PIMB_CAN_UPD_ENTRY" )
                         try:
-                            backend.upd_contact(contact,field_name,data[field_name])
+                            backend.upd_contact(contact.export_fields(backend_name))
                         except AttributeError:
                             raise InvalidBackend( "Backend does not feature upd_contact" )
-                    contact._fields[field_nr][1]=data[field_name]
                     try:
                         backend.sync() # If backend needs - sync entries
                     except:

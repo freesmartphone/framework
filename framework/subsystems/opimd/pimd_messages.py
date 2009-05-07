@@ -810,7 +810,7 @@ class MessageDomain(Domain):
         return message_id
 
 
-    def enumerate_messages(self, backend):
+    def enumerate_items(self, backend):
         """Enumerates all message data belonging to a specific backend
 
         @param backend Backend object whose messages should be enumerated
