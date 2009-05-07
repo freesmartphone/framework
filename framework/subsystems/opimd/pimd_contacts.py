@@ -867,6 +867,16 @@ class ContactDomain(Domain):
 
         return self._contacts[num_id].get_content()
 
+    @dbus_method(_DIN_ENTRY, "", "as", rel_path_keyword="rel_path")
+    def GetUsedBackends(self, rel_path):
+        num_id = int(rel_path[1:])
+                
+        # Make sure the requested contact exists
+        if num_id >= len(self._contacts):
+            raise InvalidContactID()
+        
+        return self._contacts[num_id]._used_backends
+
 
     @dbus_method(_DIN_ENTRY, "s", "a{sv}", rel_path_keyword="rel_path")
     def GetMultipleFields(self, field_list, rel_path):
