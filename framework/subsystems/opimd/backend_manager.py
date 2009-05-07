@@ -142,6 +142,9 @@ class BackendManager(DBusFBObject):
 
     @dbus_method(_DIN_SOURCES, "s", "s")
     def GetDefaultBackend(self, domain):
+        if not domain in DomainManager._domains:
+            raise InvalidDomain( "Invalid domain: %s" % domain )
+
         return self.get_default_backend(domain).name
 
     @dbus_method(_DIN_SOURCES, "", "as")
@@ -189,7 +192,7 @@ class BackendManager(DBusFBObject):
         if (num_id < len(self._backends)):
             backend = self._backends[num_id]
         else:
-            raise error.InvalidBackendID( "Maximum backend ID is %d" % len(self._backends)-1 )
+            raise InvalidBackendID( "Maximum backend ID is %d" % len(self._backends)-1 )
 
         @tasklet.tasklet
         def init():
@@ -207,7 +210,7 @@ class BackendManager(DBusFBObject):
         if (num_id < len(self._backends)):
             backend = self._backends[num_id]
         else:
-            raise error.InvalidBackendID( "Maximum backend ID is %d" % len(self._backends)-1 )
+            raise InvalidBackendID( "Maximum backend ID is %d" % len(self._backends)-1 )
 
         return backend.name
 
@@ -220,7 +223,7 @@ class BackendManager(DBusFBObject):
         if (num_id < len(self._backends)):
             backend = self._backends[num_id]
         else:
-            raise error.InvalidBackendID( "Maximum backend ID is %d" % len(self._backends)-1 )
+            raise InvalidBackendID( "Maximum backend ID is %d" % len(self._backends)-1 )
 
         return backend.get_supported_domains()
 
@@ -233,7 +236,7 @@ class BackendManager(DBusFBObject):
         if (num_id < len(self._backends)):
             backend = self._backends[num_id]
         else:
-            raise error.InvalidBackendID( "Maximum backend ID is %d" % len(self._backends)-1 )
+            raise InvalidBackendID( "Maximum backend ID is %d" % len(self._backends)-1 )
 
 
         try:
@@ -245,19 +248,21 @@ class BackendManager(DBusFBObject):
         return not(disabled)
 
 
-    @dbus_method(_DIN_SOURCE, "", "", rel_path_keyword="rel_path")
-    def Enable(self, rel_path):
+    @dbus_method(_DIN_SOURCE, "", "", rel_path_keyword="rel_path", async_callbacks=( "dbus_ok", "dbus_error" ) )
+    def Enable(self, rel_path, dbus_ok, dbus_error):
         num_id = int(rel_path[1:])
         backend = None
 
         if (num_id < len(self._backends)):
             backend = self._backends[num_id]
         else:
-            raise error.InvalidBackendID( "Maximum backend ID is %d" % len(self._backends)-1 )
+            raise InvalidBackendID( "Maximum backend ID is %d" % len(self._backends)-1 )
 
         key = backend.name.lower() + "_disable"
         config.setValue('opimd', key, 0)
         config.sync()
+
+        self.Init(rel_path, dbus_ok, dbus_error)
 
     @dbus_method(_DIN_SOURCE, "", "", rel_path_keyword="rel_path")
     def Disable(self, rel_path):
@@ -267,11 +272,17 @@ class BackendManager(DBusFBObject):
         if (num_id < len(self._backends)):
             backend = self._backends[num_id]
         else:
-            raise error.InvalidBackendID( "Maximum backend ID is %d" % len(self._backends)-1 )
+            raise InvalidBackendID( "Maximum backend ID is %d" % len(self._backends)-1 )
 
         key = backend.name.lower() + "_disable"
         config.setValue('opimd', key, 1)
         config.sync()
+
+        #for domain_name in backend.get_supported_domains():
+        #    domain = DomainManager._domains[domain_name]
+        #    for item in domain.enumerate_items(backend): #add generic enumerate items
+        #        del item
+        # wrong and bad by design... ;x
 
     @dbus_method(_DIN_SOURCE, "s", "", rel_path_keyword="rel_path")
     def SetAsDefault(self, domain, rel_path):
@@ -281,9 +292,10 @@ class BackendManager(DBusFBObject):
         if (num_id < len(self._backends)):
             backend = self._backends[num_id]
         else:
-            raise error.InvalidBackendID( "Maximum backend ID is %d" % len(self._backends)-1 )
+            raise InvalidBackendID( "Maximum backend ID is %d" % len(self._backends)-1 )
 
-        # TODO: check, if domain exists
+        if not domain in DomainManager._domains:
+            raise InvalidDomain( "Invalid domain: %s" % domain )
 
         key = domain.lower() + "_default_backend"
         config.setValue('opimd', key, backend.name)
@@ -298,7 +310,7 @@ class BackendManager(DBusFBObject):
         if (num_id < len(self._backends)):
             backend = self._backends[num_id]
         else:
-            raise error.InvalidBackendID( "Maximum backend ID is %d" % len(self._backends)-1 )
+            raise InvalidBackendID( "Maximum backend ID is %d" % len(self._backends)-1 )
 
         return backend.properties
 
@@ -311,6 +323,6 @@ class BackendManager(DBusFBObject):
         if (num_id < len(self._backends)):
             backend = self._backends[num_id]
         else:
-            raise error.InvalidBackendID( "Maximum backend ID is %d" % len(self._backends)-1 )
+            raise InvalidBackendID( "Maximum backend ID is %d" % len(self._backends)-1 )
 
         return backend.status
