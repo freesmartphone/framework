@@ -93,6 +93,10 @@ class IdleNotifier( dbus.service.Object ):
             self.timeouts[key] = config.getInt( MODULE_NAME, key, self.defaultTimeouts[key] )
             logger.debug( "(re)setting %s timeout to %d" % ( key, self.timeouts[key] ) )
 
+    def restoreTimeoutFromConfig( self, key ):
+        self.timeouts[key] = config.getInt( MODULE_NAME, key, self.defaultTimeouts[key] )
+        logger.debug( "(re)setting %s timeout to %d" % ( key, self.timeouts[key] ) )
+
     def prohibitStateTransitionTo( self, state ):
         # stop falling into in the future
         self.timeouts[state] = 0
@@ -110,7 +114,7 @@ class IdleNotifier( dbus.service.Object ):
             self.onState( self.previousState( self.state ) )
 
     def allowStateTransitionTo( self, state ):
-        self.readTimeoutsFromConfig()
+        self.restoreTimeoutFromConfig( state )
         # stop timer
         if self.timeout is not None:
             gobject.source_remove( self.timeout )
