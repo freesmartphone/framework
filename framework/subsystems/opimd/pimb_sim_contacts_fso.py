@@ -106,7 +106,7 @@ class SIMContactBackendFSO(Backend):
                 entry_id=int(value)
         @tasklet.tasklet
         def edit():
-            yield self.gsm_sim_iface.StoreEntry('contacts', entry_id, name, phone)
+            self.gsm_sim_iface.StoreEntry('contacts', entry_id, name, phone)
         edit().start()
 
 
@@ -116,7 +116,7 @@ class SIMContactBackendFSO(Backend):
                 entry_id=int(value)
         @tasklet.tasklet
         def delete():
-            yield self.gsm_sim_iface.DeleteEntry('contacts', entry_id )
+            self.gsm_sim_iface.DeleteEntry('contacts', entry_id )
         delete().start()
 
 
