@@ -951,19 +951,20 @@ class ContactDomain(Domain):
         for field_name in data:
             if not field_name.startswith('_'):
                 for field_nr in contact._field_idx[field_name]:
-                    backend_name=contact._fields[field_nr][3]
-                    backend = self._backends[backend_name]
                     if contact[field_name]!=data[field_name]:
                         contact._fields[field_nr][1]=data[field_name]
-                        if not PIMB_CAN_UPD_ENTRY in backend.properties:
-                            raise InvalidBackend( "Backend properties not including PIMB_CAN_UPD_ENTRY" )
-                        try:
-                            backend.upd_contact(contact.export_fields(backend_name))
-                        except AttributeError:
-                            raise InvalidBackend( "Backend does not feature upd_contact" )
-                    try:
-                        backend.sync() # If backend needs - sync entries
-                    except:
-                        pass
+
+        for backend_name in contact._used_backends:
+            backend = self._backends[backend_name]
+            if not PIMB_CAN_UPD_ENTRY in backend.properties:
+                raise InvalidBackend( "Backend properties not including PIMB_CAN_UPD_ENTRY" )
+            try:
+                backend.upd_contact(contact.export_fields(backend_name))
+            except AttributeError:
+                raise InvalidBackend( "Backend does not feature upd_contact" )
+            try:
+                backend.sync() # If backend needs - sync entries
+            except:
+                pass
 
 
