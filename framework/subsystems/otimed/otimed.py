@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: UTF-8 -*-
 """
-The Time Deamon - Python Implementation
+The Time Daemon - Python Implementation
 
 (C) 2008 Guillaume 'Charlie' Chereau
 (C) 2008 Jan 'Shoragan' Lübbe <jluebbe@lasnet.de>
@@ -82,9 +82,9 @@ class GPSTimeSource( TimeSource ):
             logger.debug( "GPS: time invalid" )
         if not self.invalidTimeout is None:
             gobject.source_remove( self.invalidTimeout )
-            self.invalidTimeout = gobject.timeout_add_seconds( 300, self._handleInvaildTimeout )
+            self.invalidTimeout = gobject.timeout_add_seconds( 300, self._handleInvalidTimeout )
 
-    def _handleInvaildTimeout( self ):
+    def _handleInvalidTimeout( self ):
         self.offset = None
         self.invalidTimeout = None
         logger.debug( "GPS: timeout" )
