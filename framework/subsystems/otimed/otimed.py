@@ -241,7 +241,10 @@ class GSMZoneSource( object ):
                     zone = "Etc/GMT%+i" % round(self.offset*-1)
                 zones = [ zone ]
         if not zones:
-            logger.debug( "GSM: no zone found" )
+            logger.info( "GSM: no zone found" )
+            return
+        if len(zones) > 1:
+            logger.info( "GSM: multiple zones found" )
             return
         if self.zone == zones[0]:
             return
