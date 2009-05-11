@@ -93,6 +93,12 @@ class SIMContactBackendFSO(Backend):
             entry_id = self._domain_handlers['Contacts'].register_contact(self, entry)
             self._entry_ids.append(entry_id)
 
+    def dbus_ok(self, *args, **kargs):
+        pass
+
+    def dbus_err(self, *args, **kargs):
+        pass
+
 
     def upd_contact(self, contact_data):
         name=''
@@ -101,23 +107,17 @@ class SIMContactBackendFSO(Backend):
             if field=='Name':
                 name=value
             elif field=='Phone':
-                phone=value
+                phone=value.replace('tel:','')
             elif field=='_backend_entry_id':
                 entry_id=int(value)
-        @tasklet.tasklet
-        def edit():
-            self.gsm_sim_iface.StoreEntry('contacts', entry_id, name, phone)
-        edit().start()
+        self.gsm_sim_iface.StoreEntry('contacts', entry_id, name, phone, reply_handler=self.dbus_ok, error_handler=self.dbus_err)
 
 
     def del_contact(self, contact_data):
         for (field,value) in contact_data:
             if field=='_backend_entry_id':
                 entry_id=int(value)
-        @tasklet.tasklet
-        def delete():
-            self.gsm_sim_iface.DeleteEntry('contacts', entry_id )
-        delete().start()
+        self.gsm_sim_iface.DeleteEntry('contacts', entry_id, reply_handler=self.dbus_ok, error_handler=self.dbus_err )
 
 
     @tasklet.tasklet
