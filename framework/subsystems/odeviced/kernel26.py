@@ -243,12 +243,9 @@ class PowerSupply( dbus.service.Object ):
             gobject.idle_add( self.onColdstart )
 
     def isPresent( self ):
-        present = readFromFile( "%s/present" % self.node )
-        online = readFromFile( "%s/online" % self.node )
-        return ( present == "1" or online == "1" )
-
-    def isOnline( self ):
-        return not ( readFromFile( "%s/online" % self.node ) != '1' )
+        toRead = "%s/present" if self.isBattery else "%s/online"
+        present = readFromFile( toRead % self.node )
+        return ( present == "1" )
 
     def theType( self ):
         return readFromFile( "%s/type" % self.node )
@@ -280,10 +277,12 @@ class PowerSupply( dbus.service.Object ):
 
     def onCapacityCheck( self ):
         if not self.isPresent():
+            logger.warning( "Power supply %s has been removed. On AC.", self )
+            self.sendPowerStatusIfChanged( "ac" )
             return True # call me again
         capacity = self.readCapacity()
         self.sendCapacityIfChanged( capacity )
-        if self.online:
+        if self.isPresent():
             if capacity > 98: # older batteries will never reach 100
                 self.sendPowerStatusIfChanged( "full" )
         else: # offline
