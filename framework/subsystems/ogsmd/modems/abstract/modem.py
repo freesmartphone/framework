@@ -13,8 +13,10 @@ Module: modem
 
 # FIXME: The modem should really be a sigleton
 
-__version__ = "0.9.9.4"
+__version__ = "0.9.9.5"
 MODULE_NAME = "ogsmd.modem.abstract"
+
+from framework.config import config
 
 import gobject
 import sys, types
@@ -87,6 +89,8 @@ class AbstractModem( object ):
             }
 
         self._data["cancel-outgoing-call"] = "H" # default will kill all connections
+
+        self._data["data-call-handler"] = config.getValue( "ogsmd", "data_call_handler", None )
 
     def open( self, on_ok, on_error ):
         """

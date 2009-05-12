@@ -197,6 +197,12 @@ class VirtualChannel( object ):
         self.connected = self.serial.isOpen()
         return not self.connected
 
+    def port( self ):
+        """
+        Return name of transport.
+        """
+        return self.serial.port
+
     #
     # hooks
     #
