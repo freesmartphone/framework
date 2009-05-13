@@ -18,7 +18,7 @@ _bus = dbus.SystemBus()
 _objects = {}
 _ifaces = {}
 
-def dbusInterfaceForObjectWithInterface( service, object, interface ):
+def dbusInterfaceForObjectWithInterface( service, object, interface, follow_name_owner_changes=False ):
     """
     Gather dbus.Interface proxy for given triple of service, object, interface
     Try to cache as much as possible.
@@ -30,7 +30,7 @@ def dbusInterfaceForObjectWithInterface( service, object, interface ):
         try:
             obj = _objects[ ( service, object ) ]
         except KeyError:
-            obj = _objects[ ( service, object ) ] = _bus.get_object( service, object, introspect=False, follow_name_owner_changes=False )
+            obj = _objects[ ( service, object ) ] = _bus.get_object( service, object, introspect=False, follow_name_owner_changes=follow_name_owner_changes )
         iface = _ifaces[ ( service, object, interface ) ] = dbus.Interface( obj, interface )
 
     return iface
