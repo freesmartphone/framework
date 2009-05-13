@@ -47,11 +47,10 @@
     actions:
              - RingTone()
              - SetDisplayBrightness("0", 90)
-             - OccupyResource(CPU)
 
 -
     while: CallStatus()
-    filters: Or(HasAttr(status, "outgoing"), HasAttr(status, "active"))
+    filters: Not(HasAttr(status, "release"))
     actions:
             - OccupyResource(CPU)
 -
