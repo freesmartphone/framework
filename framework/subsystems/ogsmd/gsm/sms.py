@@ -52,7 +52,7 @@ class PDUAddress:
         num_type = ( bs[0] & 0x70)  >> 4
         num_plan = ( bs[0] & 0x0F )
         number = bs[1:]
-        if number == []:
+        if len(number) == 0:
             number = ""
         elif num_type == 5:
             # Alphanumeric Address
