@@ -112,6 +112,22 @@ class SIMContactBackendFSO(Backend):
                 entry_id=int(value)
         self.gsm_sim_iface.StoreEntry('contacts', entry_id, name, phone, reply_handler=self.dbus_ok, error_handler=self.dbus_err)
 
+    def add_contact(self, contact_data):
+        name=''
+        value=''
+        for (field,value) in contact_data:
+            if field=='Name':
+                name=value
+            elif field=='Phone':
+                phone=value.replace('tel:','')
+        ret = 1
+        while True:
+            if not ret in self._entry_ids and ret <= contact_book_info['max_index']+1:
+                break
+            ret += 1
+        entry_id=int(ret)
+        self.gsm_sim_iface.StoreEntry('contacts', entry_id, name, phone, reply_handler=self.dbus_ok, error_handler=self.dbus_err)
+
 
     def del_contact(self, contact_data):
         for (field,value) in contact_data:
@@ -130,6 +146,7 @@ class SIMContactBackendFSO(Backend):
             self.gsm_sim_iface = Interface(self.gsm, 'org.freesmartphone.GSM.SIM')
             
             contacts = yield tasklet.WaitDBus(self.gsm_sim_iface.RetrievePhonebook,'contacts')
+            contact_book_info = yield tasklet.WaitDBus(self.gsm_sim_iface.GetPhonebookInfo,'contacts')
             logger.debug("process SIM contacts entries")
             self.process_entries(contacts)
                 
