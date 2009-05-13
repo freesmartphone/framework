@@ -127,7 +127,7 @@ class SIMContactBackendFSO(Backend):
             for (field, value) in con:
                 if field=='_backend_entry_id':
                     sim_ids.append(int(value))
-        while True:            
+        while True:
             if not ret in sim_ids and ret <= self.contact_book_info['max_index']+1:
                 break
             ret += 1
