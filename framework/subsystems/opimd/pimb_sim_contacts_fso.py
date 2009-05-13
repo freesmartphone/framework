@@ -49,7 +49,7 @@ _OGSMD_POLL_INTERVAL = 7500
 class SIMContactBackendFSO(Backend):
 #----------------------------------------------------------------------------#
     name = 'SIM-Contacts-FSO'
-    properties = [PIMB_CAN_DEL_ENTRY, PIMB_CAN_UPD_ENTRY]
+    properties = [PIMB_CAN_ADD_ENTRY, PIMB_CAN_DEL_ENTRY, PIMB_CAN_UPD_ENTRY]
 
     # Dict containing the domain handler objects we support
     _domain_handlers = None
@@ -112,6 +112,33 @@ class SIMContactBackendFSO(Backend):
                 entry_id=int(value)
         self.gsm_sim_iface.StoreEntry('contacts', entry_id, name, phone, reply_handler=self.dbus_ok, error_handler=self.dbus_err)
 
+    def add_contact(self, contact_data):
+        name=''
+        value=''
+        for field in contact_data:
+            value = contact_data[field]
+            if field=='Name':
+                name=value
+            elif field=='Phone':
+                phone=value.replace('tel:','')
+        ret = 1
+        sim_ids = []
+        for con in self._domain_handlers['Contacts'].enumerate_items(self):
+            for (field, value) in con:
+                if field=='_backend_entry_id':
+                    sim_ids.append(int(value))
+        while True:
+            if not ret in sim_ids and ret <= self.contact_book_info['max_index']+1:
+                break
+            ret += 1
+        entry_id=int(ret)
+        self.gsm_sim_iface.StoreEntry('contacts', entry_id, name, phone, reply_handler=self.dbus_ok, error_handler=self.dbus_err)
+
+        contact_data['_backend_entry_id'] = entry_id
+
+        contact_id = self._domain_handlers['Contacts'].register_contact(self, contact_data)
+
+        return contact_id
 
     def del_contact(self, contact_data):
         for (field,value) in contact_data:
@@ -130,6 +157,7 @@ class SIMContactBackendFSO(Backend):
             self.gsm_sim_iface = Interface(self.gsm, 'org.freesmartphone.GSM.SIM')
             
             contacts = yield tasklet.WaitDBus(self.gsm_sim_iface.RetrievePhonebook,'contacts')
+            self.contact_book_info = yield tasklet.WaitDBus(self.gsm_sim_iface.GetPhonebookInfo,'contacts')
             logger.debug("process SIM contacts entries")
             self.process_entries(contacts)
                 
