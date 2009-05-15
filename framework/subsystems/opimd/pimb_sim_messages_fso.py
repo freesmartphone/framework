@@ -79,7 +79,8 @@ class SIMMessageBackendFSO(Backend):
         return _DOMAINS
 
 
-    def process_single_entry(self, status, number, text, props):
+    def process_single_entry(self, data):
+        (sim_entry_id, status, number, text, props) = data
         entry = {}
         
         entry['Direction'] = 'in' if status in ('read', 'unread') else 'out'
@@ -97,38 +98,34 @@ class SIMMessageBackendFSO(Backend):
         
         entry['Folder'] = config.getValue('opimd', 'sim_messages_default_folder', default='SMS')
         
+        for field in props:
+            entry['_backend_'+field] = props[field]
+
+        entry['_backend_entry_id'] = sim_entry_id
+
         entry_id = self._domain_handlers['Messages'].register_message(self, entry)
         self._entry_ids.append(entry_id)
 
 
     def process_all_entries(self, entries):
-        for (sim_entry_id, status, number, text, props) in entries:
-            if len(text) == 0: continue
-            self.process_single_entry(status, number, text, props)
+        for entry in entries:
+            if len(entry[3]) == 0: continue
+            self.process_single_entry(entry)
 
 
     def process_incoming_entry(self, entry):
-        (number, text) = entry
-        self.process_single_entry('unread', number, text)
+        self.process_single_entry(entry)
 
     @tasklet.tasklet
     def load_entries(self):
         bus = SystemBus()
         
         try:
-            # We have to request the GSM resource first
-            usage = bus.get_object('org.freesmartphone.ousaged', '/org/freesmartphone/Usage')
-            usage_iface = Interface(usage, 'org.freesmartphone.Usage')
-            yield tasklet.WaitDBus(usage.RequestResource, 'GSM')
-            
             gsm = bus.get_object('org.freesmartphone.ogsmd', '/org/freesmartphone/GSM/Device')
             self.gsm_sim_iface = Interface(gsm, 'org.freesmartphone.GSM.SIM')
             
             entries = yield tasklet.WaitDBus(self.gsm_sim_iface.RetrieveMessagebook, 'all')
             self.process_all_entries(entries)
-                
-            # Don't forget to release the GSM resource 
-            yield tasklet.WaitDBus(usage.ReleaseResource, 'GSM')
                 
         except DBusException, e:
             logger.warning("%s: Could not request SIM messagebook from ogsmd (%s)", self.name, e)
