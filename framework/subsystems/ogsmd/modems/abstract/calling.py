@@ -141,10 +141,10 @@ class CallHandler( object ):
     # deal with responses from call control commands
     #
     def responseFromChannel( self, request, response ):
-        print "AT RESPONSE FROM CHANNEL=", response
+        logger.debug( "response from channel to %s = %s", request, response )
 
     def errorFromChannel( self, request, response ):
-        print "AT ERROR FROM CHANNEL=", response
+        logger.error( "error from channel to %s = %s", request, response )
 
     #
     # synchronize status
@@ -161,7 +161,7 @@ class CallHandler( object ):
         self.statusChangeFromNetwork( callid, {"status": status} )
 
     def syncStatus_err( self, request, error ):
-        print "AT ERROR FROM CHANNEL=", error
+        logger.error( "error from channel to %s = %s", request, error )
 
     #
     # state machine actions following. micro states:

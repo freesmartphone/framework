@@ -14,10 +14,9 @@ This module provides communication channel abstractions that
 transport their data over a (virtual) serial line.
 """
 
-__version__ = "0.9.18"
+__version__ = "0.9.18.1"
 MODULE_NAME = "ogsmd.channel"
 
-from ogsmd.gsm.decor import logged
 import parser
 
 import gobject # pygobject
@@ -62,7 +61,6 @@ class VirtualChannel( object ):
     #
     # public API
     #
-    @logged
     def __init__( self, pathfactory, name=None, **kwargs ):
         """Construct"""
         self.pathfactory = pathfactory
@@ -75,13 +73,13 @@ class VirtualChannel( object ):
     def __repr__( self ):
         return "<%s via %s>" % ( self.__class__.__name__, self.serial.port if self.serial is not None else "unknown" )
 
-    @logged
     def open( self, path=None ):
         """
         Allocate a channel and opens a serial port.
         Returns True, if successful. False, otherwise.
         """
-        assert not self.connected, "already connected"
+        if self.connected:
+            raise ValueError( "already connected" )
 
         # gather path
         path = self.pathfactory( self.name )
@@ -139,7 +137,6 @@ class VirtualChannel( object ):
         """
         pass
 
-    @logged
     def suspend( self, ok_callback, error_callback ):
         """
         Called when the channel needs to be prepared for a suspend.
@@ -148,7 +145,6 @@ class VirtualChannel( object ):
         """
         ok_callback( self )
 
-    @logged
     def resume( self, ok_callback, error_callback ):
         """
         Called when the channel needs to reinit after resume.
@@ -157,12 +153,10 @@ class VirtualChannel( object ):
         """
         ok_callback( self )
 
-    @logged
     def write( self, data ):
         """Write data to the transport."""
         self._write( data )
 
-    @logged
     def freeze( self ):
         """Pause reading from the transport."""
         if not self.watchReadyToRead:
@@ -170,15 +164,13 @@ class VirtualChannel( object ):
         else:
             gobject.source_remove( self.watchReadyToRead )
 
-    @logged
     def thaw( self ):
         """Resume reading from the transport."""
         if not self.watchReadyToRead:
-            logger.warning( "%s: thaw() called with watch being already setup!", self )
+            logger.warning( "%s: thaw() called with watch being already setup", self )
         else:
             self.watchReadyToRead = gobject.io_add_watch( self.serial.fd, gobject.IO_IN, self._readyToRead, priority=PRIORITY_RTR )
 
-    @logged
     def close( self ):
         """
         Close the serial port and free the virtual channel.
@@ -227,11 +219,11 @@ class VirtualChannel( object ):
     #
     # private API
     #
-    @logged
     def _hup( self, source, condition ):
         """Called, if there is a HUP condition on the source."""
-        assert source == self.serial.fd, "HUP on bogus source"
-        assert condition == gobject.IO_HUP, "HUP on bogus condition"
+        if ( source != self.serial.fd or condition != gobject.IO_HUP ):
+            logger.warning( "ready to read, but bogus condition %d or source %d. Ignoring", condition, source )
+            return False
         logger.info( "%s: HUP on socket" % self )
 
         self._hookHandleHupCondition()
@@ -240,9 +232,10 @@ class VirtualChannel( object ):
 
     def _readyToRead( self, source, condition ):
         """Called, if data is available on the source."""
-        assert source == self.serial.fd, "ready to read on bogus source"
-        assert condition == gobject.IO_IN, "ready to read on bogus condition"
-        logger.debug( "%s: _readyToRead: watch timeout = %s", self, repr( self.watchTimeout ) )
+        if ( source != self.serial.fd or condition != gobject.IO_IN ):
+            logger.warning( "ready to read, but bogus condition %d or source %d. Ignoring", condition, source )
+            return False
+        #logger.debug( "%s: _readyToRead: watch timeout = %s", self, repr( self.watchTimeout ) )
 
         self._hookPreReading()
         data = self._lowlevelRead()
@@ -267,9 +260,10 @@ class VirtualChannel( object ):
 
     def _readyToSend( self, source, condition ):
         """Called, if source is ready to receive data."""
-        assert source == self.serial.fd, "ready to write on bogus source"
-        assert condition == gobject.IO_OUT, "ready to write on bogus condition"
-        logger.debug( "%s: _readyToSend: watch timeout = %s", self, repr( self.watchTimeout ) )
+        if ( source != self.serial.fd or condition != gobject.IO_OUT ):
+            logger.warning( "ready to send, but bogus condition %d or source %d. Ignoring", condition, source )
+            return False
+        #logger.debug( "%s: _readyToSend: watch timeout = %s", self, repr( self.watchTimeout ) )
 
         if False:
             # make sure nothing has been queued up in the buffer in the meantime
@@ -284,7 +278,6 @@ class VirtualChannel( object ):
 
         return False # gobject, don't call me again
 
-    @logged
     def __del__( self ):
         """Destruct"""
         self.close()
@@ -375,7 +368,6 @@ class QueuedVirtualChannel( VirtualChannel ):
             return
         self._handleCommandCancellation()
 
-    #@logged
     def readyToSend( self ):
         """
         Reimplemented for internal purposes.
@@ -447,8 +439,6 @@ class QueuedVirtualChannel( VirtualChannel ):
     #
     # private API
     #
-
-    #@logged
     def _handleCommandCancellation( self ):
         """
         Called, when the current command should be cancelled.
@@ -456,7 +446,9 @@ class QueuedVirtualChannel( VirtualChannel ):
         According to v25ter, this can be done by sending _any_
         character to the serial line.
         """
-        assert self.watchTimeout is not None, "no command to cancel"
+        if self.watchTimeout is None:
+            logger.warning( "no command to cancel" )
+            return
         # we have a timer, so lets stop it
         gobject.source_remove( self.watchTimeout )
         self.watchTimeout = None
@@ -472,7 +464,6 @@ class QueuedVirtualChannel( VirtualChannel ):
         #   reqstring, ok_cb, error_cb, timeout = request
         #   error_cb( reqstring.strip(), ( "cancel", timeout ) )
 
-    #@logged
     def _handleUnsolicitedResponse( self, response ):
         """
         Called from parser, when an unsolicited response has been parsed.
@@ -480,7 +471,6 @@ class QueuedVirtualChannel( VirtualChannel ):
         self.handleUnsolicitedResponse( response )
         return self.isWaitingForResponse() # parser needs to know the current status
 
-    #@logged
     def _handleResponseToRequest( self, response ):
         """
         Called from parser, when a response to a request has been parsed.
@@ -497,7 +487,6 @@ class QueuedVirtualChannel( VirtualChannel ):
             self.watchReadyToSend = gobject.io_add_watch( self.serial.fd, gobject.IO_OUT, self._readyToSend, priority=PRIORITY_RTS )
         return self.isWaitingForResponse() # parser needs to know the current status
 
-    #@logged
     def _handleCommandTimeout( self ):
         """
         Called from mainloop, when a command does not get a response within a certain timeout.
@@ -540,10 +529,11 @@ class DelegateChannel( QueuedVirtualChannel ):
         """
         Set a delegate object to which all unsolicited responses are delegated first.
         """
-        assert self.delegate is None, "delegate already set"
+        if self.delegate is not None:
+            logger.warning( "delegate already set. Ignoring" )
+            return
         self.delegate = object
 
-    #@logged
     def _handleUnsolicitedResponse( self, response ):
         """
         Reimplemented for internal purposes.
@@ -555,7 +545,7 @@ class DelegateChannel( QueuedVirtualChannel ):
 
         data = response[0]
 
-        if not self.delegate:
+        if self.delegate is None:
             # no delegate installed, hand over to generic handler
             return self.handleUnsolicitedResponse( data )
 
@@ -566,8 +556,6 @@ class DelegateChannel( QueuedVirtualChannel ):
         command, values = data.split( ':', 1 )
 
         # convert unsolicited command to a method name
-        # FIXME this actually quite assumes certain structure for unsolicited responses,
-        # might think about making this more generic and/or override in AtCommandChannel
         command = command.replace( ' ', '_' ) # no spaces in Python identifiers
         methodname = "%s%s" % ( self.prefixmap[command[0]], command[1:] ) # no special characters
 
@@ -597,6 +585,7 @@ class AtCommandChannel( DelegateChannel ):
 
     Commands are prefixed according to v25ter. Multiline commands are handled.
     """
+
     def enqueue( self, command, response_cb=None, error_cb=None, prefixes=None ):
         """
         Enqueue a single line or multiline command. Multiline commands have
@@ -608,13 +597,17 @@ class AtCommandChannel( DelegateChannel ):
             QueuedVirtualChannel.enqueue( self, "AT%s\r\n" % command, response_cb, error_cb, prefixes )
 
         elif len( commands ) == 2:
-            def enqueueSecondOne( request, response, self=self, command = "%s\x1A" % commands[1], response_cb = response_cb, error_cb = error_cb, prefixes = prefixes ):
-                if response == []:
-                    QueuedVirtualChannel.enqueue( self, command, response_cb, error_cb, prefixes )
-                else:
-                    logger.error( "multiline command got '%s' response instead of '""'. What now?", response )
+            QueuedVirtualChannel.enqueue( self, "AT%s\r" % commands[0], self.onMultilineCommandResponse, self.onMultilineCommandError, prefixes )
+            QueuedVirtualChannel.enqueue( self, "%s\x1A" % commands[1], response_cb, error_cb, prefixes )
 
-            QueuedVirtualChannel.enqueue( self, "AT%s\r" % commands[0], enqueueSecondOne, error_cb, prefixes )
+    def onMultilineCommandResponse( self, request, response ):
+        if response != []:
+            logger.warning( "multiline command got bogus response '%s' after first line. pushing ERROR to upper layer" )
+            self._handleResponseToRequest( "+EXT I: INTERNAL" )
+
+    def onMultilineCommandError( self, request, error ):
+        logger.error( "multiline command got error after first line. pushing ERROR to upper layer" )
+        self._handleResponseToRequest( "+EXT I: INTERNAL" )
 
     # you should not need to call this anymore
     enqueueRaw = QueuedVirtualChannel.enqueue
