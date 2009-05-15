@@ -21,7 +21,7 @@ logger = logging.getLogger('opimd')
 from difflib import SequenceMatcher
 
 from backend_manager import BackendManager
-from backend_manager import PIMB_CAN_ADD_ENTRY, PIMB_CAN_DEL_ENTRY, PIMB_CAN_UPD_ENTRY
+from backend_manager import PIMB_CAN_ADD_ENTRY, PIMB_CAN_DEL_ENTRY, PIMB_CAN_UPD_ENTRY, PIMB_CAN_UPD_ENTRY_WITH_NEW_FIELD
 
 from domain_manager import DomainManager, Domain
 from helpers import *
@@ -946,10 +946,29 @@ class ContactDomain(Domain):
 
         contact = self._contacts[num_id]
 
-        # TODO: handle adding new fields
+        default_backend = BackendManager.get_default_backend(_DOMAIN_NAME)
+        
+        # Search for backend in which we can store new fields
+        backend = ''
+        if default_backend.name in contact._used_backends:
+            backend = default_backend.name
+        else:
+            for backend_name in contact._used_backends:
+                if PIMB_CAN_UPD_ENTRY_WITH_NEW_FIELD in self._backends[backend_name].properties:
+                    backend = self._backends[backend_name]
+                    break
+
+        # TODO: implement adding new data to backend, which doesn't incorporate contact data
+        # For instance: we have SIM contact with Name and Phone. We want to add "Birthday" field.
+        # opimd should then try to add "Birthday" field to default backend and then merge contacts.
 
         for field_name in data:
-            if not field_name.startswith('_'):
+            if not field_name in contact._field_idx:
+                if backend!='':
+                    contact.import_fields({field_name:data[field_name]}, backend)
+                else:
+                    raise InvalidBackend( "There is no backend which can store new field" )
+            elif not field_name.startswith('_'):
                 for field_nr in contact._field_idx[field_name]:
                     if contact[field_name]!=data[field_name]:
                         contact._fields[field_nr][1]=data[field_name]

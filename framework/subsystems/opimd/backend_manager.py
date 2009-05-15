@@ -28,6 +28,7 @@ logger = logging.getLogger('opimd')
 PIMB_CAN_ADD_ENTRY = 'add_entry'
 PIMB_CAN_DEL_ENTRY = 'del_entry'
 PIMB_CAN_UPD_ENTRY = 'upd_entry'
+PIMB_CAN_UPD_ENTRY_WITH_NEW_FIELD = 'upd_entry_with_new_field'
 PIMB_CAN_NEEDS_LOGIN = 'needs_login'
 
 PIMB_STATUS_DISCONNECTED = 0

@@ -30,7 +30,7 @@ logger = logging.getLogger('opimd')
 
 from domain_manager import DomainManager
 from backend_manager import BackendManager, Backend
-from backend_manager import PIMB_CAN_ADD_ENTRY, PIMB_CAN_DEL_ENTRY, PIMB_CAN_UPD_ENTRY
+from backend_manager import PIMB_CAN_ADD_ENTRY, PIMB_CAN_DEL_ENTRY, PIMB_CAN_UPD_ENTRY, PIMB_CAN_UPD_ENTRY_WITH_NEW_FIELD
 
 import framework.patterns.tasklet as tasklet
 from framework.config import config, rootdir
@@ -45,7 +45,7 @@ _CSV_FILE_NAME = 'csv-contacts.txt'
 class CSVContactBackend(Backend):
 #----------------------------------------------------------------------------#
     name = 'CSV-Contacts'
-    properties = [PIMB_CAN_ADD_ENTRY, PIMB_CAN_DEL_ENTRY, PIMB_CAN_UPD_ENTRY]
+    properties = [PIMB_CAN_ADD_ENTRY, PIMB_CAN_DEL_ENTRY, PIMB_CAN_UPD_ENTRY, PIMB_CAN_UPD_ENTRY_WITH_NEW_FIELD]
 
     _domain_handlers = None           # Map of the domain handler objects we support
     _entry_ids = None                 # List of all entry IDs that have data from us
