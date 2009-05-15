@@ -119,7 +119,7 @@ class Message():
         self._used_backends = []
 
         # Add URI field
-        self._fields.append( ['URI', uri, '', ''] )
+        self._fields.append( ['Path', uri, '', ''] )
         self.rebuild_index()
 
 
@@ -442,7 +442,7 @@ class SingleQueryHandler(object):
         message = self._messages[message_id]
         self.cursors[dbus_sender] += 1
 
-        return message['URI']
+        return message['Path']
 
 
     def get_result(self, dbus_sender):
@@ -574,7 +574,7 @@ class QueryManager(DBusFBObject):
         for (query_id, query_handler) in self._queries.items():
             if query_handler.check_new_message(message_id):
                 message = self._messages[message_id]
-                message_uri = message['URI']
+                message_uri = message['Path']
                 # TODO Figure out how relative signals really work
                 # self.MessageAdded(query_id, message_uri)
 
@@ -669,7 +669,7 @@ class MessageFolder(DBusFBObject):
     def notify_message_move(self, message_id, new_folder_name):
 
         message = self._messages[message_id]
-        message_uri = message['URI']
+        message_uri = message['Path']
 
         self._entries.remove(message_id)
 
@@ -699,7 +699,7 @@ class MessageFolder(DBusFBObject):
             try:
                 message_id = self._entries[entry_id]
                 message = self._messages[message_id]
-                result.append(message['URI'])
+                result.append(message['Path'])
 
             except IndexError:
                 break
@@ -781,7 +781,7 @@ class MessageDomain(Domain):
         # Create a new message entry and append it to the list
         message_id = len(self._messages)
 
-        uri = 'dbus://' + _DBUS_PATH_MESSAGES+ '/' + str(message_id)
+        uri =  _DBUS_PATH_MESSAGES+ '/' + str(message_id)
         message = Message(uri)
         message.import_fields(message_data, backend.name)
 
@@ -841,7 +841,7 @@ class MessageDomain(Domain):
             raise InvalidBackend( "This backend does not feature add_message" )
 
         message = self._messages[message_id]
-        result = message['URI']
+        result = message['Path']
 
         # As we just added a new message, we check it against all queries to see if it matches
         self.query_manager.check_new_message(message_id)
@@ -882,7 +882,7 @@ class MessageDomain(Domain):
 
         @param query Query
         @param sender Unique name of the query sender on the bus
-        @return URI of the query object, e.g. dbus://org.pyneo.PIM/Messages/Queries/4"""
+        @return URI of the query object, e.g. /org.pyneo.PIM/Messages/Queries/4"""
 
         return self.query_manager.process_query(query, sender)
 
@@ -907,7 +907,7 @@ class MessageDomain(Domain):
         @return D-Bus URI for the folder object"""
 
         folder_id = self.get_folder_id_from_name(folder_name)
-        return 'dbus://' + _DBUS_PATH_FOLDERS + '/' + str(folder_id)
+        return _DBUS_PATH_FOLDERS + '/' + str(folder_id)
 
 
     @dbus_signal(_DIN_MESSAGES, "s")
