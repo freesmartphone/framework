@@ -2,9 +2,9 @@
 """
 The Open GSM Daemon - Python Implementation
 
-(C) 2007-2008 M. Dietrich
-(C) 2008 Michael 'Mickey' Lauer <mlauer@vanille-media.de>
+(C) 2008-2009 Michael 'Mickey' Lauer <mlauer@vanille-media.de>
 (C) 2008 Openmoko, Inc.
+(C) 2007-2008 M. Dietrich
 GPLv2 or later
 
 Package: ogsmd.modems.ti_calypso
@@ -13,7 +13,7 @@ Module: channel
 TI Calypso specific modem channels
 """
 
-__version__ = "0.9.10.5"
+__version__ = "0.9.10.6"
 
 from framework.config import config
 
@@ -270,12 +270,6 @@ class UnsolicitedResponseChannel( CalypsoModemChannel ):
         c.append( "+CLVL=255" ) # audio output: set to maximum
 
         c = self._commands["suspend"]
-        c.append( "+CTZU=0" )
-        c.append( "+CTZR=0" )
-        c.append( "+CREG=0" )
-        c.append( "+CGREG=0" )
-        c.append( "+CGEREP=0,0" )
-
         def sms_no_cb( self=self ):
             if self._modem.data( "sim-buffers-sms" ):
                 return "+CNMI=%s" % self._modem.data( "sms-buffered-nocb" )
@@ -283,20 +277,27 @@ class UnsolicitedResponseChannel( CalypsoModemChannel ):
                 return "+CNMI=%s" % self._modem.data( "sms-direct-nocb" )
 
         c.append( sms_no_cb )
+        c.append( "+CTZU=0" )
+        c.append( "+CTZR=0" )
+        c.append( "+CREG=0" )
+        c.append( "+CGREG=0" )
+        c.append( "+CGEREP=0,0" )
+
         c.append( "%CSQ=0" )
         c.append( "%CPRI=0" )
         c.append( "%CBHZ=0" ) # home zone cell broadcast: disable
 
         c = self._commands["resume"]
-        c.append( "+CTZU=1" )
-        c.append( "+CTZR=1" )
-        c.append( "+CREG=2" )
-        c.append( "+CGREG=2" )
-        c.append( "+CGEREP=2,1" )
+        c.insert( 0, "+CTZU=1" )
+        c.insert( 0, "+CTZR=1" )
+        c.insert( 0, "+CREG=2" )
+        c.insert( 0, "+CGREG=2" )
+        c.insert( 0, "+CGEREP=2,1" )
+        c.insert( 0, "%CSQ=1" ) # signal strength: send unsol. code
+        c.insert( 0, "%CPRI=1" ) # gsm cipher indication: send unsol. code
+        c.insert( 0, "%CNIV=1" )
+
         c += self._commands["sim"] # reenable notifications
-        c.append( "%CSQ=1" ) # signal strength: send unsol. code
-        c.append( "%CPRI=1" ) # gsm cipher indication: send unsol. code
-        c.append( "%CNIV=1" )
 
         def homezone( self=self ):
             return "%CBHZ=1" if self._modem.data( "homezone-enabled", False ) else "%CBHZ=0"
