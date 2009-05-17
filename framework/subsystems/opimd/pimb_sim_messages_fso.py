@@ -107,10 +107,54 @@ class SIMMessageBackendFSO(Backend):
         self._entry_ids.append(entry_id)
 
 
+    def process_spliten_entries(self, entries):
+        last_msg = []
+        text_msg = ''
+        ids = []
+
+        for i in range(1, len(entries)+1):
+            for msg in entries:
+                if msg[4]['csm_seq']==i:
+                    text_msg += msg[3]
+                    ids.append(msg[0])
+                    if i==len(entries):
+                        last_msg = msg
+
+        last_msg[4]['combined_message'] = True
+        if len(entries)==last_msg[4]['csm_num']:
+            last_msg[4]['complete_message'] = True
+        else:
+            last_msg[4]['complete_message'] = False
+
+        combined_msg = [ids,last_msg[1],last_msg[2],text_msg,last_msg[4]]
+        self.process_single_entry(combined_msg)
+
     def process_all_entries(self, entries):
+        messages = []
+        msg_cache = {}
+
         for entry in entries:
-            if len(entry[3]) == 0: continue
-            self.process_single_entry(entry)
+            cid = ''
+            try:
+                cid = entry[4]['csm_id']
+            except KeyError:
+                pass
+
+            if cid!='':
+                if cid in msg_cache:
+                    messages[msg_cache[cid]].append(entry)
+                else:
+                    msg_cache[cid] = len(messages)
+                    messages.append([entry])
+            else:
+                messages.append([entry])
+
+        for message in messages:
+            if len(message)==1:
+                if len(entry[3]) == 0: continue
+                self.process_single_entry([[message[0][0]],message[0][1],message[0][2],message[0][3],message[0][4]])
+            else:
+                self.process_spliten_entries(message)
 
 
     def process_incoming_entry(self, entry):
