@@ -58,7 +58,7 @@ class Led(object):
         self.interface = dbuscache.dbusInterfaceForObjectWithInterface(
             "org.freesmartphone.odeviced",
             "/org/freesmartphone/Device/LED/%s" % device,
-            "org.freesmartphone.Device.LED", True )
+            "org.freesmartphone.Device.LED" )
         self.users = {}
 
     def on_reply(self, *args):

@@ -2,15 +2,14 @@
 """
 freesmartphone.org Framework Daemon
 
-(C) 2008-2009 Michael 'Mickey' Lauer <mlauer@vanille-media.de>
-(C) 2008-2009 Openmoko, Inc.
+(C) 2009 Michael 'Mickey' Lauer <mlauer@vanille-media.de>
 GPLv2 or later
 
 Package: framework
 Module: controller
 """
 
-__version__ = "1.0.0"
+__version__ = "1.0.1"
 
 import dbus
 
@@ -18,7 +17,7 @@ _bus = dbus.SystemBus()
 _objects = {}
 _ifaces = {}
 
-def dbusInterfaceForObjectWithInterface( service, object, interface, follow_name_owner_changes=False ):
+def dbusInterfaceForObjectWithInterface( service, object, interface ):
     """
     Gather dbus.Interface proxy for given triple of service, object, interface
     Try to cache as much as possible.
@@ -30,7 +29,8 @@ def dbusInterfaceForObjectWithInterface( service, object, interface, follow_name
         try:
             obj = _objects[ ( service, object ) ]
         except KeyError:
-            obj = _objects[ ( service, object ) ] = _bus.get_object( service, object, introspect=False, follow_name_owner_changes=follow_name_owner_changes )
+            # this call will always succeed, even if the questioned service is not online yet
+            obj = _objects[ ( service, object ) ] = _bus.get_object( service, object, introspect=False, follow_name_owner_changes=True )
         iface = _ifaces[ ( service, object, interface ) ] = dbus.Interface( obj, interface )
 
     return iface
