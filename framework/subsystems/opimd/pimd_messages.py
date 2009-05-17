@@ -6,7 +6,7 @@ Open PIM Daemon
 (C) 2008 Openmoko, Inc.
 GPLv2 or later
 
-Contacts Domain Plugin
+Messages Domain Plugin
 
 Establishes the 'messages' PIM domain and handles all related requests
 """
@@ -189,28 +189,39 @@ class Message():
         @param message_data Message data; format: ((Key,Value), (Key,Value), ...)
         @param backend_name Name of the backend to which those fields belong"""
 
-        # We add all fields as they come, not checking for duplicate data
-
-        self._used_backends.append(backend_name)
+        if backend_name!='':
+            if not backend_name in self._used_backends:
+                self._used_backends.append(backend_name)  
 
         for field_name in message_data:
-            field_value = message_data[field_name]
+            try:
+                if field_name.startswith('_'):
+                    raise KeyError
+                for field in self._field_idx[field_name]:
+                    if self._fields[field][3]==backend_name:
+                        self._fields[field][1]=message_data[field_name]
+                    else:
+                        self._fields.append([field_name, message_data[field_name], '', backend_name])
+                        self._field_idx[field_name].append(len(self._fields)-1)
+            except KeyError:
 
-            # We only generate compare values for specific fields
-            compare_value = ""
+                field_value = message_data[field_name]
 
-            # TODO Do this in a more extensible way
-            # TODO Set contact ID as compare value for senders and recipients
-#            if (field_name == "Sender") or (field_name == "Recipient"): compare_value = get_compare_for_contact(field_value)
+                # We only generate compare values for specific fields
+                compare_value = ""
 
-            our_field = [field_name, field_value, compare_value, backend_name]
+                # TODO Do this in a more extensible way
+                # TODO Set contact ID as compare value for senders and recipients
+#                if (field_name == "Sender") or (field_name == "Recipient"): compare_value = get_compare_for_contact(field_value)
 
-            self._fields.append(our_field)
-            field_idx = len(self._fields) - 1
+                our_field = [field_name, field_value, compare_value, backend_name]
 
-            # Keep the index happy, too
-            if not field_name in self._field_idx.keys(): self._field_idx[field_name] = []
-            self._field_idx[field_name].append(field_idx)
+                self._fields.append(our_field)
+                field_idx = len(self._fields) - 1
+
+                # Keep the index happy, too
+                if not field_name in self._field_idx.keys(): self._field_idx[field_name] = []
+                self._field_idx[field_name].append(field_idx)
 
 #        for (field_idx, field) in enumerate(self._fields):
 #            print "%s: %s" % (field_idx, field)
@@ -275,6 +286,56 @@ class Message():
 
         # TODO Do not return private fields, such as the internal ID
         return self.get_fields(self._field_idx)
+
+    def attempt_merge(self, message_fields, backend_name):
+        """Attempts to merge the given message into the message list and returns its ID
+
+        @param message_fields Message data; format: ((Key,Value), (Key,Value), ...)
+        @param backend_name Backend that owns the message data
+        @return True on successful merge, False otherwise"""
+
+        duplicated = True
+        for field_name in message_fields:
+            try:
+                if self.get_content()[field_name]!=message_fields[field_name]:
+                    duplicated = False
+                    break
+            except KeyError:
+                duplicated = False
+                break
+
+        if duplicated:
+            return True # That message exists, so we doesn't have to do anything to have it merged.
+
+        # Don't merge if we already have data from $backend_name as one backend can't contain two mergeable messages
+        # Messages domain can store also different messages than SMSes, so merging splitten SMS messages has to be done in SMS backend.
+        if backend_name in self._used_backends:
+            return False
+
+        merge = [1, 0]
+        for field_name in message_fields:
+            if not field_name.startswith('_'):
+                if field_name!='Path':
+                    field_value=message_fields[field_name]
+                    try:
+                        if self.get_content()[field_name]!=field_value:
+                            merge[0] = 0
+                            break
+                        else:
+                            merge[1] = 1
+                    except KeyError:
+                        pass
+
+        if merge[0]:
+            if merge[1]:
+                self.import_fields(message_fields, backend_name)
+                return True
+            else:
+                return False
+        else:
+            return False
+
+        return False
 
 
     def incorporates_data_from(self, backend_name):
@@ -778,34 +839,48 @@ class MessageDomain(Domain):
         @param backend Backend objects that requests the registration
         @param message Message data; format: [Key:Value, Key:Value, ...]"""
 
-        # Create a new message entry and append it to the list
-        message_id = len(self._messages)
+        message_id = -1
 
-        uri =  _DBUS_PATH_MESSAGES+ '/' + str(message_id)
-        message = Message(uri)
-        message.import_fields(message_data, backend.name)
+        # Check if the message can be merged with one we already know of
+        for entry in self._messages:
+            if entry.attempt_merge(message_data, backend.name):
 
-        self._messages.append(message)
+                # Find that entry's ID
+                for (message_idx, message) in enumerate(self._messages):
+                    if message == entry: message_id = message_idx
+                    break
 
-        # Put it in the corresponding folder
-        try:
-            folder_name = message_data['Folder']
-        except KeyError:
-            folder_name = config.getValue('opimd', 'messages_default_folder', "Unfiled")
+                # Stop trying to merge
+                break
+        else:
+            # Merging failed, so create a new message entry and append it to the list
+            message_id = len(self._messages)
 
-        try:
-            folder_id = self.get_folder_id_from_name(folder_name)
-            folder = self._folders[folder_id]
+            uri =  _DBUS_PATH_MESSAGES+ '/' + str(message_id)
+            message = Message(uri)
+            message.import_fields(message_data, backend.name)
 
-        except UnknownFolder:
-            folder_id = len(self._folders)
-            folder = MessageFolder(self._messages, folder_id, folder_name)
-            self._folders.append(folder)
+            self._messages.append(message)
 
-        folder.register_message(message_id)
+            # Put it in the corresponding folder
+            try:
+                folder_name = message_data['Folder']
+            except KeyError:
+                folder_name = config.getValue('opimd', 'messages_default_folder', "Unfiled")
 
-        # Notify clients that a new message arrived
-        self.NewMessage(uri)
+            try:
+                folder_id = self.get_folder_id_from_name(folder_name)
+                folder = self._folders[folder_id]
+
+            except UnknownFolder:
+                folder_id = len(self._folders)
+                folder = MessageFolder(self._messages, folder_id, folder_name)
+                self._folders.append(folder)
+
+            folder.register_message(message_id)
+
+            # Notify clients that a new message arrived
+            self.NewMessage(uri)
 
         return message_id
 
