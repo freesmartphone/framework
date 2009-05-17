@@ -20,7 +20,7 @@ class GSMProtocol(protocol.Protocol):
         super(GSMProtocol, self).__init__(phone)
         # We create all the interfaces to GSM/Device
         try:
-            self.gsm = phone.bus.get_object( 'org.freesmartphone.ogsmd', '/org/freesmartphone/GSM/Device' )
+            self.gsm = phone.bus.get_object( 'org.freesmartphone.ogsmd', '/org/freesmartphone/GSM/Device', introspect=False, follow_name_owner_changes=True )
             self.gsm.connect_to_signal('CallStatus', self.on_call_status)
         except Exception, e:
             raise protocol.ProtocolUnusable(e.message)

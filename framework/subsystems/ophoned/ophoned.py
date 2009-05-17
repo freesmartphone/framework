@@ -11,10 +11,12 @@ Implementation of the dbus objects.
 """
 
 MODULE_NAME = "ophoned"
-__version__ = "0.1.0"
+__version__ = "0.1.0.1"
 
 from framework import helpers
 from framework.controller import Controller
+from framework.patterns import dbuscache
+
 from protocol import Protocol, ProtocolUnusable
 from test import TestProtocol
 from gsm import GSMProtocol
@@ -41,6 +43,7 @@ class Phone(dbus.service.Object):
         self.active_call = None
         self.gsm = bus.get_object(
             'org.freesmartphone.ousaged', '/org/freesmartphone/Usage',
+            introspect = False,
             follow_name_owner_changes = True
         )
         self.gsm.connect_to_signal( 'ResourceChanged', self.on_resource_changed )

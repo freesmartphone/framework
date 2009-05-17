@@ -12,12 +12,13 @@ Package: otimed
 Module: otimed
 """
 
-__version__ = "0.2.2"
+__version__ = "0.2.2.1"
 MODULE_NAME = "otimed"
 
 import clock
 
 from framework.config import config
+from framework.patterns import dbuscache
 
 from datetime import datetime, timedelta
 from math import sqrt
@@ -163,11 +164,10 @@ class GSMZoneSource( object ):
             None,
             None
         )
-        proxy = bus.get_object( "org.freesmartphone.ogsmd",
+        self.gsmdata = dbuscache.dbusInterfaceForObjectWithInterface(
+                                "org.freesmartphone.ogsmd",
                                 "/org/freesmartphone/GSM/Server",
-                                follow_name_owner_changes=True,
-                                introspect=False )
-        self.gsmdata = dbus.Interface( proxy, "org.freesmartphone.GSM.Data",  )
+                                "org.freesmartphone.GSM.Data" )
 
     def _handleTimeZoneReport( self, report ):
         # CTZV is offset * 4
