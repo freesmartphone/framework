@@ -22,6 +22,7 @@ from .resources import ClientResource
 from .lowlevel import resumeReason
 
 import framework.patterns.tasklet as tasklet
+from framework.patterns import dbuscache
 
 import gobject
 import dbus
@@ -66,6 +67,11 @@ class GenericUsageControl( dbus.service.Object ):
         )
         logger.info( "%s initialized. Serving %s at %s", self.__class__.__name__, self.interface, self.path )
 
+        self.idlenotifier = dbuscache.dbusInterfaceForObjectWithInterface(
+            "org.freesmartphone.odeviced",
+            "/org/freesmartphone/Device/IdleNotifier/0",
+            "org.freesmartphone.Device.IdleNotifier" )
+
     def _addResource( self, resource ):
         if not self.resources.get(resource.name, None) is None:
             raise ResourceExists( "Resource %s already registered" % resource.name )
@@ -106,10 +112,14 @@ class GenericUsageControl( dbus.service.Object ):
 
         # FIXME might want to traverse /etc/apm.d/... and launch them scripts
         logger.info( "triggering kernel suspend" )
-        open( "/sys/power/state", "w" ).write( "mem\n" )
-        # ---------------> Good Night!
+        if False: # for debugging
+            import time
+            time.sleep( 5 )
+        else:
+            # ---------------> Good Night!
+            open( "/sys/power/state", "w" ).write( "mem\n" )
+            # ---------------< Good Morning!
         reason = resumeReason()
-        # ---------------< Good Morning!
         logger.info( "kernel has resumed - reason = %s" % reason )
 
         if reason == "LowBattery":
@@ -124,8 +134,10 @@ class GenericUsageControl( dbus.service.Object ):
                 yield resource._resume()
             logger.info( "...completed." )
 
+            dbuscache.dbusCallAsyncDontCare( self.idlenotifier.SetState, "busy" ) # trigger idlenotifier
             gobject.idle_add( lambda self=self:self.SystemAction( "resume" ) and False ) # send as late as possible
 
+    # keep track of resource name owners
     def _nameOwnerChangedHandler( self, name, old_owner, new_owner ):
         if old_owner and not new_owner:
             for resource in self.resources.values():
