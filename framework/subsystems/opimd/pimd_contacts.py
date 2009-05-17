@@ -754,7 +754,6 @@ class ContactDomain(Domain):
         @param contact_data Contact data; format: [Key:Value, Key:Value, ...]"""
 
         contact_id = -1
-        merge_success = False
 
         # Check if the contact can be merged with one we already know of
         for entry in self._contacts:
