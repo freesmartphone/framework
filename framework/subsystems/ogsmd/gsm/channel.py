@@ -14,7 +14,7 @@ This module provides communication channel abstractions that
 transport their data over a (virtual) serial line.
 """
 
-__version__ = "0.9.18.1"
+__version__ = "0.9.18.2"
 MODULE_NAME = "ogsmd.channel"
 
 import parser
@@ -386,7 +386,7 @@ class QueuedVirtualChannel( VirtualChannel ):
         Reimplemented for internal purposes.
         """
 
-        # restart timeout //FIXME: only if we were  waiting for a response?
+        # restart timeout //FIXME: only if we were waiting for a response?
         if self.watchTimeout is not None:
             gobject.source_remove( self.watchTimeout )
             self.watchTimeout = gobject.timeout_add_seconds( self.timeout, self._handleCommandTimeout )
@@ -498,6 +498,9 @@ class QueuedVirtualChannel( VirtualChannel ):
         self.watchTimeout = None
         self.serial.write( "\x1A" )
         self.handleCommandTimeout( self.q.get() )
+        # relaunch
+        if not self.watchReadyToSend:
+            self.watchReadyToSend = gobject.io_add_watch( self.serial.fd, gobject.IO_OUT, self._readyToSend, priority=PRIORITY_RTS )
         return False
 
 #=========================================================================#
