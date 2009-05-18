@@ -28,6 +28,8 @@ logger = logging.getLogger( MODULE_NAME )
 
 import gobject
 
+KEYCODES = {}
+
 #=========================================================================#
 class AbstractUnsolicitedResponseDelegate( object ):
 #=========================================================================#
@@ -163,8 +165,16 @@ class AbstractUnsolicitedResponseDelegate( object ):
         sms = ogsmd.gsm.sms.SMSDeliverReport(True)
         pdu = sms.pdu()
         commchannel = self._object.modem.communicationChannel( "UnsolicitedMediator" )
-	# XXX: Replace the lambda with an actual funtion in error case?
+        # XXX: Replace the lambda with an actual funtion in error case?
         commchannel.enqueue( '+CNMA=1,%i\r%s' % ( len(pdu)/2, pdu), lambda x,y: None, lambda x,y: None )
+
+    # +CKEV: 19,1
+    # +CKEV: 19,0
+    def plusCKEV( self, righthandside ):
+        values = safesplit( righthandside, ',' )
+        keyname = KEYCODES.get( int( values[0] ), "unknown" )
+        pressed = bool( int( values[1] ) )
+        self._object.KeypadEvent( keyname, pressed )
 
     # +CMTI: "SM",7
     def plusCMTI( self, righthandside ):

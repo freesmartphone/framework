@@ -11,7 +11,7 @@ Module: device
 """
 
 MODULE_NAME = "ogsmd.device"
-__version__ = "0.9.13.1"
+__version__ = "0.9.14"
 
 from framework import resource
 from framework.config import config
@@ -201,6 +201,11 @@ class Device( resource.Resource ):
     @resource.checkedmethod
     def GetRTC( self, dbus_ok, dbus_error ):
         mediator.DeviceGetRTC( self, dbus_ok, dbus_error )
+
+    @resource.queuedsignal
+    @dbus.service.signal( DBUS_INTERFACE_DEVICE, "sb" )
+    def KeypadEvent( self, name, pressed ):
+        logger.info( "key %s has been %s", name, "pressed" if pressed else "released" )
 
     #
     # dbus org.freesmartphone.GSM.SIM
