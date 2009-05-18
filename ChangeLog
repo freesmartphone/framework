@@ -1,3 +1,8 @@
+2009-05-17	Michael Lauer	<mlauer@vanille-media.de>
+
+	* [ogsmd] add signal org.freesmartphone.GSM.Device.KeypadEvent
+	* [ogsmd] [FREESCALE NEPTUNE] handle +EKEV for power key
+
 2009-05-04	Michael Lauer	<mlauer@vanille-media.de>
 
 	* Add loophole.py to facilitate post-mortem/live debugging

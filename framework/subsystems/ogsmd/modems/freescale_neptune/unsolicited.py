@@ -17,6 +17,8 @@ import ogsmd.gsm.sms
 import logging
 logger = logging.getLogger( MODULE_NAME )
 
+KEYCODES = { 19: "power" }
+
 #=========================================================================#
 class UnsolicitedResponseDelegate( AbstractUnsolicitedResponseDelegate ):
 #=========================================================================#
@@ -144,12 +146,19 @@ class UnsolicitedResponseDelegate( AbstractUnsolicitedResponseDelegate ):
         else:
             self._object.AuthStatus( "READY" )
 
+    # +EKEV: 19,1
+    # +EKEV: 19,0
+    def plusEKEV( self, righthandside ):
+        values = safesplit( righthandside, ',' )
+        keyname = KEYCODES.get( int( values[0] ), "unknown" )
+        pressed = bool( int( values[1] ) )
+        self._object.KeypadEvent( keyname, pressed )
+
     # +EOPER: 5,"262-03"
     # +EOPER: 7
     # 0 = busy
     # 5 = home
     # 7 = unregistered
-
     def plusEOPER( self, righthandside ):
         values = safesplit( righthandside, ',' )
         status = {}
