@@ -17,7 +17,9 @@ _bus = dbus.SystemBus()
 _objects = {}
 _ifaces = {}
 
+#----------------------------------------------------------------------------#
 def dbusInterfaceForObjectWithInterface( service, object, interface ):
+#----------------------------------------------------------------------------#
     """
     Gather dbus.Interface proxy for given triple of service, object, interface
     Try to cache as much as possible.
@@ -36,3 +38,21 @@ def dbusInterfaceForObjectWithInterface( service, object, interface ):
     return iface
 
 dbus.InterfaceForObjectWithInterface = dbusInterfaceForObjectWithInterface
+
+#----------------------------------------------------------------------------#
+def dbusCallAsyncDontCare( method, *args ):
+#----------------------------------------------------------------------------#
+    """
+    Call dbus method async., don't care about any errors or replies.
+    """
+    method( *args, reply_handler=nop, error_handler=nop )
+
+
+#----------------------------------------------------------------------------#
+def nop( *args, **kwargs ):
+#----------------------------------------------------------------------------#
+    #print ( "dbusCallAsyncDontCare returned with ", args, kwargs )
+    pass
+
+
+
