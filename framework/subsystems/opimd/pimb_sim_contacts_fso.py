@@ -146,6 +146,10 @@ class SIMContactBackendFSO(Backend):
                 entry_id=int(value)
         self.gsm_sim_iface.DeleteEntry('contacts', entry_id, reply_handler=self.dbus_ok, error_handler=self.dbus_err )
 
+    def install_signal_handlers(self):
+        """Hooks to some d-bus signals that are of interest to us"""
+
+        self.gsm_sim_iface.connect_to_signal("ReadyStatus", self.handle_sim_ready)
 
     @tasklet.tasklet
     def load_entries(self):
@@ -163,4 +167,10 @@ class SIMContactBackendFSO(Backend):
                 
         except DBusException, e:
             logger.error("%s: Could not request SIM phonebook from ogsmd : %s", self.name, e)
-            
+            logger.debug("%s: Waiting for SIM being ready...", self.name)
+            self.install_signal_handlers()
+
+    def handle_sim_ready(self, ready):
+        if ready:
+            self.load_entries().start()
+
