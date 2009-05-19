@@ -9,7 +9,7 @@ Package: framework
 Module: controller
 """
 
-__version__ = "1.0.1"
+__version__ = "1.0.2"
 
 import dbus
 
@@ -45,7 +45,7 @@ def dbusCallAsyncDontCare( method, *args ):
     """
     Call dbus method async., don't care about any errors or replies.
     """
-    method( *args, reply_handler=nop, error_handler=nop )
+    method( *args, **dict( reply_handler=nop, error_handler=nop ) )
 
 
 #----------------------------------------------------------------------------#
