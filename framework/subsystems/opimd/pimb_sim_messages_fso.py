@@ -68,8 +68,7 @@ class SIMMessageBackendFSO(Backend):
         for domain in _DOMAINS:
             self._domain_handlers[domain] = DomainManager.get_domain_handler(domain)
 
-        self.install_signal_handlers()
-        
+
     def __repr__(self):
         return self.name
 
@@ -78,6 +77,11 @@ class SIMMessageBackendFSO(Backend):
         """Returns a list of PIM domains that this plugin supports"""
         return _DOMAINS
 
+    def dbus_ok(self, *args, **kargs):
+        pass
+
+    def dbus_err(self, *args, **kargs):
+        pass
 
     def process_single_entry(self, data):
         (sim_entry_id, status, number, text, props) = data
@@ -165,32 +169,34 @@ class SIMMessageBackendFSO(Backend):
         bus = SystemBus()
         
         try:
-            gsm = bus.get_object('org.freesmartphone.ogsmd', '/org/freesmartphone/GSM/Device')
-            self.gsm_sim_iface = Interface(gsm, 'org.freesmartphone.GSM.SIM')
+            self.gsm = bus.get_object('org.freesmartphone.ogsmd', '/org/freesmartphone/GSM/Device')
+            self.gsm_sim_iface = Interface(self.gsm, 'org.freesmartphone.GSM.SIM')
             
             entries = yield tasklet.WaitDBus(self.gsm_sim_iface.RetrieveMessagebook, 'all')
             self.process_all_entries(entries)
-                
+            self.install_signal_handlers()
+
         except DBusException, e:
             logger.warning("%s: Could not request SIM messagebook from ogsmd (%s)", self.name, e)
+            self.install_signal_handlers()
+
 
 
     def handle_incoming_message(self, message_id):
         self.gsm_sim_iface.RetrieveMessage(
             message_id,
-            reply_handler=self.process_incoming_entry
-            # TODO We ignore errors for now
+            reply_handler=self.process_incoming_entry,
+            error_handler=self.dbus_err
             )
-
 
     def install_signal_handlers(self):
         """Hooks to some d-bus signals that are of interest to us"""
-        
-        bus = SystemBus()
-        
-        bus.add_signal_receiver(
-            self.handle_incoming_message,
-            'IncomingMessage',
-            'org.freesmartphone.GSM.SIM'
-            )
+
+        self.gsm_sim_iface.connect_to_signal("ReadyStatus", self.handle_sim_ready)
+        #self.gsm_sim_iface.connect_to_signal("IncomingStoredMessage", self.handle_incoming_message) //TODO: FIXME
+
+    def handle_sim_ready(self, ready):
+        if ready:
+            self.load_entries().start()
+
 
