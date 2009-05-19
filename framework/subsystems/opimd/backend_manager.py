@@ -83,9 +83,9 @@ class BackendManager(DBusFBObject):
         for backend_cls in Backend._all_backends_cls:
             self.register_backend(backend_cls())
 
-        @tasklet.tasklet
-        def init_all():
-            for backend in self._backends:
+        for backend in self._backends:
+            @tasklet.tasklet
+            def init_all(backend):
                 try:
                     key = backend.name.lower() + "_disable"
                     disabled = int(config.getValue('opimd', key, 0))
@@ -96,7 +96,7 @@ class BackendManager(DBusFBObject):
                 else:
                     logger.debug("loading entries for backend %s", backend)
                     yield backend.load_entries()
-        init_all().start()
+            init_all(backend).start()
 
 
     @classmethod
