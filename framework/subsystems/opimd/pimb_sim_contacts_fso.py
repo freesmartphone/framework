@@ -91,7 +91,7 @@ class SIMContactBackendFSO(Backend):
                 entry['_backend_field_truncated_Name'] = 1
             if len(entry['Phone'])==self.contact_book_info['number_length']:
                 entry['_backend_field_truncated_Phone'] = 1
-            entry['_backend_entry_id'] = str(sim_entry_id)
+            entry['_backend_entry_id'] = sim_entry_id
             
             logger.debug("add entrie : %s", name)
             entry_id = self._domain_handlers['Contacts'].register_contact(self, entry)
@@ -113,7 +113,7 @@ class SIMContactBackendFSO(Backend):
             elif field=='Phone':
                 phone=value.replace('tel:','')
             elif field=='_backend_entry_id':
-                entry_id=int(value)
+                entry_id=value
         self.gsm_sim_iface.StoreEntry('contacts', entry_id, name, phone, reply_handler=self.dbus_ok, error_handler=self.dbus_err)
 
     def add_contact(self, contact_data):
@@ -130,12 +130,12 @@ class SIMContactBackendFSO(Backend):
         for con in self._domain_handlers['Contacts'].enumerate_items(self):
             for (field, value) in con:
                 if field=='_backend_entry_id':
-                    sim_ids.append(int(value))
+                    sim_ids.append(value)
         while True:
             if not ret in sim_ids and ret <= self.contact_book_info['max_index']+1:
                 break
             ret += 1
-        entry_id=int(ret)
+        entry_id=ret
         self.gsm_sim_iface.StoreEntry('contacts', entry_id, name, phone, reply_handler=self.dbus_ok, error_handler=self.dbus_err)
 
         contact_data['_backend_entry_id'] = entry_id
@@ -147,7 +147,7 @@ class SIMContactBackendFSO(Backend):
     def del_contact(self, contact_data):
         for (field,value) in contact_data:
             if field=='_backend_entry_id':
-                entry_id=int(value)
+                entry_id=value
         self.gsm_sim_iface.DeleteEntry('contacts', entry_id, reply_handler=self.dbus_ok, error_handler=self.dbus_err )
 
     def install_signal_handlers(self):
