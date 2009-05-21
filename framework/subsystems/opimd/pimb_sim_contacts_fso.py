@@ -87,6 +87,10 @@ class SIMContactBackendFSO(Backend):
             entry = {}
             entry['Phone'] = phone_number_to_tel_uri(number)
             entry['Name'] = name
+            if len(entry['Name'])==self.contact_book_info['name_length']:
+                entry['_backend_field_truncated_Name'] = 1
+            if len(entry['Phone'])==self.contact_book_info['number_length']:
+                entry['_backend_field_truncated_Phone'] = 1
             entry['_backend_entry_id'] = str(sim_entry_id)
             
             logger.debug("add entrie : %s", name)
