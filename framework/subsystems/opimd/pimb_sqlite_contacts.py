@@ -151,10 +151,7 @@ class SQLiteContactBackend(Backend):
         for line in lines:
             entry = {}
             for key in keys:
-                if keys[key] <> '_backend_entry_id':
-                    entry[keys[key]] = line[key]
-                else:
-                    entry[keys[key]] = str(line[key])
+                entry[keys[key]] = line[key]
             cur.execute('SELECT Field, Value FROM contact_values WHERE contactId=?',(line[0],))
             for pair in cur:
                 entry[pair[0]]=pair[1]
@@ -167,7 +164,7 @@ class SQLiteContactBackend(Backend):
         cur = self.con.cursor()
         for (field_name, field_value) in contact_data:
             if field_name=='_backend_entry_id':
-                contactId=int(field_value)
+                contactId=field_value
         cur.execute('UPDATE contacts SET deleted=1 WHERE id=?',(contactId,))
     #    cur.execute('DELETE FROM contacts WHERE id=?',(contactId,))
     #    cur.execute('DELETE FROM contact_values WHERE contactId=?',(contactId,))
@@ -179,7 +176,7 @@ class SQLiteContactBackend(Backend):
         cur = self.con.cursor()
         for (field, value) in contact_data:
             if field=='_backend_entry_id':
-                contactId=int(value)
+                contactId=value
         for (field, value) in contact_data:
             if field in reqfields:
                 cur.execute('UPDATE contacts SET '+field+'=? WHERE id=?',(value,contactId))
@@ -216,7 +213,7 @@ class SQLiteContactBackend(Backend):
         self.con.commit()
         cur.close()
 
-        contact_data['_backend_entry_id']=str(cid)
+        contact_data['_backend_entry_id']=cid
 
         contact_id = self._domain_handlers['Contacts'].register_contact(self, contact_data)
         return contact_id
