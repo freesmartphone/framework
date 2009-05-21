@@ -323,9 +323,9 @@ class SMS(object):
         # UDH Source Indicator
         if 8 in self.udh:
             # Concatenated shor messages (16-bit reference)
-            map["csm_id"] = self.udh[0][0]*256 + self.udh[0][1]
-            map["csm_num"] = self.udh[0][2]
-            map["csm_seq"] = self.udh[0][3]
+            map["csm_id"] = self.udh[8][0]*256 + self.udh[8][1]
+            map["csm_num"] = self.udh[8][2]
+            map["csm_seq"] = self.udh[8][3]
         #if 9 in self.udh:
             # Wireless Control Message Protocol
 
