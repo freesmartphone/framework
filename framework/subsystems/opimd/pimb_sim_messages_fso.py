@@ -191,9 +191,11 @@ class SIMMessageBackendFSO(Backend):
 
     def install_signal_handlers(self):
         """Hooks to some d-bus signals that are of interest to us"""
-
-        self.gsm_sim_iface.connect_to_signal("ReadyStatus", self.handle_sim_ready)
-        #self.gsm_sim_iface.connect_to_signal("IncomingStoredMessage", self.handle_incoming_message) //TODO: FIXME
+        try:
+            self.gsm_sim_iface.connect_to_signal("ReadyStatus", self.handle_sim_ready)
+            #self.gsm_sim_iface.connect_to_signal("IncomingStoredMessage", self.handle_incoming_message) //TODO: FIXME
+        except:
+            logger.error("%s: Could not install signal handlers!", self.name)
 
     def handle_sim_ready(self, ready):
         if ready:

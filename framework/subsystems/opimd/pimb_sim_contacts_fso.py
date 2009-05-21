@@ -148,8 +148,10 @@ class SIMContactBackendFSO(Backend):
 
     def install_signal_handlers(self):
         """Hooks to some d-bus signals that are of interest to us"""
-
-        self.gsm_sim_iface.connect_to_signal("ReadyStatus", self.handle_sim_ready)
+        try:
+            self.gsm_sim_iface.connect_to_signal("ReadyStatus", self.handle_sim_ready)
+        except:
+            logger.error("%s: Could not install signal handlers!", self.name)
 
     @tasklet.tasklet
     def load_entries(self):
