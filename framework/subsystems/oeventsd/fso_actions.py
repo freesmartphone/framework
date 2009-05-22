@@ -390,6 +390,21 @@ class SuspendAction(DBusAction):
         super(SuspendAction, self).__init__(bus, service, obj, interface, 'Suspend')
 
 #============================================================================#
+class ShutdownAction(DBusAction):
+#============================================================================#
+    """
+    A dbus action to shutdown the device
+    """
+    function_name = 'Shutdown'
+
+    def __init__(self):
+        bus = dbus.SystemBus()
+        service = 'org.freesmartphone.ousaged'
+        obj = '/org/freesmartphone/Usage'
+        interface = 'org.freesmartphone.Usage'
+        super(ShutdownAction, self).__init__(bus, service, obj, interface, 'Shutdown')
+
+#============================================================================#
 class ExternalDBusAction(DBusAction):
 #============================================================================#
     function_name = "ExternalDBusAction"

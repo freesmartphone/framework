@@ -232,3 +232,28 @@ class InputTrigger(DBusTrigger):
 
     def __repr__(self):
         return "InputTrigger"
+
+#============================================================================#
+class KeypadTrigger(DBusTrigger):
+#============================================================================#
+    """
+    A dbus trigger for org.freesmartphone.GSM.Device.KeypadEvent
+    """
+
+    function_name = 'KeypadEvent'
+
+    def __init__(self):
+        bus = dbus.SystemBus()
+        super(KeypadTrigger, self).__init__(
+            bus,
+            'org.freesmartphone.ogsmd',
+            '/org/freesmartphone/GSM/Device',
+            'org.freesmartphone.GSM.Device',
+            'KeypadEvent'
+        )
+    def on_signal(self, name, pressed):
+        logger.debug("%s triggered", self)
+        self._trigger(name=name, pressed=pressed)
+
+    def __repr__(self):
+        return "KeypadTrigger"
