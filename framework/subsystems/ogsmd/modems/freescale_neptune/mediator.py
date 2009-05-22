@@ -61,6 +61,28 @@ class DeviceGetInfo( DeviceMediator ):
             self._ok( result )
 
 #=========================================================================#
+class SimGetAuthStatus( SimMediator ):
+#=========================================================================#
+    # FIXME: Add SIM PIN known/unknown logic here in order to prepare for changing SetAntennaPower() semantics
+    def trigger( self ):
+        self._commchannel.enqueue( "+CPIN?", self.responseFromChannel, self.errorFromChannel )
+
+    @logged
+    def responseFromChannel( self, request, response ):
+        if response[-1] == "OK":
+            pin_state = self._rightHandSide( response[0] ).strip( '"' ) # some modems include "
+            self._ok( pin_state )
+        else:
+            """
+            Modem violating GSM 07.07 here.
+
+            +CPIN? does not work
+            """
+            #SimMediator.responseFromChannel( self, request, response )
+            pin_state = self._object.modem._simPinState
+            self._ok( pin_state )
+
+#=========================================================================#
 class DeviceSetAntennaPower( AbstractMediator.DeviceSetAntennaPower ):
 #=========================================================================#
     """
@@ -76,7 +98,7 @@ class DeviceSetAntennaPower( AbstractMediator.DeviceSetAntennaPower ):
 
     def responseFromChannel1( self, request, response ):
         # FIXME: make async
-        time.sleep( 1.0 )
+        time.sleep( 2.0 )
         cmd = "+CFUN=%d" % ( 1 if self.power else 0 )
         self._commchannel.enqueue( cmd, self.responseFromChannel, self.errorFromChannel )
 
