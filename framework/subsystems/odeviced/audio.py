@@ -310,6 +310,7 @@ class AlsaPlayer( Player ):
             self.sounds[name] = p, loop, length
             ok_cb()
             logger.info( "AlsaPlayer playing sound %s" % name )
+            self._object.SoundStatus( name, "playing", {} )
 
     def task_stop( self, ok_cb, error_cb, name ):
         if name not in self.sounds:
@@ -320,6 +321,7 @@ class AlsaPlayer( Player ):
             del self.sounds[name]
             ok_cb()
             logger.info( "AlsaPlayer stopped sound %s" % name )
+            self._object.SoundStatus( name, "stopped", {} )
 
     def task_panic( self, ok_cb, error_cb ):
         logger.info( "AlsaPlayer stopping all sounds" )
@@ -327,6 +329,7 @@ class AlsaPlayer( Player ):
             p, loop, length = value
             p.shutdown()
             del self.sounds[key]
+            self._object.SoundStatus( key, "stopped", {} )
         ok_cb()
 
     def _onPlayingFinished( self, pid, exitcode, exitsignal ):
@@ -342,7 +345,8 @@ class AlsaPlayer( Player ):
                     logger.debug( "AlsaPlayer restarting sound %s due to loop value" % key )
                     p.execute( onExit = self._onPlayingFinished )
                 else:
-                    del self.sounds[name]
+                    del self.sounds[key]
+                    self._object.SoundStatus( key, "stopped", {} )
 
 #----------------------------------------------------------------------------#
 class AlsaScenarios( object ):
