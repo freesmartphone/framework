@@ -30,6 +30,7 @@ class EzxMuxChannel( AbstractModemChannel ):
 
         c = self._commands["init"]
         # GSM unsolicited
+        c.append( '+USBSTAT=255,1' )           # charge
         c.append( '+CLIP=1' ) # calling line identification presentation enable
         c.append( '+COLP=1' ) # connected line identification presentation enable
         c.append( '+CCWA=1' ) # call waiting
@@ -67,7 +68,7 @@ class MiscChannel( EzxMuxChannel ):
         c.append( "+EPMS?" )
         c.append( "+EMGL=4" )
 
-    def simReadyNow( self, *args, **kwargs ):
+    def modemStateSimUnlocked( self, *args, **kwargs ):
         # we _should_ be ready now, alas we can't check for sure :(
         self._modem._object.ReadyStatus( True )
 
