@@ -111,17 +111,19 @@ class SIMMessageBackendFSO(Backend):
         self._entry_ids.append(entry_id)
 
 
-    def process_spliten_entries(self, entries):
+    def process_split_entries(self, entries):
         last_msg = []
         text_msg = ''
         ids = []
+        max_id = -1
 
         for i in range(1, len(entries)+1):
             for msg in entries:
                 if msg[4]['csm_seq']==i:
                     text_msg += msg[3]
                     ids.append(msg[0])
-                    if i==len(entries):
+                    if i>max_id:
+                        max_id=i
                         last_msg = msg
 
         last_msg[4]['combined_message'] = True
@@ -158,7 +160,7 @@ class SIMMessageBackendFSO(Backend):
                 if len(entry[3]) == 0: continue
                 self.process_single_entry([[message[0][0]],message[0][1],message[0][2],message[0][3],message[0][4]])
             else:
-                self.process_spliten_entries(message)
+                self.process_split_entries(message)
 
 
     def process_incoming_entry(self, entry):
