@@ -10,7 +10,7 @@ Package: ogsmd.modems.qualcomm_msm
 Module: modem
 """
 
-__version__ = "1.1.0"
+__version__ = "1.1.1"
 MODULE_NAME = "ogsmd.modems.qualcomm_msm.modem"
 
 import mediator
@@ -45,7 +45,7 @@ class QualcommMsm( AbstractModem ):
             "local",
             'noipdefault',
             'novj',
-            "novjcomp",
+            "novjccomp",
             #'persist',
             'proxyarp',
             'replacedefaultroute',
