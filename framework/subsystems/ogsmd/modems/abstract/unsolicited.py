@@ -106,10 +106,6 @@ class AbstractUnsolicitedResponseDelegate( object ):
         if len( values ) >= 3:
             status["lac"] = values[1].strip( '"' ).decode(charset)
             status["cid"] = values[2].strip( '"' ).decode(charset)
-        if len( values ) == 4:
-            status["act"] = const.REGISTER_ACT[int(values[3])]
-        else: # AcT defaults to GSM
-            status["act"] = const.REGISTER_ACT[ 0 ]
         self._object.NetworkStatus( status )
 
     # +CREG: 1,"000F","032F"
@@ -124,11 +120,6 @@ class AbstractUnsolicitedResponseDelegate( object ):
         if len( values ) >= 3:
             self.lac = values[1].strip( '"' ).decode(charset)
             self.cid = values[2].strip( '"' ).decode(charset)
-        if len( values ) == 4:
-            self.act = const.REGISTER_ACT[int(values[3])]
-        else: # AcT defaults to GSM
-            self.act = const.REGISTER_ACT[ 0 ]
-
         self._mediator.NetworkGetStatus( self._object, self.statusOK, self.statusERR )
 
     # +CLIP: "+496912345678",145,,,,0
@@ -240,7 +231,6 @@ class AbstractUnsolicitedResponseDelegate( object ):
             status["lac"] = self.lac
         if self.cid is not None:
             status["cid"] = self.cid
-        status["act"] = self.act
         self._object.Status( status ) # send dbus signal
 
     def statusERR( self, values ):
