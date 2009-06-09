@@ -198,8 +198,6 @@ class IdleNotifier( dbus.service.Object ):
         if not state in self.validStates:
             raise InvalidState( "valid states are: %s" % self.validStates )
         else:
-            if self.timeout is not None:
-                gobject.source_remove( self.timeout )
             self.setState( state )
 
 #=========================================================================#
