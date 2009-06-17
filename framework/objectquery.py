@@ -10,7 +10,7 @@ freesmartphone.org: Framework Support Object
 GPLv2 or later
 """
 
-__version__ = "0.6.0"
+__version__ = "0.6.1"
 
 try:
     from .__version__ import version
@@ -19,7 +19,7 @@ except ImportError:
 
 from .introspection import process_introspection_data
 from .config import DBUS_INTERFACE_PREFIX
-from framework.patterns import tasklet
+from framework.patterns import tasklet, dbuscache
 
 import gobject
 import dbus, dbus.service
@@ -68,8 +68,10 @@ class Framework( dbus.service.Object ):
         self.controller = controller
 
     def _getInterfaceForObject( self, object, interface ):
-        obj = self.bus.get_object( "org.freesmartphone.frameworkd", object )
-        return dbus.Interface( obj, interface )
+        return dbuscache.dbusInterfaceForObjectWithInterface(
+            "org.freesmartphone.frameworkd",
+            object,
+            interface )
 
     def _shutdownFramework( self ):
         self.controller.shutdown()
