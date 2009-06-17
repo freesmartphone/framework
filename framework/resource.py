@@ -17,6 +17,7 @@ __version__ = "0.5.2"
 
 from framework.config import config
 from framework.patterns import decorator, asyncworker
+from framework.helpers import exceptionlogger
 
 import gobject
 import dbus.service
@@ -174,6 +175,7 @@ class Resource( dbus.service.Object, asyncworker.SynchronizedAsyncWorker ):
 
         gobject.idle_add( on_idle, self )
 
+    @exceptionlogger
     def onProcessElement( self, element ):
         command, ok_callback, err_callback = element
         logger.debug( "processing command '%s' for resource '%s' (present status=%s)", command, self, self._resourceStatus )
