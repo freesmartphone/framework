@@ -13,7 +13,7 @@ Module: fso_actions
 
 """
 
-__VERSION__ = "0.5.0.0"
+__VERSION__ = "0.5.1.0"
 MODULE_NAME = "oeventsd"
 
 import framework.patterns.tasklet as tasklet
@@ -210,25 +210,95 @@ class OccupyResourceAction(Action):
 #============================================================================#
     function_name = 'OccupyResource'
 
-    def __init__(self, resource):
+    usageiface = None
+    pending = {}
+    held = {}
+
+    @classmethod
+    def onResourceAvailable( cls, name, state ):
+        if state:
+            cls.updatePending( name )
+        # FIXME handle vanishing resources...
+
+    @classmethod
+    def updatePending( cls, name ):
+        try:
+            counter = cls.pending[name]
+        except KeyError:
+            pass
+        else:
+            if counter > 0:
+                cls.usageiface.RequestResource( name,
+                        reply_handler = lambda cls=cls,name=name: cls.onResourceRequestReply( name ),
+                        error_handler = lambda cls=cls,name=name, e=None: cls.onResourceRequestError( name, e ) )
+            else:
+                cls.usageiface.ReleaseResource( name,
+                        reply_handler = lambda cls=cls,name=name: cls.onResourceReleaseReply( name ),
+                        error_handler = lambda cls=cls,name=name, e=None: cls.onResourceReleaseError( name, e ) )
+
+    @classmethod
+    def onResourceRequestReply( cls, name ):
+        logger.debug( "onResourceRequestReply: %s" % name )
+        amount = cls.pending[name]
+        del cls.pending[name]
+        cls.held[name] = amount
+
+    @classmethod
+    def onResourceRequestError( cls, name, e ):
+        logger.debug( "onResourceRequestError: %s: %s" % ( name, e ) )
+
+    @classmethod
+    def onResourceReleaseReply( cls, name ):
+        logger.debug( "onResourceReleaseReply: %s" % name )
+        del cls.pending[name]
+
+    @classmethod
+    def onResourceReleaseError( cls, name, e ):
+        logger.debug( "onResourceReleaseError: %s: %s" % ( name, e ) )
+
+    def __init__( self, resource ):
         self.resource = resource
 
-    def trigger(self, **kargs):
-        DBusAction(dbus.SystemBus(),
-                    'org.freesmartphone.ousaged',
-                    '/org/freesmartphone/Usage',
-                    'org.freesmartphone.Usage',
-                    'RequestResource', self.resource).trigger()
+        if self.usageiface is None:
+            self.__class__.usageiface = dbuscache.dbusInterfaceForObjectWithInterface( \
+                    "org.freesmartphone.ousaged",
+                    "/org/freesmartphone/Usage",
+                    "org.freesmartphone.Usage" )
+            self.__class__.usageiface.connect( "ResourceAvailable", self.__class__.onResourceAvailable )
 
-    def untrigger(self, **kargs):
-        DBusAction(dbus.SystemBus(),
-                    'org.freesmartphone.ousaged',
-                    '/org/freesmartphone/Usage',
-                    'org.freesmartphone.Usage',
-                    'ReleaseResource', self.resource).trigger()
-
-    def __repr__(self):
+    def __repr__( self ):
         return "OccupyResource(%s)" % ( self.resource )
+
+    def trigger( self, **kargs ):
+        if self.resource in self.__class__.pending:
+            self.__class__.pending[self.resource] = self.__class__.pending[self.resource] + 1
+
+        elif self.resource in self.__class__.held:
+            self.__class__.held[self.resource] = self.__class__.held[self.resource] + 1
+
+        else:
+            self.__class__.pending[self.resource] = 1
+            self.__class__.updatePending( self.resource )
+
+    def untrigger( self, **kargs ):
+        if self.resource in self.__class__.pending:
+            counter = self.__class__.pending[self.resource]
+            if counter > 1:
+                self.__class__.pending[self.resource] = counter - 1
+            else:
+                del self.__class__.pending[self.resource]
+
+        elif self.resource in self.__class__.held:
+            counter = self.__class__.held[self.resource]
+            if counter > 1:
+                self.__class__.held[self.resource] = counter - 1
+            else:
+                del self.__class__.held[self.resource]
+                self.__class__.pending[self.resource] = 0
+                self.__class__.updatePending( self.resource )
+
+        else:
+            logger.error( "Untrigger for resource %s before trigger!? Ignoring..." % self.resource )
 
 #=========================================================================#
 class UserAlertAction(Action):
