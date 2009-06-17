@@ -72,9 +72,13 @@ if __name__ == "__main__":
     c = controller.Controller( "%s/subsystems" % os.path.dirname( controller.__file__ ), options )
 
     if options.values.loophole:
-        from patterns import loophole
-        print "LoopHole listening on port 8822"
-        l = loophole.LoopHole( dict( controller=c ) )
+        try:
+            from patterns import loophole
+        except ImportError, e:
+            print "Can't launch loophole: %s", e
+        else:
+            l = loophole.LoopHole( dict( controller=c ) )
+            print "LoopHole listening on port 8822"
 
     try:
         if options.values.profile:
