@@ -13,7 +13,7 @@ Module: resource
 """
 
 MODULE_NAME = "frameworkd.resource"
-__version__ = "0.5.2"
+__version__ = "0.5.2.1"
 
 from framework.config import config
 from framework.patterns import decorator, asyncworker
@@ -55,7 +55,7 @@ def checkedsyncmethod(f, *args, **kw):
     if self._resourceStatus == "enabled":
         return f(*args, **kw)
     else:
-        dbus_error( ResourceNotEnabled( "Resource %s is not enabled, current status is '%s'" % ( self.__class__.__name__, self._resourceStatus ) ) )
+        raise ResourceNotEnabled( "Resource %s is not enabled, current status is '%s'" % ( self.__class__.__name__, self._resourceStatus ) )
 
 #----------------------------------------------------------------------------#
 @decorator.decorator
