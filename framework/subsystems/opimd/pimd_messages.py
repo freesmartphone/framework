@@ -18,7 +18,7 @@ from dbus.service import method as dbus_method
 from difflib import SequenceMatcher
 
 from backend_manager import BackendManager
-from backend_manager import PIMB_CAN_ADD_ENTRY, PIMB_CAN_DEL_ENTRY
+from backend_manager import PIMB_CAN_ADD_ENTRY, PIMB_CAN_DEL_ENTRY, PIMB_NEEDS_SYNC
 
 from domain_manager import DomainManager, Domain
 from helpers import *
@@ -1078,9 +1078,7 @@ class MessageDomain(Domain):
                     field[1]=path
 
         for backend_name in backends:
-            try:
-                backend = self._backends[backend_name]
+            backend = self._backends[backend_name]
+            if PIMB_NEEDS_SYNC in backend.properties:
                 backend.sync() # If backend needs - sync entries
-            except:
-                pass
 

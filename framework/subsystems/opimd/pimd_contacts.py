@@ -21,7 +21,7 @@ logger = logging.getLogger('opimd')
 from difflib import SequenceMatcher
 
 from backend_manager import BackendManager
-from backend_manager import PIMB_CAN_ADD_ENTRY, PIMB_CAN_DEL_ENTRY, PIMB_CAN_UPD_ENTRY, PIMB_CAN_UPD_ENTRY_WITH_NEW_FIELD
+from backend_manager import PIMB_CAN_ADD_ENTRY, PIMB_CAN_DEL_ENTRY, PIMB_CAN_UPD_ENTRY, PIMB_CAN_UPD_ENTRY_WITH_NEW_FIELD, PIMB_NEEDS_SYNC
 
 from domain_manager import DomainManager, Domain
 from helpers import *
@@ -930,12 +930,9 @@ class ContactDomain(Domain):
                     field[1]=path
 
         for backend_name in backends:
-            try:
-                backend = self._backends[backend_name]
+            backend = self._backends[backend_name]
+            if PIMB_NEEDS_SYNC in backend.properties:
                 backend.sync() # If backend needs - sync entries
-            except:
-                pass
-
 
 
     @dbus_method(_DIN_ENTRY, "a{sv}", "", rel_path_keyword="rel_path")
@@ -983,9 +980,8 @@ class ContactDomain(Domain):
                 backend.upd_contact(contact.export_fields(backend_name))
             except AttributeError:
                 raise InvalidBackend( "Backend does not feature upd_contact" )
-            try:
+
+            if PIMB_NEEDS_SYNC in backend.properties:
                 backend.sync() # If backend needs - sync entries
-            except:
-                pass
 
 
