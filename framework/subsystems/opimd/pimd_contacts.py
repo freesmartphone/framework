@@ -385,7 +385,10 @@ class Contact():
                     matcher.set_seq1(comp_value)
                     match = matcher.find_longest_match(0, len(comp_value), 0, seq2_len)
                     match_len = match[2]
-                    field_match = float(match_len) / seq2_len
+                    if seq2_len==0:
+                        field_match = 0.0
+                    else:
+                        field_match = float(match_len) / seq2_len
 
                     if field_match > best_field_match: best_field_match = field_match
                     logger.debug("Contacts: Field match for %s / %s: %f", comp_value, field_value, field_match)
