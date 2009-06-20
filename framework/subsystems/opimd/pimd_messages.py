@@ -18,7 +18,7 @@ from dbus.service import method as dbus_method
 from difflib import SequenceMatcher
 
 from backend_manager import BackendManager
-from backend_manager import PIMB_CAN_ADD_ENTRY
+from backend_manager import PIMB_CAN_ADD_ENTRY, PIMB_CAN_DEL_ENTRY
 
 from domain_manager import DomainManager, Domain
 from helpers import *
@@ -1046,4 +1046,41 @@ class MessageDomain(Domain):
         folder_id = self.get_folder_id_from_name(new_folder_name)
         folder = self._folders[folder_id]
         folder.register_message(num_id)
+
+
+    @dbus_method(_DIN_ENTRY, "", "", rel_path_keyword="rel_path")
+    def Delete(self, rel_path):
+        num_id = int(rel_path[1:])
+
+        # Make sure the requested message exists
+        if num_id >= len(self._messages):
+            raise InvalidMessageID()
+
+        backends = self._messages[num_id]._used_backends
+
+        for backend_name in backends:
+            backend = self._backends[backend_name]
+            if not PIMB_CAN_DEL_ENTRY in backend.properties:
+                raise InvalidBackend( "Backend properties not including PIMB_CAN_DEL_ENTRY" )
+
+            try:
+                backend.del_message(self._messages[num_id].export_fields(backend_name))
+            except AttributeError:
+                raise InvalidBackend( "Backend does not feature del_messages" )
+
+        del self._messages[num_id]
+
+        # update Path fields, as IDs may be changed
+        for id in range(0,len(self._messages)):
+            path = _DBUS_PATH_MESSAGES+ '/' + str(id)
+            for field in self._messages[id]._fields:
+                if field[0]=='Path':
+                    field[1]=path
+
+        for backend_name in backends:
+            try:
+                backend = self._backends[backend_name]
+                backend.sync() # If backend needs - sync entries
+            except:
+                pass
 

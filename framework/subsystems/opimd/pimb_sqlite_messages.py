@@ -146,15 +146,17 @@ class SQLiteMessagesBackend(Backend):
             self._entry_ids.append(entry_id)
         cur.close()
 
-
     def del_message(self, message_data):
         cur = self.con.cursor()
-        messageId = int(message_data['_backend_entry_id'])
+        for (field_name, field_value) in message_data:
+            if field_name=='_backend_entry_id':
+                messageId=field_value
         cur.execute('UPDATE messages SET deleted=1 WHERE id=?',(messageId,))
-        #    cur.execute('DELETE FROM messages WHERE id=?',(messageId,))
-        #    cur.execute('DELETE FROM message_values WHERE messageId=?',(messageId,))
+    #    cur.execute('DELETE FROM messages WHERE id=?',(messageId,))
+    #    cur.execute('DELETE FROM message_values WHERE messageId=?',(messageId,))
         self.con.commit()
         cur.close()
+
 
     def upd_message(self, message_data, field, value):
         reqfields = ['Source', 'Date', 'Direction', 'Title', 'Sender', 'TransmitLoc', 'Content', 'read', 'sent']
