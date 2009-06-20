@@ -17,6 +17,9 @@ from dbus.service import method as dbus_method
 
 from difflib import SequenceMatcher
 
+import logging
+logger = logging.getLogger('opimd')
+
 from backend_manager import BackendManager
 from backend_manager import PIMB_CAN_ADD_ENTRY, PIMB_CAN_DEL_ENTRY, PIMB_NEEDS_SYNC
 
@@ -842,6 +845,8 @@ class MessageDomain(Domain):
         @param backend Backend objects that requests the registration
         @param message Message data; format: [Key:Value, Key:Value, ...]"""
 
+        logger.debug("Registering message...")
+
         message_id = -1
 
         # Check if the message can be merged with one we already know of
@@ -887,6 +892,36 @@ class MessageDomain(Domain):
 
         return message_id
 
+
+    def register_incoming_message(self, backend, message_data, stored_on_input_backend = True):
+        logger.debug("Registering incoming message...")
+        if stored_on_input_backend:
+            message_id = self.register_message(backend, message_data)
+        else:
+            # FIXME: now it's just copied from Add method.
+            # Make some checking, fallbacking etc.
+
+            dbackend = BackendManager.get_default_backend(_DOMAIN_NAME)
+            result = ""
+
+            if not PIMB_CAN_ADD_ENTRY in dbackend.properties:
+            #    raise InvalidBackend( "This backend does not feature PIMB_CAN_ADD_ENTRY" )
+                 return -1
+
+            try:
+                message_id = dbackend.add_message(message_data)
+            except AttributeError:
+            #    raise InvalidBackend( "This backend does not feature add_message" )
+                 return -1
+
+            message = self._messages[message_id]
+            result = message['Path']
+
+            # As we just added a new message, we check it against all queries to see if it matches
+            self.query_manager.check_new_message(message_id)
+
+        self.IncomingMessage(_DBUS_PATH_MESSAGES+ '/' + str(message_id))
+        return message_id
 
     def enumerate_items(self, backend):
         """Enumerates all message data belonging to a specific backend
@@ -990,6 +1025,10 @@ class MessageDomain(Domain):
 
     @dbus_signal(_DIN_MESSAGES, "s")
     def NewMessage(self, message_URI):
+        pass
+
+    @dbus_signal(_DIN_MESSAGES, "s")
+    def IncomingMessage(self, message_URI):
         pass
 
     def check_message_id_ok( self, num_id ):

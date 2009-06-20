@@ -28,6 +28,7 @@ from dbus import SystemBus
 from dbus.proxies import Interface
 from dbus.exceptions import DBusException
 from gobject import timeout_add
+from functools import partial
 
 import logging
 logger = logging.getLogger('opimd')
@@ -83,10 +84,12 @@ class SIMMessageBackendFSO(Backend):
     def dbus_err(self, *args, **kargs):
         pass
 
-    def process_single_entry(self, data):
+    def process_single_entry(self, data, incoming = False):
         (sim_entry_id, status, number, text, props) = data
         entry = {}
-        
+
+        logger.debug("Processing entry \"%s\"...", text)
+
         entry['Direction'] = 'in' if status in ('read', 'unread') else 'out'
         
         if status == 'read': entry['MessageRead'] = 1
@@ -105,11 +108,19 @@ class SIMMessageBackendFSO(Backend):
         for field in props:
             entry['_backend_'+field] = props[field]
 
-        entry['_backend_entry_id'] = sim_entry_id
+        if sim_entry_id!=-1:
+            entry['_backend_entry_id'] = sim_entry_id
 
-        entry_id = self._domain_handlers['Messages'].register_message(self, entry)
-        self._entry_ids.append(entry_id)
-
+        if not incoming:
+            logger.debug("Message was already stored")
+            entry_id = self._domain_handlers['Messages'].register_message(self, entry)
+            self._entry_ids.append(entry_id)
+        else:
+            logger.debug("Message is incoming!")
+            entry_id = self._domain_handlers['Messages'].register_incoming_message(self, entry, self.am_i_default())
+            if self.am_i_default():
+                logger.debug("Storing message on SIM")
+                self._entry_ids.append(entry_id)
 
     def process_split_entries(self, entries):
         last_msg = []
@@ -140,6 +151,7 @@ class SIMMessageBackendFSO(Backend):
         msg_cache = {}
 
         for entry in entries:
+
             cid = ''
             try:
                 cid = entry[4]['csm_id']
@@ -162,45 +174,60 @@ class SIMMessageBackendFSO(Backend):
             else:
                 self.process_split_entries(message)
 
-
-    def process_incoming_entry(self, entry):
-        self.process_single_entry(entry)
+    def process_incoming_stored_entry(self, status, number, text, props, message_id):
+        self.process_single_entry((message_id, status, number, text, props), True)
 
     @tasklet.tasklet
     def load_entries(self):
         bus = SystemBus()
+
+        logger.debug("%s: Am I default? %s", self.name, str(self.am_i_default()))
         
         try:
             self.gsm = bus.get_object('org.freesmartphone.ogsmd', '/org/freesmartphone/GSM/Device')
             self.gsm_sim_iface = Interface(self.gsm, 'org.freesmartphone.GSM.SIM')
-            
+            self.gsm_sms_iface = Interface(self.gsm, 'org.freesmartphone.GSM.SMS')
+            self.gsm_device_iface = Interface(self.gsm, 'org.freesmartphone.GSM.Device')
+
             entries = yield tasklet.WaitDBus(self.gsm_sim_iface.RetrieveMessagebook, 'all')
             self.process_all_entries(entries)
-            self.install_signal_handlers()
+            self.gsm_device_iface.SetSimBuffersSms(self.am_i_default(), reply_handler=self.dbus_ok, error_handler=self.dbus_err)
 
+            self.install_signal_handlers()
         except DBusException, e:
             logger.warning("%s: Could not request SIM messagebook from ogsmd (%s)", self.name, e)
-            self.install_signal_handlers()
+            logger.info("%s: Waiting for SIM being ready...", self.name)
+            try:
+                self.gsm_sim_iface.connect_to_signal("ReadyStatus", self.handle_sim_ready)
+            except:
+                logger.error("%s: Could not install signal handlers!", self.name)
 
-
-
-    def handle_incoming_message(self, message_id):
+    def handle_incoming_stored_message(self, message_id):
         self.gsm_sim_iface.RetrieveMessage(
             message_id,
-            reply_handler=self.process_incoming_entry,
+            reply_handler=partial(self.process_incoming_stored_entry, message_id=message_id),
             error_handler=self.dbus_err
             )
+
+    def handle_incoming_message(self, number, text, props):
+        self.process_single_entry((-1, "unread", number, text, props), True)
+        self.gsm_sms_iface.AckMessage('', {}, reply_handler=self.dbus_ok, error_handler=self.dbus_err)
 
     def install_signal_handlers(self):
         """Hooks to some d-bus signals that are of interest to us"""
         try:
-            self.gsm_sim_iface.connect_to_signal("ReadyStatus", self.handle_sim_ready)
-            #self.gsm_sim_iface.connect_to_signal("IncomingStoredMessage", self.handle_incoming_message) //TODO: FIXME
+            self.gsm_sms_iface.connect_to_signal("IncomingMessage", self.handle_incoming_message)
+            self.gsm_sim_iface.connect_to_signal("IncomingStoredMessage", self.handle_incoming_stored_message)
         except:
             logger.error("%s: Could not install signal handlers!", self.name)
+
+    def am_i_default(self):
+        default_backend = BackendManager.get_default_backend('Messages')
+        if default_backend:
+            return default_backend.name==self.name
+        else:
+            return True
 
     def handle_sim_ready(self, ready):
         if ready:
             self.load_entries().start()
-
-
