@@ -13,7 +13,7 @@ Module: fso_actions
 
 """
 
-__VERSION__ = "0.5.1.0"
+__VERSION__ = "0.5.1.1"
 MODULE_NAME = "oeventsd"
 
 import framework.patterns.tasklet as tasklet
@@ -264,7 +264,7 @@ class OccupyResourceAction(Action):
                     "org.freesmartphone.ousaged",
                     "/org/freesmartphone/Usage",
                     "org.freesmartphone.Usage" )
-            self.__class__.usageiface.connect( "ResourceAvailable", self.__class__.onResourceAvailable )
+            self.__class__.usageiface.connect_to_signal( "ResourceAvailable", self.__class__.onResourceAvailable )
 
     def __repr__( self ):
         return "OccupyResource(%s)" % ( self.resource )
