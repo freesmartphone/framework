@@ -106,7 +106,7 @@ class SIMMessageBackendFSO(Backend):
         entry['Folder'] = config.getValue('opimd', 'sim_messages_default_folder', default='SMS')
         
         for field in props:
-            entry['_backend_'+field] = props[field]
+            entry['_sms_'+field] = props[field]
 
         if sim_entry_id!=-1:
             entry['_backend_entry_id'] = sim_entry_id
