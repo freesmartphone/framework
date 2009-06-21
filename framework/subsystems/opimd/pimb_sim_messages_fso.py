@@ -65,6 +65,9 @@ class SIMMessageBackendFSO(Backend):
         super(SIMMessageBackendFSO, self).__init__()
         self._domain_handlers = {}
         self._entry_ids = []
+
+        self.signals = False
+        self.ready_signal = False
         
         for domain in _DOMAINS:
             self._domain_handlers[domain] = DomainManager.get_domain_handler(domain)
@@ -197,10 +200,12 @@ class SIMMessageBackendFSO(Backend):
         except DBusException, e:
             logger.warning("%s: Could not request SIM messagebook from ogsmd (%s)", self.name, e)
             logger.info("%s: Waiting for SIM being ready...", self.name)
-            try:
-                self.gsm_sim_iface.connect_to_signal("ReadyStatus", self.handle_sim_ready)
-            except:
-                logger.error("%s: Could not install signal handlers!", self.name)
+            if not self.ready_signal:
+                try:
+                    self.gsm_sim_iface.connect_to_signal("ReadyStatus", self.handle_sim_ready)
+                    self.ready_signal = True
+                except:
+                    logger.error("%s: Could not install signal handler!", self.name)
 
     def handle_incoming_stored_message(self, message_id):
         self.gsm_sim_iface.RetrieveMessage(
@@ -215,11 +220,13 @@ class SIMMessageBackendFSO(Backend):
 
     def install_signal_handlers(self):
         """Hooks to some d-bus signals that are of interest to us"""
-        try:
-            self.gsm_sms_iface.connect_to_signal("IncomingMessage", self.handle_incoming_message)
-            self.gsm_sim_iface.connect_to_signal("IncomingStoredMessage", self.handle_incoming_stored_message)
-        except:
-            logger.error("%s: Could not install signal handlers!", self.name)
+        if not self.signals:
+            try:
+                self.gsm_sms_iface.connect_to_signal("IncomingMessage", self.handle_incoming_message)
+                self.gsm_sim_iface.connect_to_signal("IncomingStoredMessage", self.handle_incoming_stored_message)
+                self.signals = True
+            except:
+                logger.error("%s: Could not install signal handlers!", self.name)
 
     def am_i_default(self):
         default_backend = BackendManager.get_default_backend('Messages')
