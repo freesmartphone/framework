@@ -919,7 +919,7 @@ class MessageDomain(Domain):
 
             # As we just added a new message, we check it against all queries to see if it matches
             self.query_manager.check_new_message(message_id)
-
+            
         self.IncomingMessage(_DBUS_PATH_MESSAGES+ '/' + str(message_id))
         return message_id
 
@@ -1041,7 +1041,7 @@ class MessageDomain(Domain):
     @dbus_method(_DIN_ENTRY, "", "a{sv}", rel_path_keyword="rel_path")
     def GetContent(self, rel_path):
         num_id = int(rel_path[1:])
-        self.check_message_id_ok()
+        self.check_message_id_ok(num_id)
 
         return self._messages[num_id].get_content()
 
@@ -1049,7 +1049,7 @@ class MessageDomain(Domain):
     @dbus_method(_DIN_ENTRY, "s", "a{sv}", rel_path_keyword="rel_path")
     def GetMultipleFields(self, field_list, rel_path):
         num_id = int(rel_path[1:])
-        self.check_message_id_ok()
+        self.check_message_id_ok(num_id)
 
         # Break the string up into a list
         fields = field_list.split(',')
@@ -1070,7 +1070,7 @@ class MessageDomain(Domain):
         @param new_folder_name Name of new folder
         @param rel_path Relative part of D-Bus object path, e.g. '/4'"""
         num_id = int(rel_path[1:])
-        self.check_message_id_ok()
+        self.check_message_id_ok(num_id)
 
         message = self._messages[num_id]
 
