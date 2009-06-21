@@ -59,6 +59,10 @@ class MessageQueryMatcher(object):
 
         self.query_obj = query
 
+    def single_message_matches(self, message):
+        #FIXME: IMPLEMENT ME!
+
+        return False
 
     def match(self, messages):
         """Tries to match a given set of messages to the current query
@@ -573,7 +577,7 @@ class SingleQueryHandler(object):
         result = False
 
         matcher = MessageQueryMatcher(self.query)
-        if matcher.single_message_matches():
+        if matcher.single_message_matches(self._messages):
             self.entries = matcher.match(self._messages)
 
             # TODO Register with the new message to receive changes
