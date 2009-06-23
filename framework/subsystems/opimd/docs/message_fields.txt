@@ -1,3 +1,4 @@
+* NOTE! * This document is outdated and needs to be updated. Please don't be suggested with it at actual state.
 
 ----- Messages ---------------------------------------------------------------
 
@@ -33,4 +34,5 @@ Text		0-1		Text			none or file:// or dbus://
 
 Message read?	0-1		MessageRead		0 or 1
 Message sent?	0-1		MessageSent		0 or 1
+Processing now?	0-1		Processing		0 or 1
 Folder

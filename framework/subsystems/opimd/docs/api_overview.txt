@@ -26,12 +26,13 @@ PIM/
    + n					OK	.PIM.Message
      - GetContent()			OK
      - GetMultipleFields()		OK
-     - Update()				--
-     - Delete()				--
+     - Update()				OK
+     - Delete()				OK
      - MoveToFolder()			OK
      + OnDemandAttachments/		--
        + n				--
    * NewMessage				OK
+   * IncomingMessage 			OK
 
  + Contacts/				OK	.PIM.Contacts
    - Add()				OK
