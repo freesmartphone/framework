@@ -21,7 +21,7 @@ import logging
 logger = logging.getLogger('opimd')
 
 from backend_manager import BackendManager
-from backend_manager import PIMB_CAN_ADD_ENTRY, PIMB_CAN_DEL_ENTRY, PIMB_NEEDS_SYNC
+from backend_manager import PIMB_CAN_ADD_ENTRY, PIMB_CAN_UPD_ENTRY, PIMB_CAN_UPD_ENTRY_WITH_NEW_FIELD, PIMB_CAN_DEL_ENTRY, PIMB_NEEDS_SYNC
 
 from domain_manager import DomainManager, Domain
 from helpers import *
@@ -61,7 +61,6 @@ class MessageQueryMatcher(object):
 
     def single_message_matches(self, message):
         #FIXME: IMPLEMENT ME!
-
         return False
 
     def match(self, messages):
@@ -577,7 +576,7 @@ class SingleQueryHandler(object):
         result = False
 
         matcher = MessageQueryMatcher(self.query)
-        if matcher.single_message_matches(self._messages):
+        if matcher.single_message_matches(message_id):
             self.entries = matcher.match(self._messages)
 
             # TODO Register with the new message to receive changes
@@ -1089,6 +1088,55 @@ class MessageDomain(Domain):
         folder_id = self.get_folder_id_from_name(new_folder_name)
         folder = self._folders[folder_id]
         folder.register_message(num_id)
+
+    @dbus_method(_DIN_ENTRY, "a{sv}", "", rel_path_keyword="rel_path")
+    def Update(self, data, rel_path):
+        num_id = int(rel_path[1:])
+
+        # Make sure the requested message exists
+        if num_id >= len(self._messages):
+            raise InvalidContactID()
+
+        message = self._messages[num_id]
+
+        default_backend = BackendManager.get_default_backend(_DOMAIN_NAME)
+
+        # Search for backend in which we can store new fields
+        backend = ''
+        if default_backend.name in message._used_backends:
+            backend = default_backend.name
+        else:
+            for backend_name in message._used_backends:
+                if PIMB_CAN_UPD_ENTRY_WITH_NEW_FIELD in self._backends[backend_name].properties:
+                    backend = self._backends[backend_name]
+                    break
+
+        # TODO: implement adding new data to backend, which doesn't incorporate message data
+        # For instance: we have SIM message. We want to add "Folder" field.
+        # opimd should then try to add "Folder" field to default backend and then merge messages.
+
+        for field_name in data:
+            if not field_name in message._field_idx:
+                if backend!='':
+                    message.import_fields({field_name:data[field_name]}, backend)
+                else:
+                    raise InvalidBackend( "There is no backend which can store new field" )
+            elif not field_name.startswith('_'):
+                for field_nr in message._field_idx[field_name]:
+                    if message[field_name]!=data[field_name]:
+                        message._fields[field_nr][1]=data[field_name]
+
+        for backend_name in message._used_backends:
+            backend = self._backends[backend_name]
+            if not PIMB_CAN_UPD_ENTRY in backend.properties:
+                raise InvalidBackend( "Backend properties not including PIMB_CAN_UPD_ENTRY" )
+            try:
+                backend.upd_message(message.export_fields(backend_name))
+            except AttributeError:
+                raise InvalidBackend( "Backend does not feature upd_message" )
+
+            if PIMB_NEEDS_SYNC in backend.properties:
+                backend.sync() # If backend needs - sync entries
 
 
     @dbus_method(_DIN_ENTRY, "", "", rel_path_keyword="rel_path")

@@ -157,20 +157,22 @@ class SQLiteMessagesBackend(Backend):
         self.con.commit()
         cur.close()
 
-
-    def upd_message(self, message_data, field, value):
+    def upd_message(self, message_data):
         reqfields = ['Source', 'Date', 'Direction', 'Title', 'Sender', 'TransmitLoc', 'Content', 'read', 'sent']
         cur = self.con.cursor()
-        messageId = int(message_data['_backend_entry_id'])
-        if field in reqfields:
-            cur.execute('UPDATE messages SET '+field+'=? WHERE id=?',(value,messageId))
-        else:
-            cur.execute('SELECT id FROM contact_values WHERE contactId=? AND field=?',(line[0],field))
-            if cur.fetchone() == None:
-                cur.execute('INSERT message_values (field,value,messageId) VALUES (?,?,?)',(field,value,messageId))
+        for (field, value) in message_data:
+            if field=='_backend_entry_id':
+                messageId=value
+        for (field, value) in message_data:
+            if field in reqfields:
+                cur.execute('UPDATE messages SET '+field+'=? WHERE id=?',(value,messageId))
             else:
-                cur.execute('UPDATE message_values SET value=? WHERE field=? AND messageId=?',(value,field,messageId))
-        cur.execute('UPDATE messages SET updated=1 WHERE id=?',(contactId,))
+                cur.execute('SELECT id FROM message_values WHERE messageId=? AND field=?',(messageId,field))
+                if cur.fetchone() == None:
+                    cur.execute('INSERT INTO message_values (field,value,messageId) VALUES (?,?,?)',(field,value,messageId))
+                else:
+                    cur.execute('UPDATE message_values SET value=? WHERE field=? AND messageId=?',(value,field,messageId))
+        cur.execute('UPDATE messages SET updated=1 WHERE id=?',(messageId,))
         self.con.commit()
         cur.close()
 
