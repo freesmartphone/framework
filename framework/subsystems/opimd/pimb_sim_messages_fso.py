@@ -202,7 +202,8 @@ class SIMMessageBackendFSO(Backend):
             logger.info("%s: Waiting for SIM being ready...", self.name)
             if not self.ready_signal:
                 try:
-                    self.gsm_sim_iface.connect_to_signal("ReadyStatus", self.handle_sim_ready)
+                    bus.add_signal_receiver(self.handle_sim_ready, bus_name='org.freesmartphone.ogsmd', interface_keyword='iface', member_keyword='signal')
+                    #self.gsm_sim_iface.connect_to_signal("ReadyStatus", self.handle_sim_ready)
                     self.ready_signal = True
                 except:
                     logger.error("%s: Could not install signal handler!", self.name)
@@ -235,6 +236,7 @@ class SIMMessageBackendFSO(Backend):
         else:
             return True
 
-    def handle_sim_ready(self, ready):
-        if ready:
-            self.load_entries().start()
+    def handle_sim_ready(self, *args, **kwargs):
+        if kwargs['signal']=='ReadyStatus' and kwargs['iface']=='org.freesmartphone.GSM.SIM':
+            if args[0]:
+                self.load_entries().start()
