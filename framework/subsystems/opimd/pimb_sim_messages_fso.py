@@ -194,9 +194,10 @@ class SIMMessageBackendFSO(Backend):
 
             entries = yield tasklet.WaitDBus(self.gsm_sim_iface.RetrieveMessagebook, 'all')
             self.process_all_entries(entries)
-            self.gsm_device_iface.SetSimBuffersSms(self.am_i_default(), reply_handler=self.dbus_ok, error_handler=self.dbus_err)
 
             self.install_signal_handlers()
+
+            self.gsm_device_iface.SetSimBuffersSms(self.am_i_default(), reply_handler=self.dbus_ok, error_handler=self.dbus_err)
         except DBusException, e:
             logger.warning("%s: Could not request SIM messagebook from ogsmd (%s)", self.name, e)
             logger.info("%s: Waiting for SIM being ready...", self.name)
