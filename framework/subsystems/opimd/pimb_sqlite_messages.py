@@ -200,7 +200,7 @@ class SQLiteMessagesBackend(Backend):
                 message_data[field]=0
 
         cur = self.con.cursor()
-        cur.execute('INSERT INTO messages (Source, Date, Direction, Title, Sender, TransmitLoc, Content, MessageRead, MessageSent, Processing, added) VALUES (?,?,?,?,?,?,?,?,?,?)',(message_data['Source'], message_data['Date'], message_data['Direction'], message_data['Title'], message_data['Sender'], message_data['TransmitLoc'], message_data['Content'], message_data['MessageRead'], message_data['MessageSent'], message_data['Processing'], 1))
+        cur.execute('INSERT INTO messages (Source, Date, Direction, Title, Sender, TransmitLoc, Content, MessageRead, MessageSent, Processing, added) VALUES (?,?,?,?,?,?,?,?,?,?,?)',(message_data['Source'], message_data['Date'], message_data['Direction'], message_data['Title'], message_data['Sender'], message_data['TransmitLoc'], message_data['Content'], message_data['MessageRead'], message_data['MessageSent'], message_data['Processing'], 1))
         cid = cur.lastrowid
         for field in message_data:
             if not field in reqfields:
