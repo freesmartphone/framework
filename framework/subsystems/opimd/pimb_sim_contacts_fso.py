@@ -153,7 +153,7 @@ class SIMContactBackendFSO(Backend):
     def install_signal_handlers(self):
         """Hooks to some d-bus signals that are of interest to us"""
         try:
-            self.bus.add_signal_receiver(self.handle_sim_ready, bus_name='org.freesmartphone.ogsmd', interface_keyword='iface', member_keyword='signal')
+            self.bus.add_signal_receiver(self.handle_sim_ready, signal_name='ReadyStatus', dbus_interface='org.freesmartphone.GSM.SIM', bus_name='org.freesmartphone.ogsmd')
             #self.gsm_sim_iface.connect_to_signal("ReadyStatus", self.handle_sim_ready)
         except:
             logger.error("%s: Could not install signal handlers!", self.name)
@@ -173,12 +173,11 @@ class SIMContactBackendFSO(Backend):
             self.process_entries(contacts)
                 
         except DBusException, e:
-            logger.error("%s: Could not request SIM phonebook from ogsmd : %s", self.name, e)
-            logger.debug("%s: Waiting for SIM being ready...", self.name)
+            logger.warning("%s: Could not request SIM phonebook from ogsmd : %s", self.name, e)
+            logger.info("%s: Waiting for SIM being ready...", self.name)
             self.install_signal_handlers()
 
-    def handle_sim_ready(self, *args, **kwargs):
-        if kwargs['signal']=='ReadyStatus' and kwargs['iface']=='org.freesmartphone.GSM.SIM':
-            if args[0]:
-                self.load_entries().start()
+    def handle_sim_ready(self, ready):
+        if ready:
+            self.load_entries().start()
 
