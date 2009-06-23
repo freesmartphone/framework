@@ -77,10 +77,11 @@ class MessageQueryMatcher(object):
 
         # Match all messages
         for (message_id, message) in enumerate(messages):
-            match = message.match_query(self.query_obj)
-            if match > _MIN_MATCH_TRESHOLD:
-                matches[message_id] = match
-                result_count += 1
+            if message:
+                match = message.match_query(self.query_obj)
+                if match > _MIN_MATCH_TRESHOLD:
+                    matches[message_id] = match
+                    result_count += 1
 
         # Sort matches by relevance and return the best hits
         if result_count > 0:
@@ -933,8 +934,9 @@ class MessageDomain(Domain):
         @return Lists of (field_name,field_value) tuples of all messages that have data from this particular backend"""
 
         for message in self._messages:
-            if message.incorporates_data_from(backend.name):
-                yield message.export_fields(backend.name)
+            if message:
+                if message.incorporates_data_from(backend.name):
+                    yield message.export_fields(backend.name)
 
 
     @dbus_method(_DIN_MESSAGES, "a{sv}", "s")
@@ -1038,7 +1040,7 @@ class MessageDomain(Domain):
         """
         Checks whether the given message id is valid. Raises InvalidMessageID, if not.
         """
-        if num_id >= len(self._messages):
+        if num_id >= len(self._messages) or self._messages[num_id]==None:
             raise InvalidMessageID()
 
     @dbus_method(_DIN_ENTRY, "", "a{sv}", rel_path_keyword="rel_path")
@@ -1094,8 +1096,8 @@ class MessageDomain(Domain):
         num_id = int(rel_path[1:])
 
         # Make sure the requested message exists
-        if num_id >= len(self._messages):
-            raise InvalidContactID()
+        if num_id >= len(self._messages) or self._messages[num_id]==None:
+            raise InvalidMessageID()
 
         message = self._messages[num_id]
 
@@ -1144,7 +1146,7 @@ class MessageDomain(Domain):
         num_id = int(rel_path[1:])
 
         # Make sure the requested message exists
-        if num_id >= len(self._messages):
+        if num_id >= len(self._messages) or self._messages[num_id]==None:
             raise InvalidMessageID()
 
         backends = self._messages[num_id]._used_backends
@@ -1159,14 +1161,19 @@ class MessageDomain(Domain):
             except AttributeError:
                 raise InvalidBackend( "Backend does not feature del_messages" )
 
-        del self._messages[num_id]
+        #del self._messages[num_id]
+        # Experimental: it may introduce some bugs.
+        message = self._messages[num_id]
+        self._messages[num_id] = None
+        del message
 
-        # update Path fields, as IDs may be changed
-        for id in range(0,len(self._messages)):
-            path = _DBUS_PATH_MESSAGES+ '/' + str(id)
-            for field in self._messages[id]._fields:
-                if field[0]=='Path':
-                    field[1]=path
+        # update Path fields, as IDs may be changed - UGLYYYY!!! */me spanks himself*
+        # Not needed with that "experimental" code above.
+        #for id in range(0,len(self._messages)):
+        #    path = _DBUS_PATH_MESSAGES+ '/' + str(id)
+        #    for field in self._messages[id]._fields:
+        #        if field[0]=='Path':
+        #            field[1]=path
 
         for backend_name in backends:
             backend = self._backends[backend_name]

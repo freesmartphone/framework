@@ -72,10 +72,11 @@ class ContactQueryMatcher(object):
 
         # Match all contacts
         for (contact_id, contact) in enumerate(contacts):
-            match = contact.match_query(self.query_obj)
-            if match > _MIN_MATCH_TRESHOLD:
-                matches[contact_id] = match
-                result_count += 1
+            if contact:
+                match = contact.match_query(self.query_obj)
+                if match > _MIN_MATCH_TRESHOLD:
+                    matches[contact_id] = match
+                    result_count += 1
 
         # Sort matches by relevance and return the best hits
         if result_count > 0:
@@ -789,8 +790,9 @@ class ContactDomain(Domain):
         @return Lists of (field_name,field_value) tuples of all contacts that have data from this particular backend"""
 
         for contact in self._contacts:
-            if contact.incorporates_data_from(backend.name):
-                yield contact.export_fields(backend.name)
+            if contact:
+                if contact.incorporates_data_from(backend.name):
+                    yield contact.export_fields(backend.name)
 
 
     @dbus_method(_DIN_CONTACTS, "a{sv}", "s")
@@ -864,7 +866,7 @@ class ContactDomain(Domain):
         num_id = int(rel_path[1:])
 
         # Make sure the requested contact exists
-        if num_id >= len(self._contacts):
+        if num_id >= len(self._contacts) or self._contacts[num_id]==None:
             raise InvalidContactID()
 
         return self._contacts[num_id].get_content()
@@ -874,7 +876,7 @@ class ContactDomain(Domain):
         num_id = int(rel_path[1:])
                 
         # Make sure the requested contact exists
-        if num_id >= len(self._contacts):
+        if num_id >= len(self._contacts) or self._contacts[num_id]==None:
             raise InvalidContactID()
         
         return self._contacts[num_id]._used_backends
@@ -885,7 +887,7 @@ class ContactDomain(Domain):
         num_id = int(rel_path[1:])
 
         # Make sure the requested contact exists
-        if num_id >= len(self._contacts):
+        if num_id >= len(self._contacts) or self._contacts[num_id]==None:
             raise InvalidContactID()
 
         # Break the string up into a list
@@ -905,7 +907,7 @@ class ContactDomain(Domain):
         num_id = int(rel_path[1:])
 
         # Make sure the requested contact exists
-        if num_id >= len(self._contacts):
+        if num_id >= len(self._contacts) or self._contacts[num_id]==None:
             raise InvalidContactID()
 
         backends = self._contacts[num_id]._used_backends
@@ -920,14 +922,19 @@ class ContactDomain(Domain):
             except AttributeError:
                 raise InvalidBackend( "Backend does not feature del_contact" )
 
-        del self._contacts[num_id]
+        #del self._contacts[num_id]
+        # Experimental: it may introduce some bugs.
+        contact = self._contacts[num_id]
+        self._contacts[num_id] = None
+        del contact
 
-        # update Path fields, as IDs may be changed
-        for id in range(0,len(self._contacts)):
-            path = _DBUS_PATH_CONTACTS+ '/' + str(id)
-            for field in self._contacts[id]._fields:
-                if field[0]=='Path':
-                    field[1]=path
+        # update Path fields, as IDs may be changed - UGLYYYY!!! */me spanks himself*
+        # Not needed with that "experimental" code above.
+        #for id in range(0,len(self._contacts)):
+        #    path = _DBUS_PATH_CONTACTS+ '/' + str(id)
+        #    for field in self._contacts[id]._fields:
+        #        if field[0]=='Path':
+        #            field[1]=path
 
         for backend_name in backends:
             backend = self._backends[backend_name]
@@ -940,7 +947,7 @@ class ContactDomain(Domain):
         num_id = int(rel_path[1:])
 
         # Make sure the requested contact exists
-        if num_id >= len(self._contacts):
+        if num_id >= len(self._contacts) or self._contacts[num_id]==None:
             raise InvalidContactID()
 
         contact = self._contacts[num_id]
