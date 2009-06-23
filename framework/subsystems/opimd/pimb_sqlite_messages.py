@@ -68,8 +68,9 @@ class SQLiteMessagesBackend(Backend):
             Sender TEXT,
             TransmitLoc TEXT,
             Content TEXT,
-            read INTEGER DEFAULT 0,
-            sent INTEGER DEFAULT 0,
+            MessageRead INTEGER DEFAULT 0,
+            MessageSent INTEGER DEFAULT 0,
+            Processing INTEGER DEFAULT 0,
             deleted INTEGER DEFAULT 0,
             added INTEGER DEFAULT 0,
             updated INTEGER DEFAULT 0);""")
@@ -95,6 +96,7 @@ class SQLiteMessagesBackend(Backend):
 
         Message read?	0-1		MessageRead		0 or 1
         Message sent?	0-1		MessageSent		0 or 1
+        Processing now?	0-1		Processing		0 or 1
         Folder
         """
 
@@ -128,9 +130,9 @@ class SQLiteMessagesBackend(Backend):
 
     def load_entries_from_db(self):
         """Loads all entries from db"""
-        keys = {0:'_backend_entry_id', 1:'Source', 2:'Date', 3:'Direction', 4:'Title', 5:'Sender', 6:'TransmitLoc', 7:'Content', 8:'read', 9:'sent'}
+        keys = {0:'_backend_entry_id', 1:'Source', 2:'Date', 3:'Direction', 4:'Title', 5:'Sender', 6:'TransmitLoc', 7:'Content', 8:'MessageRead', 9:'MessageSent', 10:'Processing'}
         cur = self.con.cursor()
-        cur.execute('SELECT id, Source, Date, Direction, Title, Sender, TransmitLoc, Content, read, sent FROM messages WHERE deleted=0')
+        cur.execute('SELECT id, Source, Date, Direction, Title, Sender, TransmitLoc, Content, MessageRead, MessageSent, Processing FROM messages WHERE deleted=0')
         lines = cur.fetchall()
         for line in lines:
             entry = {}
@@ -158,7 +160,7 @@ class SQLiteMessagesBackend(Backend):
         cur.close()
 
     def upd_message(self, message_data):
-        reqfields = ['Source', 'Date', 'Direction', 'Title', 'Sender', 'TransmitLoc', 'Content', 'read', 'sent']
+        reqfields = ['Source', 'Date', 'Direction', 'Title', 'Sender', 'TransmitLoc', 'Content', 'MessageRead', 'MessageSent', 'Processing']
         cur = self.con.cursor()
         for (field, value) in message_data:
             if field=='_backend_entry_id':
@@ -182,7 +184,7 @@ class SQLiteMessagesBackend(Backend):
 
     def add_message_to_db(self, message_data):
         reqfields = ['Source', 'Date', 'Direction', 'Title', 'Sender', 'TransmitLoc', 'Content']
-        reqIntFields = ['read', 'sent']
+        reqIntFields = ['MessageRead', 'MessageSent', 'Processing']
         for field in reqfields:
             try:
                 message_data[field]
@@ -198,7 +200,7 @@ class SQLiteMessagesBackend(Backend):
                 message_data[field]=0
 
         cur = self.con.cursor()
-        cur.execute('INSERT INTO messages (Source, Date, Direction, Title, Sender, TransmitLoc, Content, read, sent, added) VALUES (?,?,?,?,?,?,?,?,?,?)',(message_data['Source'], message_data['Date'], message_data['Direction'], message_data['Title'], message_data['Sender'], message_data['TransmitLoc'], message_data['Content'], message_data['read'], message_data['sent'], 1))
+        cur.execute('INSERT INTO messages (Source, Date, Direction, Title, Sender, TransmitLoc, Content, MessageRead, MessageSent, Processing, added) VALUES (?,?,?,?,?,?,?,?,?,?)',(message_data['Source'], message_data['Date'], message_data['Direction'], message_data['Title'], message_data['Sender'], message_data['TransmitLoc'], message_data['Content'], message_data['MessageRead'], message_data['MessageSent'], message_data['Processing'], 1))
         cid = cur.lastrowid
         for field in message_data:
             if not field in reqfields:
