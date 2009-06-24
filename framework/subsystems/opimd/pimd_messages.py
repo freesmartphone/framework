@@ -855,15 +855,16 @@ class MessageDomain(Domain):
 
         # Check if the message can be merged with one we already know of
         for entry in self._messages:
-            if entry.attempt_merge(message_data, backend.name):
+            if entry:
+                if entry.attempt_merge(message_data, backend.name):
 
-                # Find that entry's ID
-                for (message_idx, message) in enumerate(self._messages):
-                    if message == entry: message_id = message_idx
+                    # Find that entry's ID
+                    for (message_idx, message) in enumerate(self._messages):
+                        if message == entry: message_id = message_idx
+                        break
+
+                    # Stop trying to merge
                     break
-
-                # Stop trying to merge
-                break
         else:
             # Merging failed, so create a new message entry and append it to the list
             message_id = len(self._messages)

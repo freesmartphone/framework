@@ -761,15 +761,16 @@ class ContactDomain(Domain):
 
         # Check if the contact can be merged with one we already know of
         for entry in self._contacts:
-            if entry.attempt_merge(contact_data, backend.name):
+            if entry:
+                if entry.attempt_merge(contact_data, backend.name):
 
-                # Find that entry's ID
-                for (contact_idx, contact) in enumerate(self._contacts):
-                    if contact == entry: contact_id = contact_idx
+                    # Find that entry's ID
+                    for (contact_idx, contact) in enumerate(self._contacts):
+                        if contact == entry: contact_id = contact_idx
+                        break
+
+                    # Stop trying to merge
                     break
-
-                # Stop trying to merge
-                break
         else:
             # Merging failed, so create a new contact entry and append it to the list
             contact_id = len(self._contacts)
