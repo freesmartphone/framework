@@ -781,6 +781,8 @@ class ContactDomain(Domain):
 
             self._contacts.append(contact)
 
+            self.NewContact(path)
+
         return contact_id
 
 
@@ -795,6 +797,10 @@ class ContactDomain(Domain):
                 if contact.incorporates_data_from(backend.name):
                     yield contact.export_fields(backend.name)
 
+
+    @dbus_signal(_DIN_CONTACTS, "s")
+    def NewContact(self, path):
+        pass
 
     @dbus_method(_DIN_CONTACTS, "a{sv}", "s")
     def Add(self, contact_data):
@@ -902,6 +908,9 @@ class ContactDomain(Domain):
 
         return self._contacts[num_id].get_fields(new_field_list)
 
+    @dbus_signal(_DIN_ENTRY, "", rel_path_keyword="rel_path")
+    def ContactDeleted(self, rel_path=None):
+        pass
 
     @dbus_method(_DIN_ENTRY, "", "", rel_path_keyword="rel_path")
     def Delete(self, rel_path):
@@ -942,6 +951,11 @@ class ContactDomain(Domain):
             if PIMB_NEEDS_SYNC in backend.properties:
                 backend.sync() # If backend needs - sync entries
 
+        self.ContactDeleted(rel_path=rel_path)
+
+    @dbus_signal(_DIN_ENTRY, "a{sv}", rel_path_keyword="rel_path")
+    def ContactUpdated(self, data, rel_path=None):
+        pass
 
     @dbus_method(_DIN_ENTRY, "a{sv}", "", rel_path_keyword="rel_path")
     def Update(self, data, rel_path):
@@ -992,4 +1006,6 @@ class ContactDomain(Domain):
             if PIMB_NEEDS_SYNC in backend.properties:
                 backend.sync() # If backend needs - sync entries
 
+
+        self.ContactUpdated(data, rel_path=rel_path)
 
