@@ -82,7 +82,12 @@ class BackendManager(DBusFBObject):
         self.path = _DBUS_PATH_SOURCES
 
         for backend_cls in Backend._all_backends_cls:
-            self.register_backend(backend_cls())
+            backend_name='';
+            try:
+                backend_name = backend_cls.name
+                self.register_backend(backend_cls())
+            except:
+                logger.error("Could not register backend %s!", backend_name)
 
         for backend in self._backends:
             @tasklet.tasklet
@@ -96,7 +101,10 @@ class BackendManager(DBusFBObject):
                     logger.debug("not loading entries for backend %s, cause it was disabled in config", backend)
                 else:
                     logger.debug("loading entries for backend %s", backend)
-                    yield backend.load_entries()
+                    try:
+                        yield backend.load_entries()
+                    except:
+                        logger.error("Could not load entries for backend %s!", backend)
             init_all(backend).start()
 
 
