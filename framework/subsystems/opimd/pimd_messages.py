@@ -1092,6 +1092,10 @@ class MessageDomain(Domain):
         folder = self._folders[folder_id]
         folder.register_message(num_id)
 
+    @dbus_signal(_DIN_ENTRY, "a{sv}", rel_path_keyword="rel_path")
+    def MessageUpdated(self, data, rel_path=None):
+        pass
+
     @dbus_method(_DIN_ENTRY, "a{sv}", "", rel_path_keyword="rel_path")
     def Update(self, data, rel_path):
         num_id = int(rel_path[1:])
@@ -1141,6 +1145,11 @@ class MessageDomain(Domain):
             if PIMB_NEEDS_SYNC in backend.properties:
                 backend.sync() # If backend needs - sync entries
 
+        self.MessageUpdated(data, rel_path=rel_path)
+
+    @dbus_signal(_DIN_ENTRY, "", rel_path_keyword="rel_path")
+    def MessageDeleted(self, rel_path=None):
+        pass
 
     @dbus_method(_DIN_ENTRY, "", "", rel_path_keyword="rel_path")
     def Delete(self, rel_path):
@@ -1181,3 +1190,4 @@ class MessageDomain(Domain):
             if PIMB_NEEDS_SYNC in backend.properties:
                 backend.sync() # If backend needs - sync entries
 
+        self.MessageDeleted(rel_path=rel_path)
