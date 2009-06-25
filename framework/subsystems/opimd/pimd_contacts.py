@@ -363,7 +363,7 @@ class Contact():
             # Skip fields only meaningful to the parser
             if field_name[:1] == "_": continue
 
-            field_value = query_obj[field_name]
+            field_value = str(query_obj[field_name])
             best_field_match = 0.0
 
             # The matcher internally caches details about seq2, so let's make use of that
@@ -380,7 +380,7 @@ class Contact():
                     comp_value = self._fields[field_id][2]
                     if not comp_value:
                         # Use the real value if no comparison value given
-                        comp_value = self._fields[field_id][1]
+                        comp_value = str(self._fields[field_id][1])
 
                     # Compare and determine the best match ratio
                     matcher.set_seq1(comp_value)
