@@ -104,7 +104,7 @@ class SIMMessageBackendFSO(Backend):
             entry['Recipient'] = phone_number_to_tel_uri(number)
         
         # TODO Handle text properly, i.e. make it on-demand if >1KiB
-        entry['Text'] = text
+        entry['Content'] = text
         
         entry['Folder'] = config.getValue('opimd', 'sim_messages_default_folder', default='SMS')
         
