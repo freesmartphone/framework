@@ -681,7 +681,7 @@ class QueryManager(DBusFBObject):
 
 
     @dbus_method(_DIN_QUERY, "", "s", rel_path_keyword="rel_path", sender_keyword="sender")
-    def GetMessageURI(self, rel_path, sender):
+    def GetMessagePath(self, rel_path, sender):
         num_id = int(rel_path[1:])
         self.check_query_id_ok( num_id )
 
@@ -755,7 +755,7 @@ class MessageFolder(DBusFBObject):
 
 
     @dbus_method(_DIN_FOLDER, "ii", "as")
-    def GetMessageURIs(self, first_message_id, message_count):
+    def GetMessagePaths(self, first_message_id, message_count):
         """Produces and returns a list of message URIs
 
         @param first_message_id Number of first message to deliver
