@@ -168,7 +168,7 @@ class SQLiteMessagesBackend(Backend):
         for (field, value) in message_data:
             if field in reqfields:
                 cur.execute('UPDATE messages SET '+field+'=? WHERE id=?',(value,messageId))
-            else:
+            elif not field.startswith('_'):
                 cur.execute('SELECT id FROM message_values WHERE messageId=? AND field=?',(messageId,field))
                 if cur.fetchone() == None:
                     cur.execute('INSERT INTO message_values (field,value,messageId) VALUES (?,?,?)',(field,value,messageId))

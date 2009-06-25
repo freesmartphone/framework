@@ -180,7 +180,7 @@ class SQLiteContactBackend(Backend):
         for (field, value) in contact_data:
             if field in reqfields:
                 cur.execute('UPDATE contacts SET '+field+'=? WHERE id=?',(value,contactId))
-            else:
+            elif not field.startswith('_'):
                 cur.execute('SELECT id FROM contact_values WHERE contactId=? AND field=?',(contactId,field))
                 if cur.fetchone() == None:
                     cur.execute('INSERT INTO contact_values (field,value,contactId) VALUES (?,?,?)',(field,value,contactId))
