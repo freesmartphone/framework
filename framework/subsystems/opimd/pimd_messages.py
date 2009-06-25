@@ -852,20 +852,23 @@ class MessageDomain(Domain):
         logger.debug("Registering message...")
 
         message_id = -1
+        merged = 0
 
         # Check if the message can be merged with one we already know of
-        for entry in self._messages:
-            if entry:
-                if entry.attempt_merge(message_data, backend.name):
+        if int(config.getValue('opimd', 'messages_merging_enabled', default='1')):
+            for entry in self._messages:
+                if entry:
+                    if entry.attempt_merge(message_data, backend.name):
 
-                    # Find that entry's ID
-                    for (message_idx, message) in enumerate(self._messages):
-                        if message == entry: message_id = message_idx
+                        # Find that entry's ID
+                        for (message_idx, message) in enumerate(self._messages):
+                            if message == entry: message_id = message_idx
+                            break
+
+                        # Stop trying to merge
+                        merged = 1
                         break
-
-                    # Stop trying to merge
-                    break
-        else:
+        if not merged:
             # Merging failed, so create a new message entry and append it to the list
             message_id = len(self._messages)
 
