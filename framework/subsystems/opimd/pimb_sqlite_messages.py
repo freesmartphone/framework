@@ -204,7 +204,8 @@ class SQLiteMessagesBackend(Backend):
         cid = cur.lastrowid
         for field in message_data:
             if not field in reqfields:
-                cur.execute('INSERT INTO message_values (messageId, Field, Value) VALUES (?,?,?)',(cid, field, message_data[field]))
+                if not field in reqIntFields:
+                    cur.execute('INSERT INTO message_values (messageId, Field, Value) VALUES (?,?,?)',(cid, field, message_data[field]))
         
         self.con.commit()
         cur.close()
