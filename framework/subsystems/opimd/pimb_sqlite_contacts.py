@@ -153,8 +153,7 @@ class SQLiteContactBackend(Backend):
             cur.execute('SELECT id, Name, Surname, Nickname, Birthdate, MarrDate, Partner, Spouse, MetAt, HomeLoc, Department FROM contacts WHERE deleted=0')
             lines = cur.fetchall()
         except:
-            logger.error("%s: Could not read from database (table contacts)! Possible reason is old, uncompatible table structure. If you don't have important data, please 
-remove %s file.", self.name, _SQLITE_FILE_NAME)
+            logger.error("%s: Could not read from database (table contacts)! Possible reason is old, uncompatible table structure. If you don't have important data, please remove %s file.", self.name, _SQLITE_FILE_NAME)
             raise OperationalError
 
         for line in lines:
