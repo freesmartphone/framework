@@ -57,26 +57,27 @@ class SQLiteContactBackend(Backend):
         super(SQLiteContactBackend, self).__init__()
         self._domain_handlers = {}
         self._entry_ids = []
-        self.con = sqlite3.connect(_SQLITE_FILE_NAME)
-        cur = self.con.cursor()
-        cur.execute("""CREATE TABLE IF NOT EXISTS contacts (
-            id INTEGER PRIMARY KEY,
-            Name TEXT,
-            Surname TEXT,
-            Nickname TEXT,
-            Birthdate TEXT,
-            MarrDate TEXT,
-            Partner TEXT,
-            Spouse TEXT,
-            MetAt TEXT,
-            HomeLoc TEXT,
-            Department TEXT,
-            refid TEXT,
-            deleted INTEGER DEFAULT 0,
-            added INTEGER DEFAULT 0,
-            updated INTEGER DEFAULT 0);""")
+        try:
+            self.con = sqlite3.connect(_SQLITE_FILE_NAME)
+            cur = self.con.cursor()
+            cur.execute("""CREATE TABLE IF NOT EXISTS contacts (
+                id INTEGER PRIMARY KEY,
+                Name TEXT,
+                Surname TEXT,
+                Nickname TEXT,
+                Birthdate TEXT,
+                MarrDate TEXT,
+                Partner TEXT,
+                Spouse TEXT,
+                MetAt TEXT,
+                HomeLoc TEXT,
+                Department TEXT,
+                refid TEXT,
+                deleted INTEGER DEFAULT 0,
+                added INTEGER DEFAULT 0,
+                updated INTEGER DEFAULT 0);""")
 
-        """
+            """
         Address		0-X		Address			address://
 
         Picture		0-X		Picture			file://
@@ -112,12 +113,15 @@ class SQLiteContactBackend(Backend):
         Work eMail	0-X		WorkEMail		mailto://
         Work location	0-X		WorkLoc			geoloc://
         Works for...	0-X		WorksFor		none or dbus:// -> contact URI
-        """
+            """
 
-        cur.execute("CREATE TABLE IF NOT EXISTS contact_values (id INTEGER PRIMARY KEY, contactId INTEGER, Field TEXT, Value TEXT)")
-        self.con.text_factory = sqlite3.OptimizedUnicode
-        self.con.commit()
-        cur.close()
+            cur.execute("CREATE TABLE IF NOT EXISTS contact_values (id INTEGER PRIMARY KEY, contactId INTEGER, Field TEXT, Value TEXT)")
+            self.con.text_factory = sqlite3.OptimizedUnicode
+            self.con.commit()
+            cur.close()
+        except:
+            logger.error("%s: Could not open database! Possible reason is old, uncompatible table structure. If you don't have important data, please remove %s file.", self.name, _SQLITE_FILE_NAME)
+            raise OperationalError
 
         for domain in _DOMAINS:
             self._domain_handlers[domain] = DomainManager.get_domain_handler(domain)
@@ -139,22 +143,32 @@ class SQLiteContactBackend(Backend):
 
     @tasklet.tasklet
     def load_entries(self):
-        self.load_entries_from_db()
-        yield None
+        yield self.load_entries_from_db()
 
     def load_entries_from_db(self):
         """Loads all entries from db"""
         keys = {0:'_backend_entry_id', 1:'Name', 2:'Surname', 3:'Nickname', 4:'Birthdate', 5:'MarrDate', 6:'Partner', 7:'Spouse', 8:'MetAt', 9:'HomeLoc', 10:'Departnment'}
         cur = self.con.cursor()
-        cur.execute('SELECT id, Name, Surname, Nickname, Birthdate, MarrDate, Partner, Spouse, MetAt, HomeLoc, Department FROM contacts WHERE deleted=0')
-        lines = cur.fetchall()
+        try:
+            cur.execute('SELECT id, Name, Surname, Nickname, Birthdate, MarrDate, Partner, Spouse, MetAt, HomeLoc, Department FROM contacts WHERE deleted=0')
+            lines = cur.fetchall()
+        except:
+            logger.error("%s: Could not read from database (table contacts)! Possible reason is old, uncompatible table structure. If you don't have important data, please 
+remove %s file.", self.name, _SQLITE_FILE_NAME)
+            raise OperationalError
+
         for line in lines:
             entry = {}
             for key in keys:
                 entry[keys[key]] = line[key]
-            cur.execute('SELECT Field, Value FROM contact_values WHERE contactId=?',(line[0],))
-            for pair in cur:
-                entry[pair[0]]=pair[1]
+            try:
+                cur.execute('SELECT Field, Value FROM contact_values WHERE contactId=?',(line[0],))
+                for pair in cur:
+                    entry[pair[0]]=pair[1]
+            except:
+                logger.error("%s: Could not read from database (table contact_values)! Possible reason is old, uncompatible table structure. If you don't have important data, please remove %s file.", self.name, _SQLITE_FILE_NAME)
+                raise OperationalError
+
             entry_id = self._domain_handlers['Contacts'].register_contact(self, entry)
             self._entry_ids.append(entry_id)
         cur.close()

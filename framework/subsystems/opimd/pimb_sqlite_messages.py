@@ -57,25 +57,26 @@ class SQLiteMessagesBackend(Backend):
         super(SQLiteMessagesBackend, self).__init__()
         self._domain_handlers = {}
         self._entry_ids = []
-        self.con = sqlite3.connect(_SQLITE_FILE_NAME)
-        cur = self.con.cursor()
-        cur.execute("""CREATE TABLE IF NOT EXISTS messages (
-            id INTEGER PRIMARY KEY,
-            Source TEXT,
-            Date TEXT,
-            Direction TEXT,
-            Title TEXT,
-            Sender TEXT,
-            TransmitLoc TEXT,
-            Content TEXT,
-            MessageRead INTEGER DEFAULT 0,
-            MessageSent INTEGER DEFAULT 0,
-            Processing INTEGER DEFAULT 0,
-            deleted INTEGER DEFAULT 0,
-            added INTEGER DEFAULT 0,
-            updated INTEGER DEFAULT 0);""")
+        try:
+            self.con = sqlite3.connect(_SQLITE_FILE_NAME)
+            cur = self.con.cursor()
+            cur.execute("""CREATE TABLE IF NOT EXISTS messages (
+                id INTEGER PRIMARY KEY,
+                Source TEXT,
+                Date TEXT,
+                Direction TEXT,
+                Title TEXT,
+                Sender TEXT,
+                TransmitLoc TEXT,
+                Content TEXT,
+                MessageRead INTEGER DEFAULT 0,
+                MessageSent INTEGER DEFAULT 0,
+                Processing INTEGER DEFAULT 0,
+                deleted INTEGER DEFAULT 0,
+                added INTEGER DEFAULT 0,
+                updated INTEGER DEFAULT 0);""")
 
-        """
+            """
         ----- Non-internal fields with static data ---------------------
 
         Self reference	  1		URI			dbus://
@@ -98,13 +99,15 @@ class SQLiteMessagesBackend(Backend):
         Message sent?	0-1		MessageSent		0 or 1
         Processing now?	0-1		Processing		0 or 1
         Folder
-        """
+            """
 
-        cur.execute("CREATE TABLE IF NOT EXISTS message_values (id INTEGER PRIMARY KEY, messageId INTEGER, Field TEXT, Value TEXT)")
-        self.con.text_factory = sqlite3.OptimizedUnicode
-        self.con.commit()
-        cur.close()
-
+            cur.execute("CREATE TABLE IF NOT EXISTS message_values (id INTEGER PRIMARY KEY, messageId INTEGER, Field TEXT, Value TEXT)")
+            self.con.text_factory = sqlite3.OptimizedUnicode
+            self.con.commit()
+            cur.close()
+        except:
+            logger.error("%s: Could not open database! Possible reason is old, uncompatible table structure. If you don't have important data, please remove %s file.", self.name, _SQLITE_FILE_NAME)
+            raise OperationalError
         for domain in _DOMAINS:
             self._domain_handlers[domain] = DomainManager.get_domain_handler(domain)
 
@@ -125,15 +128,20 @@ class SQLiteMessagesBackend(Backend):
 
     @tasklet.tasklet
     def load_entries(self):
-        self.load_entries_from_db()
-        yield None
+        yield self.load_entries_from_db()
+
 
     def load_entries_from_db(self):
         """Loads all entries from db"""
         keys = {0:'_backend_entry_id', 1:'Source', 2:'Date', 3:'Direction', 4:'Title', 5:'Sender', 6:'TransmitLoc', 7:'Content', 8:'MessageRead', 9:'MessageSent', 10:'Processing'}
         cur = self.con.cursor()
-        cur.execute('SELECT id, Source, Date, Direction, Title, Sender, TransmitLoc, Content, MessageRead, MessageSent, Processing FROM messages WHERE deleted=0')
-        lines = cur.fetchall()
+        try:
+            cur.execute('SELECT id, Source, Date, Direction, Title, Sender, TransmitLoc, Content, MessageRead, MessageSent, Processing FROM messages WHERE deleted=0')
+            lines = cur.fetchall()
+        except:
+            logger.error("%s: Could not read from database (table messages)! Possible reason is old, uncompatible table structure. If you don't have important data, please remove %s file.", self.name, _SQLITE_FILE_NAME)
+            raise OperationalError
+
         for line in lines:
             entry = {}
             for key in keys:
@@ -141,9 +149,14 @@ class SQLiteMessagesBackend(Backend):
                     entry[keys[key]] = line[key]
                 else:
                     entry[keys[key]] = str(line[key])
-            cur.execute('SELECT Field, Value FROM message_values WHERE messageId=?',(line[0],))
-            for pair in cur:
-                entry[pair[0]]=pair[1]
+            try:
+                cur.execute('SELECT Field, Value FROM message_values WHERE messageId=?',(line[0],))
+                for pair in cur:
+                    entry[pair[0]]=pair[1]
+            except:
+                logger.error("%s: Could not read from database (table message_values)! Possible reason is old, uncompatible table structure. If you don't have important data, please remove %s file.", self.name, _SQLITE_FILE_NAME)
+                raise OperationalError
+
             entry_id = self._domain_handlers['Messages'].register_message(self, entry)
             self._entry_ids.append(entry_id)
         cur.close()
