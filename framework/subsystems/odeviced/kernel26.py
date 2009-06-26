@@ -500,12 +500,7 @@ def factory( prefix, controller ):
             logger.debug( "scanning %s %s", index, node )
             objects.append( LED( bus, index, "%s/%s" % ( ledpath, node ) ) )
 
-    # scan for power supplies (apm first, then power supply [kernel 2.6.24++])
-    powerpath = "/proc/apm"
-    logger.debug( "scanning %s", powerpath )
-    if os.path.exists( powerpath ):
-        objects.append( PowerSupplyApm( bus, 0, powerpath ) )
-
+    # scan for power supplies (kernel 2.6.24++)
     powerpath = "/sys/class/power_supply"
     if os.path.exists( powerpath ):
         for ( index, node ) in enumerate( os.listdir( powerpath ) ):
