@@ -324,15 +324,15 @@ class UserAlertAction(Action):
         """
         k = str(key)
         if k == "%s-tone" % self.eventname:
-            self.tone = value
+            self.tone = str(value)
         elif k == "%s-volume" % self.eventname:
-            self.volume = value
+            self.volume = int(value)
         elif k == "%s-loop" % self.eventname:
-            self.loop = value
+            self.loop = int(value)
         elif k == "%s-length" % self.eventname:
-            self.length = value
+            self.length = int(value)
         elif k == "%s-vibration" % self.eventname:
-            self.vibrate = value
+            self.vibrate = int(value)
 
         self.sound_path = os.path.join( installprefix, "share/sounds/", self.tone )
         self.audio_action = AudioAction( self.sound_path, self.loop, self.length ) if self.volume != 0 else None
@@ -369,11 +369,11 @@ class UserAlertAction(Action):
             phone_prefs.connect_to_signal( "Notify", self.cbPreferencesServiceNotify )
 
             # FIXME does that still work if (some of) the entries are missing?
-            self.tone = yield tasklet.WaitDBus( phone_prefs.GetValue, "%s-tone" % self.eventname )
-            self.volume = yield tasklet.WaitDBus( phone_prefs.GetValue, "%s-volume" % self.eventname )
-            self.loop = yield tasklet.WaitDBus( phone_prefs.GetValue, "%s-loop" % self.eventname )
-            self.length = yield tasklet.WaitDBus( phone_prefs.GetValue, "%s-length" % self.eventname )
-            self.vibrate = yield tasklet.WaitDBus( phone_prefs.GetValue, "%s-vibration" % self.eventname )
+            self.tone = str(yield tasklet.WaitDBus( phone_prefs.GetValue, "%s-tone" % self.eventname ))
+            self.volume = int(yield tasklet.WaitDBus( phone_prefs.GetValue, "%s-volume" % self.eventname ))
+            self.loop = int(yield tasklet.WaitDBus( phone_prefs.GetValue, "%s-loop" % self.eventname ))
+            self.length = int(yield tasklet.WaitDBus( phone_prefs.GetValue, "%s-length" % self.eventname ))
+            self.vibrate = int(yield tasklet.WaitDBus( phone_prefs.GetValue, "%s-vibration" % self.eventname ))
 
             self.sound_path = os.path.join( installprefix, "share/sounds/", self.tone )
             self.audio_action = AudioAction( self.sound_path, self.loop, self.length ) if self.volume != 0 else None
