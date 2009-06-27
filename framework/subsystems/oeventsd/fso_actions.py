@@ -307,7 +307,7 @@ class UserAlertAction(Action):
 
     def __init__( self, *args, **kwargs ):
         Action.__init__( self )
-        logger.debug( "%s: init" )
+        logger.debug( "%s: init", self )
         self.audio_action = None
         self.vibrator_action = None
         self.eventname = self.__class__.event_name # needs to be populated in derived classes
@@ -356,24 +356,30 @@ class UserAlertAction(Action):
                 "org.freesmartphone.opreferencesd",
                 "/org/freesmartphone/Preferences",
                 "org.freesmartphone.Preferences" )
-        except dbus.DBusException: # preferences daemon probably not present
-            logger.warning( "org.freesmartphone.opreferencesd not present. Can't get alert tones." )
-        else:
             phone_prefs = yield tasklet.WaitDBus( prefs.GetService, "phone" )
             phone_prefs = dbuscache.dbusInterfaceForObjectWithInterface(
                 "org.freesmartphone.opreferencesd",
                 phone_prefs,
                 "org.freesmartphone.Preferences.Service" )
 
+        except dbus.DBusException: # preferences daemon probably not present
+            logger.warning( "org.freesmartphone.opreferencesd not present. Can't get alert tones." )
+        else:
             # connect to signal for later notifications
             phone_prefs.connect_to_signal( "Notify", self.cbPreferencesServiceNotify )
 
             # FIXME does that still work if (some of) the entries are missing?
-            self.tone = str(yield tasklet.WaitDBus( phone_prefs.GetValue, "%s-tone" % self.eventname ))
-            self.volume = int(yield tasklet.WaitDBus( phone_prefs.GetValue, "%s-volume" % self.eventname ))
-            self.loop = int(yield tasklet.WaitDBus( phone_prefs.GetValue, "%s-loop" % self.eventname ))
-            self.length = int(yield tasklet.WaitDBus( phone_prefs.GetValue, "%s-length" % self.eventname ))
-            self.vibrate = int(yield tasklet.WaitDBus( phone_prefs.GetValue, "%s-vibration" % self.eventname ))
+            self.tone =    yield tasklet.WaitDBus( phone_prefs.GetValue, "%s-tone" % self.eventname )
+            self.volume =  yield tasklet.WaitDBus( phone_prefs.GetValue, "%s-volume" % self.eventname )
+            self.loop =    yield tasklet.WaitDBus( phone_prefs.GetValue, "%s-loop" % self.eventname )
+            self.length =  yield tasklet.WaitDBus( phone_prefs.GetValue, "%s-length" % self.eventname )
+            self.vibrate = yield tasklet.WaitDBus( phone_prefs.GetValue, "%s-vibration" % self.eventname )
+
+            self.tone = str(self.tone)
+            self.volume = int(self.volume)
+            self.loop = int(self.loop)
+            self.length = int(self.length)
+            self.vibrate = int(self.vibrate)
 
             self.sound_path = os.path.join( installprefix, "share/sounds/", self.tone )
             self.audio_action = AudioAction( self.sound_path, self.loop, self.length ) if self.volume != 0 else None
