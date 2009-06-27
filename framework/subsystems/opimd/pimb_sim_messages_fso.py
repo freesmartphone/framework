@@ -230,9 +230,9 @@ class SIMMessageBackendFSO(Backend):
             rel_path = path.replace('/org/freesmartphone/PIM/Messages','')
             try:
                 if props['status']==0:
-                    self._domain_handlers['Messages'].Update({'SMS-delivered':1}, rel_path)
+                    self._domain_handlers['Messages'].Update({'SMS-delivered':1, 'SMS-message-reference':''}, rel_path)
                 else:
-                    self._domain_handlers['Messages'].Update({'SMS-delivered':0}, rel_path)
+                    self._domain_handlers['Messages'].Update({'SMS-delivered':0, 'SMS-message-reference':''}, rel_path)
             except:
                 logger.error("%s: Could not store information about delivery report for message %s!", self.name, path)
         else:
