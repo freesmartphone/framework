@@ -115,7 +115,7 @@ class AlarmController( dbus.service.Object ):
         now = int(time.time())
         if not self.timer is None:
             gobject.source_remove( self.timer )
-            self.timeout = None
+            self.timer = None
         while self.queue and self.queue[0].timestamp <= now:
             alarm = heappop( self.queue )
             del self.alarms[ alarm.busname ]
