@@ -113,6 +113,8 @@ class SIMMessageBackendFSO(Backend):
 
         for field in props:
             entry['SMS-'+field] = props[field]
+            if field=='csm_seq':
+                entry['SMS-csm_seq'+str(props[field])+'_content'] = text
 
         if sim_entry_id!=-1:
             entry['_backend_entry_id'] = sim_entry_id
