@@ -114,6 +114,8 @@ class SIMMessageBackendFSO(Backend):
         for field in props:
             entry['SMS-'+field] = props[field]
             if field=='csm_seq':
+                entry['SMS-combined_message'] = True
+                entry['SMS-complete_message'] = False
                 entry['SMS-csm_seq'+str(props[field])+'_content'] = text
 
         if sim_entry_id!=-1:
