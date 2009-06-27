@@ -6,6 +6,7 @@
 #   http://pyneo.org/
 #
 #   Copyright (C) 2008 by Soeren Apel (abraxa@dar-clan.de)
+#   Copyright (C) 2009 by Sebastian Krzyszkowiak (seba.dos1@gmail.com)
 #
 #   This program is free software; you can redistribute it and/or modify
 #   it under the terms of the GNU General Public License as published by
@@ -147,6 +148,9 @@ class SIMMessageBackendFSO(Backend):
             last_msg[4]['complete_message'] = True
         else:
             last_msg[4]['complete_message'] = False
+
+        for msg in entries:
+            last_msg[4]['csm_seq'+str(msg[4]['csm_seq'])+'_content']=msg[3]
 
         combined_msg = [ids,last_msg[1],last_msg[2],text_msg,last_msg[4]]
         self.process_single_entry(combined_msg)
