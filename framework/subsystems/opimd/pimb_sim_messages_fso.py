@@ -218,6 +218,20 @@ class SIMMessageBackendFSO(Backend):
             error_handler=self.dbus_err
             )
 
+    def handle_incoming_message_receipt(self, number, text, props):
+        path = self._domain_handlers['Messages'].GetSingleMessageSingleField({'SMS-message-reference':props['message-reference']},'Path')
+        if path:
+            rel_path = path.replace('/org/freesmartphone/PIM/Messages','')
+            try:
+                if props['status']==0:
+                    self._domain_handlers['Messages'].Update({'SMS-delivered':1}, rel_path)
+                else:
+                    self._domain_handlers['Messages'].Update({'SMS-delivered':0}, rel_path)
+            except:
+                logger.error("%s: Could not store information about delivery report for message %s!", self.name, path)
+        else:
+            logger.info("%s: Delivery report about non-existient message!", self.name)
+
     def handle_incoming_message(self, number, text, props):
         self.process_single_entry((-1, "unread", number, text, props), True)
         self.gsm_sms_iface.AckMessage('', {}, reply_handler=self.dbus_ok, error_handler=self.dbus_err)
@@ -228,6 +242,7 @@ class SIMMessageBackendFSO(Backend):
             try:
                 self.gsm_sms_iface.connect_to_signal("IncomingMessage", self.handle_incoming_message)
                 self.gsm_sim_iface.connect_to_signal("IncomingStoredMessage", self.handle_incoming_stored_message)
+                self.gsm_sms_iface.connect_to_signal("IncomingMessageReceipt", self.handle_incoming_message_receipt)
                 self.signals = True
             except:
                 logger.error("%s: Could not install signal handlers!", self.name)
