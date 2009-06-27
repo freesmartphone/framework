@@ -108,6 +108,8 @@ class SIMMessageBackendFSO(Backend):
         
         entry['Folder'] = config.getValue('opimd', 'sim_messages_default_folder', default='SMS')
         
+        entry['Source'] = 'SMS'
+
         for field in props:
             entry['SMS-'+field] = props[field]
 
@@ -122,7 +124,7 @@ class SIMMessageBackendFSO(Backend):
             logger.debug("Message is incoming!")
             entry_id = self._domain_handlers['Messages'].register_incoming_message(self, entry, self.am_i_default())
             if self.am_i_default():
-                logger.debug("Storing message on SIM")
+                logger.debug("Message stored on SIM")
                 self._entry_ids.append(entry_id)
 
     def process_split_entries(self, entries):
