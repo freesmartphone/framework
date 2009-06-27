@@ -233,8 +233,11 @@ class SIMMessageBackendFSO(Backend):
             logger.info("%s: Delivery report about non-existient message!", self.name)
 
     def handle_incoming_message(self, number, text, props):
-        self.process_single_entry((-1, "unread", number, text, props), True)
-        self.gsm_sms_iface.AckMessage('', {}, reply_handler=self.dbus_ok, error_handler=self.dbus_err)
+        try:
+            self.process_single_entry((-1, "unread", number, text, props), True)
+            self.gsm_sms_iface.AckMessage('', {}, reply_handler=self.dbus_ok, error_handler=self.dbus_err)
+        except:
+            self.gsm_sms_iface.NackMessage('', {}, reply_handler=self.dbus_ok, error_handler=self.dbus_err)
 
     def install_signal_handlers(self):
         """Hooks to some d-bus signals that are of interest to us"""
