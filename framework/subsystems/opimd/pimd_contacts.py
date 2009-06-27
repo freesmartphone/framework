@@ -27,7 +27,7 @@ from domain_manager import DomainManager, Domain
 from helpers import *
 from opimd import *
 
-from framework.config import busmap
+from framework.config import config, busmap
 
 #----------------------------------------------------------------------------#
 
@@ -758,20 +758,23 @@ class ContactDomain(Domain):
         @param contact_data Contact data; format: [Key:Value, Key:Value, ...]"""
 
         contact_id = -1
+        merged = 0
 
         # Check if the contact can be merged with one we already know of
-        for entry in self._contacts:
-            if entry:
-                if entry.attempt_merge(contact_data, backend.name):
+        if int(config.getValue('opimd', 'contacts_merging_enabled', default='1')):
+            for entry in self._contacts:
+                if entry:
+                    if entry.attempt_merge(contact_data, backend.name):
 
-                    # Find that entry's ID
-                    for (contact_idx, contact) in enumerate(self._contacts):
-                        if contact == entry: contact_id = contact_idx
+                        # Find that entry's ID
+                        for (contact_idx, contact) in enumerate(self._contacts):
+                            if contact == entry: contact_id = contact_idx
+                            break
+
+                        # Stop trying to merge
+                        merged = 1
                         break
-
-                    # Stop trying to merge
-                    break
-        else:
+        if not merged:
             # Merging failed, so create a new contact entry and append it to the list
             contact_id = len(self._contacts)
 
