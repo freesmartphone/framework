@@ -114,8 +114,8 @@ class SIMMessageBackendFSO(Backend):
         for field in props:
             entry['SMS-'+field] = props[field]
             if field=='csm_seq':
-                entry['SMS-combined_message'] = True
-                entry['SMS-complete_message'] = False
+                entry['SMS-combined_message'] = 1
+                entry['SMS-complete_message'] = 0
                 entry['SMS-csm_seq'+str(props[field])+'_content'] = text
 
         if sim_entry_id!=-1:
@@ -147,11 +147,11 @@ class SIMMessageBackendFSO(Backend):
                         max_id=i
                         last_msg = msg
 
-        last_msg[4]['combined_message'] = True
+        last_msg[4]['combined_message'] = 1
         if len(entries)==last_msg[4]['csm_num']:
-            last_msg[4]['complete_message'] = True
+            last_msg[4]['complete_message'] = 1
         else:
-            last_msg[4]['complete_message'] = False
+            last_msg[4]['complete_message'] = 0
 
         for msg in entries:
             last_msg[4]['csm_seq'+str(msg[4]['csm_seq'])+'_content']=msg[3]
