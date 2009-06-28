@@ -44,7 +44,7 @@ from framework.config import config
 
 _DOMAINS = ('Messages', )
 _OGSMD_POLL_INTERVAL = 7500
-
+_UNAVAILABLE_PART = '<???>'
 
 
 #----------------------------------------------------------------------------#
@@ -111,6 +111,8 @@ class SIMMessageBackendFSO(Backend):
         
         entry['Source'] = 'SMS'
 
+        entry['SMS-combined_message'] = 0
+
         for field in props:
             entry['SMS-'+field] = props[field]
             if field=='csm_seq':
@@ -127,10 +129,48 @@ class SIMMessageBackendFSO(Backend):
             self._entry_ids.append(entry_id)
         else:
             logger.debug("Message is incoming!")
-            entry_id = self._domain_handlers['Messages'].register_incoming_message(self, entry, self.am_i_default())
-            if self.am_i_default():
-                logger.debug("Message stored on SIM")
-                self._entry_ids.append(entry_id)
+            if entry['SMS-combined_message']:
+                logger.debug("It's CSM!")
+                register = 0
+                try:
+                    path = self._domain_handlers['Messages'].GetSingleMessageSingleField({'Direction':'in', 'SMS-combined_message':1, 'SMS-complete_message':0, 'SMS-csm_num':entry['SMS-csm_num'], 'SMS-csm_id':entry['SMS-csm_id'], 'Source':'SMS'},'Path')
+                    if path:
+                        rel_path = path.replace('/org/freesmartphone/PIM/Messages','')
+                        result = self._domain_handlers['Messages'].GetContent(rel_path)
+                        new_content = ''
+                        complete = 1
+                        edit_data = {}
+                        for i in range(1, entry['SMS-csm_num']+1):
+                            if i==entry['SMS-csm_seq']:
+                                new_content += entry['Content']
+                                edit_data['SMS-csm_seq'+str(i)+'_content'] = entry['Content']
+                            else:
+                                try:
+                                    new_content += result['SMS-csm_seq'+str(i)+'_content']
+                                except KeyError:
+                                    new_content += _UNAVAILABLE_PART
+                                    complete = 0
+                        if complete:
+                            edit_data['SMS-complete_message']=1
+                        edit_data['Content'] = new_content
+                        self._domain_handlers['Messages'].Update(edit_data, rel_path)
+                    else:
+                        register = 1
+                        if entry['SMS-csm_seq']>1:
+                            entry['Content']=_UNAVAILABLE_PART+entry['Content']
+                        if entry['SMS-csm_seq']<entry['SMS-csm_num']:
+                            entry['Content']=entry['Content']+_UNAVAILABLE_PART
+                        logger.debug('CSM: first part')
+                except:
+                    register = 1
+                    log.error('%s: failed to handle CSM message!', self.name)
+            else:
+                register = 1
+            if register:
+                entry_id = self._domain_handlers['Messages'].register_incoming_message(self, entry, self.am_i_default())
+                if self.am_i_default():
+                    logger.debug("Message stored on SIM")
+                    self._entry_ids.append(entry_id)
 
     def process_split_entries(self, entries):
         last_msg = []
@@ -139,13 +179,17 @@ class SIMMessageBackendFSO(Backend):
         max_id = -1
 
         for i in range(1, len(entries)+1):
+            added = 0
             for msg in entries:
                 if msg[4]['csm_seq']==i:
+                    added = 1
                     text_msg += msg[3]
                     ids.append(msg[0])
                     if i>max_id:
                         max_id=i
                         last_msg = msg
+            if not added:
+                text_msg += _UNAVAILABLE_PART
 
         last_msg[4]['combined_message'] = 1
         if len(entries)==last_msg[4]['csm_num']:
