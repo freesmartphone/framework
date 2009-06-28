@@ -206,14 +206,14 @@ class SIMMessageBackendFSO(Backend):
             self.process_all_entries(entries)
 
             self.install_signal_handlers()
-
-            self.gsm_device_iface.SetSimBuffersSms(self.am_i_default(), reply_handler=self.dbus_ok, error_handler=self.dbus_err)
         except DBusException, e:
             logger.warning("%s: Could not request SIM messagebook from ogsmd (%s)", self.name, e)
             logger.info("%s: Waiting for SIM being ready...", self.name)
             if not self.ready_signal:
                 try:
                     bus.add_signal_receiver(self.handle_sim_ready, signal_name='ReadyStatus', dbus_interface='org.freesmartphone.GSM.SIM', bus_name='org.freesmartphone.ogsmd')
+                    bus.add_signal_receiver(self.handle_auth_status, signal_name='AuthStatus', dbus_interface='org.freesmartphone.GSM.SIM', bus_name='org.freesmartphone.ogsmd')
+                    logger.info('%s: Signal listeners about SIM status installed', self.name)
                     #self.gsm_sim_iface.connect_to_signal("ReadyStatus", self.handle_sim_ready)
                     self.ready_signal = True
                 except:
@@ -254,6 +254,7 @@ class SIMMessageBackendFSO(Backend):
                 self.gsm_sms_iface.connect_to_signal("IncomingMessage", self.handle_incoming_message)
                 self.gsm_sim_iface.connect_to_signal("IncomingStoredMessage", self.handle_incoming_stored_message)
                 self.gsm_sms_iface.connect_to_signal("IncomingMessageReceipt", self.handle_incoming_message_receipt)
+                logger.info("%s: Installed signal handlers", self.name)
                 self.signals = True
             except:
                 logger.error("%s: Could not install signal handlers!", self.name)
@@ -264,6 +265,11 @@ class SIMMessageBackendFSO(Backend):
             return default_backend.name==self.name
         else:
             return True
+
+    def handle_auth_status(self, ready):
+        if ready=='READY':
+            self.install_signal_handlers()        
+            self.gsm_device_iface.SetSimBuffersSms(self.am_i_default(), reply_handler=self.dbus_ok, error_handler=self.dbus_err)
 
     def handle_sim_ready(self, ready):
         if ready:
