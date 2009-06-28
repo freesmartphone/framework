@@ -227,7 +227,7 @@ class SIMMessageBackendFSO(Backend):
             )
 
     def handle_incoming_message_receipt(self, number, text, props):
-        path = self._domain_handlers['Messages'].GetSingleMessageSingleField({'SMS-message-reference':props['message-reference']},'Path')
+        path = self._domain_handlers['Messages'].GetSingleMessageSingleField({'SMS-message-reference':props['message-reference'], 'Direction':'out', 'Source':'SMS'},'Path')
         if path:
             rel_path = path.replace('/org/freesmartphone/PIM/Messages','')
             try:
