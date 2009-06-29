@@ -153,6 +153,7 @@ class SIMMessageBackendFSO(Backend):
                         if complete:
                             edit_data['SMS-complete_message']=1
                         edit_data['Content'] = new_content
+                        edit_data['MessageRead'] = 0
                         self._domain_handlers['Messages'].Update(edit_data, rel_path)
                     else:
                         register = 1
