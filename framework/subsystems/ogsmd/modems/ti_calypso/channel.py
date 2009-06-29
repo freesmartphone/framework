@@ -171,10 +171,10 @@ class CalypsoModemChannel( AbstractModemChannel ):
     def _hookPreSending( self ):
         if CalypsoModemChannel.modem_communication_timestamp:
             current_time = time.time()
-            if current_time - CalypsoModemChannel.modem_communication_timestamp > 7:
+            if current_time - CalypsoModemChannel.modem_communication_timestamp > 5:
                 logger.debug( "(%s: last communication with modem was %d seconds ago. Sending EOF to wakeup)", self, int(current_time - CalypsoModemChannel.modem_communication_timestamp) )
                 self.serial.write( "\x1a" )
-                time.sleep( 0.2 )
+                time.sleep( 0.4 )
             CalypsoModemChannel.modem_communication_timestamp = current_time
 
     def _hookPostSending( self ):
