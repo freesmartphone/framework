@@ -13,10 +13,10 @@ Module: resource
 """
 
 MODULE_NAME = "frameworkd.resource"
-__version__ = "0.5.2.1"
+__version__ = "0.5.3"
 
 from framework.config import config
-from framework.patterns import decorator, asyncworker
+from framework.patterns import decorator, asyncworker, dbuscache
 from framework.helpers import exceptionlogger
 
 import gobject
@@ -153,24 +153,25 @@ class Resource( dbus.service.Object, asyncworker.SynchronizedAsyncWorker ):
         asyncworker.SynchronizedAsyncWorker.__init__( self )
 
         # We need to call the ousaged.Register method, but we can't do it
-        # imediatly for the ousaged object may not be present yet.
+        # immediatly for the ousaged object may not be present yet.
         # We use gobject.idle_add method to make the call only at the next
         # mainloop iteration
         def on_idle( self ):
-            logger.info( "Trying to register resource %s", self._resourceName )
-            # Here we are sure ousaged exists, if it has not been disabled
-            try:
-                usaged = self._resourceBus.get_object( "org.freesmartphone.ousaged", "/org/freesmartphone/Usage" )
-            except dbus.exceptions.DBusException:
-                logger.warning( "Can't register resource %s since ousaged is not present. Enabling device", name )
+            logger.debug( "Trying to register resource %s", self._resourceName )
+
+            def on_reply( self=self ):
+                logger.debug( "%s is now a registered resource", self._resourceName )
+
+            def on_error( err, self=self ):
+                logger.error( "%s can't be registered (%s). Enabling", self._resourceName, err )
                 gobject.idle_add( self.Enable, lambda: False, lambda dummy: False )
-            else:
-                usaged = dbus.Interface( usaged, "org.freesmartphone.Usage" )
-                def on_reply( *arg ):
-                    pass
-                def on_error( err ):
-                    logger.error( "An error occured when registering: %s", err )
-                usaged.RegisterResource( self._resourceName, self, reply_handler=on_reply, error_handler=on_error )
+
+            usageiface = dbuscache.dbusInterfaceForObjectWithInterface(
+                "org.freesmartphone.ousaged",
+                "/org/freesmartphone/Usage",
+                "org.freesmartphone.Usage" )
+            usageiface.RegisterResource( self._resourceName, self, reply_handler=on_reply, error_handler=on_error )
+
             return False # mainloop: don't call me again
 
         gobject.idle_add( on_idle, self )
