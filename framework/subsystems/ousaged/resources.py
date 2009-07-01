@@ -16,7 +16,7 @@ MODULE_NAME = "ousaged"
 __version__ = "0.6.2"
 
 from framework.config import config
-from framework.patterns import tasklet
+from framework.patterns import tasklet, dbuscache
 
 import gobject
 import dbus
@@ -220,9 +220,10 @@ class ClientResource( AbstractResource ):
         Only the resource manager should call this method
         """
         super( ClientResource, self ).__init__( usageControl, name )
-        bus = dbus.SystemBus()
-        proxy = bus.get_object( sender, path )
-        self.iface = dbus.Interface( proxy, "org.freesmartphone.Resource" )
+
+        self.path = path
+        self.sender = sender
+        self.iface = None
 
         if self.sync_resources_with_lifecycle in ( "always", "startup" ):
             self._disable().start()
@@ -230,21 +231,29 @@ class ClientResource( AbstractResource ):
     @tasklet.tasklet
     def _enable( self ):
         """Simply call the client Enable method"""
+        if self.iface is None:
+            self.iface = dbuscache.dbusInterfaceForObjectWithInterface( self.sender, self.path, "org.freesmartphone.Resource" )
         yield tasklet.WaitDBus( self.iface.Enable )
 
     @tasklet.tasklet
     def _disable( self ):
         """Simply call the client Disable method"""
+        if self.iface is None:
+            self.iface = dbuscache.dbusInterfaceForObjectWithInterface( self.sender, self.path, "org.freesmartphone.Resource" )
         yield tasklet.WaitDBus( self.iface.Disable )
 
     @tasklet.tasklet
     def _suspend( self ):
         """Simply call the client Suspend method"""
+        if self.iface is None:
+            self.iface = dbuscache.dbusInterfaceForObjectWithInterface( self.sender, self.path, "org.freesmartphone.Resource" )
         yield tasklet.WaitDBus( self.iface.Suspend )
 
     @tasklet.tasklet
     def _resume( self ):
         """Simply call the client Resume method"""
+        if self.iface is None:
+            self.iface = dbuscache.dbusInterfaceForObjectWithInterface( self.sender, self.path, "org.freesmartphone.Resource" )
         yield tasklet.WaitDBus( self.iface.Resume )
 
 #----------------------------------------------------------------------------#

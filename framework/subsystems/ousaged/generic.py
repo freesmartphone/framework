@@ -33,6 +33,8 @@ import time, os, subprocess
 import logging
 logger = logging.getLogger( MODULE_NAME )
 
+logger.warning( "THIS SUBSYSTEM IMPLEMENTATION is DEPRECATED. Please use fsousaged instead." )
+
 #----------------------------------------------------------------------------#
 # DBus Exceptions specifications specific to this module
 

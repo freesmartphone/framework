@@ -156,25 +156,34 @@ class Resource( dbus.service.Object, asyncworker.SynchronizedAsyncWorker ):
         # immediatly for the ousaged object may not be present yet.
         # We use gobject.idle_add method to make the call only at the next
         # mainloop iteration
-        def on_idle( self ):
+        def on_idle( self=self ):
             logger.debug( "Trying to register resource %s", self._resourceName )
 
-            def on_reply( self=self ):
-                logger.debug( "%s is now a registered resource", self._resourceName )
+            try:
+                usaged = self._resourceBus.get_object( "org.freesmartphone.ousaged", "/org/freesmartphone/Usage" )
+                usageiface = dbus.Interface( usaged, "org.freesmartphone.Usage" )
+            except dbus.exceptions.DBusException:
+                logger.warning( "Can't register resource %s since ousaged is not present. Enabling device", name )
+            else:
+                def on_reply( self=self ):
+                    logger.debug( "%s is now a registered resource", self._resourceName )
 
-            def on_error( err, self=self ):
-                logger.error( "%s can't be registered (%s). Enabling", self._resourceName, err )
-                gobject.idle_add( self.Enable, lambda: False, lambda dummy: False )
+                def on_error( err, self=self ):
+                    logger.error( "%s can't be registered (%s). Enabling", self._resourceName, err )
+                    gobject.idle_add( self.Enable, lambda: False, lambda dummy: False )
 
-            usageiface = dbuscache.dbusInterfaceForObjectWithInterface(
-                "org.freesmartphone.ousaged",
-                "/org/freesmartphone/Usage",
-                "org.freesmartphone.Usage" )
-            usageiface.RegisterResource( self._resourceName, self, reply_handler=on_reply, error_handler=on_error )
+
+                #usageiface = dbuscache.dbusInterfaceForObjectWithInterface(
+                    #"org.freesmartphone.ousaged",
+                    #"/org/freesmartphone/Usage",
+                    #"org.freesmartphone.Usage" )
+
+                #usageiface.RegisterResource( self._resourceName, self, reply_handler=on_reply, error_handler=on_error )
+                usageiface.RegisterResource( self._resourceName, self, reply_handler=on_reply, error_handler=on_error )
 
             return False # mainloop: don't call me again
 
-        gobject.idle_add( on_idle, self )
+        gobject.idle_add( on_idle )
 
     @exceptionlogger
     def onProcessElement( self, element ):
