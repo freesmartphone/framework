@@ -164,6 +164,7 @@ class Resource( dbus.service.Object, asyncworker.SynchronizedAsyncWorker ):
                 usageiface = dbus.Interface( usaged, "org.freesmartphone.Usage" )
             except dbus.exceptions.DBusException:
                 logger.warning( "Can't register resource %s since ousaged is not present. Enabling device", name )
+                gobject.idle_add( self.Enable, lambda: False, lambda dummy: False )
             else:
                 def on_reply( self=self ):
                     logger.debug( "%s is now a registered resource", self._resourceName )
