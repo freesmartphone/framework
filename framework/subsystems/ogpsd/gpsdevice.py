@@ -11,7 +11,7 @@ GPLv2 or later
 """
 
 __version__ = "0.9.0"
-MODULE_NAME = "ogspd.gpsdevice"
+MODULE_NAME = "ogpsd.gpsdevice"
 
 DBUS_INTERFACE_PREFIX = "org.freedesktop.Gypsy"
 DBUS_PATH_PREFIX = "/org/freedesktop/Gypsy"
