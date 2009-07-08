@@ -926,7 +926,7 @@ class MessageDomain(Domain):
             result = message['Path']
 
             # As we just added a new message, we check it against all queries to see if it matches
-            self.query_manager.check_new_message(message_id)
+            #self.query_manager.check_new_message(message_id)
             
         self.IncomingMessage(_DBUS_PATH_MESSAGES+ '/' + str(message_id))
         return message_id
