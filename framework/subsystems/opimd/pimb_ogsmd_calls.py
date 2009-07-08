@@ -25,7 +25,7 @@
 
 #"""pypimd ogsmd-calls Backend Plugin"""
 from dbus import SystemBus
-from time import time
+import time
 
 import logging
 logger = logging.getLogger('opimd')
@@ -95,13 +95,13 @@ class OgsmdCallsBackend(Backend):
             self.props['Direction'] = 'out'
         elif (call_status == "active"):
             self.props['Answered'] = 1
-            self.props['Timestamp'] = time()
+            self.props['Timestamp'] = time.time()
         elif (call_status == "release"):
             if self.props.has_key('Timestamp'):   
-                self.props['Duration'] = time() - self.props['Timestamp']
+                self.props['Duration'] = time.time() - self.props['Timestamp']
             else:
-                self.props['Timestamp'] = time()
-            # self.props['Date'] = ...
+                self.props['Timestamp'] = time.time()
+            self.props['Timezone'] = time.tzname[time.daylight]
             self.props['New']=1
             if self.props['Direction']=='in' and not self.props['Answered']:
                 self._domain_handlers['Calls'].register_missed_call(self, self.props)
