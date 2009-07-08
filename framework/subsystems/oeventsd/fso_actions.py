@@ -240,8 +240,9 @@ class OccupyResourceAction(Action):
     def onResourceRequestReply( cls, name ):
         logger.debug( "onResourceRequestReply: %s" % name )
         amount = cls.pending[name]
-        del cls.pending[name]
-        cls.held[name] = amount
+        if amount > 0:
+            del cls.pending[name]
+            cls.held[name] = amount
 
     @classmethod
     def onResourceRequestError( cls, name, e ):
@@ -286,7 +287,8 @@ class OccupyResourceAction(Action):
             if counter > 1:
                 self.__class__.pending[self.resource] = counter - 1
             else:
-                del self.__class__.pending[self.resource]
+                self.__class__.pending[self.resource] = 0
+                self.__class__.updatePending( self.resource )
 
         elif self.resource in self.__class__.held:
             counter = self.__class__.held[self.resource]
