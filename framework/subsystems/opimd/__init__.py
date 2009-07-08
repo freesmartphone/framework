@@ -16,12 +16,15 @@ from opimd import *
 # We import the domain modules, so that there classes get registered
 import pimd_contacts
 import pimd_messages
+import pimd_calls
 # Same thing for the backend modules
 import pimb_sim_contacts_fso
 import pimb_sim_messages_fso
 import pimb_csv_contacts
 import pimb_sqlite_contacts
 import pimb_sqlite_messages
+import pimb_sqlite_calls
+import pimb_ogsmd_calls
 
 import logging
 logger = logging.getLogger( MODULE_NAME )
