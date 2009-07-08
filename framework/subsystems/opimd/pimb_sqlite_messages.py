@@ -137,7 +137,7 @@ class SQLiteMessagesBackend(Backend):
         keys = {0:'_backend_entry_id', 1:'Source', 2:'Timestamp', 3:'Timezone', 4:'Direction', 5:'Title', 6:'Sender', 7:'TransmitLoc', 8:'Content', 9:'MessageRead', 10:'MessageSent', 11:'Processing'}
         cur = self.con.cursor()
         try:
-            cur.execute('SELECT id, Source, Timestamp, Timezone. Direction, Title, Sender, TransmitLoc, Content, MessageRead, MessageSent, Processing FROM messages WHERE deleted=0')
+            cur.execute('SELECT id, Source, Timestamp, Timezone, Direction, Title, Sender, TransmitLoc, Content, MessageRead, MessageSent, Processing FROM messages WHERE deleted=0')
             lines = cur.fetchall()
         except:
             logger.error("%s: Could not read from database (table messages)! Possible reason is old, uncompatible table structure. If you don't have important data, please remove %s file.", self.name, _SQLITE_FILE_NAME)
