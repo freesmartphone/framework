@@ -63,7 +63,8 @@ class SQLiteMessagesBackend(Backend):
             cur.execute("""CREATE TABLE IF NOT EXISTS messages (
                 id INTEGER PRIMARY KEY,
                 Source TEXT,
-                Date TEXT,
+                Timestamp TEXT,
+                Timezone TEXT,
                 Direction TEXT,
                 Title TEXT,
                 Sender TEXT,
@@ -133,10 +134,10 @@ class SQLiteMessagesBackend(Backend):
 
     def load_entries_from_db(self):
         """Loads all entries from db"""
-        keys = {0:'_backend_entry_id', 1:'Source', 2:'Date', 3:'Direction', 4:'Title', 5:'Sender', 6:'TransmitLoc', 7:'Content', 8:'MessageRead', 9:'MessageSent', 10:'Processing'}
+        keys = {0:'_backend_entry_id', 1:'Source', 2:'Timestamp', 3:'Timezone', 4:'Direction', 5:'Title', 6:'Sender', 7:'TransmitLoc', 8:'Content', 9:'MessageRead', 10:'MessageSent', 11:'Processing'}
         cur = self.con.cursor()
         try:
-            cur.execute('SELECT id, Source, Date, Direction, Title, Sender, TransmitLoc, Content, MessageRead, MessageSent, Processing FROM messages WHERE deleted=0')
+            cur.execute('SELECT id, Source, Timestamp, Timezone. Direction, Title, Sender, TransmitLoc, Content, MessageRead, MessageSent, Processing FROM messages WHERE deleted=0')
             lines = cur.fetchall()
         except:
             logger.error("%s: Could not read from database (table messages)! Possible reason is old, uncompatible table structure. If you don't have important data, please remove %s file.", self.name, _SQLITE_FILE_NAME)
@@ -173,7 +174,7 @@ class SQLiteMessagesBackend(Backend):
         cur.close()
 
     def upd_message(self, message_data):
-        reqfields = ['Source', 'Date', 'Direction', 'Title', 'Sender', 'TransmitLoc', 'Content', 'MessageRead', 'MessageSent', 'Processing']
+        reqfields = ['Source', 'Timestamp', 'Timezone', 'Direction', 'Title', 'Sender', 'TransmitLoc', 'Content', 'MessageRead', 'MessageSent', 'Processing']
         cur = self.con.cursor()
         for (field, value) in message_data:
             if field=='_backend_entry_id':
@@ -196,7 +197,7 @@ class SQLiteMessagesBackend(Backend):
         return message_id
 
     def add_message_to_db(self, message_data):
-        reqfields = ['Source', 'Date', 'Direction', 'Title', 'Sender', 'TransmitLoc', 'Content']
+        reqfields = ['Source', 'Timestamp', 'Timezone', 'Direction', 'Title', 'Sender', 'TransmitLoc', 'Content']
         reqIntFields = ['MessageRead', 'MessageSent', 'Processing']
         for field in reqfields:
             try:
@@ -213,7 +214,7 @@ class SQLiteMessagesBackend(Backend):
                 message_data[field]=0
 
         cur = self.con.cursor()
-        cur.execute('INSERT INTO messages (Source, Date, Direction, Title, Sender, TransmitLoc, Content, MessageRead, MessageSent, Processing, added) VALUES (?,?,?,?,?,?,?,?,?,?,?)',(message_data['Source'], message_data['Date'], message_data['Direction'], message_data['Title'], message_data['Sender'], message_data['TransmitLoc'], message_data['Content'], message_data['MessageRead'], message_data['MessageSent'], message_data['Processing'], 1))
+        cur.execute('INSERT INTO messages (Source, Timestamp, Timezone, Direction, Title, Sender, TransmitLoc, Content, MessageRead, MessageSent, Processing, added) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)',(message_data['Source'], message_data['Timestamp'], message_data['Timezone'], message_data['Direction'], message_data['Title'], message_data['Sender'], message_data['TransmitLoc'], message_data['Content'], message_data['MessageRead'], message_data['MessageSent'], message_data['Processing'], 1))
         cid = cur.lastrowid
         for field in message_data:
             if not field in reqfields:
