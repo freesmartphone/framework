@@ -1,10 +1,6 @@
-ring-tone: "Arkanoid_PSID.sid"
+ring-tone: "female_ringtone.wav"
 ring-volume: 10
-# SID tunes have no concept of length
-ring-length: 60
 
-message-tone: "Arkanoid_PSID.sid;tune=3"
+message-tone: "female_message.wav"
 message-volume: 10
-# SID tunes have no concept of length
-message-length: 3
 
