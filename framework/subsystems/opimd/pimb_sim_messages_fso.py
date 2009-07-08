@@ -291,6 +291,7 @@ class SIMMessageBackendFSO(Backend):
             self.gsm_sms_iface.AckMessage('', {}, reply_handler=self.dbus_ok, error_handler=self.dbus_err)
         except:
             self.gsm_sms_iface.NackMessage('', {}, reply_handler=self.dbus_ok, error_handler=self.dbus_err)
+            logger.error("Message nacked!")
 
     def install_signal_handlers(self):
         """Hooks to some d-bus signals that are of interest to us"""
