@@ -28,8 +28,8 @@
 from dbus import SystemBus
 from dbus.proxies import Interface
 from dbus.exceptions import DBusException
-from gobject import timeout_add
 from functools import partial
+import time
 
 import logging
 logger = logging.getLogger('opimd')
@@ -113,12 +113,18 @@ class SIMMessageBackendFSO(Backend):
 
         entry['SMS-combined_message'] = 0
 
+        if props.has_key('timestamp'):
+            timestamp = props['timestamp'][:len(props['timestamp'])-6]
+            entry['Timezone'] = props['timestamp'][len(props['timestamp'])-5:]
+            entry['Timestamp'] = time.mktime(time.strptime(timestamp))
+
+        if props.has_key('csm_seq'):
+            entry['SMS-combined_message'] = 1
+            entry['SMS-complete_message'] = 0
+            entry['SMS-csm_seq'+str(props['csm_seq'])+'_content'] = text
+
         for field in props:
             entry['SMS-'+field] = props[field]
-            if field=='csm_seq':
-                entry['SMS-combined_message'] = 1
-                entry['SMS-complete_message'] = 0
-                entry['SMS-csm_seq'+str(props[field])+'_content'] = text
 
         if sim_entry_id!=-1:
             entry['_backend_entry_id'] = sim_entry_id
@@ -302,6 +308,7 @@ class SIMMessageBackendFSO(Backend):
                 self.gsm_sms_iface.connect_to_signal("IncomingMessageReceipt", self.handle_incoming_message_receipt)
                 logger.info("%s: Installed signal handlers", self.name)
                 self.signals = True
+                self.gsm_device_iface.SetSimBuffersSms(self.am_i_default(), reply_handler=self.dbus_ok, error_handler=self.dbus_err)
             except:
                 logger.error("%s: Could not install signal handlers!", self.name)
 
@@ -315,7 +322,6 @@ class SIMMessageBackendFSO(Backend):
     def handle_auth_status(self, ready):
         if ready=='READY':
             self.install_signal_handlers()        
-            self.gsm_device_iface.SetSimBuffersSms(self.am_i_default(), reply_handler=self.dbus_ok, error_handler=self.dbus_err)
 
     def handle_sim_ready(self, ready):
         if ready:
