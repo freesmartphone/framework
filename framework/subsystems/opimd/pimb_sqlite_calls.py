@@ -75,6 +75,9 @@ class SQLiteCallBackend(Backend):
                 deleted INTEGER DEFAULT 0);""")
 
             cur.execute("CREATE TABLE IF NOT EXISTS call_values (id INTEGER PRIMARY KEY, callId INTEGER, Field TEXT, Value TEXT)")
+
+            cur.execute("CREATE INDEX calls_Direction_idx ON calls (Direction)") # TODO: make more indexes, also in others SQLite backends
+
             self.con.text_factory = sqlite3.OptimizedUnicode
             self.con.commit()
             cur.close()
