@@ -1,3 +1,12 @@
+2009-07-09	Michael Lauer	<mlauer@vainlle-media.de>
+
+	* Released as Milestone 5.5 (fso1 0.9.5.5)
+
+2009-06-15	Michael Lauer	<mlauer@vanille-media.de>
+
+	* [oeventsd] Rewrite OccupyResource action in order to demultiplex
+	resource requests.
+
 2009-05-17	Michael Lauer	<mlauer@vanille-media.de>
 
 	* [ogsmd] add signal org.freesmartphone.GSM.Device.KeypadEvent
