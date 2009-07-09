@@ -307,6 +307,9 @@ class BackendManager(DBusFBObject):
         if not domain in DomainManager._domains:
             raise InvalidDomain( "Invalid domain: %s" % domain )
 
+        if not PIMB_CAN_ADD_ENTRY in backend.properties:
+            raise InvalidBackend("This backend does not support adding entries!")
+
         key = domain.lower() + "_default_backend"
         config.setValue('opimd', key, backend.name)
         config.sync()
