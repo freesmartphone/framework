@@ -84,6 +84,8 @@ for line in stdin.readlines():
         data[key] = float(data[key])
     if not data['cell_mcc']<999 or not data['cell_mnc']<999:
         data['cell_mcc'], data['cell_mnc'] = (0, 0)
+    if not data['cell_la']<=0xFFFF or not data['cell_id']<=0xFFFF:
+        continue
     if data['cell_mcc']==0 or (data['cell_mcc']==0 and data['cell_mnc']==0):
         if len(data['provider']) == 4: 
             continue
