@@ -73,9 +73,7 @@ class SQLiteContactBackend(Backend):
                 HomeLoc TEXT,
                 Department TEXT,
                 refid TEXT,
-                deleted INTEGER DEFAULT 0,
-                added INTEGER DEFAULT 0,
-                updated INTEGER DEFAULT 0);""")
+                deleted INTEGER DEFAULT 0);""")
 
             """
         Address		0-X		Address			address://
@@ -178,9 +176,9 @@ class SQLiteContactBackend(Backend):
         for (field_name, field_value) in contact_data:
             if field_name=='_backend_entry_id':
                 contactId=field_value
-        cur.execute('UPDATE contacts SET deleted=1 WHERE id=?',(contactId,))
-    #    cur.execute('DELETE FROM contacts WHERE id=?',(contactId,))
-    #    cur.execute('DELETE FROM contact_values WHERE contactId=?',(contactId,))
+    #    cur.execute('UPDATE contacts SET deleted=1 WHERE id=?',(contactId,))
+        cur.execute('DELETE FROM contacts WHERE id=?',(contactId,))
+        cur.execute('DELETE FROM contact_values WHERE contactId=?',(contactId,))
         self.con.commit()
         cur.close()
 
@@ -199,7 +197,7 @@ class SQLiteContactBackend(Backend):
                     cur.execute('INSERT INTO contact_values (field,value,contactId) VALUES (?,?,?)',(field,value,contactId))
                 else:
                     cur.execute('UPDATE contact_values SET value=? WHERE field=? AND contactId=?',(value,field,contactId))
-        cur.execute('UPDATE contacts SET updated=1 WHERE id=?',(contactId,))
+    #    cur.execute('UPDATE contacts SET updated=1 WHERE id=?',(contactId,))
         self.con.commit()
         cur.close()
 
@@ -217,7 +215,7 @@ class SQLiteContactBackend(Backend):
                 contact_data[field]=''
 
         cur = self.con.cursor()
-        cur.execute('INSERT INTO contacts (Name, Surname, Nickname, Birthdate, MarrDate, Partner, Spouse, MetAt, HomeLoc, Department, added) VALUES (?,?,?,?,?,?,?,?,?,?,?)',(contact_data['Name'], contact_data['Surname'], contact_data['Nickname'], contact_data['Birthdate'], contact_data['MarrDate'], contact_data['Partner'], contact_data['Spouse'], contact_data['MetAt'], contact_data['HomeLoc'], contact_data['Department'], 1))
+        cur.execute('INSERT INTO contacts (Name, Surname, Nickname, Birthdate, MarrDate, Partner, Spouse, MetAt, HomeLoc, Department) VALUES (?,?,?,?,?,?,?,?,?,?)',(contact_data['Name'], contact_data['Surname'], contact_data['Nickname'], contact_data['Birthdate'], contact_data['MarrDate'], contact_data['Partner'], contact_data['Spouse'], contact_data['MetAt'], contact_data['HomeLoc'], contact_data['Department']))
         cid = cur.lastrowid
         for field in contact_data:
             if not field in reqfields:

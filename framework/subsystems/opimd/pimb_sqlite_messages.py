@@ -73,9 +73,7 @@ class SQLiteMessagesBackend(Backend):
                 MessageRead INTEGER DEFAULT 0,
                 MessageSent INTEGER DEFAULT 0,
                 Processing INTEGER DEFAULT 0,
-                deleted INTEGER DEFAULT 0,
-                added INTEGER DEFAULT 0,
-                updated INTEGER DEFAULT 0);""")
+                deleted INTEGER DEFAULT 0);""")
 
             """
         ----- Non-internal fields with static data ---------------------
@@ -167,9 +165,9 @@ class SQLiteMessagesBackend(Backend):
         for (field_name, field_value) in message_data:
             if field_name=='_backend_entry_id':
                 messageId=field_value
-        cur.execute('UPDATE messages SET deleted=1 WHERE id=?',(messageId,))
-    #    cur.execute('DELETE FROM messages WHERE id=?',(messageId,))
-    #    cur.execute('DELETE FROM message_values WHERE messageId=?',(messageId,))
+    #    cur.execute('UPDATE messages SET deleted=1 WHERE id=?',(messageId,))
+        cur.execute('DELETE FROM messages WHERE id=?',(messageId,))
+        cur.execute('DELETE FROM message_values WHERE messageId=?',(messageId,))
         self.con.commit()
         cur.close()
 
@@ -188,7 +186,7 @@ class SQLiteMessagesBackend(Backend):
                     cur.execute('INSERT INTO message_values (field,value,messageId) VALUES (?,?,?)',(field,value,messageId))
                 else:
                     cur.execute('UPDATE message_values SET value=? WHERE field=? AND messageId=?',(value,field,messageId))
-        cur.execute('UPDATE messages SET updated=1 WHERE id=?',(messageId,))
+    #    cur.execute('UPDATE messages SET updated=1 WHERE id=?',(messageId,))
         self.con.commit()
         cur.close()
 
@@ -214,7 +212,7 @@ class SQLiteMessagesBackend(Backend):
                 message_data[field]=0
 
         cur = self.con.cursor()
-        cur.execute('INSERT INTO messages (Source, Timestamp, Timezone, Direction, Title, Sender, TransmitLoc, Content, MessageRead, MessageSent, Processing, added) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)',(message_data['Source'], message_data['Timestamp'], message_data['Timezone'], message_data['Direction'], message_data['Title'], message_data['Sender'], message_data['TransmitLoc'], message_data['Content'], message_data['MessageRead'], message_data['MessageSent'], message_data['Processing'], 1))
+        cur.execute('INSERT INTO messages (Source, Timestamp, Timezone, Direction, Title, Sender, TransmitLoc, Content, MessageRead, MessageSent, Processing) VALUES (?,?,?,?,?,?,?,?,?,?,?)',(message_data['Source'], message_data['Timestamp'], message_data['Timezone'], message_data['Direction'], message_data['Title'], message_data['Sender'], message_data['TransmitLoc'], message_data['Content'], message_data['MessageRead'], message_data['MessageSent'], message_data['Processing']))
         cid = cur.lastrowid
         for field in message_data:
             if not field in reqfields:

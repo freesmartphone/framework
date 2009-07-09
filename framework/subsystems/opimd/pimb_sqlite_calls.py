@@ -72,9 +72,7 @@ class SQLiteCallBackend(Backend):
                 Answered INTEGER DEFAULT 0,
                 New INTEGER DEFAULT 0,
                 Replied INTEGER DEFAULT 0,
-                deleted INTEGER DEFAULT 0,
-                added INTEGER DEFAULT 0,
-                updated INTEGER DEFAULT 0);""")
+                deleted INTEGER DEFAULT 0);""")
 
             cur.execute("CREATE TABLE IF NOT EXISTS call_values (id INTEGER PRIMARY KEY, callId INTEGER, Field TEXT, Value TEXT)")
             self.con.text_factory = sqlite3.OptimizedUnicode
@@ -139,9 +137,9 @@ class SQLiteCallBackend(Backend):
         for (field_name, field_value) in call_data:
             if field_name=='_backend_entry_id':
                 callId=field_value
-        cur.execute('UPDATE calls SET deleted=1 WHERE id=?',(callId,))
-    #    cur.execute('DELETE FROM calls WHERE id=?',(callId,))
-    #    cur.execute('DELETE FROM call_values WHERE callId=?',(callId,))
+    #    cur.execute('UPDATE calls SET deleted=1 WHERE id=?',(callId,))
+        cur.execute('DELETE FROM calls WHERE id=?',(callId,))
+        cur.execute('DELETE FROM call_values WHERE callId=?',(callId,))
         self.con.commit()
         cur.close()
 
@@ -160,7 +158,7 @@ class SQLiteCallBackend(Backend):
                     cur.execute('INSERT INTO call_values (field,value,callId) VALUES (?,?,?)',(field,value,callId))
                 else:
                     cur.execute('UPDATE call_values SET value=? WHERE field=? AND callId=?',(value,field,callId))
-        cur.execute('UPDATE calls SET updated=1 WHERE id=?',(callId,))
+  #      cur.execute('UPDATE calls SET updated=1 WHERE id=?',(callId,))
         self.con.commit()
         cur.close()
 
@@ -180,7 +178,7 @@ class SQLiteCallBackend(Backend):
                 call_data[field]=0
 
         cur = self.con.cursor()
-        cur.execute('INSERT INTO calls (Caller, Type, Timestamp, Timezone, Direction, Duration, Cost, Answered, New, Replied, added) VALUES (?,?,?,?,?,?,?,?,?,?,?)',(call_data['Caller'], call_data['Type'], call_data['Timestamp'], call_data['Timezone'], call_data['Direction'], call_data['Duration'], call_data['Cost'], call_data['Answered'], call_data['New'], call_data['Replied'], 1))
+        cur.execute('INSERT INTO calls (Caller, Type, Timestamp, Timezone, Direction, Duration, Cost, Answered, New, Replied) VALUES (?,?,?,?,?,?,?,?,?,?)',(call_data['Caller'], call_data['Type'], call_data['Timestamp'], call_data['Timezone'], call_data['Direction'], call_data['Duration'], call_data['Cost'], call_data['Answered'], call_data['New'], call_data['Replied']))
         cid = cur.lastrowid
         for field in call_data:
             if not field in reqfields:
