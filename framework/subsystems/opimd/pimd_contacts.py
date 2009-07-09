@@ -290,7 +290,12 @@ class Contact():
         @return Contact data, in {Field_name:Field_value} notation"""
 
         # TODO Do not return private fields, such as the internal ID
-        return self.get_fields(self._field_idx)
+        fields = self.get_fields(self._field_idx)
+        content = {}
+        for field in fields:
+            if fields[field]!='' and fields[field]!=None:
+                content[field] = fields[field]
+        return content
 
 
     def attempt_merge(self, contact_fields, backend_name):
