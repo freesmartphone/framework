@@ -81,22 +81,25 @@ class OgsmdCallsBackend(Backend):
             self.props['Type']='gsm_'+call_props['mode']
         if call_props.has_key('peer'):
             caller = phone_number_to_tel_uri(call_props["peer"])
-        else:
-            if self.props['Direction'] == 'in':
+        elif self.props.has_key('Direction'):
+            if self.props['Direction'] == 'in' and self.props.has_key('Caller'):
                 caller = self.props['Caller']
-            elif self.props['Direction'] == 'out':
-                caller = self.props['To']
+            elif self.props['Direction'] == 'out' and self.props.has_key('Recipient'):
+                caller = self.props['Recipient']
 
-        if (call_status == "incoming"):
-            self.props['Caller'] = caller
+        if call_status == "incoming":
+            try:
+                self.props['Caller'] = caller
+            except:
+                pass
             self.props['Direction'] = 'in'
-        elif (call_status == "outgoing"):
-            self.props['To'] = caller
+        elif call_status == "outgoing":
+            self.props['Recipient'] = caller
             self.props['Direction'] = 'out'
-        elif (call_status == "active"):
+        elif call_status == "active":
             self.props['Answered'] = 1
             self.props['Timestamp'] = time.time()
-        elif (call_status == "release"):
+        elif call_status == "release":
             if self.props.has_key('Timestamp'):   
                 self.props['Duration'] = time.time() - self.props['Timestamp']
             else:
