@@ -119,7 +119,7 @@ class SIMMessageBackendFSO(Backend):
                 entry['Timezone'] = props['timestamp'][len(props['timestamp'])-5:]
                 entry['Timestamp'] = time.mktime(time.strptime(timestamp))
             except ValueError:
-                logger.error('Couldn't handle timestamp!')
+                logger.error("Couldn't handle timestamp!")
 
         if props.has_key('csm_seq'):
             entry['SMS-combined_message'] = 1
