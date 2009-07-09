@@ -51,7 +51,7 @@ _UNAVAILABLE_PART = '<???>'
 class SIMMessageBackendFSO(Backend):
 #----------------------------------------------------------------------------#
     name = 'SIM-Messages-FSO'
-    properties = []
+    properties = [PIMB_CAN_ADD_ENTRY]
 
     # Dict containing the domain handler objects we support
     _domain_handlers = None
@@ -114,9 +114,12 @@ class SIMMessageBackendFSO(Backend):
         entry['SMS-combined_message'] = 0
 
         if props.has_key('timestamp'):
-            timestamp = props['timestamp'][:len(props['timestamp'])-6]
-            entry['Timezone'] = props['timestamp'][len(props['timestamp'])-5:]
-            entry['Timestamp'] = time.mktime(time.strptime(timestamp))
+            try:
+                timestamp = props['timestamp'][:len(props['timestamp'])-6]
+                entry['Timezone'] = props['timestamp'][len(props['timestamp'])-5:]
+                entry['Timestamp'] = time.mktime(time.strptime(timestamp))
+            except ValueError:
+                logger.error('Couldn't handle timestamp!')
 
         if props.has_key('csm_seq'):
             entry['SMS-combined_message'] = 1
