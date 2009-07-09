@@ -4,17 +4,24 @@ from math import sqrt
 from struct import pack
 
 NETWORKS = {
+    '20205': (202, 5),
     '20408': (204, 8),
+    '20601': (206, 1),
     '20620': (206, 20),
     '20801': (208, 1),
     '21403': (214, 3),
+    '22288': (222, 8),
+    '23102': (231, 2),
     '22801': (228, 1),
+    '22802': (228, 2),
     '22803': (228, 3),
+    '23002': (230, 2),
     '23106': (231, 6),
     '23201': (232, 1),
     '23203': (232, 3),
     '23205': (232, 5),
     '23430': (234, 30),
+    '23820': (238, 20),
     '24201': (242, 1),
     '24405': (244, 5),
     '26001': (260, 1),
@@ -77,7 +84,7 @@ for line in stdin.readlines():
         data[key] = float(data[key])
     if not data['cell_mcc']<999 or not data['cell_mnc']<999:
         data['cell_mcc'], data['cell_mnc'] = (0, 0)
-    if data['cell_mcc']==0 or data['cell_mnc']==0:
+    if data['cell_mcc']==0 or (data['cell_mcc']==0 and data['cell_mnc']==0):
         if len(data['provider']) == 4: 
             continue
         elif data['provider'] == '99999':
