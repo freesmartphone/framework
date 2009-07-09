@@ -293,11 +293,10 @@ class Call():
 
         @return call data, in {Field_name:Field_value} notation"""
 
-        # TODO Do not return private fields, such as the internal ID
         fields = self.get_fields(self._field_idx)
         content = {}
         for field in fields:
-            if fields[field]!='' and fields[field]!=None:
+            if fields[field]!='' and fields[field]!=None and not field.startswith('_'):
                 content[field] = fields[field]
         return content
 
