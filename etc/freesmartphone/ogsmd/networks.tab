@@ -1435,7 +1435,7 @@ PL	Poland
 	260 	02 	Era 	Polska Telefonia Cyfrowa (PTC) 	Operational 	GSM 900 / GSM 1800 / UMTS 2100
 	260 	03 	Orange 	PTK Centertel 	Operational 	GSM 900 / GSM 1800 / UMTS 2100
 	260 	04 	Tele2 	Tele2 Polska 	Not operational 	Unknown
-	260 	06 	Play 	P4 Sp. z o.o 	Operational 	UMTS 2100 	Also roaming on Polkomtel 2G network
+	260 	06 	Play 	P4 Sp. z o.o 	Operational 	GSM 900 / UMTS 2100 	Also roaming on Polkomtel 2G network
 	260 	07 		Premium Internet 	Not operational 	Unknown
 	260 	08 		E-Telko 	Not operational 	Unknown
 	260 	09 		Telekomunikacja Kolejowa 	Not operational 	GSM-R 900
