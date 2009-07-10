@@ -80,21 +80,18 @@ class OgsmdCallsBackend(Backend):
         if call_props.has_key('mode'):
             self.props['Type']='gsm_'+call_props['mode']
         if call_props.has_key('peer'):
-            caller = phone_number_to_tel_uri(call_props["peer"])
-        elif self.props.has_key('Direction'):
-            if self.props['Direction'] == 'in' and self.props.has_key('Caller'):
-                caller = self.props['Caller']
-            elif self.props['Direction'] == 'out' and self.props.has_key('Recipient'):
-                caller = self.props['Recipient']
+            peer = phone_number_to_tel_uri(call_props["peer"])
+        elif self.props.has_key('Peer'):
+            peer = self.props['Peer']
 
         if call_status == "incoming":
             try:
-                self.props['Caller'] = caller
+                self.props['Peer'] = peer
             except:
                 pass
             self.props['Direction'] = 'in'
         elif call_status == "outgoing":
-            self.props['Recipient'] = caller
+            self.props['Peer'] = peer
             self.props['Direction'] = 'out'
         elif call_status == "active":
             self.props['Answered'] = 1

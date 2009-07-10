@@ -62,7 +62,6 @@ class SQLiteCallBackend(Backend):
             cur = self.con.cursor()
             cur.execute("""CREATE TABLE IF NOT EXISTS calls (
                 id INTEGER PRIMARY KEY,
-                Caller TEXT,
                 Type TEXT,
                 Timestamp TEXT,
                 Timezone TEXT,
@@ -77,7 +76,6 @@ class SQLiteCallBackend(Backend):
             cur.execute("CREATE TABLE IF NOT EXISTS call_values (id INTEGER PRIMARY KEY, callId INTEGER, Field TEXT, Value TEXT)")
 
             cur.execute("CREATE INDEX IF NOT EXISTS calls_Direction_idx ON calls (Direction)")
-            cur.execute("CREATE INDEX IF NOT EXISTS calls_Caller_idx ON calls (Caller)")
             cur.execute("CREATE INDEX IF NOT EXISTS calls_Type_idx ON calls (Type)")
             cur.execute("CREATE INDEX IF NOT EXISTS calls_Answered_idx ON calls (Answered)")
             cur.execute("CREATE INDEX IF NOT EXISTS calls_New_idx ON calls (New)")
@@ -118,10 +116,10 @@ class SQLiteCallBackend(Backend):
 
     def load_entries_from_db(self):
         """Loads all entries from db"""
-        keys = {0:'_backend_entry_id', 1:'Caller', 2:'Type', 3:'Timestamp', 4:'Timezone', 5:'Direction', 6:'Duration', 7:'Cost', 8:'Answered', 9:'New', 10:'Replied'}
+        keys = {0:'_backend_entry_id', 1:'Type', 2:'Timestamp', 3:'Timezone', 4:'Direction', 5:'Duration', 6:'Cost', 7:'Answered', 8:'New', 9:'Replied'}
         cur = self.con.cursor()
         try:
-            cur.execute('SELECT id, Caller, Type, Timestamp, Timezone, Direction, Duration, Cost, Answered, New, Replied FROM calls WHERE deleted=0')
+            cur.execute('SELECT id, Type, Timestamp, Timezone, Direction, Duration, Cost, Answered, New, Replied FROM calls WHERE deleted=0')
             lines = cur.fetchall()
         except:
             logger.error("%s: Could not read from database (table calls)! Possible reason is old, uncompatible table structure. If you don't have important data, please remove %s file.", self.name, _SQLITE_FILE_NAME)
@@ -156,7 +154,7 @@ class SQLiteCallBackend(Backend):
         cur.close()
 
     def upd_call(self, call_data):
-        reqfields = ['Caller', 'Type', 'Timestamp', 'Timezone', 'Direction', 'Duration', 'Cost', 'Answered', 'New', 'Replied']
+        reqfields = ['Type', 'Timestamp', 'Timezone', 'Direction', 'Duration', 'Cost', 'Answered', 'New', 'Replied']
         cur = self.con.cursor()
         for (field, value) in call_data:
             if field=='_backend_entry_id':
@@ -175,7 +173,7 @@ class SQLiteCallBackend(Backend):
         cur.close()
 
     def add_call(self, call_data):
-        reqfields = ['Caller', 'Type', 'Timestamp', 'Timezone', 'Direction', 'Duration', 'Cost']
+        reqfields = ['Type', 'Timestamp', 'Timezone', 'Direction', 'Duration', 'Cost']
         reqIntfields = ['Answered', 'New', 'Replied']
 
         for field in reqfields:
@@ -190,7 +188,7 @@ class SQLiteCallBackend(Backend):
                 call_data[field]=0
 
         cur = self.con.cursor()
-        cur.execute('INSERT INTO calls (Caller, Type, Timestamp, Timezone, Direction, Duration, Cost, Answered, New, Replied) VALUES (?,?,?,?,?,?,?,?,?,?)',(call_data['Caller'], call_data['Type'], call_data['Timestamp'], call_data['Timezone'], call_data['Direction'], call_data['Duration'], call_data['Cost'], call_data['Answered'], call_data['New'], call_data['Replied']))
+        cur.execute('INSERT INTO calls (Type, Timestamp, Timezone, Direction, Duration, Cost, Answered, New, Replied) VALUES (?,?,?,?,?,?,?,?,?)',(call_data['Type'], call_data['Timestamp'], call_data['Timezone'], call_data['Direction'], call_data['Duration'], call_data['Cost'], call_data['Answered'], call_data['New'], call_data['Replied']))
         cid = cur.lastrowid
         for field in call_data:
             if not field in reqfields:
