@@ -95,3 +95,16 @@ class AmbiguousKey( DBusException ):
 #----------------------------------------------------------------------------#
     """Raised when a given message field name is present more than once and it's unclear which to modify"""
     _dbus_error_name = "org.freesmartphone.PIM.AmbiguousKey"
+#----------------------------------------------------------------------------#
+class InvalidCallID( DBusException ):
+#----------------------------------------------------------------------------#
+    """Raised when a submitted call ID is invalid / out of range"""
+    _dbus_error_name = "org.freesmartphone.PIM.InvalidCallID"
+
+#----------------------------------------------------------------------------#
+class NoMoreCalls( DBusException ):
+#----------------------------------------------------------------------------#
+    """Raised when there are no more calls to be listed"""
+    _dbus_error_name = "org.freesmartphone.PIM.NoMoreCallss"
+
+
