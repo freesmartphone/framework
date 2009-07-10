@@ -118,7 +118,6 @@ class SQLiteCallBackend(Backend):
         """Loads all entries from db"""
         keys = {0:'_backend_entry_id', 1:'Type', 2:'Timestamp', 3:'Timezone', 4:'Direction', 5:'Duration', 6:'Cost', 7:'Answered', 8:'New', 9:'Replied'}
         floatKeys = ['Timestamp', 'Duration']
-        intKeys = ['Answered', 'New', 'Replied']
         cur = self.con.cursor()
         try:
             cur.execute('SELECT id, Type, Timestamp, Timezone, Direction, Duration, Cost, Answered, New, Replied FROM calls WHERE deleted=0')
@@ -130,10 +129,8 @@ class SQLiteCallBackend(Backend):
         for line in lines:
             entry = {}
             for key in keys:
-                if keys[key] in floatKeys:
+                if keys[key] in floatKeys and line[key]:
                     entry[keys[key]] = float(line[key])
-                elif keys[key] in intKeys:
-                    entry[keys[key]] = int(line[key])
                 else:
                     entry[keys[key]] = line[key]
             try:
