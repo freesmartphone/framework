@@ -66,8 +66,7 @@ class ContactQueryMatcher(object):
 
         assert(self.query_obj, "Query object is empty, cannot match!")
 
-        result_count = 0
-        matches = {}
+        matches = []
         results = []
 
         # Match all contacts
@@ -75,25 +74,23 @@ class ContactQueryMatcher(object):
             if contact:
                 match = contact.match_query(self.query_obj)
                 if match > _MIN_MATCH_TRESHOLD:
-                    matches[contact_id] = match
-                    result_count += 1
+                    matches.append((match, contact_id))
 
+        result_count = len(matches)
         # Sort matches by relevance and return the best hits
         if result_count > 0:
-            # Transform the dict into a list of key/value tuples so we can sort it
-            kv_list = [(v, k) for k, v in matches.items()]
-            kv_list.sort()
+            matches.sort()
 
             try:
                 limit = self.query_obj["_limit"]
-                if limit>len(kv_list):
-                    limit = len(kv_list)
+                if limit > result_count:
+                    limit = result_count
             except KeyError:
-                limit = len(kv_list)
+                limit = result_count
 
             # Append the contact IDs to the result list in the order of the sorted list
             for i in range(limit):
-                results.append(kv_list[i][1])
+                results.append(matches[i][1])
 
         return results
 
