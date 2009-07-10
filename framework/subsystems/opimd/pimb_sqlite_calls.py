@@ -130,9 +130,9 @@ class SQLiteCallBackend(Backend):
         for line in lines:
             entry = {}
             for key in keys:
-                if key in floatKeys:
+                if keys[key] in floatKeys:
                     entry[keys[key]] = float(line[key])
-                elif key in intKeys:
+                elif keys[key] in intKeys:
                     entry[keys[key]] = int(line[key])
                 else:
                     entry[keys[key]] = line[key]
