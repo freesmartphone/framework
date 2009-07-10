@@ -91,6 +91,8 @@ class MessageQueryMatcher(object):
 
             try:
                 limit = self.query_obj["_limit"]
+                if limit>len(kv_list):
+                    limit = len(kv_list)
             except KeyError:
                 limit = len(kv_list)
 
