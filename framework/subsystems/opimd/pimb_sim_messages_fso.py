@@ -35,7 +35,7 @@ import logging
 logger = logging.getLogger('opimd')
 
 from backend_manager import BackendManager, Backend
-from backend_manager import PIMB_CAN_ADD_ENTRY, PIMB_CAN_DEL_ENTRY, PIMB_CAN_UPD_ENTRY
+from backend_manager import PIMB_CAN_ADD_ENTRY, PIMB_CAN_DEL_ENTRY, PIMB_CAN_UPD_ENTRY, PIMB_IS_HANDLER
 from domain_manager import DomainManager
 from helpers import *
 import framework.patterns.tasklet as tasklet
@@ -51,7 +51,7 @@ _UNAVAILABLE_PART = '<???>'
 class SIMMessageBackendFSO(Backend):
 #----------------------------------------------------------------------------#
     name = 'SIM-Messages-FSO'
-    properties = [PIMB_CAN_ADD_ENTRY]
+    properties = [PIMB_CAN_ADD_ENTRY, PIMB_IS_HANDLER]
 
     # Dict containing the domain handler objects we support
     _domain_handlers = None

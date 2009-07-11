@@ -31,6 +31,7 @@ import logging
 logger = logging.getLogger('opimd')
 
 from domain_manager import DomainManager
+from backend_manager import PIMB_IS_HANDLER
 from backend_manager import BackendManager, Backend
 from helpers import *
 
@@ -44,7 +45,7 @@ _DOMAINS = ('Calls', )
 class OgsmdCallsBackend(Backend):
 #----------------------------------------------------------------------------#
     name = 'ogsmd-Calls'
-    properties = []
+    properties = [PIMB_IS_HANDLER]
 
     _domain_handlers = None           # Map of the domain handler objects we support
     _entry_ids = None                 # List of all entry IDs that have data from us
