@@ -85,12 +85,11 @@ class CallQueryMatcher(object):
         if result_count > 0:
             matches.sort()
 
-            try:
+            limit = result_count
+            if self.query_obj.has_key("_limit"):
                 limit = self.query_obj["_limit"]
                 if limit > result_count:
                     limit = result_count
-            except KeyError:
-                limit = result_count
 
             # Append the call IDs to the result list in the order of the sorted list
             for i in range(limit):
