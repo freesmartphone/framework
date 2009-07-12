@@ -698,6 +698,7 @@ class CallDomain(Domain):
 
     _backends = None
     _calls = None
+    _new_missed_calls = None
     query_manager = None
 
     def __init__(self):
@@ -705,6 +706,7 @@ class CallDomain(Domain):
 
         self._backends = {}
         self._calls = []
+        self._new_missed_calls = 0
         self.query_manager = QueryManager(self._calls)
 
         # Initialize the D-Bus-Interface
@@ -766,12 +768,19 @@ class CallDomain(Domain):
 
             self.NewCall(path)
 
+            if call_data.has_key('New') and call_data.has_key('Answered') and call_data.has_key('Direction'):
+                if call_data['New'] and not call_data['Answered'] and call_data['Direction'] == 'in':
+                    self._new_missed_calls += 1
+                    self.NewMissedCalls(self._new_missed_calls)
+
         return call_id
 
     def register_missed_call(self, backend, call_data, stored_on_input_backend = False):
         logger.debug("Registering missed call...")
         if stored_on_input_backend:
             message_id = self.register_call(backend, message_data)
+            self._new_missed_calls += 1
+            self.NewMissedCalls(self._new_missed_calls)
         else:
             # FIXME: now it's just copied from Add method.
             # Make some checking, fallbacking etc.
@@ -810,6 +819,9 @@ class CallDomain(Domain):
                 if call.incorporates_data_from(backend.name):
                     yield call.export_fields(backend.name)
 
+    @dbus_signal(_DIN_CALLS, "i")
+    def NewMissedCalls(self, amount):
+        pass
 
     @dbus_signal(_DIN_CALLS, "s")
     def NewCall(self, path):
@@ -939,6 +951,11 @@ class CallDomain(Domain):
 
         backends = self._calls[num_id]._used_backends
 
+        call = self._calls[num_id].get_fields(self._calls[num_id]._field_idx)
+        if call['New'] and not call['Answered'] and call['Direction'] == 'in':
+            self._new_missed_calls -= 1
+            self.NewMissedCalls(self._new_missed_calls)
+
         for backend_name in backends:
             backend = self._backends[backend_name]
             if not PIMB_CAN_DEL_ENTRY in backend.properties:
@@ -982,16 +999,17 @@ class CallDomain(Domain):
         if num_id >= len(self._calls) or self._calls[num_id]==None:
             raise InvalidCallID()
 
-        call = self._calls[num_id]
+        callif = self._calls[num_id]
+        call = callif.get_fields(callif._field_idx)
 
         default_backend = BackendManager.get_default_backend(_DOMAIN_NAME)
         
         # Search for backend in which we can store new fields
         backend = ''
-        if default_backend.name in call._used_backends:
+        if default_backend.name in callif._used_backends:
             backend = default_backend.name
         else:
-            for backend_name in call._used_backends:
+            for backend_name in callif._used_backends:
                 if PIMB_CAN_UPD_ENTRY_WITH_NEW_FIELD in self._backends[backend_name].properties:
                     backend = self._backends[backend_name]
                     break
@@ -1000,23 +1018,32 @@ class CallDomain(Domain):
         # For instance: we have SIM call with Name and Phone. We want to add "Birthday" field.
         # opimd should then try to add "Birthday" field to default backend and then merge calls.
 
+        if call.has_key('New') and data.has_key('New') and call.has_key('Answered') and call.has_key('Direction'):
+            if not call['Answered'] and call['Direction'] == 'in':
+                if call['New'] and not data['New']:
+                    self._new_missed_calls -= 1
+                    self.NewMissedCalls(self._new_missed_calls)
+                elif not call['New'] and data['New']:
+                    self._new_missed_calls += 1
+                    self.NewMissedCalls(self._new_missed_calls)
+
         for field_name in data:
-            if not field_name in call._field_idx:
+            if not field_name in callif._field_idx:
                 if backend!='':
-                    call.import_fields({field_name:data[field_name]}, backend)
+                    callif.import_fields({field_name:data[field_name]}, backend)
                 else:
                     raise InvalidBackend( "There is no backend which can store new field" )
             elif not field_name.startswith('_'):
-                for field_nr in call._field_idx[field_name]:
+                for field_nr in callif._field_idx[field_name]:
                     if call[field_name]!=data[field_name]:
-                        call._fields[field_nr][1]=data[field_name]
+                        callif._fields[field_nr][1]=data[field_name]
 
-        for backend_name in call._used_backends:
+        for backend_name in callif._used_backends:
             backend = self._backends[backend_name]
             if not PIMB_CAN_UPD_ENTRY in backend.properties:
                 raise InvalidBackend( "Backend properties not including PIMB_CAN_UPD_ENTRY" )
             try:
-                backend.upd_call(call.export_fields(backend_name))
+                backend.upd_call(callif.export_fields(backend_name))
             except AttributeError:
                 raise InvalidBackend( "Backend does not feature upd_call" )
 
