@@ -220,6 +220,31 @@ class IncomingMessageTrigger(DBusTrigger):
         return "IncomingMessage"
 
 #============================================================================#
+class IncomingUssdTrigger(DBusTrigger):
+#============================================================================#
+    """
+    A custom dbus trigger for org.freesmartphone.GSM.Network.IncomingUssd
+    """
+
+    function_name = 'IncomingUssd'
+
+    def __init__(self):
+        bus = dbus.SystemBus()
+        super(IncomingUssdTrigger, self).__init__(
+            bus,
+            'org.freesmartphone.ogsmd',
+            '/org/freesmartphone/GSM/Device',
+            'org.freesmartphone.GSM.Network',
+            'IncomingUssd'
+        )
+    def on_signal(self, status, content):
+        logger.info("Receive IncomingUssd with status = %s" % status)
+        self._trigger(status=status, content=content)
+
+    def __repr__(self):
+        return "IncomingUssd"
+
+#============================================================================#
 class PowerStatusTrigger(DBusTrigger):
 #============================================================================#
     """
