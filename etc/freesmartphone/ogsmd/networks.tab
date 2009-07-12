@@ -1443,7 +1443,7 @@ PL	Poland
 	260 	11 		Nordisk Polska 	Not operational 	CDMA
 	260 	12 	Cyfrowy Polsat 	Cyfrowy Polsat 	Operational 	GSM 900 / GSM 1800 / UMTS 2100 	MVNO roaming on PTC network
 	260 	14	Sferia 	Sferia S.A. 	Operational 	CDMA2000 850
-	260 	15 	CenterNet 	CenterNet S.A. 	Planned 	GSM 1800 	Also roaming on Centertel network
+	260 	15 	CenterNet 	CenterNet S.A. 	Operational 	GSM 1800 	Also roaming on PTC network
 
 # ISO	Country
 PT	Portugal
