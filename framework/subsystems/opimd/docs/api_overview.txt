@@ -8,7 +8,7 @@ PIM/
        - GetResultCount()		OK
        - Rewind()			OK
        - Skip()				OK			
-       - GetMessageURI()		OK
+       - GetMessagePath()		OK
        - GetResult()			OK
        - GetMultipleResults()		OK
        - Dispose()			OK
@@ -17,11 +17,11 @@ PIM/
        * MessageChanged			##
    - GetFolderNames()			OK
    - GetFolderOverview()		--
-   - GetFolderURIFromName()		OK
+   - GetFolderPathFromName()		OK
    + Folders/				OK	.PIM.MessageFolder
      + n				OK
        - GetMessageCount()		OK
-       - GetMessageURIs()		OK
+       - GetMessagePaths()		OK
        * MessageMoved			OK
    + n					OK	.PIM.Message
      - GetContent()			OK
@@ -33,6 +33,7 @@ PIM/
        + n				--
    * NewMessage				OK
    * IncomingMessage 			OK
+   * UnreadMessages 			OK
 
  + Contacts/				OK	.PIM.Contacts
    - Add()				OK
@@ -43,7 +44,7 @@ PIM/
        - GetResultCount()		OK
        - Rewind()			OK
        - Skip()				OK
-       - GetContactURI()		OK
+       - GetContactPath()		OK
        - GetResult()			OK
        - GetMultipleResults()		OK
        - Dispose()			OK
@@ -55,12 +56,48 @@ PIM/
      - GetMultipleFields()		OK
      - Update()				OK
      - Delete()				OK
+   * NewContact				OK
+
+ + Calls/ 				OK	.PIM.Calls
+   - Add()				OK
+   - GetSingleCallSingleField()		OK
+   - Query()				OK
+   + Queries/				OK	.PIM.CallQuery
+     + n				OK
+       - GetResultCount()		OK
+       - Rewind()			OK
+       - Skip()				OK
+       - GetCallPath()			OK
+       - GetResult()			OK
+       - GetMultipleResults()		OK
+       - Dispose()			OK
+       * CallAdded			##
+       * CallDeleted			##
+       * CallChanged			##
+   + n					OK	.PIM.Contact
+     - GetContent()			OK
+     - GetMultipleFields()		OK
+     - Update()				OK
+     - Delete()				OK
+   * NewCall				OK
+   * MissedCall				OK
+   * NewMissedCalls			OK
 
  + Sources/				OK	.PIM.Sources
+   - InitAllEntries()			OK
+   - GetDomains()			OK
+   - GetBackends()			OK
+   - GetDefaultBackend()		OK
    - GetEntryCount()			OK
    + n					OK	.PIM.Source
      - GetName()			OK
      - GetSupportedPIMDomains()		OK
      - GetStatus()			OK
+     - GetProperties()			OK
+     - SetAsDefault()			OK
+     - Init()
+     - Enable()				OK
+     - Disable()			OK
+     - GetEnabled()			OK
      - Connect()			--
      - Disconnect()			--
