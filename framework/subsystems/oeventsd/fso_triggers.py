@@ -106,10 +106,55 @@ class BTHeadsetIsConnected(WhileRule):
         return "BTHeadsetIsConnected()"
 
 #============================================================================#
+class NewMissedCallsTrigger(DBusTrigger):
+#============================================================================#
+    """
+    A custom dbus trigger for org.freesmartphone.PIM.Calls.NewMissedCalls
+    """
+
+    function_name = 'NewMissedCallsTrigger'
+
+    def __init__(self):
+        bus = dbus.SystemBus()
+        super(NewMissedCallsTrigger, self).__init__(
+            bus,
+            'org.freesmartphone.opimd',
+            '/org/freesmartphone/PIM/Calls',
+            'org.freesmartphone.PIM.Calls',
+            'NewMissedCalls'
+        )
+    def on_signal(self, status):
+        logger.info("Receive NewMissedCalls = %s" % status)
+        self._trigger(status=status)
+
+    def __repr__(self):
+        return "NewMissedCallsTrigger"
+
+#============================================================================#
+class NewMissedCalls(WhileRule):
+#============================================================================#
+    function_name = "NewMissedCalls"
+
+    def __init__(self):
+        super(NewMissedCalls, self).__init__(NewMissedCallsTrigger())
+
+    def trigger(self, status=None, **kargs):
+        logger.debug("Trigger %s", self)
+        logger.info("NewMissedCalls " + str(status))
+        if status:
+            super(NewMissedCalls, self).trigger()
+        else:
+            super(NewMissedCalls, self).untrigger()
+       
+    def __repr__(self):
+        return "NewMissedCalls()"
+
+#============================================================================#
 class IncomingMessageTrigger(DBusTrigger):
 #============================================================================#
     """
     A custom dbus trigger for org.freesmartphone.GSM.SIM.IncomingStoredMessage
+    TODO: change to opimd interface
     """
 
     function_name = 'IncomingMessage'
