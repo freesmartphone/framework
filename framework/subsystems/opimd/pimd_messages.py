@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# -*- coding: utf-8 -*-
 """
 Open PIM Daemon
 
@@ -793,6 +794,7 @@ class MessageDomain(Domain):
     _backends = None
     _messages = None
     _folders = None
+    _unread_messages = None
     query_manager = None
 
     def __init__(self):
@@ -801,6 +803,7 @@ class MessageDomain(Domain):
         self._backends = {}
         self._messages = []
         self._folders = []
+        self._unread_messages = 0
         self.query_manager = QueryManager(self._messages)
 
         # Initialize the D-Bus-Interface
@@ -901,6 +904,11 @@ class MessageDomain(Domain):
             # Notify clients that a new message arrived
             self.NewMessage(uri)
 
+            if message_data.has_key('MessageRead') and message_data.has_key('Direction'):
+                if not message_data['MessageRead'] and message_data['Direction'] == 'in':
+                    self._unread_messages += 1
+                    self.UnreadMessages(self._unread_messages)
+
         return message_id
 
 
@@ -908,6 +916,8 @@ class MessageDomain(Domain):
         logger.debug("Registering incoming message...")
         if stored_on_input_backend:
             message_id = self.register_message(backend, message_data)
+            self._unread_messages += 1
+            self.UnreadMessages(self._unread_messages)
         else:
             # FIXME: now it's just copied from Add method.
             # Make some checking, fallbacking etc.
@@ -1034,6 +1044,9 @@ class MessageDomain(Domain):
         folder_id = self.get_folder_id_from_name(folder_name)
         return _DBUS_PATH_FOLDERS + '/' + str(folder_id)
 
+    @dbus_signal(_DIN_MESSAGES, "i")
+    def UnreadMessages(self, amount):
+        pass
 
     @dbus_signal(_DIN_MESSAGES, "s")
     def NewMessage(self, message_URI):
@@ -1110,16 +1123,17 @@ class MessageDomain(Domain):
         if num_id >= len(self._messages) or self._messages[num_id]==None:
             raise InvalidMessageID()
 
-        message = self._messages[num_id]
+        messageif = self._messages[num_id]
+        message = messageif.get_fields(messageif._field_idx)
 
         default_backend = BackendManager.get_default_backend(_DOMAIN_NAME)
 
         # Search for backend in which we can store new fields
         backend = ''
-        if default_backend.name in message._used_backends:
+        if default_backend.name in messageif._used_backends:
             backend = default_backend.name
         else:
-            for backend_name in message._used_backends:
+            for backend_name in messageif._used_backends:
                 if PIMB_CAN_UPD_ENTRY_WITH_NEW_FIELD in self._backends[backend_name].properties:
                     backend = self._backends[backend_name]
                     break
@@ -1128,23 +1142,32 @@ class MessageDomain(Domain):
         # For instance: we have SIM message. We want to add "Folder" field.
         # opimd should then try to add "Folder" field to default backend and then merge messages.
 
+        if message.has_key('MessageRead') and data.has_key('MessageRead') and message.has_key('Direction'):
+            if message['Direction'] == 'in':
+                if not message['MessageRead'] and data['MessageRead']:
+                    self._unread_messages -= 1
+                    self.UnreadMessages(self._unread_messages)
+                elif message['MessageRead'] and not data['MessageRead']:
+                    self._unread_messages += 1
+                    self.UnreadMessages(self._unread_messages)
+
         for field_name in data:
-            if not field_name in message._field_idx:
+            if not field_name in messageif._field_idx:
                 if backend!='':
-                    message.import_fields({field_name:data[field_name]}, backend)
+                    messageif.import_fields({field_name:data[field_name]}, backend)
                 else:
                     raise InvalidBackend( "There is no backend which can store new field" )
             elif not field_name.startswith('_'):
-                for field_nr in message._field_idx[field_name]:
+                for field_nr in messageif._field_idx[field_name]:
                     if message[field_name]!=data[field_name]:
-                        message._fields[field_nr][1]=data[field_name]
+                        messageif._fields[field_nr][1]=data[field_name]
 
-        for backend_name in message._used_backends:
+        for backend_name in messageif._used_backends:
             backend = self._backends[backend_name]
             if not PIMB_CAN_UPD_ENTRY in backend.properties:
                 raise InvalidBackend( "Backend properties not including PIMB_CAN_UPD_ENTRY" )
             try:
-                backend.upd_message(message.export_fields(backend_name))
+                backend.upd_message(messageif.export_fields(backend_name))
             except AttributeError:
                 raise InvalidBackend( "Backend does not feature upd_message" )
 
@@ -1166,6 +1189,11 @@ class MessageDomain(Domain):
             raise InvalidMessageID()
 
         backends = self._messages[num_id]._used_backends
+
+        message = self._messages[num_id].get_fields(self._messages[num_id]._field_idx)
+        if not message['MessageRead'] and message['Direction'] == 'in':
+            self._unread_messages -= 1
+            self.UnreadMessages(self._unread_messages)
 
         for backend_name in backends:
             backend = self._backends[backend_name]
