@@ -74,42 +74,46 @@ class OgsmdCallsBackend(Backend):
         """Returns a list of PIM domains that this plugin supports"""
         return _DOMAINS
 
-    def handle_call_status(self, id, call_status, call_props):
-        #TODO: handle calls on multiple lines
-        if not self.props.has_key('Answered'):
-            self.props['Answered']=0
+    def handle_call_status(self, line, call_status, call_props):
+
+        if not self.props.has_key(line):
+            self.props[line] = {}
+            self.props[line]['Line'] = str(line)
+
+        if not self.props[line].has_key('Answered'):
+            self.props[line]['Answered']=0
         if call_props.has_key('mode'):
-            self.props['Type']='gsm_'+call_props['mode']
+            self.props[line]['Type']='gsm_'+call_props['mode']
         if call_props.has_key('peer'):
             peer = phone_number_to_tel_uri(call_props["peer"])
-        elif self.props.has_key('Peer'):
-            peer = self.props['Peer']
+        elif self.props[line].has_key('Peer'):
+            peer = self.props[line]['Peer']
 
         if call_status == "incoming":
             try:
-                self.props['Peer'] = peer
+                self.props[line]['Peer'] = peer
             except:
                 pass
-            self.props['Direction'] = 'in'
+            self.props[line]['Direction'] = 'in'
         elif call_status == "outgoing":
-            self.props['Peer'] = peer
-            self.props['Direction'] = 'out'
+            self.props[line]['Peer'] = peer
+            self.props[line]['Direction'] = 'out'
         elif call_status == "active":
-            self.props['Answered'] = 1
-            self.props['Timestamp'] = time.time()
+            self.props[line]['Answered'] = 1
+            self.props[line]['Timestamp'] = time.time()
         elif call_status == "release":
-            if self.props.has_key('Timestamp'):   
-                self.props['Duration'] = time.time() - self.props['Timestamp']
+            if self.props[line].has_key('Timestamp'):
+                self.props[line]['Duration'] = time.time() - self.props[line]['Timestamp']
             else:
-                self.props['Timestamp'] = time.time()
-            self.props['Timezone'] = time.tzname[time.daylight]
-            self.props['New']=1
-            if self.props['Direction']=='in' and not self.props['Answered']:
-                self._domain_handlers['Calls'].register_missed_call(self, self.props)
+                self.props[line]['Timestamp'] = time.time()
+            self.props[line]['Timezone'] = time.tzname[time.daylight]
+            self.props[line]['New']=1
+            if self.props[line]['Direction']=='in' and not self.props[line]['Answered']:
+                self._domain_handlers['Calls'].register_missed_call(self, self.props[line])
             else:
-                self._domain_handlers['Calls'].Add(self.props)
+                self._domain_handlers['Calls'].Add(self.props[line])
 
-            self.props = {}
+            del self.props[line]
 
     @tasklet.tasklet
     def load_entries(self):
