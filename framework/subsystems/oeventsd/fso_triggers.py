@@ -1,4 +1,4 @@
-# -*- coding: UTF-8 -*-
+# -*- coding: utf-8 -*-
 """
 The freesmartphone Events Module - Python Implementation
 
@@ -140,14 +140,58 @@ class NewMissedCalls(WhileRule):
 
     def trigger(self, status=None, **kargs):
         logger.debug("Trigger %s", self)
-        logger.info("NewMissedCalls " + str(status))
+        logger.info("NewMissedCalls %d", status)
         if status:
             super(NewMissedCalls, self).trigger()
         else:
             super(NewMissedCalls, self).untrigger()
-       
+
     def __repr__(self):
         return "NewMissedCalls()"
+
+#============================================================================#
+class UnreadMessagesTrigger(DBusTrigger):
+#============================================================================#
+    """
+    A custom dbus trigger for org.freesmartphone.PIM.Messages.UnreadMessages
+    """
+
+    function_name = 'UnreadMessagesTrigger'
+
+    def __init__(self):
+        bus = dbus.SystemBus()
+        super(UnreadMessagesTrigger, self).__init__(
+            bus,
+            'org.freesmartphone.opimd',
+            '/org/freesmartphone/PIM/Messages',
+            'org.freesmartphone.PIM.Messages',
+            'UnreadMessages'
+        )
+    def on_signal(self, status):
+        logger.info("Receive UnreadMessages = %s" % status)
+        self._trigger(status=status)
+
+    def __repr__(self):
+        return "UnreadMessagesTrigger"
+
+#============================================================================#
+class UnreadMessages(WhileRule):
+#============================================================================#
+    function_name = "UnreadMessages"
+
+    def __init__(self):
+        super(UnreadMessages, self).__init__(UnreadMessagesTrigger())
+
+    def trigger(self, status=None, **kargs):
+        logger.debug("Trigger %s", self)
+        logger.info("UnreadMessages %d", status)
+        if status:
+            super(UnreadMessages, self).trigger()
+        else:
+            super(UnreadMessages, self).untrigger()
+
+    def __repr__(self):
+        return "UnreadMessages()"
 
 #============================================================================#
 class IncomingMessageTrigger(DBusTrigger):
