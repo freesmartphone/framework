@@ -1,4 +1,15 @@
-2009-07-09	Michael Lauer	<mlauer@vainlle-media.de>
+2009-07-15	Michael Lauer	<mlauer@vanille-media.de>
+
+	* Merge mickey/full-csd-handling branch into master. This adds a new
+	configuration entry 'data-call-handler' in section [ogsmd] where a
+	handler binary can be specified that gets called whenever a data call
+	has been setup. This handler will be called with params <direction> <port>,
+	where direction is "incoming" or "outgoing" (depending on whether you are
+	the data call initiator or peer), and port is a device node that can be
+	used for communicating. Once the binary exits, the call is hung up.
+	* Post-release version bump
+
+2009-07-09	Michael Lauer	<mlauer@vanille-media.de>
 
 	* Released as Milestone 5.5 (fso1 0.9.5.5)
 
