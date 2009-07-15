@@ -12,11 +12,13 @@ Module: calling
 New style abstract call handling
 """
 
-__version__ = "0.9.1.2"
+__version__ = "0.9.1.4"
 MODULE_NAME = "ogsmd.callhandler"
 
 from ogsmd import error
 from ogsmd.gsm import const
+
+from framework.patterns.processguard import ProcessGuard
 
 import logging
 logger = logging.getLogger( MODULE_NAME )
@@ -52,6 +54,54 @@ class CallHandler( object ):
 
     def status( self ):
         return self._calls[1]["status"], self._calls[2]["status"]
+
+    #
+    # additional support for data call handling with a customizable data call handler
+    #
+    def onActivateResult( self, request, response ):
+        """
+        Called after ATA
+        """
+        if response[0].startswith( "CONNECT" ): # data call succeeded
+            self._onDataCallEstablished()
+
+    def onInitiateResult( self, request, response ):
+        """
+        Called after ATDxyz
+        """
+        if response[0].startswith( "CONNECT" ): # data call succeeded
+            self._onDataCallEstablished()
+
+    def _onDataCallEstablished( self ):
+        logger.debug( "data call established" )
+        # if this is a data call, add the port where communication happens
+        self.csdid = callId = 1 if self._calls[1]["status"] == "active" else 2
+        self.csdchan = channel = self._object.modem.channel( "CallMediator" )
+        self.statusChangeFromNetwork( callId, { "status": "connect", "port": channel.port() } )
+
+        # check whether we have a data call handler registered
+        dataCallHandler = self._object.modem.data( "data-call-handler" )
+        if dataCallHandler is not None:
+            self.csdchan.freeze()
+            csd_commandline = dataCallHandler.split()
+            if not dataCallHandler.startswith( "/bin/sleep" ): # for debugging
+                csd_commandline += [ channel.port(), self._calls[callId]["direction"] ]
+            self.csdproc = ProcessGuard( csd_commandline )
+            logger.info( "launching csd handler as commandline %s" % csd_commandline )
+            self.csdproc.execute( onExit=self._spawnedProcessDone )
+        else:
+            logger.info( "no csd handler registered" )
+
+    def _spawnedProcessDone( self, pid, exitcode, exitsignal ):
+        """
+        Called after CSD Handler exit.
+        """
+        logger.info( "csd handler exited with code %d, signal %d" % ( exitcode, exitsignal ) )
+        # unfreeze
+        self.csdchan.thaw()
+        # release call and resume normal operation
+        # self.release( self.csdid, self._object.modem.channel( "MiscMediator" ) )
+        self.releaseAll( self._object.modem.channel( "MiscMediator" ) )
 
     #
     # called from mediators
@@ -189,7 +239,7 @@ class CallHandler( object ):
     def state_release_release( self, action, *args, **kwargs ):
         if action == "initiate":
             dialstring, commchannel = args
-            commchannel.enqueue( "D%s" % dialstring, self.responseFromChannel, self.errorFromChannel )
+            commchannel.enqueue( "D%s" % dialstring, self.onInitiateResult, self.errorFromChannel )
             return 1
 
     def state_incoming_release( self, action, *args, **kwargs ):
@@ -198,7 +248,7 @@ class CallHandler( object ):
             return True
         elif action == "activate" and kwargs["index"] == 1:
             # FIXME handle data calls here
-            kwargs["channel"].enqueue( 'A' )
+            kwargs["channel"].enqueue( 'A', self.onActivateResult )
             return True
 
     def state_outgoing_release( self, action, *args, **kwargs ):
