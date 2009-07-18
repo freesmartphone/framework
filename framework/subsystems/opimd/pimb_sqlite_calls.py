@@ -116,7 +116,7 @@ class SQLiteCallBackend(Backend):
         floatKeys = ['Timestamp', 'Duration']
         cur = self.con.cursor()
         try:
-            cur.execute('SELECT id, Type, Timestamp, Timezone, Direction, Duration, Cost, Answered, New, Replied FROM calls WHERE deleted=0')
+            cur.execute('SELECT id, Type, Timestamp, Timezone, Direction, Duration, Cost, Answered, New, Replied FROM calls WHERE deleted=0 ORDER BY id DESC')
             lines = cur.fetchall()
         except:
             logger.error("%s: Could not read from database (table calls)! Possible reason is old, uncompatible table structure. If you don't have important data, please remove %s file.", self.name, _SQLITE_FILE_NAME)
