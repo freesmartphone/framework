@@ -101,6 +101,13 @@ class SQLiteMessagesBackend(Backend):
             """
 
             cur.execute("CREATE TABLE IF NOT EXISTS message_values (id INTEGER PRIMARY KEY, messageId INTEGER, Field TEXT, Value TEXT)")
+
+            cur.execute("CREATE INDEX IF NOT EXISTS messages_id_idx ON messages (id)")
+            cur.execute("CREATE INDEX IF NOT EXISTS messages_sender_idx ON messages (Sender)")
+            cur.execute("CREATE INDEX IF NOT EXISTS messages_direction_idx ON messages (Direction)")
+
+            cur.execute("CREATE INDEX IF NOT EXISTS message_values_messageId_idx ON message_values (messageId)")
+
             self.con.text_factory = sqlite3.OptimizedUnicode
             self.con.commit()
             cur.close()
