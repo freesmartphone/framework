@@ -114,6 +114,14 @@ class SQLiteContactBackend(Backend):
             """
 
             cur.execute("CREATE TABLE IF NOT EXISTS contact_values (id INTEGER PRIMARY KEY, contactId INTEGER, Field TEXT, Value TEXT)")
+
+            cur.execute("CREATE INDEX IF NOT EXISTS contacts_id_idx ON contacts (id)")
+            cur.execute("CREATE INDEX IF NOT EXISTS contacts_Name_idx ON contacts (Name)")
+            cur.execute("CREATE INDEX IF NOT EXISTS contacts_Surname_idx ON contacts (Surname)")
+            cur.execute("CREATE INDEX IF NOT EXISTS contacts_Nickname_idx ON contacts (Nickname)")
+
+            cur.execute("CREATE INDEX IF NOT EXISTS contact_values_contactId_idx ON contact_values (contactId)")
+
             self.con.text_factory = sqlite3.OptimizedUnicode
             self.con.commit()
             cur.close()
