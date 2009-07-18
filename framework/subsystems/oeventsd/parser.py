@@ -118,6 +118,11 @@ class Or(Function):
     def __call__(self, a, b):
         return a | b
 
+class And(Function):
+    name = 'And'
+    def __call__(self, a, b):
+        return a & b
+
 class HasAttr(Function):
     name = 'HasAttr'
     def __call__(self, name, value):
