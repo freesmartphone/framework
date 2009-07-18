@@ -75,15 +75,11 @@ class SQLiteCallBackend(Backend):
 
             cur.execute("CREATE TABLE IF NOT EXISTS call_values (id INTEGER PRIMARY KEY, callId INTEGER, Field TEXT, Value TEXT)")
 
+            cur.execute("CREATE INDEX IF NOT EXISTS calls_id_idx ON calls (id)")
             cur.execute("CREATE INDEX IF NOT EXISTS calls_Direction_idx ON calls (Direction)")
-            cur.execute("CREATE INDEX IF NOT EXISTS calls_Type_idx ON calls (Type)")
-            cur.execute("CREATE INDEX IF NOT EXISTS calls_Answered_idx ON calls (Answered)")
             cur.execute("CREATE INDEX IF NOT EXISTS calls_New_idx ON calls (New)")
-            cur.execute("CREATE INDEX IF NOT EXISTS calls_deleted_idx ON calls (deleted)")
 
             cur.execute("CREATE INDEX IF NOT EXISTS call_values_callId_idx ON call_values (callId)") 
-            cur.execute("CREATE INDEX IF NOT EXISTS call_values_Field_idx ON call_values (Field)")
-            cur.execute("CREATE INDEX IF NOT EXISTS call_values_Value_idx ON call_values (Value)")
 
             self.con.text_factory = sqlite3.OptimizedUnicode
             self.con.commit()
