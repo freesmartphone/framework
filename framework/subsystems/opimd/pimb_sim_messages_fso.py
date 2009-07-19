@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 #
 #   Openmoko PIM Daemon
 #   SIM-Messages Backend Plugin for FSO

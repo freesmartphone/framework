@@ -11,7 +11,7 @@ GPLv2 or later
 
 Calls Domain Plugin
 
-Establishes the 'call' PIM domain and handles all related requests
+Establishes the 'calls' PIM domain and handles all related requests
 
 NOTE: This domain could be good start for making some generic domain class
 """

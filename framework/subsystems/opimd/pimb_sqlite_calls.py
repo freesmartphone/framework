@@ -30,6 +30,8 @@ import sqlite3
 import logging
 logger = logging.getLogger('opimd')
 
+from dbus import Array
+
 from domain_manager import DomainManager
 from backend_manager import BackendManager, Backend
 from backend_manager import PIMB_CAN_ADD_ENTRY, PIMB_CAN_DEL_ENTRY, PIMB_CAN_UPD_ENTRY, PIMB_CAN_UPD_ENTRY_WITH_NEW_FIELD
@@ -132,7 +134,13 @@ class SQLiteCallBackend(Backend):
             try:
                 cur.execute('SELECT Field, Value FROM call_values WHERE callId=?',(line[0],))
                 for pair in cur:
-                    entry[pair[0]]=pair[1]
+                    if entry.has_key(pair[0]):
+                        if type(entry[pair[0]]) == list:
+                            entry[pair[0]].append(pair[1])
+                        else:
+                            entry[pair[0]]=[entry[pair[0]], pair[1]]
+                    else:
+                        entry[pair[0]]=pair[1]
             except:
                 logger.error("%s: Could not read from database (table call_values)! Possible reason is old, uncompatible table structure. If you don't have important data, please remove %s file.", self.name, _SQLITE_FILE_NAME)
                 raise OperationalError
@@ -193,7 +201,11 @@ class SQLiteCallBackend(Backend):
         for field in call_data:
             if not field in reqfields:
                 if not field in reqIntfields:
-                    cur.execute('INSERT INTO call_values (callId, Field, Value) VALUES (?,?,?)',(cid, field, call_data[field]))
+                    if type(call_data[field]) == Array or type(call_data[field]) == list:
+                        for value in call_data[field]:
+                            cur.execute('INSERT INTO call_values (callId, Field, Value) VALUES (?,?,?)',(cid, field, value))
+                    else:
+                        cur.execute('INSERT INTO call_values (callId, Field, Value) VALUES (?,?,?)',(cid, field, call_data[field]))
         
         self.con.commit()
         cur.close()

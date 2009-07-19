@@ -30,6 +30,8 @@ import sqlite3
 import logging
 logger = logging.getLogger('opimd')
 
+from dbus import Array
+
 from domain_manager import DomainManager
 from backend_manager import BackendManager, Backend
 from backend_manager import PIMB_CAN_ADD_ENTRY, PIMB_CAN_DEL_ENTRY, PIMB_CAN_UPD_ENTRY, PIMB_CAN_UPD_ENTRY_WITH_NEW_FIELD
@@ -169,7 +171,13 @@ class SQLiteContactBackend(Backend):
             try:
                 cur.execute('SELECT Field, Value FROM contact_values WHERE contactId=?',(line[0],))
                 for pair in cur:
-                    entry[pair[0]]=pair[1]
+                    if entry.has_key(pair[0]):
+                        if type(entry[pair[0]]) == list:
+                            entry[pair[0]].append(pair[1])
+                        else:
+                            entry[pair[0]]=[entry[pair[0]], pair[1]]
+                    else:
+                        entry[pair[0]]=pair[1]
             except:
                 logger.error("%s: Could not read from database (table contact_values)! Possible reason is old, uncompatible table structure. If you don't have important data, please remove %s file.", self.name, _SQLITE_FILE_NAME)
                 raise OperationalError
@@ -227,7 +235,11 @@ class SQLiteContactBackend(Backend):
         cid = cur.lastrowid
         for field in contact_data:
             if not field in reqfields:
-                cur.execute('INSERT INTO contact_values (contactId, Field, Value) VALUES (?,?,?)',(cid, field, contact_data[field]))
+                if type(contact_data[field]) == Array or type(contact_data[field]) == list:
+                    for value in contact_data[field]:
+                        cur.execute('INSERT INTO contact_values (contactId, Field, Value) VALUES (?,?,?)',(cid, field, value))
+                else:
+                    cur.execute('INSERT INTO contact_values (contactId, Field, Value) VALUES (?,?,?)',(cid, field, contact_data[field]))
         
         self.con.commit()
         cur.close()

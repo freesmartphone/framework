@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# -*- coding: utf-8 -*-
 """
 Open PIM Daemon
 
@@ -10,7 +11,7 @@ GPLv2 or later
 
 Contacts Domain Plugin
 
-Establishes the 'contact' PIM domain and handles all related requests
+Establishes the 'contacts' PIM domain and handles all related requests
 """
 
 from dbus.service import FallbackObject as DBusFBObject
