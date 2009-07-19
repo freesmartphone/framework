@@ -28,7 +28,3 @@ DIN_BASE_FSO = "org.freesmartphone.PIM"
 
 DBUS_PATH_BASE = None
 DIN_BASE = None
-
-# ENV_MODE is either "pyneo" or "FSO", depending on the runtime environment
-ENV_MODE = None
-

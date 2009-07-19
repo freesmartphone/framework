@@ -7,6 +7,7 @@
 #   http://pyneo.org/
 #
 #   Copyright (C) 2008 by Soeren Apel (abraxa@dar-clan.de)
+#   Copyright (C) 2009 by Sebastian Krzyszkowiak (seba.dos1@gmail.com)
 #
 #   This program is free software; you can redistribute it and/or modify
 #   it under the terms of the GNU General Public License as published by
@@ -23,7 +24,7 @@
 #   Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
 #
 
-"""pypimd SIM-Contacts Backend Plugin for FSO"""
+"""opimd SIM-Contacts Backend Plugin for FSO"""
 
 from dbus import SystemBus
 from dbus.proxies import Interface

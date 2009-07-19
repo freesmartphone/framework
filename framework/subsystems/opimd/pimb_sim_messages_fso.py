@@ -23,7 +23,7 @@
 #   Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
 #
 
-"""pypimd SIM-Messages Backend Plugin for FSO"""
+"""opimd SIM-Messages Backend Plugin for FSO"""
 
 from dbus import SystemBus
 from dbus.proxies import Interface

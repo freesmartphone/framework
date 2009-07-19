@@ -3,7 +3,9 @@
 Open PIM Daemon
 
 (C) 2008 by Soeren Apel <abraxa@dar-clan.de>
-(C) 2008 Openmoko, Inc.
+(C) 2008-2009 Openmoko, Inc.
+(C) 2009 Michael 'Mickey' Lauer <mlauer@vanille-media.de>
+(C) 2009 by Sebastian Krzyszkowiak <seba.dos1@gmail.com>
 GPLv2 or later
 
 Backend plugin manager
@@ -41,7 +43,6 @@ PIMB_STATUS_CONNECTED = 1
 _DBUS_PATH_SOURCES = DBUS_PATH_BASE_FSO + '/Sources'
 _DIN_SOURCES = DIN_BASE_FSO + '.Sources'
 _DIN_SOURCE = DIN_BASE_FSO + '.Source'
-ENV_MODE = 'FSO'
 
 #----------------------------------------------------------------------------#
 class BackendMetaClass(type):

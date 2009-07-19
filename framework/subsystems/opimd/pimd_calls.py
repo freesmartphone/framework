@@ -5,6 +5,7 @@ Open PIM Daemon
 
 (C) 2008 by Soeren Apel <abraxa@dar-clan.de>
 (C) 2008 Openmoko, Inc.
+(C) 2009 Michael 'Mickey' Lauer <mlauer@vanille-media.de>
 (C) 2009 by Sebastian Krzyszkowiak <seba.dos1@gmail.com>
 GPLv2 or later
 
@@ -41,7 +42,6 @@ _MIN_MATCH_TRESHOLD = 0.75
 
 _DBUS_PATH_CALLS = DBUS_PATH_BASE_FSO + '/' + _DOMAIN_NAME
 _DIN_CALLS_BASE = DIN_BASE_FSO
-ENV_MODE = 'FSO'
 
 _DBUS_PATH_QUERIES = _DBUS_PATH_CALLS + '/Queries'
 

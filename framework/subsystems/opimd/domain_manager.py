@@ -6,6 +6,8 @@
 #   http://pyneo.org/
 #
 #   Copyright (C) 2008 by Soeren Apel (abraxa@dar-clan.de)
+#   Copyright (C) 2008-2009 by Openmoko, Inc.
+#   Copyright (C) 2009 Michael 'Mickey' Lauer <mlauer@vanille-media.de>
 #
 #   This program is free software; you can redistribute it and/or modify
 #   it under the terms of the GNU General Public License as published by
