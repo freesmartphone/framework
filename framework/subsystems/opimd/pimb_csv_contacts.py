@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 #
 #   Openmoko PIM Daemon
 #   CSV-Contacts Backend Plugin
@@ -6,6 +7,7 @@
 #   http://pyneo.org/
 #
 #   Copyright (C) 2008 by Soeren Apel (abraxa@dar-clan.de)
+#   Copyright (C) 2009 by Sebastian Krzyszkowiak (seba.dos1@gmail.com)
 #
 #   This program is free software; you can redistribute it and/or modify
 #   it under the terms of the GNU General Public License as published by
@@ -22,7 +24,7 @@
 #   Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
 #
 
-"""pypimd CSV-Contacts Backend Plugin"""
+"""opimd CSV-Contacts Backend Plugin"""
 import os
 
 import logging
@@ -31,6 +33,8 @@ logger = logging.getLogger('opimd')
 from domain_manager import DomainManager
 from backend_manager import BackendManager, Backend
 from backend_manager import PIMB_CAN_ADD_ENTRY, PIMB_CAN_DEL_ENTRY, PIMB_CAN_UPD_ENTRY, PIMB_CAN_UPD_ENTRY_WITH_NEW_FIELD, PIMB_NEEDS_SYNC
+
+from dbus import Array
 
 import framework.patterns.tasklet as tasklet
 from framework.config import config, rootdir
@@ -92,7 +96,13 @@ class CSVContactBackend(Backend):
                 pairs = in_line.split(',')
                 for pair in pairs:
                     (key, value) = pair.split('=')
-                    entry[key] = value
+                    if entry.has_key(key):
+                        if type(entry[key]) == list:
+                            entry[key].append(value)
+                        else:
+                            entry[key]=[entry[key], value]
+                    else:
+                        entry[key] = value
                 
                 entry_id = self._domain_handlers['Contacts'].register_contact(self, entry)
                 self._entry_ids.append(entry_id)
@@ -111,7 +121,11 @@ class CSVContactBackend(Backend):
             line = ""
             for field in entry:
                 (field_name, field_data) = field
-                line += field_name + '=' + field_data + ','
+                if type(field_data) == Array or type(field_data) == list:
+                    for value in field_data:
+                        line += field_name + '=' + value + ','
+                else:
+                    line += field_name + '=' + field_data + ','
             file.write(line[:-1] + "\n")
         
         file.close()
