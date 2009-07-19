@@ -324,6 +324,11 @@ class SIMMessageBackendFSO(Backend):
 
     def handle_auth_status(self, ready):
         if ready=='READY':
+            self.gsm = bus.get_object('org.freesmartphone.ogsmd', '/org/freesmartphone/GSM/Device')
+            self.gsm_sim_iface = Interface(self.gsm, 'org.freesmartphone.GSM.SIM')
+            self.gsm_sms_iface = Interface(self.gsm, 'org.freesmartphone.GSM.SMS')
+            self.gsm_device_iface = Interface(self.gsm, 'org.freesmartphone.GSM.Device')
+
             self.install_signal_handlers()        
 
     def handle_sim_ready(self, ready):
