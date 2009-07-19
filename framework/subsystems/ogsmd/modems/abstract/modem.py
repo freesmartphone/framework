@@ -281,7 +281,7 @@ class AbstractModem( object ):
     def _initChannels( self, on_ok, on_error, iteration=1 ):
         if iteration == 7:
             # we did try to open the modem 5 times -- giving up now
-            on_error()
+            on_error(None) # FIXME no error handling yet
         # try to open all channels
         for channel in self._channels:
             if not self._channels[channel].isOpen():
