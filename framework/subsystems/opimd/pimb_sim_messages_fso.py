@@ -247,12 +247,12 @@ class SIMMessageBackendFSO(Backend):
 
     @tasklet.tasklet
     def load_entries(self):
-        bus = SystemBus()
+        self.bus = SystemBus()
 
         logger.debug("%s: Am I default? %s", self.name, str(self.am_i_default()))
         
         try:
-            self.gsm = bus.get_object('org.freesmartphone.ogsmd', '/org/freesmartphone/GSM/Device')
+            self.gsm = self.bus.get_object('org.freesmartphone.ogsmd', '/org/freesmartphone/GSM/Device')
             self.gsm_sim_iface = Interface(self.gsm, 'org.freesmartphone.GSM.SIM')
             self.gsm_sms_iface = Interface(self.gsm, 'org.freesmartphone.GSM.SMS')
             self.gsm_device_iface = Interface(self.gsm, 'org.freesmartphone.GSM.Device')
@@ -266,8 +266,8 @@ class SIMMessageBackendFSO(Backend):
             logger.info("%s: Waiting for SIM being ready...", self.name)
             if not self.ready_signal:
                 try:
-                    bus.add_signal_receiver(self.handle_sim_ready, signal_name='ReadyStatus', dbus_interface='org.freesmartphone.GSM.SIM', bus_name='org.freesmartphone.ogsmd')
-                    bus.add_signal_receiver(self.handle_auth_status, signal_name='AuthStatus', dbus_interface='org.freesmartphone.GSM.SIM', bus_name='org.freesmartphone.ogsmd')
+                    self.bus.add_signal_receiver(self.handle_sim_ready, signal_name='ReadyStatus', dbus_interface='org.freesmartphone.GSM.SIM', bus_name='org.freesmartphone.ogsmd')
+                    self.bus.add_signal_receiver(self.handle_auth_status, signal_name='AuthStatus', dbus_interface='org.freesmartphone.GSM.SIM', bus_name='org.freesmartphone.ogsmd')
                     logger.info('%s: Signal listeners about SIM status installed', self.name)
                     #self.gsm_sim_iface.connect_to_signal("ReadyStatus", self.handle_sim_ready)
                     self.ready_signal = True
@@ -325,7 +325,7 @@ class SIMMessageBackendFSO(Backend):
 
     def handle_auth_status(self, ready):
         if ready=='READY':
-            self.gsm = bus.get_object('org.freesmartphone.ogsmd', '/org/freesmartphone/GSM/Device')
+            self.gsm = self.bus.get_object('org.freesmartphone.ogsmd', '/org/freesmartphone/GSM/Device')
             self.gsm_sim_iface = Interface(self.gsm, 'org.freesmartphone.GSM.SIM')
             self.gsm_sms_iface = Interface(self.gsm, 'org.freesmartphone.GSM.SMS')
             self.gsm_device_iface = Interface(self.gsm, 'org.freesmartphone.GSM.Device')
