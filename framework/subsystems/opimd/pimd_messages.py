@@ -372,7 +372,6 @@ class Message():
             field_value = str(query_obj[field_name])
             best_field_match = 0.0
 
-            # The matcher internally caches details about seq2, so let's make use of that
             matcher = re.compile(field_value)
             seq2_len = len(field_value)
 
