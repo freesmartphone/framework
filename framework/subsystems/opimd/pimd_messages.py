@@ -18,7 +18,7 @@ from dbus.service import FallbackObject as DBusFBObject
 from dbus.service import signal as dbus_signal
 from dbus.service import method as dbus_method
 
-from difflib import SequenceMatcher
+import re
 
 import logging
 logger = logging.getLogger('opimd')
