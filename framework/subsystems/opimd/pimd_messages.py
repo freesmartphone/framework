@@ -36,8 +36,6 @@ from framework.config import config, busmap
 
 _DOMAIN_NAME = "Messages"
 
-_MIN_MATCH_TRESHOLD = 0.75
-
 _DBUS_PATH_MESSAGES = DBUS_PATH_BASE_FSO + '/' + _DOMAIN_NAME
 _DIN_MESSAGES_BASE = DIN_BASE_FSO
 
@@ -80,13 +78,13 @@ class MessageQueryMatcher(object):
         for (message_id, message) in enumerate(messages):
             if message:
                 match = message.match_query(self.query_obj)
-                if match > _MIN_MATCH_TRESHOLD:
+                if match > 0.0:
                     matches.append((match, message_id))
 
         result_count = len(matches)
         # Sort matches by relevance and return the best hits
         if result_count > 0:
-            matches.sort()
+            matches.sort(reverse = True)
 
             limit = result_count
             if self.query_obj.has_key("_limit"):
@@ -366,7 +364,6 @@ class Message():
         @return Accuracy of the match, ranging from 0.0 (no match) to 1.0 (complete match)"""
 
         overall_match = 1.0
-        matcher = SequenceMatcher()
 
         for field_name in query_obj.keys():
             # Skip fields only meaningful to the parser
@@ -376,7 +373,7 @@ class Message():
             best_field_match = 0.0
 
             # The matcher internally caches details about seq2, so let's make use of that
-            matcher.set_seq2(field_value)
+            matcher = re.compile(field_value)
             seq2_len = len(field_value)
 
             # Check if field value(s) of this message match(es) the query field
@@ -392,13 +389,16 @@ class Message():
                         comp_value = str(self._fields[field_id][1])
 
                     # Compare and determine the best match ratio
-                    matcher.set_seq1(comp_value)
-                    match = matcher.find_longest_match(0, len(comp_value), 0, seq2_len)
-                    match_len = match[2]
+                    match = matcher.search(comp_value)
+                    if match:
+                        match_len = match.end() - match.start()
+                    else:
+                        match_len = 0
+
                     if seq2_len==0:
                         field_match = 0.0
                     else:
-                        field_match = float(match_len) / seq2_len
+                        field_match = float(match_len) / len(comp_value)
 
                     if field_match > best_field_match: best_field_match = field_match
 
@@ -412,7 +412,7 @@ class Message():
             overall_match *= best_field_match
 
             # Stop comparing if there is too little similarity
-            if overall_match < _MIN_MATCH_TRESHOLD: break
+            if overall_match == 0.0: break
 
         return overall_match
 

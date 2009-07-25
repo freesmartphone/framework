@@ -18,10 +18,10 @@ from dbus.service import FallbackObject as DBusFBObject
 from dbus.service import signal as dbus_signal
 from dbus.service import method as dbus_method
 
+import re
+
 import logging
 logger = logging.getLogger('opimd')
-
-import re
 
 from backend_manager import BackendManager
 from backend_manager import PIMB_CAN_ADD_ENTRY, PIMB_CAN_DEL_ENTRY, PIMB_CAN_UPD_ENTRY, PIMB_CAN_UPD_ENTRY_WITH_NEW_FIELD, PIMB_NEEDS_SYNC
