@@ -52,7 +52,7 @@ _UNAVAILABLE_PART = '<???>'
 class SIMMessageBackendFSO(Backend):
 #----------------------------------------------------------------------------#
     name = 'SIM-Messages-FSO'
-    properties = [PIMB_CAN_ADD_ENTRY, PIMB_IS_HANDLER]
+    properties = [PIMB_CAN_ADD_ENTRY, PIMB_CAN_DEL_ENTRY, PIMB_IS_HANDLER]
 
     # Dict containing the domain handler objects we support
     _domain_handlers = None
@@ -244,6 +244,12 @@ class SIMMessageBackendFSO(Backend):
 
     def process_incoming_stored_entry(self, status, number, text, props, message_id):
         self.process_single_entry((message_id, status, number, text, props), True)
+
+    def del_message(self, message_data):
+        for (field,value) in message_data:
+            if field=='_backend_entry_id':
+                entry_id=value
+        self.gsm_sim_iface.DeleteMessage(entry_id, reply_handler=self.dbus_ok, error_handler=self.dbus_err )
 
     @tasklet.tasklet
     def load_entries(self):
