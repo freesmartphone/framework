@@ -305,7 +305,7 @@ class Contact():
         duplicated = True
         for field_name in contact_fields:
             try:
-                if self.get_content()[field_name]!=contact_fields[field_name]:
+                if self[field_name]!=contact_fields[field_name]:
                     duplicated = False
                     break
             except KeyError:
@@ -325,7 +325,7 @@ class Contact():
                 if field_name!='Path':
                     field_value=contact_fields[field_name]
                     try:
-                        if self.get_content()[field_name]!=field_value:
+                        if self[field_name]!=field_value:
                             merge[0] = 0
                             break
                         else:

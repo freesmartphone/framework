@@ -171,7 +171,7 @@ class Message():
 
 
     def __repr__(self):
-        return str(get_content())
+        return str(self.get_content())
 
 
     def rebuild_index(self):
@@ -307,7 +307,7 @@ class Message():
         duplicated = True
         for field_name in message_fields:
             try:
-                if self.get_content()[field_name]!=message_fields[field_name]:
+                if self[field_name]!=message_fields[field_name]:
                     duplicated = False
                     break
             except KeyError:
@@ -328,7 +328,7 @@ class Message():
                 if field_name!='Path':
                     field_value=message_fields[field_name]
                     try:
-                        if self.get_content()[field_name]!=field_value:
+                        if self[field_name]!=field_value:
                             merge[0] = 0
                             break
                         else:

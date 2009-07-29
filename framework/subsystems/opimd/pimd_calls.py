@@ -306,7 +306,7 @@ class Call():
         duplicated = True
         for field_name in call_fields:
             try:
-                if self.get_content()[field_name]!=call_fields[field_name]:
+                if self[field_name]!=call_fields[field_name]:
                     duplicated = False
                     break
             except KeyError:
