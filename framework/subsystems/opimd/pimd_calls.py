@@ -859,7 +859,7 @@ class CallDomain(Domain):
         return result
 
     @dbus_method(_DIN_CALLS, "a{sv}s", "s")
-    def GetSinglecallSingleField(self, query, field_name):
+    def GetSingleCallSingleField(self, query, field_name):
         """Returns the first call found for a query, making it real easy to query simple things
 
         @param query The query object
