@@ -104,7 +104,7 @@ class Entry():
 
     Best way to explain the usage of _fields and _field_idx is by example:
     _fields[3] = ["EMail", "foo@bar.com", "", "CSV-Contacts"]
-    _fields[4] = ["EMail", "moo@cow.com", "", "SQLite-Messages"]
+    _fields[4] = ["EMail", "moo@cow.com", "", "SQLite-Contacts"]
     _field_idx["EMail"] = [3, 4]"""
 
     _fields = None
@@ -313,8 +313,33 @@ class Entry():
 
         if duplicated:
             return True # That entry exists, so we doesn't have to do anything to have it merged.
+
+        # Don't merge if we already have data from $backend_name as one backend can't contain two mergeable entries
+        if backend_name in self._used_backends:
+            return False
+
+        merge = [1, 0]
+        for field_name in entry_fields:
+            if not field_name.startswith('_'):
+                if field_name!='Path':
+                    field_value=entry_fields[field_name]
+                    try:
+                        if self[field_name]!=field_value:
+                            merge[0] = 0
+                            break
+                        else:
+                            merge[1] = 1
+                    except KeyError:
+                        pass
+
+        if merge[0]:
+            if merge[1]:
+                self.import_fields(entry_fields, backend_name)
+                return True
+            else:
+                return False
         else:
-            return False # TODO: implement merging!
+            return False
 
 
     def incorporates_data_from(self, backend_name):
