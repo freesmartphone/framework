@@ -106,6 +106,6 @@ class InvalidCallID( DBusException ):
 class NoMoreCalls( DBusException ):
 #----------------------------------------------------------------------------#
     """Raised when there are no more calls to be listed"""
-    _dbus_error_name = "org.freesmartphone.PIM.NoMoreCallss"
+    _dbus_error_name = "org.freesmartphone.PIM.NoMoreCalls"
 
 
