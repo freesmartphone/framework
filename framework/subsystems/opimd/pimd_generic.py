@@ -617,11 +617,11 @@ class QueryManager(DBusFBObject):
         @param entry_id entry ID of the entry that was added"""
 
         for (query_id, query_handler) in self._queries.items():
-            if query_handler.check_new_entry(call_id):
+            if query_handler.check_new_entry(entry_id):
                 entry = self._entries[entry_id]
                 entry_path = entry['Path']
                 # TODO: make it working! :)
-                # self.callAdded(query_id, call_path)
+                # self.entryAdded(query_id, entry_path)
 
     def check_query_id_ok( self, num_id ):
         """
@@ -786,7 +786,7 @@ class GenericDomain(Domain):
         """Adds a entry to the list, assigning it to the default backend and saving it
 
         @param entry_data List of fields; format is [Key:Value, Key:Value, ...]
-        @return Path of the newly created d-bus call object"""
+        @return Path of the newly created d-bus entry object"""
 
         # We use the default backend for now
         backend = BackendManager.get_default_backend(_DOMAIN_NAME)
@@ -806,7 +806,7 @@ class GenericDomain(Domain):
         # As we just added a new entry, we check it against all queries to see if it matches
         # XXX: I comment this out because it doesn't work : Charlie
         # TODO: uncomment it
-        # self.query_manager.check_new_entry(call_id)
+        # self.query_manager.check_new_entry(entry_id)
 
         return result
 
@@ -962,7 +962,7 @@ class GenericDomain(Domain):
 
         # TODO: implement adding new data to backend, which doesn't incorporate entry data
         # For instance: we have SIM contact with Name and Phone. We want to add "Birthday" field.
-        # opimd should then try to add "Birthday" field to default backend and then merge calls.
+        # opimd should then try to add "Birthday" field to default backend and then merge contacts.
 
         for field_name in data:
             if not field_name in entryif._field_idx:
