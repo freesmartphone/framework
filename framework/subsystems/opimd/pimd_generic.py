@@ -23,6 +23,8 @@ import re
 import logging
 logger = logging.getLogger('opimd')
 
+from query_manager import QueryMatcher
+
 from backend_manager import BackendManager
 from backend_manager import PIMB_CAN_ADD_ENTRY, PIMB_CAN_DEL_ENTRY, PIMB_CAN_UPD_ENTRY, PIMB_CAN_UPD_ENTRY_WITH_NEW_FIELD, PIMB_NEEDS_SYNC
 
@@ -44,61 +46,6 @@ _DBUS_PATH_QUERIES = _DBUS_PATH_DOMAIN + '/Queries'
 _DIN_ENTRIES = _DIN_DOMAIN_BASE + '.' + 'Entries'
 _DIN_ENTRY = _DIN_DOMAIN_BASE + '.' + 'Entry'
 _DIN_QUERY = _DIN_DOMAIN_BASE + '.' + 'EntryQuery'
-
-#----------------------------------------------------------------------------#
-class QueryMatcher(object):
-#----------------------------------------------------------------------------#
-    query_obj = None
-
-    def __init__(self, query):
-        """Evaluates a query
-
-        @param query Query to evaluate, must be a dict"""
-
-        self.query_obj = query
-
-    def single_entry_matches(self, entry):
-        assert(self.query_obj, "Query object is empty, cannot match!")
-
-        if entry:
-            return entry.match_query(self.query_obj)
-        else:
-            return False
-
-    def match(self, entries):
-        """Tries to match a given set of entries to the current query
-
-        @param entries List of Entry objects
-        @return List of entry IDs that match"""
-
-        assert(self.query_obj, "Query object is empty, cannot match!")
-
-        matches = []
-        results = []
-
-        # Match all entires
-        for (entry_id, entry) in enumerate(entries):
-            match = self.single_call_matches(entry)
-            if match:
-                matches.append((match, entry_id))
-
-        result_count = len(matches)
-        # Sort matches by relevance and return the best hits
-        if result_count > 0:
-            matches.sort(reverse = True)
-
-            limit = result_count
-            if self.query_obj.has_key("_limit"):
-                limit = self.query_obj["_limit"]
-                if limit > result_count:
-                    limit = result_count
-
-            # Append the entry IDs to the result list in the order of the sorted list
-            for i in range(limit):
-                results.append(matches[i][1])
-
-        return results
-
 
 
 #----------------------------------------------------------------------------#

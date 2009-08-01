@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 #
 #   Openmoko PIM Daemon
 #   Domain Plugin Manager
@@ -24,12 +25,11 @@
 #   Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
 #
 
-"""pypimd Domain Plugin Manager"""
+"""opimd Domain Plugin Manager"""
 
 MODULE_NAME = "opimd"
 
 from dbus.service import FallbackObject as DBusFBObject
-from opimd import *
 
 import logging
 logger = logging.getLogger( MODULE_NAME )

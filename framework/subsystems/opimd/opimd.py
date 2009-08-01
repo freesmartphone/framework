@@ -36,8 +36,6 @@ DIN_BASE = None
 
 MODULE_NAME = "opimd"
 
-from opimd import *
-
 # We import the domain modules, so that there classes get registered
 import pimd_contacts
 import pimd_messages

@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# -*- coding: utf-8 -*-
 """
 Open PIM Daemon
 
@@ -11,9 +12,12 @@ GPLv2 or later
 Backend plugin manager
 """
 
+DBUS_BUS_NAME_FSO = "org.freesmartphone.opimd"
+DBUS_PATH_BASE_FSO = "/org/freesmartphone/PIM"
+DIN_BASE_FSO = "org.freesmartphone.PIM"
+
 from domain_manager import DomainManager
 from helpers import *
-from opimd import *
 
 import framework.patterns.tasklet as tasklet
 from framework.config import config, busmap
