@@ -57,6 +57,13 @@ class ContactQueryMatcher(object):
 
         self.query_obj = query
 
+    def single_contact_matches(self, contact):
+        assert(self.query_obj, "Query object is empty, cannot match!")
+
+        if contact:
+            return contact.match_query(self.query_obj)
+        else:
+            return False
 
     def match(self, contacts):
         """Tries to match a given set of contacts to the current query
@@ -71,10 +78,9 @@ class ContactQueryMatcher(object):
 
         # Match all contacts
         for (contact_id, contact) in enumerate(contacts):
-            if contact:
-                match = contact.match_query(self.query_obj)
-                if match > 0.0:
-                    matches.append((match, contact_id))
+            match = self.single_contact_matches(contact)
+            if match:
+                matches.append((match, contact_id))
 
         result_count = len(matches)
         # Sort matches by relevance and return the best hits
@@ -577,7 +583,7 @@ class SingleQueryHandler(object):
         result = False
 
         matcher = ContactQueryMatcher(self.query)
-        if matcher.single_contact_matches():
+        if matcher.single_contact_matches(self._contacts[contact_id]):
             self.entries = matcher.match(self._contacts)
 
             # TODO Register with the new contact to receive changes
@@ -646,8 +652,7 @@ class QueryManager(DBusFBObject):
             if query_handler.check_new_contact(contact_id):
                 contact = self._contacts[contact_id]
                 contact_path = contact['Path']
-                # TODO Figure out how relative signals really work
-                # self.ContactAdded(query_id, contact_path)
+                self.ContactAdded(contact_path, rel_path='/' + str(query_id))
 
     def check_query_id_ok( self, num_id ):
         """
@@ -655,6 +660,10 @@ class QueryManager(DBusFBObject):
         """
         if not num_id in self._queries:
             raise InvalidQueryID( "Existing query IDs: %s" % self._queries.keys() )
+
+    @dbus_signal(_DIN_QUERY, "s", rel_path_keyword="rel_path")
+    def ContactAdded(self, path, rel_path=None):
+        pass
 
     @dbus_method(_DIN_QUERY, "", "i", rel_path_keyword="rel_path")
     def GetResultCount(self, rel_path):
@@ -831,8 +840,7 @@ class ContactDomain(Domain):
         result = contact['Path']
 
         # As we just added a new contact, we check it against all queries to see if it matches
-        # XXX: I comment this out because it doesn't work : Charlie
-        # self.query_manager.check_new_contact(contact_id)
+        self.query_manager.check_new_contact(contact_id)
 
         return result
 

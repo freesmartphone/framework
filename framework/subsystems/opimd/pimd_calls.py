@@ -59,6 +59,13 @@ class CallQueryMatcher(object):
 
         self.query_obj = query
 
+    def single_call_matches(self, call):
+        assert(self.query_obj, "Query object is empty, cannot match!")
+
+        if call:
+            return call.match_query(self.query_obj)
+        else:
+            return False
 
     def match(self, calls):
         """Tries to match a given set of calls to the current query
@@ -73,10 +80,9 @@ class CallQueryMatcher(object):
 
         # Match all calls
         for (call_id, call) in enumerate(calls):
-            if call:
-                match = call.match_query(self.query_obj)
-                if match > 0.0:
-                    matches.append((match, call_id))
+            match = self.single_call_matches(call)
+            if match:
+                matches.append((match, call_id))
 
         result_count = len(matches)
         # Sort matches by relevance and return the best hits
@@ -553,7 +559,7 @@ class SingleQueryHandler(object):
         result = False
 
         matcher = CallQueryMatcher(self.query)
-        if matcher.single_call_matches():
+        if matcher.single_call_matches(self._calls[call_id]):
             self.entries = matcher.match(self._calls)
 
             # TODO Register with the new call to receive changes
@@ -622,8 +628,7 @@ class QueryManager(DBusFBObject):
             if query_handler.check_new_call(call_id):
                 call = self._calls[call_id]
                 call_path = call['Path']
-                # TODO Figure out how relative signals really work
-                # self.callAdded(query_id, call_path)
+                self.CallAdded(call_path, rel_path='/' + str(query_id))
 
     def check_query_id_ok( self, num_id ):
         """
@@ -631,6 +636,10 @@ class QueryManager(DBusFBObject):
         """
         if not num_id in self._queries:
             raise InvalidQueryID( "Existing query IDs: %s" % self._queries.keys() )
+
+    @dbus_signal(_DIN_QUERY, "s", rel_path_keyword="rel_path")
+    def CallAdded(self, path, rel_path=None):
+        pass
 
     @dbus_method(_DIN_QUERY, "", "i", rel_path_keyword="rel_path")
     def GetResultCount(self, rel_path):
@@ -801,7 +810,7 @@ class CallDomain(Domain):
             result = call['Path']
 
             # As we just added a new message, we check it against all queries to see if it matches
-            #self.query_manager.check_new_call(call_id)
+            self.query_manager.check_new_call(call_id)
             
         self.MissedCall(_DBUS_PATH_CALLS+ '/' + str(call_id))
         return call_id
@@ -853,8 +862,7 @@ class CallDomain(Domain):
         result = call['Path']
 
         # As we just added a new call, we check it against all queries to see if it matches
-        # XXX: I comment this out because it doesn't work : Charlie
-        # self.query_manager.check_new_call(call_id)
+        self.query_manager.check_new_call(call_id)
 
         return result
 

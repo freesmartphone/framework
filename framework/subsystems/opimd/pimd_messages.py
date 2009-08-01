@@ -60,8 +60,12 @@ class MessageQueryMatcher(object):
         self.query_obj = query
 
     def single_message_matches(self, message):
-        #FIXME: IMPLEMENT ME!
-        return False
+        assert(self.query_obj, "Query object is empty, cannot match!")
+
+        if message:
+            return message.match_query(self.query_obj)
+        else:
+            return False
 
     def match(self, messages):
         """Tries to match a given set of messages to the current query
@@ -76,10 +80,9 @@ class MessageQueryMatcher(object):
 
         # Match all messages
         for (message_id, message) in enumerate(messages):
-            if message:
-                match = message.match_query(self.query_obj)
-                if match > 0.0:
-                    matches.append((match, message_id))
+            match = self.single_message_matches(message)
+            if match:
+                matches.append((match, message_id))
 
         result_count = len(matches)
         # Sort matches by relevance and return the best hits
@@ -581,7 +584,7 @@ class SingleQueryHandler(object):
         result = False
 
         matcher = MessageQueryMatcher(self.query)
-        if matcher.single_message_matches(message_id):
+        if matcher.single_message_matches(self._messages[message_id]):
             self.entries = matcher.match(self._messages)
 
             # TODO Register with the new message to receive changes
@@ -649,9 +652,8 @@ class QueryManager(DBusFBObject):
         for (query_id, query_handler) in self._queries.items():
             if query_handler.check_new_message(message_id):
                 message = self._messages[message_id]
-                message_uri = message['Path']
-                # TODO Figure out how relative signals really work
-                # self.MessageAdded(query_id, message_uri)
+                message_path = message['Path']
+                self.MessageAdded(message_path, rel_path='/' + str(query_id))
 
     def check_query_id_ok( self, query_id ):
         """
@@ -659,6 +661,10 @@ class QueryManager(DBusFBObject):
         """
         if not query_id in self._queries:
             raise InvalidQueryID( "Existing query IDs: %s" % self._queries.keys() )
+
+    @dbus_signal(_DIN_QUERY, "s", rel_path_keyword="rel_path")
+    def MessageAdded(self, path, rel_path=None):
+        pass
 
     @dbus_method(_DIN_QUERY, "", "i", rel_path_keyword="rel_path")
     def GetResultCount(self, rel_path):
@@ -939,7 +945,7 @@ class MessageDomain(Domain):
             result = message['Path']
 
             # As we just added a new message, we check it against all queries to see if it matches
-            #self.query_manager.check_new_message(message_id)
+            self.query_manager.check_new_message(message_id)
             
         self.IncomingMessage(_DBUS_PATH_MESSAGES+ '/' + str(message_id))
         return message_id
