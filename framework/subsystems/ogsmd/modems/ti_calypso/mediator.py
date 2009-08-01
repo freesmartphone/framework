@@ -95,6 +95,8 @@ class MonitorGetServingCellInformation( MonitorMediator ):
                     result[param] = "%04X" % int( value )
                 else:
                     result[param] = int( value )
+            if params:
+                self._error( DBusError.DeviceFailed( "Incomplete response from modem" ) )
             self._ok( result )
 
 #=========================================================================#
@@ -146,6 +148,8 @@ class MonitorGetNeighbourCellInformation( MonitorMediator ):
                                 result[index][param] = "%04X" % int( value )
                             else:
                                 result[index][param] = int( value )
+                if params:
+                    self._error( DBusError.DeviceFailed( "Incomplete response from modem" ) )
             self._ok( result )
 
 #=========================================================================#
