@@ -57,6 +57,13 @@ class QueryMatcher(object):
 
         self.query_obj = query
 
+    def single_entry_matches(self, entry):
+        assert(self.query_obj, "Query object is empty, cannot match!")
+
+        if entry:
+            return entry.match_query(self.query_obj)
+        else:
+            return False
 
     def match(self, entries):
         """Tries to match a given set of entries to the current query
@@ -71,10 +78,9 @@ class QueryMatcher(object):
 
         # Match all entires
         for (entry_id, entry) in enumerate(entries):
-            if entry:
-                match = entry.match_query(self.query_obj)
-                if match > 0.0:
-                    matches.append((match, entry_id))
+            match = self.single_call_matches(entry)
+            if match:
+                matches.append((match, entry_id))
 
         result_count = len(matches)
         # Sort matches by relevance and return the best hits
@@ -576,7 +582,7 @@ class SingleQueryHandler(object):
         result = False
 
         matcher = QueryMatcher(self.query)
-        if matcher.single_entry_matches():
+        if matcher.single_entry_matches(self._calls[call_id]):
             self.entries = matcher.match(self._entries)
 
             # TODO Register with the new entry to receive changes
@@ -645,8 +651,7 @@ class QueryManager(DBusFBObject):
             if query_handler.check_new_entry(entry_id):
                 entry = self._entries[entry_id]
                 entry_path = entry['Path']
-                # TODO: make it working! :)
-                # self.entryAdded(query_id, entry_path)
+                self.EntryAdded(entry_path, rel_path='/' + str(query_id))
 
     def check_query_id_ok( self, num_id ):
         """
@@ -654,6 +659,10 @@ class QueryManager(DBusFBObject):
         """
         if not num_id in self._queries:
             raise InvalidQueryID( "Existing query IDs: %s" % self._queries.keys() )
+
+    @dbus_signal(_DIN_QUERY, "s", rel_path_keyword="rel_path")
+    def EntryAdded(self, path, rel_path=None):
+        pass
 
     @dbus_method(_DIN_QUERY, "", "i", rel_path_keyword="rel_path")
     def GetResultCount(self, rel_path):
@@ -829,9 +838,7 @@ class GenericDomain(Domain):
         result = entry['Path']
 
         # As we just added a new entry, we check it against all queries to see if it matches
-        # XXX: I comment this out because it doesn't work : Charlie
-        # TODO: uncomment it
-        # self.query_manager.check_new_entry(entry_id)
+        self.query_manager.check_new_entry(entry_id)
 
         return result
 
