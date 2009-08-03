@@ -59,8 +59,12 @@ class DomainManager(object):
     @classmethod
     def init(cls):
         for domain_cls in Domain._all_domains_cls:
-            cls._domains[domain_cls.name] = domain_cls()
-            logger.info("Registered domain %s", domain_cls.name)
+            cls.register(domain_cls)
+
+    @classmethod
+    def register(cls, domain_cls):
+        cls._domains[domain_cls.name] = domain_cls()
+        logger.info("Registered domain %s", domain_cls.name)
 
     @classmethod
     def get_domain_handler(cls, domain):

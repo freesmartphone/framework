@@ -31,9 +31,6 @@ DBUS_BUS_NAME_FSO = "org.freesmartphone.opimd"
 DBUS_PATH_BASE_FSO = "/org/freesmartphone/PIM"
 DIN_BASE_FSO = "org.freesmartphone.PIM"
 
-DBUS_PATH_BASE = None
-DIN_BASE = None
-
 MODULE_NAME = "opimd"
 
 # We import the domain modules, so that there classes get registered
@@ -49,8 +46,14 @@ import pimb_sqlite_messages
 import pimb_sqlite_calls
 import pimb_ogsmd_calls
 
+from backend_manager import BackendManager
+
+from domain_manager import DomainManager
+
 import logging
 logger = logging.getLogger( MODULE_NAME )
+
+INIT = False
 
 #----------------------------------------------------------------------------#
 def factory( prefix, subsystem ):
@@ -59,10 +62,13 @@ def factory( prefix, subsystem ):
     frameworkd factory method.
     """
     # TODO Check for exceptions
-    from domain_manager import DomainManager
-    DomainManager.init()
 
-    from backend_manager import BackendManager
+    global INIT
+
+    if INIT:
+        return []
+
+    DomainManager.init()
     backend_manager = BackendManager()
 
     dbus_objects = []
@@ -73,5 +79,7 @@ def factory( prefix, subsystem ):
         dbus_objects.append(dbus_obj)
 
     dbus_objects.append(backend_manager)
+
+    INIT = True
 
     return dbus_objects

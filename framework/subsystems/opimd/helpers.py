@@ -57,34 +57,10 @@ class InvalidBackendID( DBusException ):
     _dbus_error_name = "org.freesmartphone.PIM.InvalidBackendID"
 
 #----------------------------------------------------------------------------#
-class InvalidContactID( DBusException ):
-#----------------------------------------------------------------------------#
-    """Raised when a submitted contact ID is invalid / out of range"""
-    _dbus_error_name = "org.freesmartphone.PIM.InvalidContactID"
-
-#----------------------------------------------------------------------------#
-class NoMoreContacts( DBusException ):
-#----------------------------------------------------------------------------#
-    """Raised when there are no more contacts to be listed"""
-    _dbus_error_name = "org.freesmartphone.PIM.NoMoreContacts"
-
-#----------------------------------------------------------------------------#
 class InvalidQueryID( DBusException ):
 #----------------------------------------------------------------------------#
     """Raised when a submitted query ID is invalid / out of range"""
     _dbus_error_name = "org.freesmartphone.PIM.InvalidQueryID"
-
-#----------------------------------------------------------------------------#
-class InvalidMessageID( DBusException ):
-#----------------------------------------------------------------------------#
-    """Raised when a submitted message ID is invalid / out of range"""
-    _dbus_error_name = "org.freesmartphone.PIM.InvalidMessageID"
-
-#----------------------------------------------------------------------------#
-class NoMoreMessages( DBusException ):
-#----------------------------------------------------------------------------#
-    """Raised when there are no more messages to be listed"""
-    _dbus_error_name = "org.freesmartphone.PIM.NoMoreMessages"
 
 #----------------------------------------------------------------------------#
 class UnknownFolder( DBusException ):
@@ -99,25 +75,13 @@ class AmbiguousKey( DBusException ):
     _dbus_error_name = "org.freesmartphone.PIM.AmbiguousKey"
 
 #----------------------------------------------------------------------------#
-class InvalidCallID( DBusException ):
+class InvalidEntryID( DBusException ):
 #----------------------------------------------------------------------------#
-    """Raised when a submitted call ID is invalid / out of range"""
-    _dbus_error_name = "org.freesmartphone.PIM.InvalidCallID"
+    """Raised when a submitted entry ID is invalid / out of range"""
+    _dbus_error_name = "org.freesmartphone.PIM.InvalidEntryID"
 
 #----------------------------------------------------------------------------#
-class NoMoreCalls( DBusException ):
+class NoMoreEntries( DBusException ):
 #----------------------------------------------------------------------------#
-    """Raised when there are no more calls to be listed"""
-    _dbus_error_name = "org.freesmartphone.PIM.NoMoreCalls"
-
-#----------------------------------------------------------------------------#
-class InvalidCallID( DBusException ):
-#----------------------------------------------------------------------------#
-    """Raised when a submitted call ID is invalid / out of range"""
-    _dbus_error_name = "org.freesmartphone.PIM.InvalidCallID"
-
-#----------------------------------------------------------------------------#
-class NoMoreCalls( DBusException ):
-#----------------------------------------------------------------------------#
-    """Raised when there are no more calls to be listed"""
-    _dbus_error_name = "org.freesmartphone.PIM.NoMore"
+    """Raised when there are no more entries to be listed"""
+    _dbus_error_name = "org.freesmartphone.PIM.NoMoreEntries"

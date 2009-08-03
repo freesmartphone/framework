@@ -30,7 +30,11 @@ from domain_manager import DomainManager, Domain
 from helpers import *
 from opimd import *
 
+from query_manager import QueryMatcher
+
 from framework.config import config, busmap
+
+from pimd_generic import GenericEntry
 
 #----------------------------------------------------------------------------#
 
@@ -45,64 +49,9 @@ _DIN_CONTACTS = _DIN_CONTACTS_BASE + '.' + 'Contacts'
 _DIN_ENTRY = _DIN_CONTACTS_BASE + '.' + 'Contact'
 _DIN_QUERY = _DIN_CONTACTS_BASE + '.' + 'ContactQuery'
 
-#----------------------------------------------------------------------------#
-class ContactQueryMatcher(object):
-#----------------------------------------------------------------------------#
-    query_obj = None
-
-    def __init__(self, query):
-        """Evaluates a query
-
-        @param query Query to evaluate, must be a dict"""
-
-        self.query_obj = query
-
-    def single_contact_matches(self, contact):
-        assert(self.query_obj, "Query object is empty, cannot match!")
-
-        if contact:
-            return contact.match_query(self.query_obj)
-        else:
-            return False
-
-    def match(self, contacts):
-        """Tries to match a given set of contacts to the current query
-
-        @param contacts List of Contact objects
-        @return List of contact IDs that match"""
-
-        assert(self.query_obj, "Query object is empty, cannot match!")
-
-        matches = []
-        results = []
-
-        # Match all contacts
-        for (contact_id, contact) in enumerate(contacts):
-            match = self.single_contact_matches(contact)
-            if match:
-                matches.append((match, contact_id))
-
-        result_count = len(matches)
-        # Sort matches by relevance and return the best hits
-        if result_count > 0:
-            matches.sort(reverse = True)
-
-            limit = result_count
-            if self.query_obj.has_key("_limit"):
-                limit = self.query_obj["_limit"]
-                if limit > result_count:
-                    limit = result_count
-
-            # Append the contact IDs to the result list in the order of the sorted list
-            for i in range(limit):
-                results.append(matches[i][1])
-
-        return results
-
-
 
 #----------------------------------------------------------------------------#
-class Contact():
+class Contact(GenericEntry):
 #----------------------------------------------------------------------------#
     """Represents one single contact with all the data fields it consists of.
 
@@ -112,310 +61,11 @@ class Contact():
     _fields[3] = ["EMail", "foo@bar.com", "", "CSV-Contacts"]
     _fields[4] = ["EMail", "moo@cow.com", "", "LDAP-Contacts"]
     _field_idx["EMail"] = [3, 4]"""
-
-    _fields = None
-    _field_idx = None
-    _used_backends = None
-
+    
     def __init__(self, path):
-        """Creates a new Contact instance
-
-        @param path Path of the contact itself"""
-
-        self._fields = []
-        self._field_idx = {}
-        self._used_backends = []
-
-        # Add Path field
-        self._fields.append( ['Path', path, '', ''] )
-        self.rebuild_index()
-
-
-    def __getitem__(self, field_name):
-        """Finds all field values for field_name
-
-        @param field_name Name of the field whose data we return
-        @return Value of the field if there's just one result, a list of values otherwise; None if field_name is unknown"""
-
-        try:
-            field_ids = self._field_idx[field_name]
-        except KeyError:
-            return None
-
-        if len(field_ids) == 1:
-            # Return single result
-            field = self._fields[field_ids[0]]
-            return field[1]
-
-        else:
-            # Return multiple results
-            result = []
-            for n in field_ids:
-                field = self._fields[n]
-                result.append(field[1])
-
-            thesame = 1
-            prev = self._fields[field_ids[0]]
-            for n in field_ids:
-                if prev!=self._fields[n]:
-                    thesame = 0
-
-            if thesame:
-                return result[0]
-            else:
-                return result
-
-
-    def __repr__(self):
-        return str(self.get_content())
-
-
-    def rebuild_index(self):
-        """Rebuilds the field index, thereby ensuring consistency
-        @note Should only be performed when absolutely necessary"""
-
-        self._field_idx = {}
-        for (field_idx, field) in enumerate(self._fields):
-            (field_name, field_data, comp_value, field_source) = field
-
-            try:
-                self._field_idx[field_name].append(field_idx)
-            except KeyError:
-                self._field_idx[field_name] = [field_idx]
-
-
-    def import_fields(self, contact_data, backend_name):
-        """Adds an array of contact data fields to this contact
-
-        @param contact_data Contact data; format: ((Key,Value), (Key,Value), ...)
-        @param backend_name Name of the backend to which those fields belong"""
-
-        if backend_name!='':
-            if not backend_name in self._used_backends:
-                self._used_backends.append(backend_name)
-
-        for field_name in contact_data:
-            try:
-                if field_name.startswith('_'):
-                    raise KeyError
-                for field in self._field_idx[field_name]:
-                    if self._fields[field][3]==backend_name:
-                        self._fields[field][1]=contact_data[field_name]
-                    else:
-                        self._fields.append([field_name, contact_data[field_name], '', backend_name])
-                        self._field_idx[field_name].append(len(self._fields)-1)
-            except KeyError:
-                field_value = contact_data[field_name]
-
-                # We only generate compare values for specific fields
-                compare_value = ""
-
-                # TODO Do this in a more extensible way
-                # if ("phone" in field_name) or (field_name == "Phone"): compare_value = get_compare_for_tel(field_value)
-
-                our_field = [field_name, field_value, compare_value, backend_name]
-
-                self._fields.append(our_field)
-                field_idx = len(self._fields) - 1
-
-                # Keep the index happy, too
-                if not field_name in self._field_idx.keys(): self._field_idx[field_name] = []
-                self._field_idx[field_name].append(field_idx)
-
-#        for (field_idx, field) in enumerate(self._fields):
-#            print "%s: %s" % (field_idx, field)
-#        print self._field_idx
-
-
-    def export_fields(self, backend_name):
-        """Extracts all fields belonging to a certain backend
-
-        @param backend_name Name of the backend whose data we want to extract from this contract
-        @return List of (field_name, field_data) tuples"""
-
-        entry = []
-
-        for field in self._fields:
-            (field_name, field_data, comp_value, field_source) = field
-
-            if field_source == backend_name:
-                entry.append((field_name, field_data))
-
-        return entry
-
-
-    def get_fields(self, fields):
-        """Returns a dict containing the fields whose names are listed in the fields parameter
-        @note Backend information is omitted.
-        @note Fields that have more than one occurence are concatenated using a separation character of ','.
-
-        @param fields List of field names to include in the resulting dict
-        @return Dict containing the field_name/field_value pairs that were requested"""
-
-        result = {}
-        separator = ','
-
-        for field_name in fields:
-            field_ids = self._field_idx[field_name]
-
-            # Do we need to concatenate multiple values?
-            if len(field_ids) > 1:
-
-                field_values = []
-                for field_id in field_ids:
-                    field_value = (self._fields[field_id])[1]
-                    field_values.append(field_value)
-
-                value = ','.join(field_values)
-
-                thesame = 1
-                prev = field_values[0]
-                for n in field_ids:
-                    if prev!=self._fields[n][1]:
-                        thesame = 0
-
-                if thesame:
-                    result[field_name] = field_values[0]
-                else:
-                    result[field_name] = field_values
-
-            else:
-                field_value = (self._fields[field_ids[0]])[1]
-                result[field_name] = field_value
-
-        return result
-
-
-    def get_content(self):
-        """Creates and returns a complete representation of the contact
-        @note Backend information is omitted.
-        @note Fields that have more than one occurence are concatenated using a separation character of ','.
-
-        @return Contact data, in {Field_name:Field_value} notation"""
-
-        fields = self.get_fields(self._field_idx)
-        content = {}
-        for field in fields:
-            if fields[field]!='' and fields[field]!=None and not field.startswith('_'):
-                content[field] = fields[field]
-        return content
-
-
-    def attempt_merge(self, contact_fields, backend_name):
-        """Attempts to merge the given contact into the contact list and returns its ID
-
-        @param contact_fields Contact data; format: ((Key,Value), (Key,Value), ...)
-        @param backend_name Backend that owns the contact data
-        @return True on successful merge, False otherwise"""
-
-        duplicated = True
-        for field_name in contact_fields:
-            try:
-                if self[field_name]!=contact_fields[field_name]:
-                    duplicated = False
-                    break
-            except KeyError:
-                duplicated = False
-                break
-
-        if duplicated:
-            return True # That contacts exists, so we doesn't have to do anything to have it merged.
-
-        # Don't merge if we already have data from $backend_name as one backend can't contain two mergeable contacts
-        if backend_name in self._used_backends:
-            return False
-
-        merge = [1, 0]
-        for field_name in contact_fields:
-            if not field_name.startswith('_'):
-                if field_name!='Path':
-                    field_value=contact_fields[field_name]
-                    try:
-                        if self[field_name]!=field_value:
-                            merge[0] = 0
-                            break
-                        else:
-                            merge[1] = 1
-                    except KeyError:
-                        pass
-
-        if merge[0]:
-            if merge[1]:
-                self.import_fields(contact_fields, backend_name)
-                return True
-            else:
-                return False
-        else:
-            return False
-
-
-    def incorporates_data_from(self, backend_name):
-        """Determines whether this contact entry has data from a specific backend saved
-
-        @param backend_name Name of backend to look for
-        @return True if we have data belonging to that backend, False otherwise"""
-
-        return backend_name in self._used_backends
-
-
-    def match_query(self, query_obj):
-        """Checks whether this contact matches the given query
-
-        @param query_obj Dict containing key/value pairs of the required matches
-        @return Accuracy of the match, ranging from 0.0 (no match) to 1.0 (complete match)"""
-
-        overall_match = 1.0
-
-        for field_name in query_obj.keys():
-            # Skip fields only meaningful to the parser
-            if field_name[:1] == "_": continue
-
-            field_value = str(query_obj[field_name])
-            best_field_match = 0.0
-
-            matcher = re.compile(field_value)
-            seq2_len = len(field_value)
-
-            # Check if field value(s) of this contact match(es) the query field
-            try:
-                field_ids = self._field_idx[field_name]
-
-                for field_id in field_ids:
-
-                    # A field is (Key,Value,Comp_Value,Source), so [2] is the value we usually use for comparison
-                    comp_value = self._fields[field_id][2]
-                    if not comp_value:
-                        # Use the real value if no comparison value given
-                        comp_value = str(self._fields[field_id][1])
-
-                    # Compare and determine the best match ratio
-                    match = matcher.search(comp_value)
-                    if match:
-                        match_len = match.end() - match.start()
-                    else:
-                        match_len = 0
-
-                    if seq2_len==0:
-                        field_match = 0.0
-                    else:
-                        field_match = float(match_len) / len(comp_value)
-
-                    if field_match > best_field_match: best_field_match = field_match
-                    logger.debug("Contacts: Field match for %s / %s: %f", comp_value, field_value, field_match)
-
-            except KeyError:
-                # Contact has no data for this field contained in the query, so this entry cannot match
-                return 0.0
-
-            # Aggregate the field match value into the overall match
-            # We don't use the average of all field matches as one
-            # non-match *must* result in a final value of 0.0
-            overall_match *= best_field_match
-
-            # Stop comparing if there is too little similarity
-            if overall_match == 0.0: break
-
-        return overall_match
+        """Creates a new entry instance"""
+        self.domain_name = _DOMAIN_NAME
+        super(Contact, self).__init__( path )
 
 
 
@@ -437,7 +87,7 @@ class SingleQueryHandler(object):
         self.query = query
         self.sanitize_query()
 
-        matcher = ContactQueryMatcher(self.query)
+        matcher = QueryMatcher(self.query)
 
         self._contacts = contacts
         self.entries = matcher.match(self._contacts)
@@ -582,8 +232,8 @@ class SingleQueryHandler(object):
 
         result = False
 
-        matcher = ContactQueryMatcher(self.query)
-        if matcher.single_contact_matches(self._contacts[contact_id]):
+        matcher = QueryMatcher(self.query)
+        if matcher.single_entry_matches(self._contacts[contact_id]):
             self.entries = matcher.match(self._contacts)
 
             # TODO Register with the new contact to receive changes
@@ -689,7 +339,7 @@ class QueryManager(DBusFBObject):
         self._queries[num_id].skip(sender, num_entries)
 
 
-    @dbus_method(_DIN_QUERY, "", "s", rel_path_keyword="rel_path", sender_keyword="sender")
+    @dbus_method(_DIN_QUERY, "", "o", rel_path_keyword="rel_path", sender_keyword="sender")
     def GetContactPath(self, rel_path, sender):
         num_id = int(rel_path[1:])
         self.check_query_id_ok( num_id )
@@ -813,11 +463,11 @@ class ContactDomain(Domain):
                     yield contact.export_fields(backend.name)
 
 
-    @dbus_signal(_DIN_CONTACTS, "s")
+    @dbus_signal(_DIN_CONTACTS, "o")
     def NewContact(self, path):
         pass
 
-    @dbus_method(_DIN_CONTACTS, "a{sv}", "s")
+    @dbus_method(_DIN_CONTACTS, "a{sv}", "o")
     def Add(self, contact_data):
         """Adds a contact to the list, assigning it to the default backend and saving it
 
@@ -856,7 +506,7 @@ class ContactDomain(Domain):
 
         # Only return one contact
         query['_limit'] = 1
-        matcher = ContactQueryMatcher(query)
+        matcher = QueryMatcher(query)
         res = matcher.match(self._contacts)
 
         # Copy all requested fields if we got a result

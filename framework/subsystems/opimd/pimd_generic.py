@@ -14,6 +14,10 @@ Generic Domain
 From this domain class others inherit.
 """
 
+DBUS_BUS_NAME_FSO = "org.freesmartphone.opimd"
+DBUS_PATH_BASE_FSO = "/org/freesmartphone/PIM"
+DIN_BASE_FSO = "org.freesmartphone.PIM"
+
 from dbus.service import FallbackObject as DBusFBObject
 from dbus.service import signal as dbus_signal
 from dbus.service import method as dbus_method
@@ -28,20 +32,19 @@ from query_manager import QueryMatcher
 from backend_manager import BackendManager
 from backend_manager import PIMB_CAN_ADD_ENTRY, PIMB_CAN_DEL_ENTRY, PIMB_CAN_UPD_ENTRY, PIMB_CAN_UPD_ENTRY_WITH_NEW_FIELD, PIMB_NEEDS_SYNC
 
-from domain_manager import DomainManager, Domain
+from domain_manager import Domain
 from helpers import *
-from opimd import *
 
 from framework.config import config, busmap
 
 #----------------------------------------------------------------------------#
 
-_DOMAIN_NAME = "Generic"
+#_DOMAIN_NAME = "Generic"
 
-_DBUS_PATH_DOMAIN = DBUS_PATH_BASE_FSO + '/' + _DOMAIN_NAME
+#_DBUS_PATH_DOMAIN = DBUS_PATH_BASE_FSO + '/' + _DOMAIN_NAME
 _DIN_DOMAIN_BASE = DIN_BASE_FSO
 
-_DBUS_PATH_QUERIES = _DBUS_PATH_DOMAIN + '/Queries'
+#_DBUS_PATH_QUERIES = _DBUS_PATH_DOMAIN + '/Queries'
 
 _DIN_ENTRIES = _DIN_DOMAIN_BASE + '.' + 'Entries'
 _DIN_ENTRY = _DIN_DOMAIN_BASE + '.' + 'Entry'
@@ -49,7 +52,7 @@ _DIN_QUERY = _DIN_DOMAIN_BASE + '.' + 'EntryQuery'
 
 
 #----------------------------------------------------------------------------#
-class Entry():
+class GenericEntry(object):
 #----------------------------------------------------------------------------#
     """Represents one single entry with all the data fields it consists of.
 
@@ -63,6 +66,7 @@ class Entry():
     _fields = None
     _field_idx = None
     _used_backends = None
+    domain_name = 'Generic'
 
     def __init__(self, path):
         """Creates a new entry instance
@@ -347,7 +351,7 @@ class Entry():
                         field_match = float(match_len) / len(comp_value)
 
                     if field_match > best_field_match: best_field_match = field_match
-                    logger.debug("%s: Field match for %s / %s: %f", _DOMAIN_NAME, comp_value, field_value, field_match)
+                    logger.debug("%s: Field match for %s / %s: %f", self.domain_name, comp_value, field_value, field_match)
 
             except KeyError:
                 # entry has no data for this field contained in the query, so this entry cannot match
@@ -363,199 +367,17 @@ class Entry():
 
         return overall_match
 
-
-
-#----------------------------------------------------------------------------#
-class SingleQueryHandler(object):
-#----------------------------------------------------------------------------#
-    _entries = None
-    query = None      # The query this handler is processing
-    entries = None
-    cursors = None    # The next entry we'll serve, depending on the client calling us
-
-    def __init__(self, query, entries, dbus_sender):
-        """Creates a new SingleQueryHandler instance
-
-        @param query Query to evaluate
-        @param entries Set of Entry objects to use
-        @param dbus_sender Sender's unique name on the bus"""
-
-        self.query = query
-        self.sanitize_query()
-
-        matcher = QueryMatcher(self.query)
-
-        self._entries = entries
-        self.entries = matcher.match(self._entries)
-        self.cursors = {}
-
-        # TODO Register with all entries to receive updates
-
-
-    def dispose(self):
-        """Unregisters from all entries to allow this instance to be eaten by GC"""
-        # TODO Unregister from all entries
-        pass
-
-
-    def sanitize_query(self):
-        """Makes sure the query meets the criteria that related code uses to omit wasteful sanity checks"""
-
-        # For get_result_and_advance():
-        # Make sure the _result_fields list has no whitespaces, e.g. "a, b, c" should be "a,b,c"
-        # Reasoning: entry.get_fields() has no fuzzy matching for performance reasons
-        # Also, we remove any empty list elements created by e.g. "a, b, c,"
-        try:
-            field_list = self.query['_result_fields']
-            fields = field_list.split(',')
-            new_field_list = []
-
-            for field_name in fields:
-                field_name = field_name.strip()
-                if field_name: new_field_list.append(field_name)
-
-            self.query['_result_fields'] = ','.join(new_field_list)
-        except KeyError:
-            # There's no _result_fields entry to sanitize
-            pass
-
-
-    def get_result_count(self):
-        """Determines the number of results for this query
-
-        @return Number of result entries"""
-
-        return len(self.entries)
-
-
-    def rewind(self, dbus_sender):
-        """Resets the cursor for a given d-bus sender to the first result entry
-
-        @param dbus_sender Sender's unique name on the bus"""
-
-        self.cursors[dbus_sender] = 0
-
-
-    def skip(self, dbus_sender, num_entries):
-        """Skips n result entries of the result set
-
-        @param dbus_sender Sender's unique name on the bus
-        @param num_entries Number of result entries to skip"""
-
-        if not self.cursors.has_key(dbus_sender): self.cursors[dbus_sender] = 0
-        self.cursors[dbus_sender] += num_entries
-
-
-    def get_entry_path(self, dbus_sender):
-        """Determines the Path of the next entry that the cursor points at and advances to the next result entry
-
-        @param dbus_sender Sender's unique name on the bus
-        @return Path of the entry"""
-
-        # If the sender is not in the list of cursors it just means that it is starting to iterate
-        if not self.cursors.has_key(dbus_sender): self.cursors[dbus_sender] = 0
-
-        # Check whether we've reached the end of the entry list
-        try:
-            result = self.entries[self.cursors[dbus_sender]]
-        except IndexError:
-            raise NoMoreEntries( "All results have been submitted" )
-
-        entry_id = self.entries[self.cursors[dbus_sender]]
-        entry = self._entries[entry_id]
-        self.cursors[dbus_sender] += 1
-
-        return entry['Path']
-
-
-    def get_result(self, dbus_sender):
-        """Extracts the requested fields from the next entry in the result set and advances the cursor
-
-        @param dbus_sender Sender's unique name on the bus
-        @return Dict containing field_name/field_value pairs"""
-
-        # If the sender is not in the list of cursors it just means that it is starting to iterate
-        if not self.cursors.has_key(dbus_sender): self.cursors[dbus_sender] = 0
-
-        # Check whether we've reached the end of the entry list
-        try:
-            result = self.entries[self.cursors[dbus_sender]]
-        except IndexError:
-            raise NoMoreEntries( "All results have been submitted" )
-
-        entry_id = self.entries[self.cursors[dbus_sender]]
-        entry = self._entries[entry_id]
-        self.cursors[dbus_sender] += 1
-
-        try:
-            fields = self.query['_result_fields']
-            field_list = fields.split(',')
-            result = entry.get_fields(field_list)
-        except KeyError:
-            result = entry.get_content()
-
-        return result
-
-
-    def get_multiple_results(self, dbus_sender, num_entries):
-        """Creates a list containing n dicts which represent the corresponding entries from the result set
-        @note If there are less entries than num_entries, only the available entries will be returned
-
-        @param dbus_sender Sender's unique name on the bus
-        @param num_entries Number of result set entries to return
-        @return List of dicts with field_name/field_value pairs"""
-
-        result = []
-
-        for i in range(num_entries):
-            try:
-                entry = self.get_result(dbus_sender)
-                result.append(entry)
-            except NoMoreEntries:
-                """Don't want to raise an error in that case"""
-                break
-
-        return result
-
-
-    def check_new_entry(self, entry_id):
-        """Checks whether a newly added entry matches this so it can signal clients
-
-        @param entry_id entry ID of the entry that was added
-        @return True if entry matches this query, False otherwise
-
-        @todo Currently this messes up the order of the result set if a specific order was desired"""
-
-        result = False
-
-        matcher = QueryMatcher(self.query)
-        if matcher.single_entry_matches(self._calls[call_id]):
-            self.entries = matcher.match(self._entries)
-
-            # TODO Register with the new entry to receive changes
-
-            # We *should* reset all cursors *if* the result set is ordered, however
-            # in order to prevent confusion, this is left for the client to do.
-            # Rationale: clients with unordered queries can just use get_result()
-            # and be done with it. For those, theres's no need to re-read all results.
-
-            # Let clients know that this result set changed
-            result = True
-
-        return result
-
-
-
 #----------------------------------------------------------------------------#
 class QueryManager(DBusFBObject):
 #----------------------------------------------------------------------------#
     _queries = None
     _entries = None
     _next_query_id = None
+    domain_name = None
 
     # Note: _queries must be a dict so we can remove queries without messing up query IDs
 
-    def __init__(self, entries):
+    def __init__(self, entries, domain_name):
         """Creates a new QueryManager instance
 
         @param entries Set of entry objects to use"""
@@ -564,12 +386,14 @@ class QueryManager(DBusFBObject):
         self._queries = {}
         self._next_query_id = 0
 
+        self.domain_name = domain_name
+
         # Initialize the D-Bus-Interface
-        DBusFBObject.__init__( self, conn=busmap["opimd"], object_path=_DBUS_PATH_QUERIES )
+        DBusFBObject.__init__( self, conn=busmap["opimd"], object_path=DBUS_PATH_BASE_FSO + '/' + self.domain_name + '/Queries' )
 
         # Still necessary?
-        self.interface = _DIN_ENTRIES
-        self.path = _DBUS_PATH_QUERIES
+        #self.interface = _DIN_ENTRIES
+        #self.path = DBUS_PATH_BASE_FSO + '/' + self.domain_name + '/Queries'
 
 
     def process_query(self, query, dbus_sender):
@@ -586,7 +410,7 @@ class QueryManager(DBusFBObject):
 
         self._queries[query_id] = query_handler
 
-        return _DBUS_PATH_QUERIES + '/' + str(query_id)
+        return DBUS_PATH_BASE_FSO + '/' + self.domain_name + '/Queries/' + str(query_id)
 
 
     def check_new_entry(self, entry_id):
@@ -607,7 +431,7 @@ class QueryManager(DBusFBObject):
         if not num_id in self._queries:
             raise InvalidQueryID( "Existing query IDs: %s" % self._queries.keys() )
 
-    @dbus_signal(_DIN_QUERY, "s", rel_path_keyword="rel_path")
+    @dbus_signal(_DIN_QUERY, "o", rel_path_keyword="rel_path")
     def EntryAdded(self, path, rel_path=None):
         pass
 
@@ -635,7 +459,7 @@ class QueryManager(DBusFBObject):
         self._queries[num_id].skip(sender, num_entries)
 
 
-    @dbus_method(_DIN_QUERY, "", "s", rel_path_keyword="rel_path", sender_keyword="sender")
+    @dbus_method(_DIN_QUERY, "", "o", rel_path_keyword="rel_path", sender_keyword="sender")
     def GetEntryPath(self, rel_path, sender):
         num_id = int(rel_path[1:])
         self.check_query_id_ok( num_id )
@@ -670,14 +494,15 @@ class QueryManager(DBusFBObject):
         self._queries.__delitem__(num_id)
 
 #----------------------------------------------------------------------------#
-class GenericDomain(Domain):
+class GenericDomain():
 #----------------------------------------------------------------------------#
-    name = _DOMAIN_NAME
+    name = 'Generic'
 
-    _dbus_path = _DBUS_PATH_DOMAIN
+    #_dbus_path = _DBUS_PATH_DOMAIN
     _backends = None
     _entries = None
     query_manager = None
+    Entry = GenericEntry
 
     def __init__(self):
         """Creates a new GenericDomain instance"""
@@ -687,7 +512,7 @@ class GenericDomain(Domain):
         self.query_manager = QueryManager(self._entries)
 
         # Initialize the D-Bus-Interface
-        super(GenericDomain, self).__init__( conn=busmap["opimd"], object_path=self._dbus_path )
+        super(GenericDomain, self).__init__( conn=busmap["opimd"], object_path=DBUS_PATH_BASE_FSO + '/' + self.name )
 
         # Keep frameworkd happy
         self.interface = _DIN_ENTRIES
@@ -758,19 +583,16 @@ class GenericDomain(Domain):
                 if entry.incorporates_data_from(backend.name):
                     yield entry.export_fields(backend.name)
 
-    @dbus_signal(_DIN_ENTRIES, "s")
-    def NewEntry(self, path):
-        pass
+    def check_entry_id( self, num_id ):
+        """
+        Checks whether the given entry id is valid. Raises InvalidEntryID, if not.
+        """
+        if num_id >= len(self._entries) or self._entries[num_id]==None:
+            raise InvalidEntryID()
 
-    @dbus_method(_DIN_ENTRIES, "a{sv}", "s")
-    def Add(self, entry_data):
-        """Adds a entry to the list, assigning it to the default backend and saving it
-
-        @param entry_data List of fields; format is [Key:Value, Key:Value, ...]
-        @return Path of the newly created d-bus entry object"""
-
+    def add(self, entry_data):
         # We use the default backend for now
-        backend = BackendManager.get_default_backend(_DOMAIN_NAME)
+        backend = BackendManager.get_default_backend(self.name)
         result = ""
 
         if not PIMB_CAN_ADD_ENTRY in backend.properties:
@@ -789,145 +611,14 @@ class GenericDomain(Domain):
 
         return result
 
-    @dbus_method(_DIN_ENTRIES, "a{sv}s", "s")
-    def GetSingleEntrySingleField(self, query, field_name):
-        """Returns the first entry found for a query, making it real easy to query simple things
-
-        @param query The query object
-        @param field_name The name of the field to return
-        @return The requested data"""
-
-        result = ""
-
-        # Only return one entry
-        query['_limit'] = 1
-        matcher = QueryMatcher(query)
-        res = matcher.match(self._entries)
-
-        # Copy all requested fields if we got a result
-        if len(res) > 0:
-            entry = self._entries[res[0]]
-            result = entry[field_name]
-
-            # Merge results if we received multiple results
-            if isinstance(result, list):
-                result = ",".join(map(str, result))
-
-        return result
-
-
-    @dbus_method(_DIN_ENTRIES, "a{sv}", "s", sender_keyword="sender")
-    def Query(self, query, sender):
-        """Processes a query and returns the dbus path of the resulting query object
-
-        @param query Query
-        @param sender Unique name of the query sender on the bus
-        @return dbus path of the query object, e.g. /org.freesmartphone.PIM/Entries/Queries/4"""
-
-        return self.query_manager.process_query(query, sender)
-
-
-    @dbus_method(_DIN_ENTRY, "", "a{sv}", rel_path_keyword="rel_path")
-    def GetContent(self, rel_path):
-        num_id = int(rel_path[1:])
-
+    def update(self, num_id, data):
         # Make sure the requested entry exists
-        if num_id >= len(self._entries) or self._entries[num_id]==None:
-            raise InvalidEntryID()
-
-        return self._entries[num_id].get_content()
-
-    @dbus_method(_DIN_ENTRY, "", "as", rel_path_keyword="rel_path")
-    def GetUsedBackends(self, rel_path):
-        num_id = int(rel_path[1:])
-                
-        # Make sure the requested entry exists
-        if num_id >= len(self._entries) or self._entries[num_id]==None:
-            raise InvalidEntryID()
-        
-        return self._entries[num_id]._used_backends
-
-
-    @dbus_method(_DIN_ENTRY, "s", "a{sv}", rel_path_keyword="rel_path")
-    def GetMultipleFields(self, field_list, rel_path):
-        num_id = int(rel_path[1:])
-
-        # Make sure the requested entry exists
-        if num_id >= len(self._entries) or self._entries[num_id]==None:
-            raise InvalidEntryID()
-
-        # Break the string up into a list
-        fields = field_list.split(',')
-        new_field_list = []
-
-        for field_name in fields:
-            # Make sure the field list entries contain no spaces and aren't empty
-            field_name = field_name.strip()
-            if field_name: new_field_list.append(field_name)
-
-        return self._entries[num_id].get_fields(new_field_list)
-
-    @dbus_signal(_DIN_ENTRY, "", rel_path_keyword="rel_path")
-    def EntryDeleted(self, rel_path=None):
-        pass
-
-    @dbus_method(_DIN_ENTRY, "", "", rel_path_keyword="rel_path")
-    def Delete(self, rel_path):
-        num_id = int(rel_path[1:])
-
-        # Make sure the requested entry exists
-        if num_id >= len(self._entries) or self._entries[num_id]==None:
-            raise InvalidEntryID()
-
-        backends = self._entries[num_id]._used_backends
-
-        for backend_name in backends:
-            backend = self._backends[backend_name]
-            if not PIMB_CAN_DEL_ENTRY in backend.properties:
-                raise InvalidBackend( "Backend properties not including PIMB_CAN_DEL_ENTRY" )
-
-            try:
-                backend.del_entry(self._entries[num_id].export_fields(backend_name))
-            except AttributeError:
-                raise InvalidBackend( "Backend does not feature del_entry" )
-
-        #del self._entries[num_id]
-        # Experimental: it may introduce some bugs.
-#        entry = self._entries[num_id]
-        self._entries[num_id] = None
-#        del entry
-
-        # update Path fields, as IDs may be changed - UGLYYYY!!! */me spanks himself*
-        # Not needed with that "experimental" code above.
-        #for id in range(0,len(self._entries)):
-        #    path = _DBUS_PATH_ENTRIES+ '/' + str(id)
-        #    for field in self._entries[id]._fields:
-        #        if field[0]=='Path':
-        #            field[1]=path
-
-        for backend_name in backends:
-            backend = self._backends[backend_name]
-            if PIMB_NEEDS_SYNC in backend.properties:
-                backend.sync() # If backend needs - sync entries
-
-        self.EntryDeleted(rel_path=rel_path)
-
-    @dbus_signal(_DIN_ENTRY, "a{sv}", rel_path_keyword="rel_path")
-    def EntryUpdated(self, data, rel_path=None):
-        pass
-
-    @dbus_method(_DIN_ENTRY, "a{sv}", "", rel_path_keyword="rel_path")
-    def Update(self, data, rel_path):
-        num_id = int(rel_path[1:])
-
-        # Make sure the requested entry exists
-        if num_id >= len(self._entries) or self._entries[num_id]==None:
-            raise InvalidEntryID()
+        self.check_entry_id(num_id)
 
         entryif = self._entries[num_id]
         entry = entryif.get_fields(entryif._field_idx)
 
-        default_backend = BackendManager.get_default_backend(_DOMAIN_NAME)
+        default_backend = BackendManager.get_default_backend(self.name)
         
         # Search for backend in which we can store new fields
         backend = ''
@@ -969,3 +660,155 @@ class GenericDomain(Domain):
 
         self.EntryUpdated(data, rel_path=rel_path)
 
+    def delete(self, num_id):
+        # Make sure the requested entry exists
+        self.check_entry_id(num_id)
+
+        backends = self._entries[num_id]._used_backends
+
+        for backend_name in backends:
+            backend = self._backends[backend_name]
+            if not PIMB_CAN_DEL_ENTRY in backend.properties:
+                raise InvalidBackend( "Backend properties not including PIMB_CAN_DEL_ENTRY" )
+
+            try:
+                backend.del_entry(self._entries[num_id].export_fields(backend_name))
+            except AttributeError:
+                raise InvalidBackend( "Backend does not feature del_entry" )
+
+        #del self._entries[num_id]
+        # Experimental: it may introduce some bugs.
+#        entry = self._entries[num_id]
+        self._entries[num_id] = None
+#        del entry
+
+        # update Path fields, as IDs may be changed - UGLYYYY!!! */me spanks himself*
+        # Not needed with that "experimental" code above.
+        #for id in range(0,len(self._entries)):
+        #    path = _DBUS_PATH_ENTRIES+ '/' + str(id)
+        #    for field in self._entries[id]._fields:
+        #        if field[0]=='Path':
+        #            field[1]=path
+
+        for backend_name in backends:
+            backend = self._backends[backend_name]
+            if PIMB_NEEDS_SYNC in backend.properties:
+                backend.sync() # If backend needs - sync entries
+
+        self.EntryDeleted(rel_path=rel_path)
+
+    def get_multiple_fields(self, num_id, field_list):
+        # Make sure the requested entry exists
+        self.check_entry_id(num_id)
+
+        # Break the string up into a list
+        fields = field_list.split(',')
+        new_field_list = []
+
+        for field_name in fields:
+            # Make sure the field list entries contain no spaces and aren't empty
+            field_name = field_name.strip()
+            if field_name: new_field_list.append(field_name)
+
+        return self._entries[num_id].get_fields(new_field_list)
+
+    def get_single_entry_single_field(self, query, field_name):
+        result = ""
+
+        # Only return one entry
+        query['_limit'] = 1
+        matcher = QueryMatcher(query)
+        res = matcher.match(self._entries)
+
+        # Copy all requested fields if we got a result
+        if len(res) > 0:
+            entry = self._entries[res[0]]
+            result = entry[field_name]
+
+            # Merge results if we received multiple results
+            if isinstance(result, list):
+                result = ",".join(map(str, result))
+
+        return result
+
+    #---------------------------------------------------------------------#
+    # dbus methods and signals starts here                                #
+    #---------------------------------------------------------------------#
+
+    @dbus_signal(_DIN_ENTRIES, "o")
+    def NewEntry(self, path):
+        pass
+
+    @dbus_method(_DIN_ENTRIES, "a{sv}", "o")
+    def Add(self, entry_data):
+        """Adds a entry to the list, assigning it to the default backend and saving it
+
+        @param entry_data List of fields; format is [Key:Value, Key:Value, ...]
+        @return Path of the newly created d-bus entry object"""
+
+        return self.add(entry_data)
+
+    @dbus_method(_DIN_ENTRIES, "a{sv}s", "s")
+    def GetSingleEntrySingleField(self, query, field_name):
+        """Returns the first entry found for a query, making it real easy to query simple things
+
+        @param query The query object
+        @param field_name The name of the field to return
+        @return The requested data"""
+
+        return self.get_single_entry_single_field(query, field_name)
+
+    @dbus_method(_DIN_ENTRIES, "a{sv}", "o", sender_keyword="sender")
+    def Query(self, query, sender):
+        """Processes a query and returns the dbus path of the resulting query object
+
+        @param query Query
+        @param sender Unique name of the query sender on the bus
+        @return dbus path of the query object, e.g. /org.freesmartphone.PIM/Entries/Queries/4"""
+
+        return self.query_manager.process_query(query, sender)
+
+
+    @dbus_method(_DIN_ENTRY, "", "a{sv}", rel_path_keyword="rel_path")
+    def GetContent(self, rel_path):
+        num_id = int(rel_path[1:])
+
+        # Make sure the requested entry exists
+        self.check_entry_id(num_id)
+
+        return self._entries[num_id].get_content()
+
+    @dbus_method(_DIN_ENTRY, "", "as", rel_path_keyword="rel_path")
+    def GetUsedBackends(self, rel_path):
+        num_id = int(rel_path[1:])
+                
+        # Make sure the requested entry exists
+        self.check_entry_id(num_id)
+        
+        return self._entries[num_id]._used_backends
+
+    @dbus_method(_DIN_ENTRY, "s", "a{sv}", rel_path_keyword="rel_path")
+    def GetMultipleFields(self, field_list, rel_path):
+        num_id = int(rel_path[1:])
+
+        return self.get_multiple_fields(num_id, field_list)
+
+    @dbus_signal(_DIN_ENTRY, "", rel_path_keyword="rel_path")
+    def EntryDeleted(self, rel_path=None):
+        pass
+
+    @dbus_method(_DIN_ENTRY, "", "", rel_path_keyword="rel_path")
+    def Delete(self, rel_path):
+        num_id = int(rel_path[1:])
+
+        self.delete(num_id)
+
+    @dbus_signal(_DIN_ENTRY, "a{sv}", rel_path_keyword="rel_path")
+    def EntryUpdated(self, data, rel_path=None):
+        pass
+
+    @dbus_method(_DIN_ENTRY, "a{sv}", "", rel_path_keyword="rel_path")
+    def Update(self, data, rel_path):
+        num_id = int(rel_path[1:])
+
+        self.update(num_id, data)

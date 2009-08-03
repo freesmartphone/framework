@@ -30,7 +30,7 @@
 MODULE_NAME = "opimd"
 
 from dbus.service import FallbackObject as DBusFBObject
-from opimd import *
+#from opimd import *
 
 import logging
 logger = logging.getLogger( MODULE_NAME )
@@ -68,7 +68,7 @@ class QueryMatcher(object):
 
         # Match all entires
         for (entry_id, entry) in enumerate(entries):
-            match = self.single_call_matches(entry)
+            match = self.single_entry_matches(entry)
             if match:
                 matches.append((match, entry_id))
 
@@ -88,4 +88,181 @@ class QueryMatcher(object):
                 results.append(matches[i][1])
 
         return results
+
+#----------------------------------------------------------------------------#
+class SingleQueryHandler(object):
+#----------------------------------------------------------------------------#
+    _entries = None
+    query = None      # The query this handler is processing
+    entries = None
+    cursors = None    # The next entry we'll serve, depending on the client calling us
+
+    def __init__(self, query, entries, dbus_sender):
+        """Creates a new SingleQueryHandler instance
+
+        @param query Query to evaluate
+        @param entries Set of Entry objects to use
+        @param dbus_sender Sender's unique name on the bus"""
+
+        self.query = query
+        self.sanitize_query()
+
+        matcher = QueryMatcher(self.query)
+
+        self._entries = entries
+        self.entries = matcher.match(self._entries)
+        self.cursors = {}
+
+        # TODO Register with all entries to receive updates
+
+
+    def dispose(self):
+        """Unregisters from all entries to allow this instance to be eaten by GC"""
+        # TODO Unregister from all entries
+        pass
+
+
+    def sanitize_query(self):
+        """Makes sure the query meets the criteria that related code uses to omit wasteful sanity checks"""
+
+        # For get_result_and_advance():
+        # Make sure the _result_fields list has no whitespaces, e.g. "a, b, c" should be "a,b,c"
+        # Reasoning: entry.get_fields() has no fuzzy matching for performance reasons
+        # Also, we remove any empty list elements created by e.g. "a, b, c,"
+        try:
+            field_list = self.query['_result_fields']
+            fields = field_list.split(',')
+            new_field_list = []
+
+            for field_name in fields:
+                field_name = field_name.strip()
+                if field_name: new_field_list.append(field_name)
+
+            self.query['_result_fields'] = ','.join(new_field_list)
+        except KeyError:
+            # There's no _result_fields entry to sanitize
+            pass
+
+
+    def get_result_count(self):
+        """Determines the number of results for this query
+
+        @return Number of result entries"""
+
+        return len(self.entries)
+
+
+    def rewind(self, dbus_sender):
+        """Resets the cursor for a given d-bus sender to the first result entry
+
+        @param dbus_sender Sender's unique name on the bus"""
+
+        self.cursors[dbus_sender] = 0
+
+
+    def skip(self, dbus_sender, num_entries):
+        """Skips n result entries of the result set
+
+        @param dbus_sender Sender's unique name on the bus
+        @param num_entries Number of result entries to skip"""
+
+        if not self.cursors.has_key(dbus_sender): self.cursors[dbus_sender] = 0
+        self.cursors[dbus_sender] += num_entries
+
+
+    def get_entry_path(self, dbus_sender):
+        """Determines the Path of the next entry that the cursor points at and advances to the next result entry
+
+        @param dbus_sender Sender's unique name on the bus
+        @return Path of the entry"""
+
+        # If the sender is not in the list of cursors it just means that it is starting to iterate
+        if not self.cursors.has_key(dbus_sender): self.cursors[dbus_sender] = 0
+
+        # Check whether we've reached the end of the entry list
+        try:
+            result = self.entries[self.cursors[dbus_sender]]
+        except IndexError:
+            raise NoMoreEntries( "All results have been submitted" )
+
+        entry_id = self.entries[self.cursors[dbus_sender]]
+        entry = self._entries[entry_id]
+        self.cursors[dbus_sender] += 1
+
+        return entry['Path']
+
+
+    def get_result(self, dbus_sender):
+        """Extracts the requested fields from the next entry in the result set and advances the cursor
+
+        @param dbus_sender Sender's unique name on the bus
+        @return Dict containing field_name/field_value pairs"""
+
+        # If the sender is not in the list of cursors it just means that it is starting to iterate
+        if not self.cursors.has_key(dbus_sender): self.cursors[dbus_sender] = 0
+
+        # Check whether we've reached the end of the entry list
+        try:
+            result = self.entries[self.cursors[dbus_sender]]
+        except IndexError:
+            raise NoMoreEntries( "All results have been submitted" )
+
+        entry_id = self.entries[self.cursors[dbus_sender]]
+        entry = self._entries[entry_id]
+        self.cursors[dbus_sender] += 1
+
+        try:
+            fields = self.query['_result_fields']
+            field_list = fields.split(',')
+            result = entry.get_fields(field_list)
+        except KeyError:
+            result = entry.get_content()
+
+        return result
+
+
+    def get_multiple_results(self, dbus_sender, num_entries):
+        """Creates a list containing n dicts which represent the corresponding entries from the result set
+        @note If there are less entries than num_entries, only the available entries will be returned
+
+        @param dbus_sender Sender's unique name on the bus
+        @param num_entries Number of result set entries to return
+        @return List of dicts with field_name/field_value pairs"""
+
+        result = []
+
+        for i in range(num_entries):
+            try:
+                entry = self.get_result(dbus_sender)
+                result.append(entry)
+            except NoMoreEntries:
+                """Don't want to raise an error in that case"""
+                break
+
+        return result
+
+
+    def check_new_entry(self, entry_id):
+        """Checks whether a newly added entry matches this so it can signal clients
+
+        @param entry_id entry ID of the entry that was added
+        @return True if entry matches this query, False otherwise
+
+        @todo Currently this messes up the order of the result set if a specific order was desired"""
+
+        matcher = QueryMatcher(self.query)
+        if matcher.single_entry_matches(self._calls[call_id]):
+            self.entries = matcher.match(self._entries)
+
+            # TODO Register with the new entry to receive changes
+
+            # We *should* reset all cursors *if* the result set is ordered, however
+            # in order to prevent confusion, this is left for the client to do.
+            # Rationale: clients with unordered queries can just use get_result()
+            # and be done with it. For those, theres's no need to re-read all results.
+
+            # Let clients know that this result set changed
+            return True
+        else:
+            return False
 
