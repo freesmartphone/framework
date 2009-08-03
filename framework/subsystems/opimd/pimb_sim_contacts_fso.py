@@ -114,7 +114,7 @@ class SIMContactBackendFSO(Backend):
             elif field=='Phone':
                 phone=value.replace('tel:','')
             elif field=='_backend_entry_id':
-                entry_id=value
+                entry_id=int(value)
         self.gsm_sim_iface.StoreEntry('contacts', entry_id, name, phone, reply_handler=self.dbus_ok, error_handler=self.dbus_err)
 
     def add_contact(self, contact_data):
@@ -148,7 +148,7 @@ class SIMContactBackendFSO(Backend):
     def del_contact(self, contact_data):
         for (field,value) in contact_data:
             if field=='_backend_entry_id':
-                entry_id=value
+                entry_id=int(value)
         self.gsm_sim_iface.DeleteEntry('contacts', entry_id, reply_handler=self.dbus_ok, error_handler=self.dbus_err )
 
     def install_signal_handlers(self):
