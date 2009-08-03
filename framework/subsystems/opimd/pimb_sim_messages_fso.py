@@ -248,7 +248,7 @@ class SIMMessageBackendFSO(Backend):
     def del_message(self, message_data):
         for (field,value) in message_data:
             if field=='_backend_entry_id':
-                entry_id=value
+                entry_id=int(value)
         self.gsm_sim_iface.DeleteMessage(entry_id, reply_handler=self.dbus_ok, error_handler=self.dbus_err )
 
     @tasklet.tasklet
