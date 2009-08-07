@@ -376,7 +376,6 @@ class Message():
             best_field_match = 0.0
 
             matcher = re.compile(field_value)
-            seq2_len = len(field_value)
 
             # Check if field value(s) of this message match(es) the query field
             try:
@@ -397,10 +396,10 @@ class Message():
                     else:
                         match_len = 0
 
-                    if seq2_len==0:
-                        field_match = 0.0
-                    else:
+                    if field_value and comp_value:
                         field_match = float(match_len) / len(comp_value)
+                    else:
+                        field_match = 0.0
 
                     if field_match > best_field_match: best_field_match = field_match
 

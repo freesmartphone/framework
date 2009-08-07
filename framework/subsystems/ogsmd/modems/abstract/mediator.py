@@ -22,7 +22,7 @@ TODO:
  * refactor parameter validation
 """
 
-__version__ = "0.9.19.0"
+__version__ = "0.9.19.1"
 MODULE_NAME = "ogsmd.modems.abstract.mediator"
 
 from ogsmd import error as DBusError
@@ -1368,7 +1368,7 @@ class NetworkGetCallForwarding( NetworkMediator ): # a{sv}
                     result = {}
                     break
                 else:
-                    result[ const.CALL_FORWARDING_CLASS[class_] ] = ( enabled, const.phonebookTupleToNumber( number, ntype ), seconds )
+                    result[ const.CALL_FORWARDING_CLASS.revlookup(class_) ] = ( enabled, const.phonebookTupleToNumber( number, ntype ), seconds )
             self._ok( result )
         else:
             NetworkMediator.responseFromChannel( self, request, response )
