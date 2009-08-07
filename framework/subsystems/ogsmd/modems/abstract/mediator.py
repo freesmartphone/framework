@@ -1325,14 +1325,6 @@ class NetworkRegisterWithProvider( NetworkMediator ):
         self._commchannel.enqueue( '+COPS=1,2,"%s"' % opcode, self.responseFromChannel, self.errorFromChannel )
 
 #=========================================================================#
-class NetworkRegisterWithProvider( NetworkMediator ):
-#=========================================================================#
-    def trigger( self ):
-        charset = currentModem()._charsets["DEFAULT"]
-        opcode = self.operator_code.encode(charset)
-        self._commchannel.enqueue( '+COPS=1,2,"%s"' % opcode, self.responseFromChannel, self.errorFromChannel )
-
-#=========================================================================#
 class NetworkGetCountryCode( NetworkMediator ):
 #=========================================================================#
     def trigger( self ):
