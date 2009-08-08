@@ -251,7 +251,7 @@ class SingleQueryHandler(object):
         @todo Currently this messes up the order of the result set if a specific order was desired"""
 
         matcher = QueryMatcher(self.query)
-        if matcher.single_entry_matches(self._calls[call_id]):
+        if matcher.single_entry_matches(self._entries[entry_id]):
             self.entries = matcher.match(self._entries)
 
             # TODO Register with the new entry to receive changes
