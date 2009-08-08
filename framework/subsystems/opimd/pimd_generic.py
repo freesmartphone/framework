@@ -27,13 +27,13 @@ import re
 import logging
 logger = logging.getLogger('opimd')
 
-from query_manager import QueryMatcher
-
 from backend_manager import BackendManager
 from backend_manager import PIMB_CAN_ADD_ENTRY, PIMB_CAN_DEL_ENTRY, PIMB_CAN_UPD_ENTRY, PIMB_CAN_UPD_ENTRY_WITH_NEW_FIELD, PIMB_NEEDS_SYNC
 
 from domain_manager import Domain
 from helpers import *
+
+from query_manager import QueryMatcher, SingleQueryHandler
 
 from framework.config import config, busmap
 
@@ -52,7 +52,7 @@ _DIN_QUERY = _DIN_DOMAIN_BASE + '.' + 'EntryQuery'
 
 
 #----------------------------------------------------------------------------#
-class GenericEntry(object):
+class GenericEntry():
 #----------------------------------------------------------------------------#
     """Represents one single entry with all the data fields it consists of.
 
@@ -497,26 +497,19 @@ class GenericDomain():
 #----------------------------------------------------------------------------#
     name = 'Generic'
 
-    #_dbus_path = _DBUS_PATH_DOMAIN
     _backends = None
     _entries = None
     query_manager = None
-    Entry = GenericEntry
+    Entry = None
+    _dbus_path = None
 
     def __init__(self):
         """Creates a new GenericDomain instance"""
-
         self._backends = {}
         self._entries = []
-        self.query_manager = QueryManager(self._entries)
-
-        # Initialize the D-Bus-Interface
-        super(GenericDomain, self).__init__( conn=busmap["opimd"], object_path=DBUS_PATH_BASE_FSO + '/' + self.name )
-
-        # Keep frameworkd happy
-        self.interface = _DIN_ENTRIES
-        self.path = _DBUS_PATH_ENTRIES
-
+        self.Entry = GenericEntry
+        self._dbus_path = _DIN_ENTRY
+        self.query_manager = QueryManager(self._entries, self.name)
 
     def get_dbus_objects(self):
         """Returns a list of all d-bus objects we manage
@@ -544,7 +537,7 @@ class GenericDomain():
         merged = 0
 
         # Check if the entry can be merged with one we already know of
-        if int(config.getValue('opimd', name.lower()+'_merging_enabled', default='1')):
+        if int(config.getValue('opimd', self.name.lower()+'_merging_enabled', default='1')):
             for entry in self._entries:
                 if entry:
                     if entry.attempt_merge(entry_data, backend.name):
@@ -562,7 +555,7 @@ class GenericDomain():
             entry_id = len(self._entries)
 
             path = self._dbus_path+ '/' + str(entry_id)
-            entry = Entry(path)
+            entry = self.Entry(path)
             entry.import_fields(entry_data, backend.name)
 
             self._entries.append(entry)
@@ -657,7 +650,7 @@ class GenericDomain():
                 backend.sync() # If backend needs - sync entries
 
 
-        self.EntryUpdated(data, rel_path=rel_path)
+        self.EntryUpdated(data, rel_path='/'+str(num_id))
 
     def delete(self, num_id):
         # Make sure the requested entry exists
@@ -694,7 +687,7 @@ class GenericDomain():
             if PIMB_NEEDS_SYNC in backend.properties:
                 backend.sync() # If backend needs - sync entries
 
-        self.EntryDeleted(rel_path=rel_path)
+        self.EntryDeleted(rel_path='/'+str(num_id))
 
     def get_multiple_fields(self, num_id, field_list):
         # Make sure the requested entry exists
@@ -730,8 +723,9 @@ class GenericDomain():
 
         return result
 
+'''
     #---------------------------------------------------------------------#
-    # dbus methods and signals starts here                                #
+    # dbus methods and signals                                            #
     #---------------------------------------------------------------------#
 
     @dbus_signal(_DIN_ENTRIES, "o")
@@ -811,3 +805,4 @@ class GenericDomain():
         num_id = int(rel_path[1:])
 
         self.update(num_id, data)
+'''
