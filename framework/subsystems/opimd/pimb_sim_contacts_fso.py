@@ -29,7 +29,6 @@
 from dbus import SystemBus
 from dbus.proxies import Interface
 from dbus.exceptions import DBusException
-from gobject import timeout_add
 
 import logging
 logger = logging.getLogger('opimd')
@@ -40,11 +39,7 @@ from domain_manager import DomainManager
 from helpers import *
 import framework.patterns.tasklet as tasklet
 
-
 _DOMAINS = ('Contacts', )
-_OGSMD_POLL_INTERVAL = 7500
-
-
 
 #----------------------------------------------------------------------------#
 class SIMContactBackendFSO(Backend):
@@ -95,7 +90,7 @@ class SIMContactBackendFSO(Backend):
             entry['_backend_entry_id'] = sim_entry_id
             
             logger.debug("add entrie : %s", name)
-            entry_id = self._domain_handlers['Contacts'].register_contact(self, entry)
+            entry_id = self._domain_handlers['Contacts'].register_entry(self, entry)
             self._entry_ids.append(entry_id)
 
     def dbus_ok(self, *args, **kargs):
@@ -105,7 +100,7 @@ class SIMContactBackendFSO(Backend):
         pass
 
 
-    def upd_contact(self, contact_data):
+    def upd_entry(self, contact_data):
         name=''
         value=''
         for (field,value) in contact_data:
@@ -117,7 +112,7 @@ class SIMContactBackendFSO(Backend):
                 entry_id=int(value)
         self.gsm_sim_iface.StoreEntry('contacts', entry_id, name, phone, reply_handler=self.dbus_ok, error_handler=self.dbus_err)
 
-    def add_contact(self, contact_data):
+    def add_entry(self, contact_data):
         name=''
         value=''
         for field in contact_data:
@@ -141,11 +136,11 @@ class SIMContactBackendFSO(Backend):
 
         contact_data['_backend_entry_id'] = entry_id
 
-        contact_id = self._domain_handlers['Contacts'].register_contact(self, contact_data)
+        contact_id = self._domain_handlers['Contacts'].register_entry(self, contact_data)
 
         return contact_id
 
-    def del_contact(self, contact_data):
+    def del_entry(self, contact_data):
         for (field,value) in contact_data:
             if field=='_backend_entry_id':
                 entry_id=int(value)
@@ -181,4 +176,3 @@ class SIMContactBackendFSO(Backend):
     def handle_sim_ready(self, ready):
         if ready:
             self.load_entries().start()
-
