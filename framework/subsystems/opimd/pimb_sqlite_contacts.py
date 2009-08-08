@@ -182,12 +182,12 @@ class SQLiteContactBackend(Backend):
                 logger.error("%s: Could not read from database (table contact_values)! Possible reason is old, uncompatible table structure. If you don't have important data, please remove %s file.", self.name, _SQLITE_FILE_NAME)
                 raise OperationalError
 
-            entry_id = self._domain_handlers['Contacts'].register_contact(self, entry)
+            entry_id = self._domain_handlers['Contacts'].register_entry(self, entry)
             self._entry_ids.append(entry_id)
         cur.close()
 
 
-    def del_contact(self, contact_data):
+    def del_entry(self, contact_data):
         cur = self.con.cursor()
         for (field_name, field_value) in contact_data:
             if field_name=='_backend_entry_id':
@@ -198,7 +198,7 @@ class SQLiteContactBackend(Backend):
         self.con.commit()
         cur.close()
 
-    def upd_contact(self, contact_data):
+    def upd_entry(self, contact_data):
         reqfields = ['Name', 'Surname', 'Nickname', 'Birthdate', 'MarrDate', 'Partner', 'Spouse', 'MetAt', 'HomeLoc', 'Department']
         cur = self.con.cursor()
         for (field, value) in contact_data:
@@ -217,7 +217,7 @@ class SQLiteContactBackend(Backend):
         self.con.commit()
         cur.close()
 
-    def add_contact(self, contact_data):
+    def add_entry(self, contact_data):
         contact_id = self.add_contact_to_db(contact_data)
         return contact_id
 
@@ -246,5 +246,5 @@ class SQLiteContactBackend(Backend):
 
         contact_data['_backend_entry_id']=cid
 
-        contact_id = self._domain_handlers['Contacts'].register_contact(self, contact_data)
+        contact_id = self._domain_handlers['Contacts'].register_entry(self, contact_data)
         return contact_id
