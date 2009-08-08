@@ -104,7 +104,7 @@ class CSVContactBackend(Backend):
                     else:
                         entry[key] = value
                 
-                entry_id = self._domain_handlers['Contacts'].register_contact(self, entry)
+                entry_id = self._domain_handlers['Contacts'].register_entry(self, entry)
                 self._entry_ids.append(entry_id)
                 
         except IOError:
@@ -131,17 +131,17 @@ class CSVContactBackend(Backend):
         file.close()
 
 
-    def del_contact(self, contact):
+    def del_entry(self, contact):
         pass
 
     def sync(self):
         self.save_entries_to_file()
 
-    def upd_contact(self, contact_data):
+    def upd_entry(self, contact_data):
         pass
 
-    def add_contact(self, contact_data):
-        contact_id = self._domain_handlers['Contacts'].register_contact(self, contact_data)
+    def add_entry(self, contact_data):
+        contact_id = self._domain_handlers['Contacts'].register_entry(self, contact_data)
         # TODO Delayed writing to prevent performance issues when adding lots of contacts
         self.save_entries_to_file()
         
