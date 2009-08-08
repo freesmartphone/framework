@@ -458,7 +458,7 @@ class QueryManager(DBusFBObject):
         self._queries[num_id].skip(sender, num_entries)
 
 
-    @dbus_method(_DIN_QUERY, "", "o", rel_path_keyword="rel_path", sender_keyword="sender")
+    @dbus_method(_DIN_QUERY, "", "s", rel_path_keyword="rel_path", sender_keyword="sender")
     def GetEntryPath(self, rel_path, sender):
         num_id = int(rel_path[1:])
         self.check_query_id_ok( num_id )
@@ -728,11 +728,11 @@ class GenericDomain():
     # dbus methods and signals                                            #
     #---------------------------------------------------------------------#
 
-    @dbus_signal(_DIN_ENTRIES, "o")
+    @dbus_signal(_DIN_ENTRIES, "s")
     def NewEntry(self, path):
         pass
 
-    @dbus_method(_DIN_ENTRIES, "a{sv}", "o")
+    @dbus_method(_DIN_ENTRIES, "a{sv}", "s")
     def Add(self, entry_data):
         """Adds a entry to the list, assigning it to the default backend and saving it
 
@@ -751,7 +751,7 @@ class GenericDomain():
 
         return self.get_single_entry_single_field(query, field_name)
 
-    @dbus_method(_DIN_ENTRIES, "a{sv}", "o", sender_keyword="sender")
+    @dbus_method(_DIN_ENTRIES, "a{sv}", "s", sender_keyword="sender")
     def Query(self, query, sender):
         """Processes a query and returns the dbus path of the resulting query object
 
