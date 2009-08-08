@@ -161,7 +161,7 @@ class QueryManager(DBusFBObject):
         self._queries[num_id].skip(sender, num_entries)
 
 
-    @dbus_method(_DIN_QUERY, "", "o", rel_path_keyword="rel_path", sender_keyword="sender")
+    @dbus_method(_DIN_QUERY, "", "s", rel_path_keyword="rel_path", sender_keyword="sender")
     def GetContactPath(self, rel_path, sender):
         num_id = int(rel_path[1:])
         self.check_query_id_ok( num_id )
