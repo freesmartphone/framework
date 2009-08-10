@@ -329,7 +329,7 @@ class DateDomain(Domain, GenericDomain):
                 end = True
 
         #TODO: raise correct error
-        if !(begin and end):
+        if not (begin and end):
             raise InvalidQueryID( "Begin or End field missing" )
 
         return self.add(entry_data)
