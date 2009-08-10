@@ -37,6 +37,7 @@ MODULE_NAME = "opimd"
 import pimd_contacts
 import pimd_messages
 import pimd_calls
+import pimd_dates
 # Same thing for the backend modules
 import pimb_sim_contacts_fso
 import pimb_sim_messages_fso
@@ -44,6 +45,7 @@ import pimb_csv_contacts
 import pimb_sqlite_contacts
 import pimb_sqlite_messages
 import pimb_sqlite_calls
+import pimb_sqlite_dates
 import pimb_ogsmd_calls
 
 from backend_manager import BackendManager
