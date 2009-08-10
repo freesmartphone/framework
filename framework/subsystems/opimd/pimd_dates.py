@@ -319,18 +319,18 @@ class DateDomain(Domain, GenericDomain):
         @param entry_data List of fields; format is [Key:Value, Key:Value, ...]
         @return Path of the newly created d-bus entry object"""
 
-	begin = False
-	end = False
-	# Required fields: begin, end
-	for (key,value) in entry_data:
-		if key == "Begin":
-			begin = True
-		if key == "End":
-			end = True
+        begin = False
+        end = False
+        # Required fields: begin, end
+        for (key,value) in entry_data:
+            if key == "Begin":
+                begin = True
+            if key == "End":
+                end = True
 
-	#TODO: raise correct error
-	if !(begin and end):
-		raise InvalidQueryID( "Begin or End field missing" )
+        #TODO: raise correct error
+        if !(begin and end):
+            raise InvalidQueryID( "Begin or End field missing" )
 
         return self.add(entry_data)
 
@@ -343,17 +343,6 @@ class DateDomain(Domain, GenericDomain):
         @return dbus path of the query object, e.g. /org.freesmartphone.PIM/Entries/Queries/4"""
 
         return self.query_manager.process_query(query, sender)
-
-    @dbus_method(_DIN_DATES, "a{sv}", "i", sender_keyword="sender")
-    def GetDatesOfDayByTimestamp(self, time, sender):
-        """Processes a query and returns the dbus path of the resulting query object
-
-        @param time Timestamp within the day to return the dates for
-        @param sender Unique name of the query sender on the bus
-        @return dbus path of the query object, e.g. /org.freesmartphone.PIM/Entries/Queries/4"""
-
-        return self.query_manager.process_query(query, sender)
-
 
     @dbus_method(_DIN_ENTRY, "", "a{sv}", rel_path_keyword="rel_path")
     def GetContent(self, rel_path):
