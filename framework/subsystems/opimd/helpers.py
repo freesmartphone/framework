@@ -85,3 +85,10 @@ class NoMoreEntries( DBusException ):
 #----------------------------------------------------------------------------#
     """Raised when there are no more entries to be listed"""
     _dbus_error_name = "org.freesmartphone.PIM.NoMoreEntries"
+
+#----------------------------------------------------------------------------#
+class InvalidData( DBusException ):
+#----------------------------------------------------------------------------#
+    """Raised when data passed to method are not valid"""
+    _dbus_error_name = "org.freesmartphone.PIM.InvalidDate"
+
