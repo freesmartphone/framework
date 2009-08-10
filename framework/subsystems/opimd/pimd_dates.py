@@ -41,7 +41,7 @@ from pimd_generic import GenericEntry, GenericDomain
 
 _DOMAIN_NAME = "Dates"
 
-_DBUS_PATH_CONTACTS = DBUS_PATH_BASE_FSO + '/' + _DOMAIN_NAME
+_DBUS_PATH_DATES = DBUS_PATH_BASE_FSO + '/' + _DOMAIN_NAME
 _DIN_DATES_BASE = DIN_BASE_FSO
 
 _DBUS_PATH_QUERIES = _DBUS_PATH_DATES + '/Queries'
@@ -190,7 +190,7 @@ class QueryManager(DBusFBObject):
 
 
     def check_new_entry(self, entry_id):
-        """Checks whether a newly added contact matches one or more queries so they can signal clients
+        """Checks whether a newly added date matches one or more queries so they can signal clients
 
         @param entry_id Date ID of the datethat was added"""
 
@@ -239,7 +239,7 @@ class QueryManager(DBusFBObject):
 
 
     @dbus_method(_DIN_QUERY, "", "s", rel_path_keyword="rel_path", sender_keyword="sender")
-    def GetContactPath(self, rel_path, sender):
+    def GetDatePath(self, rel_path, sender):
         num_id = int(rel_path[1:])
         self.check_query_id_ok( num_id )
 
@@ -308,11 +308,11 @@ class DateDomain(Domain, GenericDomain):
     def NewEntry(self, path):
         self.NewDate(path)
 
-    @dbus_signal(_DIN_CONTACTS, "s")
+    @dbus_signal(_DIN_DATES, "s")
     def NewDate(self, path):
         pass
 
-    @dbus_method(_DIN_CONTACTS, "a{sv}", "s")
+    @dbus_method(_DIN_DATES, "a{sv}", "s")
     def Add(self, entry_data):
         """Adds a entry to the list, assigning it to the default backend and saving it
 
