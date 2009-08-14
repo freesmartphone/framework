@@ -155,7 +155,7 @@ class SQLiteContactBackend(Backend):
 
     def load_entries_from_db(self):
         """Loads all entries from db"""
-        keys = {0:'_backend_entry_id', 1:'Name', 2:'Surname', 3:'Nickname', 4:'Birthdate', 5:'MarrDate', 6:'Partner', 7:'Spouse', 8:'MetAt', 9:'HomeLoc', 10:'Departnment'}
+        keys = {0:'_backend_entry_id', 1:'Name', 2:'Surname', 3:'Nickname', 4:'Birthdate', 5:'MarrDate', 6:'Partner', 7:'Spouse', 8:'MetAt', 9:'HomeLoc', 10:'Department'}
         cur = self.con.cursor()
         try:
             cur.execute('SELECT id, Name, Surname, Nickname, Birthdate, MarrDate, Partner, Spouse, MetAt, HomeLoc, Department FROM contacts WHERE deleted=0')
