@@ -145,7 +145,7 @@ class SQLiteCallBackend(Backend):
                 logger.error("%s: Could not read from database (table call_values)! Possible reason is old, uncompatible table structure. If you don't have important data, please remove %s file.", self.name, _SQLITE_FILE_NAME)
                 raise OperationalError
 
-            entry_id = self._domain_handlers['Calls'].register_call(self, entry)
+            entry_id = self._domain_handlers['Calls'].register_entry(self, entry)
             self._entry_ids.append(entry_id)
         cur.close()
 
@@ -212,5 +212,5 @@ class SQLiteCallBackend(Backend):
 
         call_data['_backend_entry_id']=cid
 
-        call_id = self._domain_handlers['Calls'].register_call(self, call_data)
+        call_id = self._domain_handlers['Calls'].register_entry(self, call_data)
         return call_id
