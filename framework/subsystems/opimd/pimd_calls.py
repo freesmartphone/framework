@@ -204,6 +204,7 @@ class CallDomain(Domain, GenericDomain):
     _entries = None
     query_manager = None
     _dbus_path = None
+    _new_missed_calls = None
     Entry = None
 
     def __init__(self):
@@ -213,6 +214,7 @@ class CallDomain(Domain, GenericDomain):
 
         self._backends = {}
         self._entries = []
+        self._new_missed_calls = 0
         self._dbus_path = _DIN_ENTRY
         self.query_manager = QueryManager(self._entries)
 
@@ -222,6 +224,48 @@ class CallDomain(Domain, GenericDomain):
         # Keep frameworkd happy
         self.interface = _DIN_CALLS
         self.path = _DBUS_PATH_CALLS
+
+    def register_entry(self, backend, call_data):
+        new_call_id = len(self._calls)
+        call_id = GenericDomain.register_entry(self, backend, call_data)
+        if call_id == new_call_id:
+            if call_data.has_key('New') and call_data.has_key('Answered') and call_data.has_key('Direction'):
+                if call_data['New'] and not call_data['Answered'] and call_data['Direction'] == 'in':
+                    self._new_missed_calls += 1
+                    self.NewMissedCalls(self._new_missed_calls)
+        return call_id
+
+    def register_missed_call(self, backend, call_data, stored_on_input_backend = False):
+        logger.debug("Registering missed call...")
+        if stored_on_input_backend:
+            message_id = self.register_call(backend, message_data)
+            self._new_missed_calls += 1
+            self.NewMissedCalls(self._new_missed_calls)
+        else:
+            # FIXME: now it's just copied from Add method.
+            # Make some checking, fallbacking etc.
+
+            dbackend = BackendManager.get_default_backend(_DOMAIN_NAME)
+            result = ""
+
+            if not PIMB_CAN_ADD_ENTRY in dbackend.properties:
+            #    raise InvalidBackend( "This backend does not feature PIMB_CAN_ADD_ENTRY" )
+                 return -1
+
+            try:
+                call_id = dbackend.add_call(call_data)
+            except AttributeError:
+            #    raise InvalidBackend( "This backend does not feature add_call" )
+                 return -1
+
+            call = self._calls[call_id]
+            result = call['Path']
+
+            # As we just added a new message, we check it against all queries to see if it matches
+            self.query_manager.check_new_call(call_id)
+            
+        self.MissedCall(_DBUS_PATH_CALLS+ '/' + str(call_id))
+        return call_id
 
  
     #---------------------------------------------------------------------#
@@ -233,6 +277,14 @@ class CallDomain(Domain, GenericDomain):
 
     @dbus_signal(_DIN_CALLS, "s")
     def NewCall(self, path):
+        pass
+
+    @dbus_signal(_DIN_CALLS, "i")
+    def NewMissedCalls(self, amount):
+        pass
+
+    @dbus_signal(_DIN_CALLS, "s")
+    def MissedCall(self, path):
         pass
 
     @dbus_method(_DIN_CALLS, "a{sv}", "s")
@@ -300,6 +352,11 @@ class CallDomain(Domain, GenericDomain):
     def Delete(self, rel_path):
         num_id = int(rel_path[1:])
 
+        call = self._calls[num_id].get_fields(self._calls[num_id]._field_idx)
+        if call['New'] and not call['Answered'] and call['Direction'] == 'in':
+            self._new_missed_calls -= 1
+            self.NewMissedCalls(self._new_missed_calls)
+
         self.delete(num_id)
 
     def EntryUpdated(self, data, rel_path=None):
@@ -313,4 +370,20 @@ class CallDomain(Domain, GenericDomain):
     def Update(self, data, rel_path):
         num_id = int(rel_path[1:])
 
-        self.update(num_id, data)
+        # Make sure the requested call exists
+        if num_id >= len(self._calls) or self._calls[num_id]==None:
+            raise InvalidCallID()
+
+        callif = self._calls[num_id]
+        call = callif.get_fields(callif._field_idx)
+
+        if call.has_key('New') and data.has_key('New') and call.has_key('Answered') and call.has_key('Direction'):
+            if not call['Answered'] and call['Direction'] == 'in':
+                if call['New'] and not data['New']:
+                    self._new_missed_calls -= 1
+                    self.NewMissedCalls(self._new_missed_calls)
+                elif not call['New'] and data['New']:
+                    self._new_missed_calls += 1
+                    self.NewMissedCalls(self._new_missed_calls)
+
+        self.update(num_id, data, callif = callif, call = call)

@@ -603,12 +603,16 @@ class GenericDomain():
 
         return result
 
-    def update(self, num_id, data):
+    def update(self, num_id, data, *args, **kargs):
         # Make sure the requested entry exists
         self.check_entry_id(num_id)
 
-        entryif = self._entries[num_id]
-        entry = entryif.get_fields(entryif._field_idx)
+        entryif = kargs.get('entryif')
+        entry = kargs.get('entry')
+        if not entryif:
+            entryif = self._entries[num_id]
+        if not entry:
+            entry = entryif.get_fields(entryif._field_idx)
 
         default_backend = BackendManager.get_default_backend(self.name)
         
