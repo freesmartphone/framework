@@ -81,7 +81,7 @@ class QueryManager(DBusFBObject):
     def __init__(self, entries):
         """Creates a new QueryManager instance
 
-        @param contacts Set of Contact objects to use"""
+        @param entries Set of Entry objects to use"""
 
         self._entries = entries
         self._queries = {}
@@ -113,9 +113,9 @@ class QueryManager(DBusFBObject):
 
 
     def check_new_entry(self, entry_id):
-        """Checks whether a newly added contact matches one or more queries so they can signal clients
+        """Checks whether a newly added entry matches one or more queries so they can signal clients
 
-        @param contact_id Contact ID of the contact that was added"""
+        @param entry_id Contact ID of the contact that was added"""
 
         for (query_id, query_handler) in self._queries.items():
             if query_handler.check_new_entry(entry_id):
