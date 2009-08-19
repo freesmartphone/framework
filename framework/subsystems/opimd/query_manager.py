@@ -30,6 +30,7 @@
 MODULE_NAME = "opimd"
 
 from dbus.service import FallbackObject as DBusFBObject
+from helpers import *
 #from opimd import *
 
 import logging
