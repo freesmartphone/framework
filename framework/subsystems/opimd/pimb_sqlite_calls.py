@@ -150,7 +150,7 @@ class SQLiteCallBackend(Backend):
         cur.close()
 
 
-    def del_call(self, call_data):
+    def del_entry(self, call_data):
         cur = self.con.cursor()
         for (field_name, field_value) in call_data:
             if field_name=='_backend_entry_id':
@@ -161,7 +161,7 @@ class SQLiteCallBackend(Backend):
         self.con.commit()
         cur.close()
 
-    def upd_call(self, call_data):
+    def upd_entry(self, call_data):
         reqfields = ['Type', 'Timestamp', 'Timezone', 'Direction', 'Duration', 'Cost', 'Answered', 'New', 'Replied']
         cur = self.con.cursor()
         for (field, value) in call_data:
@@ -180,7 +180,7 @@ class SQLiteCallBackend(Backend):
         self.con.commit()
         cur.close()
 
-    def add_call(self, call_data):
+    def add_entry(self, call_data):
         reqfields = ['Type', 'Timestamp', 'Timezone', 'Direction', 'Duration', 'Cost']
         reqIntfields = ['Answered', 'New', 'Replied']
 
