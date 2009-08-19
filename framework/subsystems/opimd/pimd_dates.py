@@ -290,7 +290,7 @@ class DateDomain(Domain, GenericDomain):
 
         self._backends = {}
         self._entries = []
-        self._dbus_path = _DIN_ENTRY
+        self._dbus_path = _DBUS_PATH_DATES
         self.query_manager = QueryManager(self._entries)
 
         # Initialize the D-Bus-Interface

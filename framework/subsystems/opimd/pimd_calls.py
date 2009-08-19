@@ -215,7 +215,7 @@ class CallDomain(Domain, GenericDomain):
         self._backends = {}
         self._entries = []
         self._new_missed_calls = 0
-        self._dbus_path = _DIN_ENTRY
+        self._dbus_path = _DBUS_PATH_CALLS
         self.query_manager = QueryManager(self._entries)
 
         # Initialize the D-Bus-Interface

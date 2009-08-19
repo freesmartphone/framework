@@ -151,27 +151,28 @@ class GenericEntry():
                     raise KeyError
                 for field in self._field_idx[field_name]:
                     if self._fields[field][3]==backend_name:
-                        self._fields[field][1]=entry_data[field_name]
+                        for field_value in field_value_to_list(entry_data[field_name]):
+                            self._fields[field][1]=field_value
                     else:
-                        self._fields.append([field_name, entry_data[field_name], '', backend_name])
-                        self._field_idx[field_name].append(len(self._fields)-1)
+                        for field_value in field_value_to_list(entry_data[field_name]):
+                            self._fields.append([field_name, field_value, '', backend_name])
+                            self._field_idx[field_name].append(len(self._fields)-1)
             except KeyError:
-                field_value = entry_data[field_name]
+                for field_value in field_value_to_list(entry_data[field_name]):
 
-                # We only generate compare values for specific fields
-                compare_value = ""
+                    # We only generate compare values for specific fields
+                    compare_value = ""
 
-                # TODO Do this in a more extensible way
-                # if ("phone" in field_name) or (field_name == "Phone"): compare_value = get_compare_for_tel(field_value)
+                    if str(field_value).startswith('tel:'): compare_value = get_compare_for_tel(field_value)
 
-                our_field = [field_name, field_value, compare_value, backend_name]
+                    our_field = [field_name, field_value, compare_value, backend_name]
 
-                self._fields.append(our_field)
-                field_idx = len(self._fields) - 1
+                    self._fields.append(our_field)
+                    field_idx = len(self._fields) - 1
 
-                # Keep the index happy, too
-                if not field_name in self._field_idx.keys(): self._field_idx[field_name] = []
-                self._field_idx[field_name].append(field_idx)
+                    # Keep the index happy, too
+                    if not field_name in self._field_idx.keys(): self._field_idx[field_name] = []
+                    self._field_idx[field_name].append(field_idx)
 
 #        for (field_idx, field) in enumerate(self._fields):
 #            print "%s: %s" % (field_idx, field)
@@ -217,7 +218,7 @@ class GenericEntry():
                     field_value = (self._fields[field_id])[1]
                     field_values.append(field_value)
 
-                value = ','.join(field_values)
+#                value = ','.join(field_values)
 
                 thesame = 1
                 prev = field_values[0]
@@ -322,6 +323,8 @@ class GenericEntry():
 
             field_value = str(query_obj[field_name])
             best_field_match = 0.0
+
+            if field_value.startswith('tel:'): field_value=get_compare_for_tel(field_value).replace('+','\+')
 
             matcher = re.compile(field_value)
 

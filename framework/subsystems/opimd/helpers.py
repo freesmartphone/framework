@@ -12,7 +12,16 @@ GPLv2 or later
 Helpers
 """
 
-from dbus import DBusException
+from dbus import DBusException, Array
+from phoneutils import normalize_number
+
+#----------------------------------------------------------------------------#
+def field_value_to_list(field_value):
+#----------------------------------------------------------------------------#
+    if isinstance(field_value, list) or isinstance(field_value, Array):
+        return field_value
+    else:
+        return [ field_value ]
 
 #----------------------------------------------------------------------------#
 def phone_number_to_tel_uri(phone_num):
@@ -33,8 +42,7 @@ def get_compare_for_tel(tel_value):
     # Remove tel:
     res = tel_value[4:]
 
-    # Remove +, - and /
-    res = res.translate({ord(u'-'):None, ord(u'/'):None})
+    res = normalize_number(res)
 
     return res
 

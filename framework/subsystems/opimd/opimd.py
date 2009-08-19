@@ -53,6 +53,8 @@ from backend_manager import BackendManager
 
 from domain_manager import DomainManager
 
+import phoneutils
+
 import logging
 logger = logging.getLogger( MODULE_NAME )
 
@@ -82,6 +84,11 @@ def factory( prefix, subsystem ):
         dbus_objects.append(dbus_obj)
 
     dbus_objects.append(backend_manager)
+
+    try:
+        phoneutils.init()
+    except:
+        logger.error('Failed to init libphone-utils!')
 
     INIT = True
 

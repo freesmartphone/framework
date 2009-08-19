@@ -107,10 +107,10 @@ class BackendManager(DBusFBObject):
                     logger.debug("not loading entries for backend %s, cause it was disabled in config", backend)
                 else:
                     logger.debug("loading entries for backend %s", backend)
-                    try:
-                        yield backend.load_entries()
-                    except:
-                        logger.error("Could not load entries for backend %s!", backend)
+#                    try:
+                    yield backend.load_entries()
+#                    except:
+#                        logger.error("Could not load entries for backend %s!", backend)
             init_all(backend).start()
 
 
