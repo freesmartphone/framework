@@ -226,7 +226,7 @@ class CallDomain(Domain, GenericDomain):
         self.path = _DBUS_PATH_CALLS
 
     def register_entry(self, backend, call_data):
-        new_call_id = len(self._calls)
+        new_call_id = len(self._entries)
         call_id = GenericDomain.register_entry(self, backend, call_data)
         if call_id == new_call_id:
             if call_data.has_key('New') and call_data.has_key('Answered') and call_data.has_key('Direction'):
