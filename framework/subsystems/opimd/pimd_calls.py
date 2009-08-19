@@ -238,7 +238,7 @@ class CallDomain(Domain, GenericDomain):
     def register_missed_call(self, backend, call_data, stored_on_input_backend = False):
         logger.debug("Registering missed call...")
         if stored_on_input_backend:
-            message_id = self.register_call(backend, message_data)
+            message_id = self.register_entry(backend, message_data)
             self._new_missed_calls += 1
             self.NewMissedCalls(self._new_missed_calls)
         else:
@@ -253,16 +253,16 @@ class CallDomain(Domain, GenericDomain):
                  return -1
 
             try:
-                call_id = dbackend.add_call(call_data)
+                call_id = dbackend.add_entry(call_data)
             except AttributeError:
             #    raise InvalidBackend( "This backend does not feature add_call" )
                  return -1
 
-            call = self._calls[call_id]
+            call = self._entries[call_id]
             result = call['Path']
 
             # As we just added a new message, we check it against all queries to see if it matches
-            self.query_manager.check_new_call(call_id)
+            self.query_manager.check_new_entry(call_id)
             
         self.MissedCall(_DBUS_PATH_CALLS+ '/' + str(call_id))
         return call_id
