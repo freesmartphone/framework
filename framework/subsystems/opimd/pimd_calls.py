@@ -238,28 +238,26 @@ class CallDomain(Domain, GenericDomain):
     def register_missed_call(self, backend, call_data, stored_on_input_backend = False):
         logger.debug("Registering missed call...")
         if stored_on_input_backend:
-            message_id = self.register_entry(backend, message_data)
-            self._new_missed_calls += 1
-            self.NewMissedCalls(self._new_missed_calls)
+            call_id = self.register_entry(backend, call_data)
         else:
             # FIXME: now it's just copied from Add method.
             # Make some checking, fallbacking etc.
 
             dbackend = BackendManager.get_default_backend(_DOMAIN_NAME)
-            result = ""
 
             if not PIMB_CAN_ADD_ENTRY in dbackend.properties:
             #    raise InvalidBackend( "This backend does not feature PIMB_CAN_ADD_ENTRY" )
+                 logger.error('Couldn\'t store new missed call (properties)!')
                  return -1
 
             try:
                 call_id = dbackend.add_entry(call_data)
             except AttributeError:
             #    raise InvalidBackend( "This backend does not feature add_call" )
+                 logger.error('Couldn\'t store new missed call (add_entry)!')
                  return -1
 
-            call = self._entries[call_id]
-            result = call['Path']
+            #call = self._entries[call_id]
 
             # As we just added a new message, we check it against all queries to see if it matches
             self.query_manager.check_new_entry(call_id)
