@@ -47,6 +47,7 @@ import pimd_messages
 import pimd_calls
 import pimd_dates
 import pimd_notes
+import pimd_todos
 # Same thing for the backend modules
 import pimb_sim_contacts_fso
 import pimb_sim_messages_fso
