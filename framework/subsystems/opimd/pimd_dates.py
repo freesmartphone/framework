@@ -322,7 +322,7 @@ class DateDomain(Domain, GenericDomain):
         begin = False
         end = False
         # Required fields: begin, end
-        for (key,value) in entry_data:
+        for key in entry_data:
             if key == "Begin":
                 begin = True
             if key == "End":
