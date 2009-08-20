@@ -78,13 +78,13 @@ class Date(GenericEntry):
 
         try:
             begin = query_obj["Begin"]
-            query_obj.remove(query_obj["Begin"])
+            del query_obj["Begin"]
         except KeyError:
             begin = None
 
         try:
             end = query_obj["End"]
-            query_obj.remove(query_obj["End"])
+            del query_obj["End"]
         except KeyError:
             end = None
 
@@ -92,7 +92,7 @@ class Date(GenericEntry):
             return 0.0
 
         if (begin != None and end != None):
-            if begin > self._field_idx["End"] or end < self._field_idx["Begin"]:
+            if begin > self["End"] or end < self["Begin"]:
                 return 0.0
 
         for field_name in query_obj.keys():
