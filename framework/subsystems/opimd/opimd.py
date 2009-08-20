@@ -47,7 +47,7 @@ import pimd_messages
 import pimd_calls
 import pimd_dates
 import pimd_notes
-import pimd_todos
+import pimd_tasks
 # Same thing for the backend modules
 import pimb_sim_contacts_fso
 import pimb_sim_messages_fso
@@ -57,7 +57,7 @@ import pimb_sqlite_messages
 import pimb_sqlite_calls
 import pimb_sqlite_dates
 import pimb_sqlite_notes
-import pimb_sqlite_todos
+import pimb_sqlite_tasks
 import pimb_ogsmd_calls
 
 from backend_manager import BackendManager

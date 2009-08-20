@@ -9,9 +9,9 @@ Open PIM Daemon
 (C) 2009 Sebastian Krzyszkowiak <seba.dos1@gmail.com>
 GPLv2 or later
 
-Todos Domain Plugin
+Tasks Domain Plugin
 
-Establishes the 'Todos' PIM domain and handles all related requests
+Establishes the 'Tasks' PIM domain and handles all related requests
 """
 
 from dbus.service import FallbackObject as DBusFBObject
@@ -38,22 +38,22 @@ from pimd_generic import GenericEntry, GenericDomain
 
 #----------------------------------------------------------------------------#
 
-_DOMAIN_NAME = "Todos"
+_DOMAIN_NAME = "Tasks"
 
 _DBUS_PATH_NOTES = DBUS_PATH_BASE_FSO + '/' + _DOMAIN_NAME
 _DIN_NOTES_BASE = DIN_BASE_FSO
 
 _DBUS_PATH_QUERIES = _DBUS_PATH_NOTES + '/Queries'
 
-_DIN_NOTES = _DIN_NOTES_BASE + '.' + 'Todos'
-_DIN_ENTRY = _DIN_NOTES_BASE + '.' + 'Todo'
-_DIN_QUERY = _DIN_NOTES_BASE + '.' + 'TodoQuery'
+_DIN_NOTES = _DIN_NOTES_BASE + '.' + 'Tasks'
+_DIN_ENTRY = _DIN_NOTES_BASE + '.' + 'Task'
+_DIN_QUERY = _DIN_NOTES_BASE + '.' + 'TaskQuery'
 
 
 #----------------------------------------------------------------------------#
-class Todo(GenericEntry):
+class Task(GenericEntry):
 #----------------------------------------------------------------------------#
-    """Represents one single todo with all the data fields it consists of.
+    """Represents one single task with all the data fields it consists of.
 
     _fields[n] = [field_name, field_value, value_used_for_comparison, source]
 
@@ -76,7 +76,7 @@ class QueryManager(DBusFBObject):
     _entries = None
     _next_query_id = None
 
-    # Todo: _queries must be a dict so we can remove queries without messing up query IDs
+    # Note: _queries must be a dict so we can remove queries without messing up query IDs
 
     def __init__(self, entries):
         """Creates a new QueryManager instance
@@ -115,7 +115,7 @@ class QueryManager(DBusFBObject):
     def check_new_entry(self, entry_id):
         """Checks whether a newly added entry matches one or more queries so they can signal clients
 
-        @param entry_id Todo ID of the todo that was added"""
+        @param entry_id Task ID of the task that was added"""
 
         for (query_id, query_handler) in self._queries.items():
             if query_handler.check_new_entry(entry_id):
@@ -131,10 +131,10 @@ class QueryManager(DBusFBObject):
             raise InvalidQueryID( "Existing query IDs: %s" % self._queries.keys() )
 
     def EntryAdded(self, path, rel_path=None):
-        self.TodoAdded(path, rel_path=rel_path)
+        self.TaskAdded(path, rel_path=rel_path)
 
     @dbus_signal(_DIN_QUERY, "s", rel_path_keyword="rel_path")
-    def TodoAdded(self, path, rel_path=None):
+    def TaskAdded(self, path, rel_path=None):
         pass
 
     @dbus_method(_DIN_QUERY, "", "i", rel_path_keyword="rel_path")
@@ -162,7 +162,7 @@ class QueryManager(DBusFBObject):
 
 
     @dbus_method(_DIN_QUERY, "", "s", rel_path_keyword="rel_path", sender_keyword="sender")
-    def GetTodoPath(self, rel_path, sender):
+    def GetTaskPath(self, rel_path, sender):
         num_id = int(rel_path[1:])
         self.check_query_id_ok( num_id )
 
@@ -196,7 +196,7 @@ class QueryManager(DBusFBObject):
         self._queries.__delitem__(num_id)
 
 #----------------------------------------------------------------------------#
-class TodoDomain(Domain, GenericDomain):
+class TaskDomain(Domain, GenericDomain):
 #----------------------------------------------------------------------------#
     name = _DOMAIN_NAME
 
@@ -207,9 +207,9 @@ class TodoDomain(Domain, GenericDomain):
     Entry = None
 
     def __init__(self):
-        """Creates a new TodoDomain instance"""
+        """Creates a new TaskDomain instance"""
 
-        self.Entry = Todo
+        self.Entry = Task
 
         self._backends = {}
         self._entries = []
@@ -229,10 +229,10 @@ class TodoDomain(Domain, GenericDomain):
     #---------------------------------------------------------------------#
 
     def NewEntry(self, path):
-        self.NewTodo(path)
+        self.NewTask(path)
 
     @dbus_signal(_DIN_NOTES, "s")
-    def NewTodo(self, path):
+    def NewTask(self, path):
         pass
 
     @dbus_method(_DIN_NOTES, "a{sv}", "s")
@@ -290,11 +290,11 @@ class TodoDomain(Domain, GenericDomain):
         return self.get_multiple_fields(num_id, field_list)
 
     @dbus_signal(_DIN_ENTRY, "", rel_path_keyword="rel_path")
-    def TodoDeleted(self, rel_path=None):
+    def TaskDeleted(self, rel_path=None):
         pass
 
     def EntryDeleted(self, rel_path=None):
-        self.TodoDeleted(rel_path=rel_path)
+        self.TaskDeleted(rel_path=rel_path)
 
     @dbus_method(_DIN_ENTRY, "", "", rel_path_keyword="rel_path")
     def Delete(self, rel_path):
@@ -303,10 +303,10 @@ class TodoDomain(Domain, GenericDomain):
         self.delete(num_id)
 
     def EntryUpdated(self, data, rel_path=None):
-        self.TodoUpdated(data, rel_path=rel_path)
+        self.TaskUpdated(data, rel_path=rel_path)
 
     @dbus_signal(_DIN_ENTRY, "a{sv}", rel_path_keyword="rel_path")
-    def TodoUpdated(self, data, rel_path=None):
+    def TaskUpdated(self, data, rel_path=None):
         pass
 
     @dbus_method(_DIN_ENTRY, "a{sv}", "", rel_path_keyword="rel_path")
