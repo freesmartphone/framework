@@ -152,7 +152,7 @@ class SQLiteDatesBackend(Backend):
         self.con.commit()
         cur.close()
 
-    def upd_entry(self, datet_data):
+    def upd_entry(self, date_data):
         reqfields = ['Begin', 'End', 'Message']
         cur = self.con.cursor()
         for (field, value) in date_data:
