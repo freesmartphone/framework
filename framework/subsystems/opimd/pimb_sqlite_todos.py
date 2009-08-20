@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 #
 #   Openmoko PIM Daemon
-#   SQLite-Notes Backend Plugin
+#   SQLite-Todos Backend Plugin
 #
 #   http://openmoko.org/
 #
@@ -23,7 +23,7 @@
 #   Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
 #
 
-"""opimd SQLite-Notes Backend Plugin"""
+"""opimd SQLite-Todos Backend Plugin"""
 import os
 import sqlite3
 
@@ -40,15 +40,15 @@ import framework.patterns.tasklet as tasklet
 from framework.config import config, rootdir
 rootdir = os.path.join( rootdir, 'opim' )
 
-_DOMAINS = ('Notes', )
-_SQLITE_FILE_NAME = os.path.join(rootdir,'sqlite-notes.db')
+_DOMAINS = ('Todos', )
+_SQLITE_FILE_NAME = os.path.join(rootdir,'sqlite-todos.db')
 
 
 
 #----------------------------------------------------------------------------#
-class SQLiteNotesBackend(Backend):
+class SQLiteTodosBackend(Backend):
 #----------------------------------------------------------------------------#
-    name = 'SQLite-Notes'
+    name = 'SQLite-Todos'
     properties = [PIMB_CAN_ADD_ENTRY, PIMB_CAN_DEL_ENTRY, PIMB_CAN_UPD_ENTRY, PIMB_CAN_UPD_ENTRY_WITH_NEW_FIELD]
 
     _domain_handlers = None           # Map of the domain handler objects we support
@@ -56,26 +56,28 @@ class SQLiteNotesBackend(Backend):
 #----------------------------------------------------------------------------#
 
     def __init__(self):
-        super(SQLiteNotesBackend, self).__init__()
+        super(SQLiteTodosBackend, self).__init__()
         self._domain_handlers = {}
         self._entry_ids = []
         try:
             self.con = sqlite3.connect(_SQLITE_FILE_NAME)
             cur = self.con.cursor()
-            cur.execute("""CREATE TABLE IF NOT EXISTS notes (
+            cur.execute("""CREATE TABLE IF NOT EXISTS todos (
                 id INTEGER PRIMARY KEY,
                 Timestamp TEXT,
                 Timezone TEXT,
                 Title TEXT,
-                Content TEXT);""")
+                Content TEXT,
+                Started INTEGER,
+                Finished INTEGER);""")
 
-            cur.execute("CREATE TABLE IF NOT EXISTS note_values (id INTEGER PRIMARY KEY, noteId INTEGER, Field TEXT, Value TEXT)")
+            cur.execute("CREATE TABLE IF NOT EXISTS todo_values (id INTEGER PRIMARY KEY, todoId INTEGER, Field TEXT, Value TEXT)")
 
-            cur.execute("CREATE INDEX IF NOT EXISTS notes_id_idx ON notes (id)")
-            cur.execute("CREATE INDEX IF NOT EXISTS notes_Title_idx ON notes (Title)")
-            cur.execute("CREATE INDEX IF NOT EXISTS notes_Content_idx ON notes (Content)")
+            cur.execute("CREATE INDEX IF NOT EXISTS todos_id_idx ON todos (id)")
+            cur.execute("CREATE INDEX IF NOT EXISTS todos_Title_idx ON todos (Title)")
+            cur.execute("CREATE INDEX IF NOT EXISTS todos_Content_idx ON todos (Content)")
 
-            cur.execute("CREATE INDEX IF NOT EXISTS note_values_notesId_idx ON note_values (noteId)")
+            cur.execute("CREATE INDEX IF NOT EXISTS todo_values_todosId_idx ON todo_values (todoId)")
 
             self.con.text_factory = sqlite3.OptimizedUnicode
             self.con.commit()
@@ -108,13 +110,13 @@ class SQLiteNotesBackend(Backend):
 
     def load_entries_from_db(self):
         """Loads all entries from db"""
-        keys = {0:'_backend_entry_id', 1:'Timestamp', 2:'Timezone', 3:'Title', 4:'Content'}
+        keys = {0:'_backend_entry_id', 1:'Timestamp', 2:'Timezone', 3:'Title', 4:'Content', 5:'Started', 6:'Finished'}
         cur = self.con.cursor()
         try:
-            cur.execute('SELECT * FROM notes')
+            cur.execute('SELECT * FROM todos')
             lines = cur.fetchall()
         except:
-            logger.error("%s: Could not read from database (table notes)! Possible reason is old, uncompatible table structure. If you don't have important data, please remove %s file.", self.name, _SQLITE_FILE_NAME)
+            logger.error("%s: Could not read from database (table todos)! Possible reason is old, uncompatible table structure. If you don't have important data, please remove %s file.", self.name, _SQLITE_FILE_NAME)
             raise OperationalError
 
         for line in lines:
@@ -122,7 +124,7 @@ class SQLiteNotesBackend(Backend):
             for key in keys:
                 entry[keys[key]] = line[key]
             try:
-                cur.execute('SELECT Field, Value FROM note_values WHERE noteId=?',(line[0],))
+                cur.execute('SELECT Field, Value FROM todo_values WHERE todoId=?',(line[0],))
                 for pair in cur:
                     if entry.has_key(pair[0]):
                         if type(entry[pair[0]]) == list:
@@ -132,10 +134,10 @@ class SQLiteNotesBackend(Backend):
                     else:
                         entry[pair[0]]=pair[1]
             except:
-                logger.error("%s: Could not read from database (table note_values)! Possible reason is old, uncompatible table structure. If you don't have important data, please remove %s file.", self.name, _SQLITE_FILE_NAME)
+                logger.error("%s: Could not read from database (table todo_values)! Possible reason is old, uncompatible table structure. If you don't have important data, please remove %s file.", self.name, _SQLITE_FILE_NAME)
                 raise OperationalError
 
-            entry_id = self._domain_handlers['Notes'].register_entry(self, entry)
+            entry_id = self._domain_handlers['Todos'].register_entry(self, entry)
             self._entry_ids.append(entry_id)
         cur.close()
 
@@ -145,57 +147,61 @@ class SQLiteNotesBackend(Backend):
         for (field_name, field_value) in entry_data:
             if field_name=='_backend_entry_id':
                 entryId=field_value
-    #    cur.execute('UPDATE notes SET deleted=1 WHERE id=?',(entryId,))
-        cur.execute('DELETE FROM notes WHERE id=?',(entryId,))
-        cur.execute('DELETE FROM note_values WHERE noteId=?',(entryId,))
+    #    cur.execute('UPDATE todos SET deleted=1 WHERE id=?',(entryId,))
+        cur.execute('DELETE FROM todos WHERE id=?',(entryId,))
+        cur.execute('DELETE FROM todo_values WHERE todoId=?',(entryId,))
         self.con.commit()
         cur.close()
 
     def upd_entry(self, entry_data):
-        reqfields = ['Timestamp', 'Timezone', 'Title', 'Content']
+        reqfields = ['Timestamp', 'Timezone', 'Title', 'Content', 'Started', 'Finished']
         cur = self.con.cursor()
         for (field, value) in entry_data:
             if field=='_backend_entry_id':
                 entryId=value
         for (field, value) in entry_data:
             if field in reqfields:
-                cur.execute('UPDATE notes SET '+field+'=? WHERE id=?',(value,entryId))
+                cur.execute('UPDATE todos SET '+field+'=? WHERE id=?',(value,entryId))
             elif not field.startswith('_'):
-                cur.execute('SELECT id FROM note_values WHERE noteId=? AND field=?',(entryId,field))
+                cur.execute('SELECT id FROM todo_values WHERE todoId=? AND field=?',(entryId,field))
                 if cur.fetchone() == None:
-                    cur.execute('INSERT INTO note_values (field,value,noteId) VALUES (?,?,?)',(field,value,entryId))
+                    cur.execute('INSERT INTO todo_values (field,value,todoId) VALUES (?,?,?)',(field,value,entryId))
                 else:
-                    cur.execute('UPDATE note_values SET value=? WHERE field=? AND noteId=?',(value,field,entryId))
-    #    cur.execute('UPDATE notes SET updated=1 WHERE id=?',(entryId,))
+                    cur.execute('UPDATE todo_values SET value=? WHERE field=? AND todoId=?',(value,field,entryId))
+    #    cur.execute('UPDATE todos SET updated=1 WHERE id=?',(entryId,))
         self.con.commit()
         cur.close()
 
     def add_entry(self, entry_data):
-        note_id = self.add_note_to_db(entry_data)
-        return note_id
+        todo_id = self.add_todo_to_db(entry_data)
+        return todo_id
 
-    def add_note_to_db(self, entry_data):
-        reqfields = ['Timestamp', 'Timezone', 'Title', 'Content']
+    def add_todo_to_db(self, entry_data):
+        reqfields = ['Timestamp', 'Timezone', 'Title', 'Content', 'Started', 'Finished']
+        reqIntFields = ['Started', 'Finished']
 
         for field in reqfields:
             if not entry_data.get(field):
                 entry_data[field]=''
+        for field in reqIntFields:
+            if not entry_data.get(field):
+                entry_data[field]=0
 
         cur = self.con.cursor()
-        cur.execute('INSERT INTO notes (Timestamp, Timezone, Title, Content) VALUES (?,?,?,?)',(entry_data['Timestamp'], entry_data['Timezone'], entry_data['Title'], entry_data['Content']))
+        cur.execute('INSERT INTO todos (Timestamp, Timezone, Title, Content, Started, Finished) VALUES (?,?,?,?,?,?)',(entry_data['Timestamp'], entry_data['Timezone'], entry_data['Title'], entry_data['Content'], entry_data['Started'], entry_data['Finished']))
         cid = cur.lastrowid
         for field in entry_data:
-            if not field in reqfields:
+            if not field in reqfields and not field in reqIntFields:
                 if type(entry_data[field]) == Array or type(entry_data[field]) == list:
                     for value in entry_data[field]:
-                        cur.execute('INSERT INTO note_values (noteId, Field, Value) VALUES (?,?,?)',(cid, field, value))
+                        cur.execute('INSERT INTO todo_values (todoId, Field, Value) VALUES (?,?,?)',(cid, field, value))
                 else:
-                    cur.execute('INSERT INTO note_values (noteId, Field, Value) VALUES (?,?,?)',(cid, field, entry_data[field]))
+                    cur.execute('INSERT INTO todo_values (todoId, Field, Value) VALUES (?,?,?)',(cid, field, entry_data[field]))
         
         self.con.commit()
         cur.close()
 
         entry_data['_backend_entry_id']=cid
 
-        note_id = self._domain_handlers['Notes'].register_entry(self, entry_data)
-        return note_id
+        todo_id = self._domain_handlers['Todos'].register_entry(self, entry_data)
+        return todo_id
