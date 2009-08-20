@@ -56,6 +56,7 @@ import pimb_sqlite_contacts
 import pimb_sqlite_messages
 import pimb_sqlite_calls
 import pimb_sqlite_dates
+import pimb_sqlite_notes
 import pimb_ogsmd_calls
 
 from backend_manager import BackendManager
