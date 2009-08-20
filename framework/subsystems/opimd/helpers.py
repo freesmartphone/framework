@@ -13,7 +13,11 @@ Helpers
 """
 
 from dbus import DBusException, Array
-from phoneutils import normalize_number
+try:
+    from phoneutils import normalize_number
+except:
+    def normalize_number(num):
+        return num
 
 #----------------------------------------------------------------------------#
 def field_value_to_list(field_value):
@@ -44,7 +48,7 @@ def get_compare_for_tel(tel_value):
 
     res = normalize_number(res)
 
-    return res
+    return 'tel:'+res
 
 #----------------------------------------------------------------------------#
 class InvalidBackend( DBusException ):

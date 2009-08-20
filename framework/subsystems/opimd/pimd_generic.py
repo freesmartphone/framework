@@ -324,7 +324,7 @@ class GenericEntry():
             field_value = str(query_obj[field_name])
             best_field_match = 0.0
 
-            if field_value.startswith('tel:'): field_value=get_compare_for_tel(field_value).replace('+','\+')
+            if field_value.startswith('tel:'): field_value=get_compare_for_tel(field_value).replace('+','\+')+'$'
 
             matcher = re.compile(field_value)
 

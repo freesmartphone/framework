@@ -33,6 +33,14 @@ DIN_BASE_FSO = "org.freesmartphone.PIM"
 
 MODULE_NAME = "opimd"
 
+import logging
+logger = logging.getLogger( MODULE_NAME )
+
+try:
+    import phoneutils
+except ImportError:
+    logger.error('Couldn\'t import phoneutils! Can\'t use normalizing phone numbers. Check if you have python-phoneutils installed.')
+
 # We import the domain modules, so that there classes get registered
 import pimd_contacts
 import pimd_messages
@@ -52,11 +60,6 @@ import pimb_ogsmd_calls
 from backend_manager import BackendManager
 
 from domain_manager import DomainManager
-
-import phoneutils
-
-import logging
-logger = logging.getLogger( MODULE_NAME )
 
 INIT = False
 
