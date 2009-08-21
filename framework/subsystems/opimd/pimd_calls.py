@@ -384,4 +384,4 @@ class CallDomain(Domain, GenericDomain):
                     self._new_missed_calls += 1
                     self.NewMissedCalls(self._new_missed_calls)
 
-        self.update(num_id, data, callif = callif, call = call)
+        self.update(num_id, data, entryif = callif, entry = call)
