@@ -1063,10 +1063,10 @@ class MessageDomain(Domain):
 
     def check_message_id_ok( self, num_id ):
         """
-        Checks whether the given message id is valid. Raises InvalidMessageID, if not.
+        Checks whether the given message id is valid. Raises InvalidEntryID, if not.
         """
         if num_id >= len(self._messages) or self._messages[num_id]==None:
-            raise InvalidMessageID()
+            raise InvalidEntryID()
 
     @dbus_method(_DIN_ENTRY, "", "a{sv}", rel_path_keyword="rel_path")
     def GetContent(self, rel_path):
@@ -1126,7 +1126,7 @@ class MessageDomain(Domain):
 
         # Make sure the requested message exists
         if num_id >= len(self._messages) or self._messages[num_id]==None:
-            raise InvalidMessageID()
+            raise InvalidEntryID()
 
         messageif = self._messages[num_id]
         message = messageif.get_fields(messageif._field_idx)
@@ -1191,7 +1191,7 @@ class MessageDomain(Domain):
 
         # Make sure the requested message exists
         if num_id >= len(self._messages) or self._messages[num_id]==None:
-            raise InvalidMessageID()
+            raise InvalidEntryID()
 
         backends = self._messages[num_id]._used_backends
 

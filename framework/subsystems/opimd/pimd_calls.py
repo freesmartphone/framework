@@ -370,7 +370,7 @@ class CallDomain(Domain, GenericDomain):
 
         # Make sure the requested call exists
         if num_id >= len(self._entries) or self._entries[num_id]==None:
-            raise InvalidCallID()
+            raise InvalidEntryID()
 
         callif = self._entries[num_id]
         call = callif.get_fields(callif._field_idx)
