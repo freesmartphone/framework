@@ -17,6 +17,7 @@ Establishes the 'Notes' PIM domain and handles all related requests
 from dbus.service import FallbackObject as DBusFBObject
 from dbus.service import signal as dbus_signal
 from dbus.service import method as dbus_method
+from dbus import Array
 
 import re
 
@@ -202,6 +203,7 @@ class NoteDomain(Domain, GenericDomain):
 
     _backends = None
     _entries = None
+    _tags = None
     query_manager = None
     _dbus_path = None
     Entry = None
@@ -213,6 +215,7 @@ class NoteDomain(Domain, GenericDomain):
 
         self._backends = {}
         self._entries = []
+        self._tags = {}
         self._dbus_path = _DBUS_PATH_NOTES
         self.query_manager = QueryManager(self._entries)
 
@@ -223,7 +226,20 @@ class NoteDomain(Domain, GenericDomain):
         self.interface = _DIN_NOTES
         self.path = _DBUS_PATH_NOTES
 
- 
+    def register_entry(self, backend, note_data):
+        note_id = GenericDomain.register_entry(self, backend, note_data)
+        if note_data.get('Tag'):
+            tags = note_data['Tag']
+            if not isinstance(tags, list) and not isinstance(tags, Array):
+                tags = [tags]
+            for tag in tags:
+                if not tag in self._tags:
+                    self._tags[tag] = [note_id]
+                else:
+                    if not note_id in self._tags[tag]:
+                        self._tags[tag].append(note_id)
+        return note_id
+
     #---------------------------------------------------------------------#
     # dbus methods and signals                                            #
     #---------------------------------------------------------------------#
@@ -253,6 +269,13 @@ class NoteDomain(Domain, GenericDomain):
         @return The requested data"""
 
         return self.get_single_entry_single_field(query, field_name)
+
+    @dbus_method(_DIN_NOTES, "", "as")
+    def GetTags(self):
+        tags = []
+        for tag in self._tags:
+            tags.append(tag)
+        return tags
 
     @dbus_method(_DIN_NOTES, "a{sv}", "s", sender_keyword="sender")
     def Query(self, query, sender):
@@ -300,6 +323,18 @@ class NoteDomain(Domain, GenericDomain):
     def Delete(self, rel_path):
         num_id = int(rel_path[1:])
 
+        note = self._entries[num_id].get_fields(self._entries[num_id]._field_idx)
+
+        if note.get('Tag'):
+            tags = note['Tag']
+            if not isinstance(tags, list) and not isinstance(tags, Array):
+                tags = [tags]
+            for tag in tags:
+                if self._tags[tag]==[num_id]:
+                    del self._tags[tag]
+                else:
+                    self._tags[tag].remove(num_id) 
+
         self.delete(num_id)
 
     def EntryUpdated(self, data, rel_path=None):
@@ -313,4 +348,33 @@ class NoteDomain(Domain, GenericDomain):
     def Update(self, data, rel_path):
         num_id = int(rel_path[1:])
 
-        self.update(num_id, data)
+        # Make sure the requested note exists
+        if num_id >= len(self._entries) or self._entries[num_id]==None:
+            raise InvalidEntryID()
+
+        noteif = self._entries[num_id]
+        note = noteif.get_fields(noteif._field_idx)
+
+        if note.get('Tag') and data.get('Tag'):
+            tags = note['Tag']
+            if not isinstance(tags, list) and not isinstance(tags, Array):
+                tags = [tags]
+            for tag in tags:
+                if self._tags[tag]==[num_id]:
+                    del self._tags[tag]
+                else:
+                    self._tags[tag].remove(num_id)
+ 
+        if data.get('Tag'):
+            tags = data['Tag']
+            if not isinstance(tags, list) and not isinstance(tags, Array):
+                tags = [tags]
+
+            for tag in tags:
+                if not tag in self._tags:
+                    self._tags[tag] = [num_id]
+                else:
+                    if not num_id in self._tags[tag]:
+                        self._tags[tag].append(num_id)
+
+        self.update(num_id, data, entryif = noteif, entry = note)
