@@ -208,11 +208,12 @@ class SQLiteContactBackend(Backend):
             if field in reqfields:
                 cur.execute('UPDATE contacts SET '+field+'=? WHERE id=?',(value,contactId))
             elif not field.startswith('_'):
-                cur.execute('SELECT id FROM contact_values WHERE contactId=? AND field=?',(contactId,field))
-                if cur.fetchone() == None:
-                    cur.execute('INSERT INTO contact_values (field,value,contactId) VALUES (?,?,?)',(field,value,contactId))
+                cur.execute('DELETE FROM contact_values WHERE contactId=? AND field=?',(entryId,field))
+                if isinstance(value, Array) or isinstance(value, list):
+                    for val in value:
+                        cur.execute('INSERT INTO contact_values (field,value,contactId) VALUES (?,?,?)',(field,val,entryId))
                 else:
-                    cur.execute('UPDATE contact_values SET value=? WHERE field=? AND contactId=?',(value,field,contactId))
+                    cur.execute('INSERT INTO contact_values (field,value,contactId) VALUES (?,?,?)',(field,value,entryId))
     #    cur.execute('UPDATE contacts SET updated=1 WHERE id=?',(contactId,))
         self.con.commit()
         cur.close()

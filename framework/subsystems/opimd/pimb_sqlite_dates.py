@@ -162,11 +162,12 @@ class SQLiteDatesBackend(Backend):
             if field in reqfields:
                 cur.execute('UPDATE dates SET '+field+'=? WHERE id=?',(value,dateId))
             elif not field.startswith('_'):
-                cur.execute('SELECT id FROM date_values WHERE dateId=? AND field=?',(dateId,field))
-                if cur.fetchone() == None:
-                    cur.execute('INSERT INTO date_values (field,value,dateId) VALUES (?,?,?)',(field,value,dateId))
+                cur.execute('DELETE FROM date_values WHERE dateId=? AND field=?',(entryId,field))
+                if isinstance(value, Array) or isinstance(value, list):
+                    for val in value:
+                        cur.execute('INSERT INTO date_values (field,value,dateId) VALUES (?,?,?)',(field,val,entryId))
                 else:
-                    cur.execute('UPDATE date_values SET value=? WHERE field=? AND dateId=?',(value,field,dateId))
+                    cur.execute('INSERT INTO date_values (field,value,dateId) VALUES (?,?,?)',(field,value,entryId))
     #    cur.execute('UPDATE dates SET updated=1 WHERE id=?',(dateId,))
         self.con.commit()
         cur.close()

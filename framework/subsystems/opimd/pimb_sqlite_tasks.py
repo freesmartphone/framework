@@ -163,11 +163,12 @@ class SQLiteTasksBackend(Backend):
             if field in reqfields:
                 cur.execute('UPDATE tasks SET '+field+'=? WHERE id=?',(value,entryId))
             elif not field.startswith('_'):
-                cur.execute('SELECT id FROM task_values WHERE taskId=? AND field=?',(entryId,field))
-                if cur.fetchone() == None:
-                    cur.execute('INSERT INTO task_values (field,value,taskId) VALUES (?,?,?)',(field,value,entryId))
+                cur.execute('DELETE FROM task_values WHERE taskId=? AND field=?',(entryId,field))
+                if isinstance(value, Array) or isinstance(value, list):
+                    for val in value:
+                        cur.execute('INSERT INTO task_values (field,value,taskId) VALUES (?,?,?)',(field,val,entryId))
                 else:
-                    cur.execute('UPDATE task_values SET value=? WHERE field=? AND taskId=?',(value,field,entryId))
+                    cur.execute('INSERT INTO task_values (field,value,taskId) VALUES (?,?,?)',(field,value,entryId))
     #    cur.execute('UPDATE tasks SET updated=1 WHERE id=?',(entryId,))
         self.con.commit()
         cur.close()
