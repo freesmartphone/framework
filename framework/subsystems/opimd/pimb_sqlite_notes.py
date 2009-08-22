@@ -125,7 +125,7 @@ class SQLiteNotesBackend(Backend):
                 cur.execute('SELECT Field, Value FROM note_values WHERE noteId=?',(line[0],))
                 for pair in cur:
                     if entry.has_key(pair[0]):
-                        if type(entry[pair[0]]) == list:
+                        if isinstance(entry[pair[0]], list):
                             entry[pair[0]].append(pair[1])
                         else:
                             entry[pair[0]]=[entry[pair[0]], pair[1]]
@@ -161,11 +161,12 @@ class SQLiteNotesBackend(Backend):
             if field in reqfields:
                 cur.execute('UPDATE notes SET '+field+'=? WHERE id=?',(value,entryId))
             elif not field.startswith('_'):
-                cur.execute('SELECT id FROM note_values WHERE noteId=? AND field=?',(entryId,field))
-                if cur.fetchone() == None:
-                    cur.execute('INSERT INTO note_values (field,value,noteId) VALUES (?,?,?)',(field,value,entryId))
+                cur.execute('DELETE FROM note_values WHERE noteId=? AND field=?',(entryId,field))
+                if isinstance(value, Array) or isinstance(value, list):
+                    for val in value:
+                        cur.execute('INSERT INTO note_values (field,value,noteId) VALUES (?,?,?)',(field,val,entryId))
                 else:
-                    cur.execute('UPDATE note_values SET value=? WHERE field=? AND noteId=?',(value,field,entryId))
+                    cur.execute('INSERT INTO note_values (field,value,noteId) VALUES (?,?,?)',(field,value,entryId))
     #    cur.execute('UPDATE notes SET updated=1 WHERE id=?',(entryId,))
         self.con.commit()
         cur.close()
@@ -186,7 +187,7 @@ class SQLiteNotesBackend(Backend):
         cid = cur.lastrowid
         for field in entry_data:
             if not field in reqfields:
-                if type(entry_data[field]) == Array or type(entry_data[field]) == list:
+                if isinstance(entry_data[field], Array) or isinstance(entry_data[field], list):
                     for value in entry_data[field]:
                         cur.execute('INSERT INTO note_values (noteId, Field, Value) VALUES (?,?,?)',(cid, field, value))
                 else:
