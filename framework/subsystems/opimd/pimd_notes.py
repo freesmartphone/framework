@@ -271,7 +271,7 @@ class NoteDomain(Domain, GenericDomain):
         return self.get_single_entry_single_field(query, field_name)
 
     @dbus_method(_DIN_NOTES, "", "as")
-    def GetTags(self):
+    def GetUsedTags(self):
         tags = []
         for tag in self._tags:
             tags.append(tag)
