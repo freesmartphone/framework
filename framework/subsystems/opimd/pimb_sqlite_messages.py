@@ -196,12 +196,12 @@ class SQLiteMessagesBackend(Backend):
             if field in reqfields:
                 cur.execute('UPDATE messages SET '+field+'=? WHERE id=?',(value,messageId))
             elif not field.startswith('_'):
-                cur.execute('DELETE FROM message_values WHERE messageId=? AND field=?',(entryId,field))
+                cur.execute('DELETE FROM message_values WHERE messageId=? AND field=?',(messageId,field))
                 if isinstance(value, Array) or isinstance(value, list):
                     for val in value:
-                        cur.execute('INSERT INTO message_values (field,value,messageId) VALUES (?,?,?)',(field,val,entryId))
+                        cur.execute('INSERT INTO message_values (field,value,messageId) VALUES (?,?,?)',(field,val,messageId))
                 else:
-                    cur.execute('INSERT INTO message_values (field,value,messageId) VALUES (?,?,?)',(field,value,entryId))
+                    cur.execute('INSERT INTO message_values (field,value,messageId) VALUES (?,?,?)',(field,value,messageId))
     #    cur.execute('UPDATE messages SET updated=1 WHERE id=?',(messageId,))
         self.con.commit()
         cur.close()
