@@ -66,6 +66,7 @@ class Backend(object):
 #----------------------------------------------------------------------------#
     """Base class for all backend"""
     __metaclass__ = BackendMetaClass
+    _initialized = False
     _all_backends_cls = []
 
 #----------------------------------------------------------------------------#
@@ -216,6 +217,19 @@ class BackendManager(DBusFBObject):
             yield backend.load_entries()
         # start the tasklet connected to the dbus callbacks
         init().start_dbus(dbus_ok, dbus_error)
+
+
+    @dbus_method(_DIN_SOURCE, "", "b", rel_path_keyword="rel_path")
+    def GetInitialized(self, rel_path):
+        num_id = int(rel_path[1:])
+        backend = None
+
+        if (num_id < len(self._backends)):
+            backend = self._backends[num_id]
+        else:
+            raise InvalidBackendID( "Maximum backend ID is %d" % len(self._backends)-1 )
+
+        return backend._initialized
 
 
     @dbus_method(_DIN_SOURCE, "", "s", rel_path_keyword="rel_path")
