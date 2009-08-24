@@ -167,11 +167,14 @@ class SQLiteCallBackend(Backend):
         for (field, value) in call_data:
             if field=='_backend_entry_id':
                 callId=value
+        deleted = []
         for (field, value) in call_data:
             if field in reqfields:
                 cur.execute('UPDATE calls SET '+field+'=? WHERE id=?',(value,callId))
             elif not field.startswith('_'):
-                cur.execute('DELETE FROM call_values WHERE callId=? AND field=?',(callId,field))
+                if not field in deleted:
+                    cur.execute('DELETE FROM call_values WHERE callId=? AND field=?',(callId,field))
+                    deleted.append(field)
                 if isinstance(value, Array) or isinstance(value, list):
                     for val in value:
                         cur.execute('INSERT INTO call_values (field,value,callId) VALUES (?,?,?)',(field,val,callId))

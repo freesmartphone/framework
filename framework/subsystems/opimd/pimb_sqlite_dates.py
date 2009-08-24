@@ -158,11 +158,14 @@ class SQLiteDatesBackend(Backend):
         for (field, value) in date_data:
             if field=='_backend_entry_id':
                 dateId=value
+        deleted = []
         for (field, value) in date_data:
             if field in reqfields:
                 cur.execute('UPDATE dates SET '+field+'=? WHERE id=?',(value,dateId))
             elif not field.startswith('_'):
-                cur.execute('DELETE FROM date_values WHERE dateId=? AND field=?',(dateId,field))
+                if not field in deleted:
+                    cur.execute('DELETE FROM date_values WHERE dateId=? AND field=?',(dateId,field))
+                    deleted.append(field)
                 if isinstance(value, Array) or isinstance(value, list):
                     for val in value:
                         cur.execute('INSERT INTO date_values (field,value,dateId) VALUES (?,?,?)',(field,val,dateId))

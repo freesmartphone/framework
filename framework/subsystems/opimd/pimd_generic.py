@@ -11,12 +11,14 @@ GPLv2 or later
 
 Generic Domain
 
-From this domain class others inherit.
+From those domain classes others inherit.
 """
 
 DBUS_BUS_NAME_FSO = "org.freesmartphone.opimd"
 DBUS_PATH_BASE_FSO = "/org/freesmartphone/PIM"
 DIN_BASE_FSO = "org.freesmartphone.PIM"
+
+import dbus
 
 from dbus.service import FallbackObject as DBusFBObject
 from dbus.service import signal as dbus_signal
@@ -640,8 +642,22 @@ class GenericDomain():
                 else:
                     raise InvalidBackend( "There is no backend which can store new field" )
             elif not field_name.startswith('_'):
-                for field_nr in entryif._field_idx[field_name]:
-                    if entry[field_name]!=data[field_name]:
+                if not data[field_name] or isinstance(data[field_name], list) or isinstance(data[field_name], dbus.Array):
+                    field_idx = entryif._field_idx[field_name]
+                    field_idx.reverse()
+                    for field_nr in field_idx:
+                        del entryif._fields[field_nr]
+                    del entryif._field_idx[field_name]
+                    if data[field_name]:
+                        entryif._field_idx[field_name] = []
+                        for value in data[field_name]:
+                            #newfieldid = len(entryif._fields)-1
+                            #entryif._field_idx[field_name].append(newfieldid)
+                            entryif._fields.append([field_name, value, value, backend])
+                    entryif.rebuild_index()
+                else:
+                    for field_nr in entryif._field_idx[field_name]:
+                        #if entry[field_name]!=data[field_name]:
                         entryif._fields[field_nr][1]=data[field_name]
 
         for backend_name in entryif._used_backends:
@@ -676,18 +692,7 @@ class GenericDomain():
                 raise InvalidBackend( "Backend does not feature del_entry" )
 
         #del self._entries[num_id]
-        # Experimental: it may introduce some bugs.
-#        entry = self._entries[num_id]
         self._entries[num_id] = None
-#        del entry
-
-        # update Path fields, as IDs may be changed - UGLYYYY!!! */me spanks himself*
-        # Not needed with that "experimental" code above.
-        #for id in range(0,len(self._entries)):
-        #    path = _DBUS_PATH_ENTRIES+ '/' + str(id)
-        #    for field in self._entries[id]._fields:
-        #        if field[0]=='Path':
-        #            field[1]=path
 
         for backend_name in backends:
             backend = self._backends[backend_name]

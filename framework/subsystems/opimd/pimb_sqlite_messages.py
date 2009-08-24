@@ -192,11 +192,14 @@ class SQLiteMessagesBackend(Backend):
         for (field, value) in message_data:
             if field=='_backend_entry_id':
                 messageId=value
+        deleted = []
         for (field, value) in message_data:
             if field in reqfields:
                 cur.execute('UPDATE messages SET '+field+'=? WHERE id=?',(value,messageId))
             elif not field.startswith('_'):
-                cur.execute('DELETE FROM message_values WHERE messageId=? AND field=?',(messageId,field))
+                if not field in deleted:
+                    cur.execute('DELETE FROM message_values WHERE messageId=? AND field=?',(messageId,field))
+                    deleted.append(field)
                 if isinstance(value, Array) or isinstance(value, list):
                     for val in value:
                         cur.execute('INSERT INTO message_values (field,value,messageId) VALUES (?,?,?)',(field,val,messageId))

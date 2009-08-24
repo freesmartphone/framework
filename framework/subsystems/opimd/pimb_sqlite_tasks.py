@@ -159,11 +159,14 @@ class SQLiteTasksBackend(Backend):
         for (field, value) in entry_data:
             if field=='_backend_entry_id':
                 entryId=value
+        deleted = []
         for (field, value) in entry_data:
             if field in reqfields:
                 cur.execute('UPDATE tasks SET '+field+'=? WHERE id=?',(value,entryId))
             elif not field.startswith('_'):
-                cur.execute('DELETE FROM task_values WHERE taskId=? AND field=?',(entryId,field))
+                if not field in deleted:
+                    cur.execute('DELETE FROM task_values WHERE taskId=? AND field=?',(entryId,field))
+                    deleted.append(field)
                 if isinstance(value, Array) or isinstance(value, list):
                     for val in value:
                         cur.execute('INSERT INTO task_values (field,value,taskId) VALUES (?,?,?)',(field,val,entryId))

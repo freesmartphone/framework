@@ -204,11 +204,14 @@ class SQLiteContactBackend(Backend):
         for (field, value) in contact_data:
             if field=='_backend_entry_id':
                 contactId=value
+        deleted = []
         for (field, value) in contact_data:
             if field in reqfields:
                 cur.execute('UPDATE contacts SET '+field+'=? WHERE id=?',(value,contactId))
             elif not field.startswith('_'):
-                cur.execute('DELETE FROM contact_values WHERE contactId=? AND field=?',(contactId,field))
+                if not field in deleted:
+                    cur.execute('DELETE FROM contact_values WHERE contactId=? AND field=?',(contactId,field))
+                    deleted.append(field)
                 if isinstance(value, Array) or isinstance(value, list):
                     for val in value:
                         cur.execute('INSERT INTO contact_values (field,value,contactId) VALUES (?,?,?)',(field,val,contactId))
