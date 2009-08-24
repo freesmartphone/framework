@@ -1,3 +1,5 @@
+NOTE! * This document is outdated and needs to be updated. *
+
 Object path / method				Interface name
 
 PIM/
