@@ -136,6 +136,11 @@ class GenericEntry():
             except KeyError:
                 self._field_idx[field_name] = [field_idx]
 
+    def make_comp_value(self, field_value):
+        if str(field_value).startswith('tel:'):
+            return get_compare_for_tel(field_value)
+        else:
+            return ''
 
     def import_fields(self, entry_data, backend_name):
         """Adds an array of entry data fields to this entry
@@ -163,9 +168,7 @@ class GenericEntry():
                 for field_value in field_value_to_list(entry_data[field_name]):
 
                     # We only generate compare values for specific fields
-                    compare_value = ""
-
-                    if str(field_value).startswith('tel:'): compare_value = get_compare_for_tel(field_value)
+                    compare_value = self.make_comp_value(field_value)
 
                     our_field = [field_name, field_value, compare_value, backend_name]
 
