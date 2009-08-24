@@ -653,7 +653,7 @@ class GenericDomain():
                         for value in data[field_name]:
                             #newfieldid = len(entryif._fields)-1
                             #entryif._field_idx[field_name].append(newfieldid)
-                            entryif._fields.append([field_name, value, value, backend])
+                            entryif._fields.append([field_name, value, '', backend])
                     entryif.rebuild_index()
                 else:
                     for field_nr in entryif._field_idx[field_name]:
