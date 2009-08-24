@@ -641,18 +641,19 @@ class GenericDomain():
 
         for field_name in data:
             if not field_name in entryif._field_idx:
-                if backend!='':
-                    entryif.import_fields({field_name:data[field_name]}, backend)
-                else:
-                    raise InvalidBackend( "There is no backend which can store new field" )
+                if data[field_name]!='':
+                    if backend!='':
+                        entryif.import_fields({field_name:data[field_name]}, backend)
+                    else:
+                        raise InvalidBackend( "There is no backend which can store new field" )
             elif not field_name.startswith('_'):
-                if not data[field_name] or isinstance(data[field_name], list) or isinstance(data[field_name], dbus.Array):
+                if data[field_name]=='' or isinstance(data[field_name], list) or isinstance(data[field_name], dbus.Array):
                     field_idx = entryif._field_idx[field_name]
                     field_idx.reverse()
                     for field_nr in field_idx:
                         del entryif._fields[field_nr]
                     del entryif._field_idx[field_name]
-                    if data[field_name]:
+                    if data[field_name]!='':
                         entryif._field_idx[field_name] = []
                         for value in data[field_name]:
                             #newfieldid = len(entryif._fields)-1

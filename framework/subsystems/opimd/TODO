@@ -1,0 +1,20 @@
+Near future:
+* quering "Phone" should check also "Office phone"
+* sorting
+In mean-time:
+* Initialized, GetInitialized
+* removing entries from cache when disabling backend
+After that:
+* finished inteligent queries (ContactDeleted, ConactUpdated)
+* updating with SIM-Messages-FSO
+* adding new fields to for example SIM entry (by merging)
+* RSS-Messages backend (handler)
+* Messages on GenericDomain
+Think about:
+* way for quering using all or multiple fields?
+* quering "greater than" and "lesser than"?
+* more domains?
+Finishing:
+* faster merging and avoiding duplicates
+* using backend engine to query instead of cache when possible
+* world domination!
