@@ -12,7 +12,6 @@ After that:
 * Messages on GenericDomain
 Think about:
 * way for quering using all or multiple fields?
-* quering "greater than" and "lesser than"?
 * more domains?
 Finishing:
 * faster merging and avoiding duplicates

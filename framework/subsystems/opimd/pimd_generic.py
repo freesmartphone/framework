@@ -324,6 +324,51 @@ class GenericEntry():
         overall_match = 1.0
 
         for field_name in query_obj.keys():
+
+            if field_name.startswith('_') and (field_name.startswith('_int_') or field_name.startswith('_float_') or field_name.startswith('_gt_') or field_name.startswith('_lt_')):
+                if field_name.startswith('_int_'):
+                    mytype = int
+                    fieldname = field_name[8:]
+                    operator = field_name[5:7]
+                elif field_name.startswith('_float_'):
+                    mytype = float
+                    fieldname = field_name[10:]
+                    operator = field_name[7:9]
+                else:
+                    mytype = float
+                    fieldname = field_name[4:]
+                    operator = field_name[1:3]
+                field_value = mytype(query_obj[field_name])            
+                try:
+                    field_ids = self._field_idx[fieldname]
+
+                    for field_id in field_ids:
+
+                        comp_value = self._fields[field_id][2]
+                        if not comp_value:
+                            # Use the real value if no comparison value given
+                            comp_value = self._fields[field_id][1]
+                        if comp_value:
+                            comp_value = mytype(comp_value)
+                        else:
+                            overall_match *= 0.0
+                            continue
+
+                        if operator == 'gt':
+                            if comp_value > field_value:
+                                overall_match *= 1.0
+                            else:
+                                overall_match *= 0.0
+                        elif operator == 'lt':
+                            if comp_value < field_value:
+                                overall_match *= 1.0
+                            else:
+                                overall_match *= 0.0
+
+                except KeyError:
+                    overall_match *= 0.0
+                continue
+
             # Skip fields only meaningful to the parser
             if field_name[:1] == "_": continue
 
