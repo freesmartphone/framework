@@ -113,7 +113,7 @@ class BackendManager(DBusFBObject):
                     except:
                         logger.error("Could not load entries for backend %s!", backend)
             init_all(backend).start()
-
+        self.Initialized()
 
     @classmethod
     def register_backend(cls, backend):
@@ -170,6 +170,10 @@ class BackendManager(DBusFBObject):
         for backend in self._backends:
             backends.append(backend.name)
         return backends
+
+    @dbus_signal(_DIN_SOURCES, "")
+    def Initialized(self):
+        pass
 
     @dbus_method(_DIN_SOURCES, "", "as")
     def GetDomains(self):
