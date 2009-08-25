@@ -15,7 +15,13 @@ import os
 import struct
 import sys
 
-c = ctypes.cdll.LoadLibrary('libc.so.6')
+from re import compile
+re = compile('^libc.so.[0-9]$')
+libs = os.listdir('/lib')
+for lib in libs:
+    if re.match(lib):
+        c = ctypes.cdll.LoadLibrary(lib)
+        break
 
 _IOC_NRBITS = 8
 _IOC_TYPEBITS = 8
