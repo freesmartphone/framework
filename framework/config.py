@@ -107,6 +107,27 @@ for p in searchpath:
         installprefix = p
         break
 
+if installprefix == "/":
+    # Installation not found yet, check for symlinked install.
+    # e.g. Check if a /usr/... install is a symbolic link to /media/card/...
+
+    separatedFilePath = __file__.split( os.sep )
+    for i in range( 2, len( separatedFilePath ) ):
+        sepShortFilePath = [ "" ] + separatedFilePath[i:]
+        shortFilePath = os.sep.join( sepShortFilePath )
+        #logging.debug( "Installprefix check comparing %s, %s" % (shortFilePath, __file__) )
+
+        # Symbolic link check
+        if os.path.islink( shortFilePath ) and os.path.samefile( shortFilePath, __file__ ):
+            for p in searchpath:     # verify it's an install in the searchpath
+                if shortFilePath.startswith(p):
+                    installprefix = p
+                    break
+
+        # Stop checking if we've found and set the installprefix.
+        if installprefix != "/":
+            break
+
 logging.info( "Installprefix is %s" % installprefix )
 
 #
