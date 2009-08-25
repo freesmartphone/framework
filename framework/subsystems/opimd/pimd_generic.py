@@ -629,6 +629,21 @@ class GenericDomain():
                 if entry.incorporates_data_from(backend.name):
                     yield entry.export_fields(backend.name)
 
+    def remove_entries_from_backend(self, backend):
+        i = 0
+        for entry in self._entries:
+            if entry:
+                if entry._used_backends == [backend]:
+                    self._entries[i]=None                
+                elif backend in entry._used_backends:
+                    j = 0
+                    for field in entry._fields:
+                        if field[3]==backend:
+                            del entry._fields[j]
+                        j+=1
+                    entry.rebuild_index()
+            i += 1
+
     def check_entry_id( self, num_id ):
         """
         Checks whether the given entry id is valid. Raises InvalidEntryID, if not.

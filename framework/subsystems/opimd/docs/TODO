@@ -3,7 +3,6 @@ Near future:
 * sorting
 In mean-time:
 * Initialized, GetInitialized
-* removing entries from cache when disabling backend
 After that:
 * finished inteligent queries (ContactDeleted, ConactUpdated)
 * updating with SIM-Messages-FSO
