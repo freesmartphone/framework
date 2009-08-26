@@ -52,6 +52,13 @@ addProvider( "O2", "Alice",
              auth = "PAP",
              qos = "1,0,0,0,0,0" )
 
+addProvider( "Telfort",
+             apn = "internet",
+             dns1 = "0.0.0.0",
+             dns2 = "0.0.0.0",
+             auth = "CHAP",
+             qos = "1,0,0,0,0,0" )
+
 #=========================================================================#
 if __name__ == "__main__":
     pass
