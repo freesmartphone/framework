@@ -167,6 +167,7 @@ class SIMContactBackendFSO(Backend):
             self.contact_book_info = yield tasklet.WaitDBus(self.gsm_sim_iface.GetPhonebookInfo,'contacts')
             logger.debug("process SIM contacts entries")
             self.process_entries(contacts)
+            self._initialized = True
                 
         except DBusException, e:
             logger.warning("%s: Could not request SIM phonebook from ogsmd : %s", self.name, e)

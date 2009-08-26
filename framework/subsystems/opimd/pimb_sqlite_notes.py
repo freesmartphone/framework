@@ -104,7 +104,9 @@ class SQLiteNotesBackend(Backend):
 
     @tasklet.tasklet
     def load_entries(self):
-        yield self.load_entries_from_db()
+        self.load_entries_from_db()
+        self._initialized = True
+        yield True
 
     def load_entries_from_db(self):
         """Loads all entries from db"""

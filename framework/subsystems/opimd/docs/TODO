@@ -1,8 +1,7 @@
 Near future:
 * quering "Phone" should check also "Office phone"
-* sorting
 In mean-time:
-* Initialized, GetInitialized
+* Initialized signal in source
 After that:
 * finished inteligent queries (ContactDeleted, ConactUpdated)
 * updating with SIM-Messages-FSO

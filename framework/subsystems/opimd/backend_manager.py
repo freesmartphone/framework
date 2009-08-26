@@ -316,6 +316,8 @@ class BackendManager(DBusFBObject):
             domain = DomainManager._domains[domain_name]
             domain.remove_entries_from_backend(backend.name)
 
+        backend._initialized = False
+
     @dbus_method(_DIN_SOURCE, "s", "", rel_path_keyword="rel_path")
     def SetAsDefault(self, domain, rel_path):
         num_id = int(rel_path[1:])

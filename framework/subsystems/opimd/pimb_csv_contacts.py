@@ -78,7 +78,8 @@ class CSVContactBackend(Backend):
     @tasklet.tasklet
     def load_entries(self):
         self.load_entries_from_file()
-        yield None
+        self._initialized = True
+        yield True
 
     def load_entries_from_file(self):
         """Loads all entries from disk"""

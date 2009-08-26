@@ -120,4 +120,5 @@ class OgsmdCallsBackend(Backend):
         if not self.handler:
             bus.add_signal_receiver(self.handle_call_status, signal_name='CallStatus', dbus_interface='org.freesmartphone.GSM.Call', bus_name='org.freesmartphone.ogsmd')
             self.handler = True
+        self._initialized = True
         yield True

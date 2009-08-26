@@ -271,6 +271,7 @@ class SIMMessageBackendFSO(Backend):
             self.process_all_entries(entries)
 
             self.install_signal_handlers()
+            self._initialized = True
         except DBusException, e:
             logger.warning("%s: Could not request SIM messagebook from ogsmd (%s)", self.name, e)
             logger.info("%s: Waiting for SIM being ready...", self.name)
