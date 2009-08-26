@@ -96,10 +96,19 @@ class QueryMatcher(object):
                 reverse = False
             sortby = self.query_obj['_sortby']
 
-            def compare(element):
+            def compare(x,y):
+                if x and y == None:
+                    return 0
+                if x == None:
+                    return 1
+                if y == None:
+                    return -1
+                return cmp(x,y)
+
+            def getkey(element):
                 return entries[element][sortby]
 
-            results.sort(key=compare, reverse = reverse)
+            results.sort(key=getkey, cmp=compare, reverse = reverse)
 
         return results
 
