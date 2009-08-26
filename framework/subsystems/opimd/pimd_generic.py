@@ -598,16 +598,12 @@ class GenericDomain():
         merged = 0
 
         # Check if the entry can be merged with one we already know of
-        if int(config.getValue('opimd', self.name.lower()+'_merging_enabled', default='1')):
-            for entry in self._entries:
+        if int(config.getValue('opimd', self.name.lower()+'_merging_enabled', default='0')):
+            for (entry_idx, entry) in enumerate(self._entries):
                 if entry:
                     if entry.attempt_merge(entry_data, backend.name):
-
-                        # Find that entry's ID
-                        for (entry_idx, ent) in enumerate(self._entries):
-                            if ent == entry: entry_id = entry_idx
-                            break
-
+                        entry_id = entry_idx
+                        # TODO: send EntryUpdated signal
                         # Stop trying to merge
                         merged = 1
                         break
