@@ -94,6 +94,7 @@ class QueryMatcher(object):
                 reverse = True
             else:
                 reverse = False
+            casesens = self.query_obj.get('_sortcasesens')
             sortby = self.query_obj['_sortby']
 
             def compare(x,y):
@@ -109,7 +110,10 @@ class QueryMatcher(object):
                         return 1
                     else:
                         return -1
-                return cmp(x,y)
+                if casesens:
+                    return cmp(x,y)
+                else:
+                    return cmp(x.lower(),y.lower())
 
             def getkey(element):
                 return entries[element][sortby]
