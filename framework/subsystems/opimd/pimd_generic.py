@@ -98,7 +98,7 @@ class GenericEntry():
         if len(field_ids) == 1:
             # Return single result
             field = self._fields[field_ids[0]]
-            return field[1]
+            result = field[1]
 
         else:
             # Return multiple results
@@ -114,10 +114,12 @@ class GenericEntry():
                     thesame = 0
 
             if thesame:
-                return result[0]
-            else:
-                return result
+                result = result[0]
 
+        if result != '':
+            return result
+        else:
+            return None
 
     def __repr__(self):
         return str(self.get_content())

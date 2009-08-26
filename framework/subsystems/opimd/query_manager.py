@@ -31,7 +31,7 @@ MODULE_NAME = "opimd"
 
 from dbus.service import FallbackObject as DBusFBObject
 from helpers import *
-#from opimd import *
+from operator import itemgetter
 
 import logging
 logger = logging.getLogger( MODULE_NAME )
@@ -76,7 +76,7 @@ class QueryMatcher(object):
         result_count = len(matches)
         # Sort matches by relevance and return the best hits
         if result_count > 0:
-            matches.sort(reverse = True)
+            matches.sort(reverse = True, key=itemgetter(0))
 
             limit = result_count
             if self.query_obj.has_key("_limit"):
@@ -87,6 +87,19 @@ class QueryMatcher(object):
             # Append the entry IDs to the result list in the order of the sorted list
             for i in range(limit):
                 results.append(matches[i][1])
+
+        if self.query_obj.get('_sortby'):
+            reverse = self.query_obj.get('_sortdesc')
+            if reverse:
+                reverse = True
+            else:
+                reverse = False
+            sortby = self.query_obj['_sortby']
+
+            def compare(element):
+                return entries[element][sortby]
+
+            results.sort(key=compare, reverse = reverse)
 
         return results
 
