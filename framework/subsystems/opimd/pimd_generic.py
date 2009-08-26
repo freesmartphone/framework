@@ -323,6 +323,11 @@ class GenericEntry():
 
         overall_match = 1.0
 
+        atleast = query_obj.get('_at_least_one')
+
+        if atleast:
+            overall_match = 0.0
+
         for field_name in query_obj.keys():
 
             if field_name.startswith('_') and (field_name.startswith('_int_') or field_name.startswith('_float_') or field_name.startswith('_gt_') or field_name.startswith('_lt_')):
@@ -351,22 +356,32 @@ class GenericEntry():
                         if comp_value:
                             comp_value = mytype(comp_value)
                         else:
-                            overall_match *= 0.0
+                            if not atleast:
+                                overall_match *= 0.0
                             continue
 
                         if operator == 'gt':
                             if comp_value > field_value:
-                                overall_match *= 1.0
+                                if not atleast:
+                                    overall_match *= 1.0
+                                else:
+                                    overall_match += 1.0
                             else:
-                                overall_match *= 0.0
+                                if not atleast:
+                                    overall_match *= 0.0
                         elif operator == 'lt':
                             if comp_value < field_value:
-                                overall_match *= 1.0
+                                if not atleast:
+                                    overall_match *= 1.0
+                                else:
+                                    overall_match += 1.0
                             else:
-                                overall_match *= 0.0
+                                if not atleast:
+                                    overall_match *= 0.0
 
                 except KeyError:
-                    overall_match *= 0.0
+                    if not atleast:
+                        overall_match *= 0.0
                 continue
 
             # Skip fields only meaningful to the parser
@@ -413,10 +428,13 @@ class GenericEntry():
             # Aggregate the field match value into the overall match
             # We don't use the average of all field matches as one
             # non-match *must* result in a final value of 0.0
-            overall_match *= best_field_match
-
-            # Stop comparing if there is too little similarity
-            if overall_match == 0.0: break
+            if not atleast:
+                overall_match *= best_field_match
+                # Stop comparing if there is too little similarity
+                if overall_match == 0.0: break
+            else:
+                overall_match += best_field_match
+                if overall_match > 0.0: break
 
         return overall_match
 
