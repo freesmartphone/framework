@@ -97,12 +97,18 @@ class QueryMatcher(object):
             sortby = self.query_obj['_sortby']
 
             def compare(x,y):
-                if x and y == None:
+                if x == None and y == None:
                     return 0
-                if x == None:
-                    return 1
-                if y == None:
-                    return -1
+                elif x == None:
+                    if reverse:
+                        return -1
+                    else:
+                        return 1
+                elif y == None:
+                    if reverse:
+                        return 1
+                    else:
+                        return -1
                 return cmp(x,y)
 
             def getkey(element):
