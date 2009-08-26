@@ -52,7 +52,7 @@ addProvider( "O2", "Alice",
              auth = "PAP",
              qos = "1,0,0,0,0,0" )
 
-addProvider( "Telfort",
+addProvider( "Telfort", "KPN",
              apn = "internet",
              dns1 = "0.0.0.0",
              dns2 = "0.0.0.0",
