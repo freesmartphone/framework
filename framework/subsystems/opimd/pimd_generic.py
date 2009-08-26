@@ -99,22 +99,19 @@ class GenericEntry():
             # Return single result
             field = self._fields[field_ids[0]]
             result = field[1]
-
         else:
             # Return multiple results
             result = []
+            prev = self._fields[field_ids[0]][1]
+            thesame = 1
             for n in field_ids:
                 field = self._fields[n]
                 result.append(field[1])
-
-            thesame = 1
-            prev = self._fields[field_ids[0]]
-            for n in field_ids:
-                if prev!=self._fields[n]:
+                if prev!=field:
                     thesame = 0
 
             if thesame:
-                result = result[0]
+                result = prev
 
         if result != '':
             return result
@@ -269,11 +266,7 @@ class GenericEntry():
 
         duplicated = True
         for field_name in entry_fields:
-            try:
-                if self[field_name]!=entry_fields[field_name]:
-                    duplicated = False
-                    break
-            except KeyError:
+            if self[field_name]!=entry_fields[field_name]:
                 duplicated = False
                 break
 
@@ -286,26 +279,20 @@ class GenericEntry():
 
         merge = [1, 0]
         for field_name in entry_fields:
-            if not field_name.startswith('_'):
-                if field_name!='Path':
-                    field_value=entry_fields[field_name]
-                    try:
-                        if self[field_name]!=field_value:
-                            merge[0] = 0
-                            break
-                        else:
-                            merge[1] = 1
-                    except KeyError:
-                        pass
+            if not field_name.startswith('_') and field_name!='Path':
+                field_value=entry_fields[field_name]
+                if self[field_name]!=field_value:
+                    merge[0] = 0
+                    break
+                else:
+                    merge[1] = 1
 
         if merge[0]:
             if merge[1]:
                 self.import_fields(entry_fields, backend_name)
                 return True
-            else:
-                return False
-        else:
-            return False
+
+        return False
 
 
     def incorporates_data_from(self, backend_name):
