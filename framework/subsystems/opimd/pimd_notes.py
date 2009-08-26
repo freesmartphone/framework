@@ -323,6 +323,8 @@ class NoteDomain(Domain, GenericDomain):
     def Delete(self, rel_path):
         num_id = int(rel_path[1:])
 
+        self.check_entry_id(num_id)
+
         note = self._entries[num_id].get_fields(self._entries[num_id]._field_idx)
 
         if note.get('Tag'):
@@ -348,9 +350,7 @@ class NoteDomain(Domain, GenericDomain):
     def Update(self, data, rel_path):
         num_id = int(rel_path[1:])
 
-        # Make sure the requested note exists
-        if num_id >= len(self._entries) or self._entries[num_id]==None:
-            raise InvalidEntryID()
+        self.check_entry_id(num_id)
 
         noteif = self._entries[num_id]
         note = noteif.get_fields(noteif._field_idx)

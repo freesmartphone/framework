@@ -949,6 +949,9 @@ class MessageDomain(Domain):
         self.IncomingMessage(_DBUS_PATH_MESSAGES+ '/' + str(message_id))
         return message_id
 
+    def remove_entries_from_backend(self, backend):
+        pass
+
     def enumerate_items(self, backend):
         """Enumerates all message data belonging to a specific backend
 

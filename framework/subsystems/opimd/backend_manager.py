@@ -66,6 +66,7 @@ class Backend(object):
 #----------------------------------------------------------------------------#
     """Base class for all backend"""
     __metaclass__ = BackendMetaClass
+    _initialized = False
     _all_backends_cls = []
 
 #----------------------------------------------------------------------------#
@@ -112,7 +113,7 @@ class BackendManager(DBusFBObject):
                     except:
                         logger.error("Could not load entries for backend %s!", backend)
             init_all(backend).start()
-
+        self.Initialized()
 
     @classmethod
     def register_backend(cls, backend):
@@ -170,6 +171,10 @@ class BackendManager(DBusFBObject):
             backends.append(backend.name)
         return backends
 
+    @dbus_signal(_DIN_SOURCES, "")
+    def Initialized(self):
+        pass
+
     @dbus_method(_DIN_SOURCES, "", "as")
     def GetDomains(self):
         domains = []
@@ -216,6 +221,19 @@ class BackendManager(DBusFBObject):
             yield backend.load_entries()
         # start the tasklet connected to the dbus callbacks
         init().start_dbus(dbus_ok, dbus_error)
+
+
+    @dbus_method(_DIN_SOURCE, "", "b", rel_path_keyword="rel_path")
+    def GetInitialized(self, rel_path):
+        num_id = int(rel_path[1:])
+        backend = None
+
+        if (num_id < len(self._backends)):
+            backend = self._backends[num_id]
+        else:
+            raise InvalidBackendID( "Maximum backend ID is %d" % len(self._backends)-1 )
+
+        return backend._initialized
 
 
     @dbus_method(_DIN_SOURCE, "", "s", rel_path_keyword="rel_path")
@@ -294,11 +312,9 @@ class BackendManager(DBusFBObject):
         config.setValue('opimd', key, 1)
         config.sync()
 
-        #for domain_name in backend.get_supported_domains():
-        #    domain = DomainManager._domains[domain_name]
-        #    for item in domain.enumerate_items(backend): #add generic enumerate items
-        #        del item
-        # wrong and bad by design... ;x
+        for domain_name in backend.get_supported_domains():
+            domain = DomainManager._domains[domain_name]
+            domain.remove_entries_from_backend(backend.name)
 
     @dbus_method(_DIN_SOURCE, "s", "", rel_path_keyword="rel_path")
     def SetAsDefault(self, domain, rel_path):

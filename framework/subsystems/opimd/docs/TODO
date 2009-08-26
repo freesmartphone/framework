@@ -3,7 +3,6 @@ Near future:
 * sorting
 In mean-time:
 * Initialized, GetInitialized
-* removing entries from cache when disabling backend
 After that:
 * finished inteligent queries (ContactDeleted, ConactUpdated)
 * updating with SIM-Messages-FSO
@@ -11,8 +10,6 @@ After that:
 * RSS-Messages backend (handler)
 * Messages on GenericDomain
 Think about:
-* way for quering using all or multiple fields?
-* quering "greater than" and "lesser than"?
 * more domains?
 Finishing:
 * faster merging and avoiding duplicates

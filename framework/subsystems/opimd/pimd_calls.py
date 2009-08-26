@@ -350,6 +350,8 @@ class CallDomain(Domain, GenericDomain):
     def Delete(self, rel_path):
         num_id = int(rel_path[1:])
 
+        self.check_entry_id(num_id)
+
         call = self._entries[num_id].get_fields(self._entries[num_id]._field_idx)
         if call['New'] and not call['Answered'] and call['Direction'] == 'in':
             self._new_missed_calls -= 1
@@ -368,9 +370,7 @@ class CallDomain(Domain, GenericDomain):
     def Update(self, data, rel_path):
         num_id = int(rel_path[1:])
 
-        # Make sure the requested call exists
-        if num_id >= len(self._entries) or self._entries[num_id]==None:
-            raise InvalidEntryID()
+        self.check_entry_id(num_id)
 
         callif = self._entries[num_id]
         call = callif.get_fields(callif._field_idx)
