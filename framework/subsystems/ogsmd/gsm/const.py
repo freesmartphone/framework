@@ -13,7 +13,7 @@ Module: const
 GSM constants, strings, formats, parse patterns, timeouts, you name it.
 """
 
-__version__ = "0.8.3.1"
+__version__ = "0.8.3.2"
 MODULE_NAME = "ogsmd.const"
 
 from framework import config
@@ -1062,9 +1062,9 @@ def phonebookTupleToNumber( nstring, ntype ):
     Returns a full number depending on a number string and a number type.
     """
 
-    # FIXME unknown types seen so far: 160, 185, 208, 255
+    # FIXME document unknown types
     # type128: network TR TCELL appears to use it as 4 digit intracompany calls
-    if ntype not in ( 128, 129, 145, 160, 185, 208, 255 ):
+    if ntype not in ( 128, 129, 145, 160, 161, 185, 208, 255 ):
         logger.warning( "Out-of-spec GSM number type seen: %s. Please report." % ntype )
 
     if ntype == 145: # should not include '+' then, but on some modems, it does
