@@ -118,7 +118,11 @@ class QueryMatcher(object):
             def getkey(element):
                 return entries[element][sortby]
 
-            results.sort(key=getkey, cmp=compare, reverse = reverse)
+            try:
+                results.sort(key=getkey, cmp=compare, reverse = reverse)
+            except AttributeError:
+                casesens = True
+                results.sort(key=getkey, cmp=compare, reverse = reverse)
 
         return results
 
