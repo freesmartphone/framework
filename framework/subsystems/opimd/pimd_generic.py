@@ -319,7 +319,7 @@ class GenericEntry():
 
         for field_name in query_obj.keys():
 
-            if field_name.startswith('_') and (field_name.startswith('_int_') or field_name.startswith('_float_') or field_name.startswith('_gt_') or field_name.startswith('_lt_')):
+            if field_name.startswith('_') and (field_name.startswith('_int_') or field_name.startswith('_float_') or field_name.startswith('_gt_') or field_name.startswith('_lt_') or field_name.startswith('_ge_') or field_name.startswith('_le_')):
                 if field_name.startswith('_int_'):
                     mytype = int
                     fieldname = field_name[8:]
@@ -367,6 +367,25 @@ class GenericEntry():
                             else:
                                 if not atleast:
                                     overall_match *= 0.0
+                        elif operator == 'ge':
+                            if comp_value >= field_value:
+                                if not atleast:
+                                    overall_match *= 1.0
+                                else:
+                                    overall_match += 1.0
+                            else:
+                                if not atleast:
+                                    overall_match *= 0.0
+                        elif operator == 'le':
+                            if comp_value <= field_value:
+                                if not atleast:
+                                    overall_match *= 1.0
+                                else:
+                                    overall_match += 1.0
+                            else:
+                                if not atleast:
+                                    overall_match *= 0.0
+
 
                 except KeyError:
                     if not atleast:
