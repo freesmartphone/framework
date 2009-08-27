@@ -68,84 +68,6 @@ class Date(GenericEntry):
         self.domain_name = _DOMAIN_NAME
         GenericEntry.__init__( self, path )
 
-    def match_query(self, query_obj):
-        """Checks whether this entry matches the given query
-
-        @param query_obj Dict containing key/value pairs of the required matches
-        @return Accuracy of the match, ranging from 0.0 (no match) to 1.0 (complete match)"""
-
-        overall_match = 1.0
-
-        try:
-            begin = query_obj["Begin"]
-            del query_obj["Begin"]
-        except KeyError:
-            begin = None
-
-        try:
-            end = query_obj["End"]
-            del query_obj["End"]
-        except KeyError:
-            end = None
-
-        if (begin == None and end != None) or (begin != None and end == None):
-            return 0.0
-
-        if (begin != None and end != None):
-            if begin > self["End"] or end < self["Begin"]:
-                return 0.0
-
-        for field_name in query_obj.keys():
-            # Skip fields only meaningful to the parser
-            if field_name[:1] == "_": continue
-
-            field_value = str(query_obj[field_name])
-            best_field_match = 0.0
-
-            matcher = re.compile(field_value)
-
-            # Check if field value(s) of this entry match(es) the query field
-            try:
-                field_ids = self._field_idx[field_name]
-
-                for field_id in field_ids:
-
-                    # A field is (Key,Value,Comp_Value,Source), so [2] is the value we usually use for comparison
-                    comp_value = self._fields[field_id][2]
-                    if not comp_value:
-                        # Use the real value if no comparison value given
-                        comp_value = str(self._fields[field_id][1])
-
-                    # Compare and determine the best match ratio
-                    match = matcher.search(comp_value)
-                    if match:
-                        match_len = match.end() - match.start()
-                    else:
-                        match_len = 0
-
-                    if field_value and comp_value:
-                        field_match = float(match_len) / len(comp_value)
-                    else:
-                        field_match = 0.0
-
-                    if field_match > best_field_match: best_field_match = field_match
-                    logger.debug("%s: Field match for %s / %s: %f", self.domain_name, comp_value, field_value, field_match)
-
-            except KeyError:
-                # entry has no data for this field contained in the query, so this entry cannot match
-                return 0.0
-
-            # Aggregate the field match value into the overall match
-            # We don't use the average of all field matches as one
-            # non-match *must* result in a final value of 0.0
-            overall_match *= best_field_match
-
-            # Stop comparing if there is too little similarity
-            if overall_match == 0.0: break
-
-        return overall_match
-
-
 #----------------------------------------------------------------------------#
 class QueryManager(DBusFBObject):
 #----------------------------------------------------------------------------#
@@ -321,15 +243,19 @@ class DateDomain(Domain, GenericDomain):
 
         begin = False
         end = False
-        # Required fields: begin, end
+        # Required fields: Begin, End
         for key in entry_data:
             if key == "Begin":
                 begin = True
             if key == "End":
                 end = True
 
-        if not (begin and end):
-            raise InvalidData( "Begin or End field missing" )
+        if not begin:
+            raise InvalidData( "Begin field missing!" )
+        elif not end:
+            raise InvalidData( "End field missing!" )
+        elif not begin and not end:
+            raise InvalidData( "Begin and End fields missing!" )
 
         return self.add(entry_data)
 
