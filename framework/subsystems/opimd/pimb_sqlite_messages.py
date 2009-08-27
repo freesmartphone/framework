@@ -172,6 +172,8 @@ class SQLiteMessagesBackend(Backend):
                 logger.error("%s: Could not read from database (table message_values)! Possible reason is old, uncompatible table structure. If you don't have important data, please remove %s file.", self.name, _SQLITE_FILE_NAME)
                 raise OperationalError
 
+            if entry.get('Timestamp'):
+                entry['Timestamp']=float(entry['Timestamp'])
             entry_id = self._domain_handlers['Messages'].register_message(self, entry)
             self._entry_ids.append(entry_id)
         cur.close()
