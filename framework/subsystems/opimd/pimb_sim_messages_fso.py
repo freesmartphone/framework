@@ -247,16 +247,10 @@ class SIMMessageBackendFSO(Backend):
         self.process_single_entry((message_id, status, number, text, props), True)
 
     def del_message(self, message_data):
-        entry_ids = None
+        entry_ids = []
         for (field,value) in message_data:
             if field=='_backend_entry_id':
-                if not entry_ids:
-                    entry_ids=value
-                else:
-                    if not isinstance(value, (list, dbus.Array)):
-                        entry_ids = [entry_ids, value]
-                    else:
-                        entry_ids.append(value)
+                entry_ids.append(value)
         for entry_id in entry_ids:
             entry_id = int(entry_id)
             self.gsm_sim_iface.DeleteMessage(entry_id, reply_handler=self.dbus_ok, error_handler=self.dbus_err )
