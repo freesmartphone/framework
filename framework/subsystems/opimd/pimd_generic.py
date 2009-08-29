@@ -265,8 +265,11 @@ class GenericEntry():
         @return True on successful merge, False otherwise"""
 
         duplicated = True
+        self_fields = self.get_content()
         for field_name in entry_fields:
-            if self[field_name]!=entry_fields[field_name]:
+            if entry_fields[field_name] and self_fields.get(field_name) and self_fields[field_name]!=entry_fields[field_name]:
+                print "self:  " + str(self_fields.get(field_name))
+                print "entry: " + str(entry_fields[field_name])
                 duplicated = False
                 break
 
@@ -281,7 +284,7 @@ class GenericEntry():
         for field_name in entry_fields:
             if not field_name.startswith('_') and field_name!='Path':
                 field_value=entry_fields[field_name]
-                if self[field_name]!=field_value:
+                if self_fields.get(field_name) and self_fields[field_name]!=field_value:
                     merge[0] = 0
                     break
                 else:
