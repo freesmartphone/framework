@@ -145,16 +145,25 @@ class Message():
         if len(field_ids) == 1:
             # Return single result
             field = self._fields[field_ids[0]]
-            return field[1]
-
+            result = field[1]
         else:
             # Return multiple results
             result = []
+            prev = self._fields[field_ids[0]][1]
+            thesame = 1
             for n in field_ids:
                 field = self._fields[n]
                 result.append(field[1])
+                if prev!=field:
+                    thesame = 0
 
+            if thesame:
+                result = prev
+
+        if result != '':
             return result
+        else:
+            return None
 
 
     def __setitem__(self, key, value):
@@ -275,8 +284,18 @@ class Message():
                     field_value = (self._fields[field_id])[1]
                     field_values.append(field_value)
 
-                value = ','.join(field_values)
-                result[field_name] = field_values
+#                value = ','.join(field_values)
+
+                thesame = 1
+                prev = field_values[0]
+                for n in field_ids:
+                    if prev!=self._fields[n][1]:
+                        thesame = 0
+
+                if thesame:
+                    result[field_name] = field_values[0]
+                else:
+                    result[field_name] = field_values
 
             else:
                 field_value = (self._fields[field_ids[0]])[1]
@@ -300,53 +319,41 @@ class Message():
         return content
 
 
-    def attempt_merge(self, message_fields, backend_name):
+    def attempt_merge(self, entry_fields, backend_name):
         """Attempts to merge the given message into the message list and returns its ID
 
-        @param message_fields Message data; format: ((Key,Value), (Key,Value), ...)
+        @param entry_fields Message data; format: ((Key,Value), (Key,Value), ...)
         @param backend_name Backend that owns the message data
         @return True on successful merge, False otherwise"""
 
         duplicated = True
-        for field_name in message_fields:
-            try:
-                if self[field_name]!=message_fields[field_name]:
-                    duplicated = False
-                    break
-            except KeyError:
+        self_fields = self.get_content()
+        for field_name in entry_fields:
+            if entry_fields[field_name] and self_fields.get(field_name) and self_fields[field_name]!=entry_fields[field_name]:
                 duplicated = False
                 break
 
         if duplicated:
-            return True # That message exists, so we doesn't have to do anything to have it merged.
+            return True # That entry exists, so we doesn't have to do anything to have it merged.
 
-        # Don't merge if we already have data from $backend_name as one backend can't contain two mergeable messages
-        # Messages domain can store also different messages than SMSes, so merging splitten SMS messages has to be done in SMS backend.
+        # Don't merge if we already have data from $backend_name as one backend can't contain two mergeable entries
         if backend_name in self._used_backends:
             return False
 
         merge = [1, 0]
-        for field_name in message_fields:
-            if not field_name.startswith('_'):
-                if field_name!='Path':
-                    field_value=message_fields[field_name]
-                    try:
-                        if self[field_name]!=field_value:
-                            merge[0] = 0
-                            break
-                        else:
-                            merge[1] = 1
-                    except KeyError:
-                        pass
+        for field_name in entry_fields:
+            if not field_name.startswith('_') and field_name!='Path':
+                field_value=entry_fields[field_name]
+                if self_fields.get(field_name) and self_fields[field_name]!=field_value:
+                    merge[0] = 0
+                    break
+                else:
+                    merge[1] = 1
 
         if merge[0]:
             if merge[1]:
-                self.import_fields(message_fields, backend_name)
+                self.import_fields(entry_fields, backend_name)
                 return True
-            else:
-                return False
-        else:
-            return False
 
         return False
 

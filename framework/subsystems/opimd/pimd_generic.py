@@ -268,8 +268,6 @@ class GenericEntry():
         self_fields = self.get_content()
         for field_name in entry_fields:
             if entry_fields[field_name] and self_fields.get(field_name) and self_fields[field_name]!=entry_fields[field_name]:
-                print "self:  " + str(self_fields.get(field_name))
-                print "entry: " + str(entry_fields[field_name])
                 duplicated = False
                 break
 
