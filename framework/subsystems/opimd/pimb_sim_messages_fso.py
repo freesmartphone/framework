@@ -30,6 +30,7 @@ from dbus import SystemBus
 from dbus.proxies import Interface
 from dbus.exceptions import DBusException
 from functools import partial
+import dbus
 import time
 
 import logging
@@ -246,11 +247,16 @@ class SIMMessageBackendFSO(Backend):
         self.process_single_entry((message_id, status, number, text, props), True)
 
     def del_message(self, message_data):
+        entry_ids = None
         for (field,value) in message_data:
             if field=='_backend_entry_id':
-                entry_ids=value
-        if not isinstance(entry_ids, list):
-            entry_ids = [ entry_ids ]
+                if not entry_ids:
+                    entry_ids=value
+                else:
+                    if not isinstance(value, (list, dbus.Array)):
+                        entry_ids = [entry_ids, value]
+                    else:
+                        entry_ids.append(value)
         for entry_id in entry_ids:
             entry_id = int(entry_id)
             self.gsm_sim_iface.DeleteMessage(entry_id, reply_handler=self.dbus_ok, error_handler=self.dbus_err )
