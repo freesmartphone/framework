@@ -165,6 +165,11 @@ class SIMMessageBackendFSO(Backend):
                             edit_data['SMS-complete_message']=1
                         edit_data['Content'] = new_content
                         edit_data['MessageRead'] = 0
+                        if isinstance(result['_backend_entry_id'], (list, dbus.Array)):
+                            result['_backend_entry_id'].append(sim_entry_id)
+                            edit_data['_backend_entry_id'] = result['_backend_entry_id']
+                        else:
+                            edit_data['_backend_entry_id'] = [result['_backend_entry_id'], sim_entry_id]
                         self._domain_handlers['Messages'].Update(edit_data, rel_path)
                     else:
                         register = 1
