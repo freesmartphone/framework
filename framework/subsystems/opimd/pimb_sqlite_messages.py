@@ -174,11 +174,11 @@ class SQLiteMessagesBackend(Backend):
 
             if entry.get('Timestamp'):
                 entry['Timestamp']=float(entry['Timestamp'])
-            entry_id = self._domain_handlers['Messages'].register_message(self, entry)
+            entry_id = self._domain_handlers['Messages'].register_entry(self, entry)
             self._entry_ids.append(entry_id)
         cur.close()
 
-    def del_message(self, message_data):
+    def del_entry(self, message_data):
         cur = self.con.cursor()
         for (field_name, field_value) in message_data:
             if field_name=='_backend_entry_id':
@@ -189,7 +189,7 @@ class SQLiteMessagesBackend(Backend):
         self.con.commit()
         cur.close()
 
-    def upd_message(self, message_data):
+    def upd_entry(self, message_data):
         reqfields = ['Source', 'Timestamp', 'Timezone', 'Direction', 'Title', 'Sender', 'TransmitLoc', 'Content', 'MessageRead', 'MessageSent', 'Processing']
         cur = self.con.cursor()
         for (field, value) in message_data:
@@ -212,7 +212,7 @@ class SQLiteMessagesBackend(Backend):
         self.con.commit()
         cur.close()
 
-    def add_message(self, message_data):
+    def add_entry(self, message_data):
         message_id = self.add_message_to_db(message_data)
         return message_id
 
@@ -250,5 +250,5 @@ class SQLiteMessagesBackend(Backend):
 
         message_data['_backend_entry_id']=str(cid)
 
-        message_id = self._domain_handlers['Messages'].register_message(self, message_data)
+        message_id = self._domain_handlers['Messages'].register_entry(self, message_data)
         return message_id

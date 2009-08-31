@@ -136,7 +136,7 @@ class SIMMessageBackendFSO(Backend):
 
         if not incoming:
             logger.debug("Message was already stored")
-            entry_id = self._domain_handlers['Messages'].register_message(self, entry)
+            entry_id = self._domain_handlers['Messages'].register_entry(self, entry)
             self._entry_ids.append(entry_id)
         else:
             logger.debug("Message is incoming!")
@@ -144,7 +144,7 @@ class SIMMessageBackendFSO(Backend):
                 logger.debug("It's CSM!")
                 register = 0
                 try:
-                    path = self._domain_handlers['Messages'].GetSingleMessageSingleField({'Direction':'in', 'SMS-combined_message':1, 'SMS-complete_message':0, 'SMS-csm_num':entry['SMS-csm_num'], 'SMS-csm_id':entry['SMS-csm_id'], 'Source':'SMS'},'Path')
+                    path = self._domain_handlers['Messages'].GetSingleEntrySingleField({'Direction':'in', 'SMS-combined_message':1, 'SMS-complete_message':0, 'SMS-csm_num':entry['SMS-csm_num'], 'SMS-csm_id':entry['SMS-csm_id'], 'Source':'SMS'},'Path')
                     if path:
                         rel_path = path.replace('/org/freesmartphone/PIM/Messages','')
                         result = self._domain_handlers['Messages'].GetContent(rel_path)
@@ -251,7 +251,7 @@ class SIMMessageBackendFSO(Backend):
     def process_incoming_stored_entry(self, status, number, text, props, message_id):
         self.process_single_entry((message_id, status, number, text, props), True)
 
-    def del_message(self, message_data):
+    def del_entry(self, message_data):
         entry_ids = []
         for (field,value) in message_data:
             if field=='_backend_entry_id':
@@ -298,7 +298,7 @@ class SIMMessageBackendFSO(Backend):
             )
 
     def handle_incoming_message_receipt(self, number, text, props):
-        path = self._domain_handlers['Messages'].GetSingleMessageSingleField({'SMS-message-reference':props['message-reference'], 'Direction':'out', 'Source':'SMS', 'SMS-status-report-request':1},'Path')
+        path = self._domain_handlers['Messages'].GetSingleEntrySingleField({'SMS-message-reference':props['message-reference'], 'Direction':'out', 'Source':'SMS', 'SMS-status-report-request':1},'Path')
         if path:
             rel_path = path.replace('/org/freesmartphone/PIM/Messages','')
             try:
