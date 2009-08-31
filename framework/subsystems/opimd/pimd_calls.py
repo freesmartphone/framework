@@ -281,6 +281,10 @@ class CallDomain(Domain, GenericDomain):
     def NewMissedCalls(self, amount):
         pass
 
+    @dbus_method(_DIN_CALLS, "", "i"):
+    def GetNewMissedCalls(self):
+        return self._new_missed_calls
+
     @dbus_signal(_DIN_CALLS, "s")
     def MissedCall(self, path):
         pass
