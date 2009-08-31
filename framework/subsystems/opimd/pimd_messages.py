@@ -121,7 +121,7 @@ class QueryManager(DBusFBObject):
         @param message_id Message ID of the message that was added"""
 
         for (query_id, query_handler) in self._queries.items():
-            if query_handler.check_new_message(message_id):
+            if query_handler.check_new_entry(message_id):
                 message = self._entries[message_id]
                 message_path = message['Path']
                 self.MessageAdded(message_path, rel_path='/' + str(query_id))
@@ -376,7 +376,7 @@ class MessageDomain(Domain, GenericDomain):
             result = message['Path']
 
             # As we just added a new message, we check it against all queries to see if it matches
-            self.query_manager.check_new_message(message_id)
+            self.query_manager.check_new_entry(message_id)
             
         self.IncomingMessage(_DBUS_PATH_MESSAGES+ '/' + str(message_id))
         return message_id
