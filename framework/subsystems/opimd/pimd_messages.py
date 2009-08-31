@@ -436,6 +436,10 @@ class MessageDomain(Domain, GenericDomain):
         folder_id = self.get_folder_id_from_name(folder_name)
         return _DBUS_PATH_FOLDERS + '/' + str(folder_id)
 
+    @dbus_method(_DIN_MESSAGES, "", "i")
+    def GetUnreadMessages(self):
+        return self._unread_messages
+
     @dbus_signal(_DIN_MESSAGES, "i")
     def UnreadMessages(self, amount):
         pass
