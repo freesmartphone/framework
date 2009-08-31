@@ -137,6 +137,7 @@ class CSVContactBackend(Backend):
 
     def sync(self):
         self.save_entries_to_file()
+        return True
 
     def upd_entry(self, contact_data):
         pass

@@ -318,6 +318,23 @@ class BackendManager(DBusFBObject):
 
         backend._initialized = False
 
+    @dbus_method(_DIN_SOURCE, "", "b", rel_path_keyword="rel_path")
+    def Synchronize(self, rel_path):
+        num_id = int(rel_path[1:])
+        backend = None
+
+        if (num_id < len(self._backends)):
+            backend = self._backends[num_id]
+        else:
+            raise InvalidBackendID( "Maximum backend ID is %d" % len(self._backends)-1 )
+
+        try:
+            result = backend.sync()
+        except AttributeError:
+            raise InvalidBackend( "Backend does not feature synchronization" )
+
+        return result
+
     @dbus_method(_DIN_SOURCE, "s", "", rel_path_keyword="rel_path")
     def SetAsDefault(self, domain, rel_path):
         num_id = int(rel_path[1:])
