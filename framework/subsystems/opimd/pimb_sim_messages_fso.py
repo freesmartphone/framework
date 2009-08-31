@@ -260,6 +260,17 @@ class SIMMessageBackendFSO(Backend):
             entry_id = int(entry_id)
             self.gsm_sim_iface.DeleteMessage(entry_id, reply_handler=self.dbus_ok, error_handler=self.dbus_err )
 
+    def disable(self):
+        if self.ready_signal:
+            self.readysignal.remove()
+            self.authsignal.remove()
+            self.ready_signal = False
+        if self.signals:
+            self.imsignal.remove()
+            self.ismsignal.remove()
+            self.imrsignal.remove()
+            self.signals = False
+
     @tasklet.tasklet
     def load_entries(self):
         self.bus = SystemBus()
@@ -282,8 +293,8 @@ class SIMMessageBackendFSO(Backend):
             logger.info("%s: Waiting for SIM being ready...", self.name)
             if not self.ready_signal:
                 try:
-                    self.bus.add_signal_receiver(self.handle_sim_ready, signal_name='ReadyStatus', dbus_interface='org.freesmartphone.GSM.SIM', bus_name='org.freesmartphone.ogsmd')
-                    self.bus.add_signal_receiver(self.handle_auth_status, signal_name='AuthStatus', dbus_interface='org.freesmartphone.GSM.SIM', bus_name='org.freesmartphone.ogsmd')
+                    self.readysignal = self.bus.add_signal_receiver(self.handle_sim_ready, signal_name='ReadyStatus', dbus_interface='org.freesmartphone.GSM.SIM', bus_name='org.freesmartphone.ogsmd')
+                    self.authsignal = self.bus.add_signal_receiver(self.handle_auth_status, signal_name='AuthStatus', dbus_interface='org.freesmartphone.GSM.SIM', bus_name='org.freesmartphone.ogsmd')
                     logger.info('%s: Signal listeners about SIM status installed', self.name)
                     #self.gsm_sim_iface.connect_to_signal("ReadyStatus", self.handle_sim_ready)
                     self.ready_signal = True
@@ -323,9 +334,9 @@ class SIMMessageBackendFSO(Backend):
         """Hooks to some d-bus signals that are of interest to us"""
         if not self.signals:
             try:
-                self.gsm_sms_iface.connect_to_signal("IncomingMessage", self.handle_incoming_message)
-                self.gsm_sim_iface.connect_to_signal("IncomingStoredMessage", self.handle_incoming_stored_message)
-                self.gsm_sms_iface.connect_to_signal("IncomingMessageReceipt", self.handle_incoming_message_receipt)
+                self.imsignal = self.gsm_sms_iface.connect_to_signal("IncomingMessage", self.handle_incoming_message)
+                self.ismsignal = self.gsm_sim_iface.connect_to_signal("IncomingStoredMessage", self.handle_incoming_stored_message)
+                self.imrsignal = self.gsm_sms_iface.connect_to_signal("IncomingMessageReceipt", self.handle_incoming_message_receipt)
                 logger.info("%s: Installed signal handlers", self.name)
                 self.signals = True
                 self.gsm_device_iface.SetSimBuffersSms(self.am_i_default(), reply_handler=self.dbus_ok, error_handler=self.dbus_err)

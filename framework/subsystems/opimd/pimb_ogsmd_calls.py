@@ -114,11 +114,16 @@ class OgsmdCallsBackend(Backend):
 
             del self.props[line]
 
+    def disable(self):
+        if self.handler:
+            self.signal.remove()
+            self.handler = False
+
     @tasklet.tasklet
     def load_entries(self):
         bus = SystemBus()
         if not self.handler:
-            bus.add_signal_receiver(self.handle_call_status, signal_name='CallStatus', dbus_interface='org.freesmartphone.GSM.Call', bus_name='org.freesmartphone.ogsmd')
+            self.signal = bus.add_signal_receiver(self.handle_call_status, signal_name='CallStatus', dbus_interface='org.freesmartphone.GSM.Call', bus_name='org.freesmartphone.ogsmd')
             self.handler = True
         self._initialized = True
         yield True

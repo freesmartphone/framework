@@ -1,12 +1,11 @@
 Near future:
 * UnfinishedTasks
-* disabling handlers
 * Initialized signal in source
 In mean-time:
 * write documentation
 After that:
-* backends configuration, status
 * sorting by multiple fields (_sortby:['Surname','Name'])
+* backends configuration, status
 * finished inteligent queries (ContactDeleted, ContactUpdated)
 * updating with SIM-Messages-FSO
 * adding new fields to for example SIM entry (by merging)

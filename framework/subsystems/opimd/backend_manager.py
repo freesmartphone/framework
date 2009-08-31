@@ -312,6 +312,11 @@ class BackendManager(DBusFBObject):
         config.setValue('opimd', key, 1)
         config.sync()
 
+        try:
+            backend.disable()
+        except AttributeError:
+            pass
+
         for domain_name in backend.get_supported_domains():
             domain = DomainManager._domains[domain_name]
             domain.remove_entries_from_backend(backend.name)
