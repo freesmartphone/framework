@@ -243,7 +243,7 @@ class GenericEntry():
         return result
 
 
-    def get_content(self):
+    def get_content(self, parserfields = False):
         """Creates and returns a complete representation of the entry
         @note Backend information is omitted.
         @note Fields that have more than one occurence are concatenated using a separation character of ','.
@@ -253,7 +253,9 @@ class GenericEntry():
         fields = self.get_fields(self._field_idx)
         content = {}
         for field in fields:
-            if fields[field]!='' and fields[field]!=None and not field.startswith('_'):
+            if not parserfields and field.startswith('_'):
+                continue
+            if fields[field]!='' and fields[field]!=None:
                 content[field] = fields[field]
         return content
 
@@ -264,10 +266,16 @@ class GenericEntry():
         @param backend_name Backend that owns the entry data
         @return True on successful merge, False otherwise"""
 
+        def notnull(sth):
+            if sth!=None and sth!='':
+                return True
+            else:
+                return False
+
         duplicated = True
-        self_fields = self.get_content()
+        self_fields = self.get_content(True)
         for field_name in entry_fields:
-            if entry_fields[field_name] and self_fields.get(field_name) and self_fields[field_name]!=entry_fields[field_name]:
+            if notnull(entry_fields[field_name]) and (not notnull(self_fields.get(field_name)) or self_fields[field_name]!=entry_fields[field_name]):
                 duplicated = False
                 break
 

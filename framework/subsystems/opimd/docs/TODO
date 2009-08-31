@@ -1,15 +1,18 @@
 Near future:
-* check if merging still works
-* quering "Phone" should check also "Office phone"
+* Messages on GenericDomain
+* UnfinishedTasks
+* check if sorting works with merged entries
 In mean-time:
 * Initialized signal in source
 After that:
+* quering "Phone" should check also "Office phone"
 * finished inteligent queries (ContactDeleted, ConactUpdated)
 * updating with SIM-Messages-FSO
 * adding new fields to for example SIM entry (by merging)
-* RSS-Messages backend (handler)
-* Messages on GenericDomain
 Think about:
+* RSS-Messages backend (handler)
+* Google-Contacts backend
+* should quering "Phone" check also "Office phone"? regexps in fields?
 * more domains?
 Finishing:
 * faster merging and avoiding duplicates
