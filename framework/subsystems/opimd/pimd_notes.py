@@ -235,6 +235,7 @@ class NoteDomain(Domain, GenericDomain):
             for tag in tags:
                 if not tag in self._tags:
                     self._tags[tag] = [note_id]
+                    self.NewTag(tag)
                 else:
                     if not note_id in self._tags[tag]:
                         self._tags[tag].append(note_id)
@@ -269,6 +270,14 @@ class NoteDomain(Domain, GenericDomain):
         @return The requested data"""
 
         return self.get_single_entry_single_field(query, field_name)
+
+    @dbus_signal(_DIN_NOTES, "s")
+    def NewTag(self, tag):
+        pass
+
+    @dbus_signal(_DIN_NOTES, "s")
+    def TagRemoved(self, tag):
+        pass
 
     @dbus_method(_DIN_NOTES, "", "as")
     def GetUsedTags(self):
@@ -334,6 +343,7 @@ class NoteDomain(Domain, GenericDomain):
             for tag in tags:
                 if self._tags[tag]==[num_id]:
                     del self._tags[tag]
+                    self.TagRemoved(tag)
                 else:
                     self._tags[tag].remove(num_id) 
 
@@ -362,6 +372,7 @@ class NoteDomain(Domain, GenericDomain):
             for tag in tags:
                 if self._tags[tag]==[num_id]:
                     del self._tags[tag]
+                    self.TagRemoved(tag)
                 else:
                     self._tags[tag].remove(num_id)
  
@@ -373,6 +384,7 @@ class NoteDomain(Domain, GenericDomain):
             for tag in tags:
                 if not tag in self._tags:
                     self._tags[tag] = [num_id]
+                    self.NewTag(tag)
                 else:
                     if not num_id in self._tags[tag]:
                         self._tags[tag].append(num_id)
