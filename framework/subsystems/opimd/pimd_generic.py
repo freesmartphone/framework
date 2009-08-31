@@ -107,7 +107,7 @@ class GenericEntry():
             for n in field_ids:
                 field = self._fields[n]
                 result.append(field[1])
-                if prev!=field:
+                if prev!=field[1]:
                     thesame = 0
 
             if thesame:
