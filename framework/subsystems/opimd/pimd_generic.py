@@ -440,7 +440,10 @@ class GenericEntry():
 
             except KeyError:
                 # entry has no data for this field contained in the query, so this entry cannot match
-                return 0.0
+                if not atleast:
+                    return 0.0
+                else:
+                    field_match = 0.0
 
             # Aggregate the field match value into the overall match
             # We don't use the average of all field matches as one

@@ -1,11 +1,9 @@
 Near future:
-* Messages on GenericDomain
 * UnfinishedTasks
-* check if sorting works with merged entries
 In mean-time:
 * Initialized signal in source
 After that:
-* quering "Phone" should check also "Office phone"
+* quering "Phone" should check also "Office phone" etc.
 * finished inteligent queries (ContactDeleted, ConactUpdated)
 * updating with SIM-Messages-FSO
 * adding new fields to for example SIM entry (by merging)
