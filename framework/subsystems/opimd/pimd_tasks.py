@@ -205,6 +205,7 @@ class TaskDomain(Domain, GenericDomain):
     query_manager = None
     _dbus_path = None
     Entry = None
+    _unfinished_tasks = None
 
     def __init__(self):
         """Creates a new TaskDomain instance"""
@@ -215,6 +216,7 @@ class TaskDomain(Domain, GenericDomain):
         self._entries = []
         self._dbus_path = _DBUS_PATH_NOTES
         self.query_manager = QueryManager(self._entries)
+        self._unfinished_tasks = 0
 
         # Initialize the D-Bus-Interface
         Domain.__init__( self, conn=busmap["opimd"], object_path=DBUS_PATH_BASE_FSO + '/' + self.name )
@@ -222,6 +224,16 @@ class TaskDomain(Domain, GenericDomain):
         # Keep frameworkd happy
         self.interface = _DIN_NOTES
         self.path = _DBUS_PATH_NOTES
+
+    def register_entry(self, backend, task_data):
+        new_task_id = len(self._entries)
+        task_id = GenericDomain.register_entry(self, backend, task_data)
+        if task_id == new_task_id:
+            if task_data.has_key('Finished'):
+                if not task_data['Finished']:
+                    self._unfinished_tasks += 1
+                    self.UnfinishedTasks(self._unfinished_tasks)
+        return task_id
 
  
     #---------------------------------------------------------------------#
@@ -234,6 +246,14 @@ class TaskDomain(Domain, GenericDomain):
     @dbus_signal(_DIN_NOTES, "s")
     def NewTask(self, path):
         pass
+
+    @dbus_signal(_DIN_NOTES, "i")
+    def UnfinishedTasks(self, amount):
+        pass
+
+    @dbus_method(_DIN_NOTES, "", "i")
+    def GetUnfinishedTasks(self):
+        return self._unfinished_tasks
 
     @dbus_method(_DIN_NOTES, "a{sv}", "s")
     def Add(self, entry_data):
@@ -300,7 +320,15 @@ class TaskDomain(Domain, GenericDomain):
     def Delete(self, rel_path):
         num_id = int(rel_path[1:])
 
+        self.check_entry_id(num_id)
+
+        task = self._entries[num_id].get_fields(self._entries[num_id]._field_idx)
+        if not task['Finished']:
+            self._unfinished_tasks -= 1
+            self.UnfinishedTasks(self._unfinished_tasks)
+
         self.delete(num_id)
+
 
     def EntryUpdated(self, data, rel_path=None):
         self.TaskUpdated(data, rel_path=rel_path)
@@ -314,3 +342,22 @@ class TaskDomain(Domain, GenericDomain):
         num_id = int(rel_path[1:])
 
         self.update(num_id, data)
+
+    @dbus_method(_DIN_ENTRY, "a{sv}", "", rel_path_keyword="rel_path")
+    def Update(self, data, rel_path):
+        num_id = int(rel_path[1:])
+
+        self.check_entry_id(num_id)
+
+        taskif = self._entries[num_id]
+        task = taskif.get_fields(callif._task_idx)
+
+        if task.has_key('Finished') or data.has_key('Finished'):
+            if task['Finished'] and not data.get('Finished'):
+                self._unfinished_tasks -= 1
+                self.UnfinishedTasks(self._unfinished_tasks)
+            elif not task['Finished'] and data.get('Finished'):
+                self._unfinished_tasks += 1
+                self.UnfinishedTasks(self._unfinished_tasks)
+
+        self.update(num_id, data, entryif = taskif, entry = task)
