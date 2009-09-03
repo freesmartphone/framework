@@ -22,7 +22,7 @@ TODO:
  * refactor parameter validation
 """
 
-__version__ = "0.9.19.1"
+__version__ = "0.9.19.2"
 MODULE_NAME = "ogsmd.modems.abstract.mediator"
 
 from ogsmd import error as DBusError
@@ -1239,7 +1239,10 @@ class NetworkGetStatus( NetworkMediator ):
                 values = safesplit( self._rightHandSide( response[-3] ), ',' )
                 result["mode"] = const.REGISTER_MODE[int(values[0])]
                 if len( values ) > 2:
-                    result["provider"] = values[2].strip( '"' ).decode(charset)
+                    result["provider"] = values[2].strip( '" ' ).decode(charset)
+                    # remove empty provider
+                    if not result["provider"]:
+                        del result["provider"]
                     if len( values ) == 4:
                         result["act"] = const.REGISTER_ACT[int( values[3] )]
                     else: # AcT defaults to GSM
