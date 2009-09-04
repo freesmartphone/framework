@@ -1308,6 +1308,14 @@ class NetworkListProviders( NetworkMediator ): # a{sv}
                 if act is None or act == "":
                     act = "0" # AcT defaults to GSM
                 act = const.REGISTER_ACT[int(act)]
+                if not name.strip():
+                     name = const.NETWORKS.get( ( int( index[:3]), int( index[3:] ) ), {} )
+                     if "brand" in name:
+                         name = name["brand"]
+                     elif "operator" in name:
+                         name = name["operator"]
+                     else:
+                         name = "Unknown"
                 result.append( ( index, status, name, shortname, act ) )
             self._ok( result )
         else:
