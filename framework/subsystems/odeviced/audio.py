@@ -495,6 +495,7 @@ class Audio( dbus.service.Object ):
         info["name"] = "Default Audio Device"
         info["formats"] = list( set( formats ) )
         info["scenario"] = self.scenario.getScenario()
+        info["scenarios"] = dbus.Array( self.scenario.getAvailableScenarios(), "as" )
         dbus_ok( info )
 
     #
