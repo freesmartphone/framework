@@ -8,7 +8,7 @@ GPLv2 or later
 """
 
 MODULE_NAME = "odeviced.kernel26"
-__version__ = "0.9.9.8"
+__version__ = "0.9.9.9"
 
 from helpers import DBUS_INTERFACE_PREFIX, DBUS_PATH_PREFIX, readFromFile, writeToFile, cleanObjectName
 from framework.config import config
@@ -414,22 +414,22 @@ class PowerSupplyApm( dbus.service.Object ):
         return int( percentage[:-1] )
 
 #----------------------------------------------------------------------------#
-class RealTimeClock( dbus.service.Object ):
+class RealtimeClock( dbus.service.Object ):
 #----------------------------------------------------------------------------#
-    """A Dbus Object implementing org.freesmartphone.Device.RealTimeClock
+    """A Dbus Object implementing org.freesmartphone.Device.RealtimeClock
     using the kernel 2.6 rtc class device"""
-    DBUS_INTERFACE = DBUS_INTERFACE_PREFIX + ".RealTimeClock"
+    DBUS_INTERFACE = DBUS_INTERFACE_PREFIX + ".RealtimeClock"
     SUPPORTS_MULTIPLE_OBJECT_PATHS = True
     OBJECT_PATH_COUNTER = 0
 
     def __init__( self, bus, index, node ):
         self.interface = self.DBUS_INTERFACE
-        self.path = DBUS_PATH_PREFIX + "/RealTimeClock/%s" % cleanObjectName( node.split('/')[-1] )
+        self.path = DBUS_PATH_PREFIX + "/RTC/%s" % cleanObjectName( node.split('/')[-1] )
         dbus.service.Object.__init__( self, bus, self.path )
         logger.info( "%s %s initialized. Serving %s at %s" % ( self.__class__.__name__, __version__, self.interface, self.path ) )
         self.node = node
         # also register object under an incremental path
-        self.path2 = DBUS_PATH_PREFIX + "/RealTimeClock/%d" % self.__class__.OBJECT_PATH_COUNTER
+        self.path2 = DBUS_PATH_PREFIX + "/RTC/%d" % self.__class__.OBJECT_PATH_COUNTER
         self.add_to_connection( self._connection, self.path2  )
         self.__class__.OBJECT_PATH_COUNTER += 1
 
@@ -455,27 +455,16 @@ class RealTimeClock( dbus.service.Object ):
         """Return wakeup time in seconds since epoch (UTC) if a wakeup
         time has been set. Return 0, otherwise."""
         # the wakealarm attribute is not always present
-        if os.path.exists( "%s/wakealarm" % self.node ):
-            wake = readFromFile( "%s/wakealarm" % self.node )
-            if wake == "":
-                wake = 0;
-            return int( wake )
-        else:
-            # use ioctl interface
-            ( enabled, pending ), t = pyrtc.rtcReadAlarm()
-            return 0 if not enabled else calendar.timegm( t )
+        ( enabled, pending ), t = pyrtc.rtcReadAlarm()
+        return 0 if not enabled else calendar.timegm( t )
 
     @dbus.service.method( DBUS_INTERFACE, "i", "" )
     def SetWakeupTime( self, t ):
         """Set wakeup time in seconds since epoch (UTC). Set 0 to disable."""
-        if os.path.exists( "%s/wakealarm" % self.node ):
-            writeToFile( "%s/wakealarm" % self.node, t )
+        if t == 0:
+            pyrtc.rtcDisableAlarm()
         else:
-            # use ioctl interface
-            if t == 0:
-                pyrtc.rtcDisableAlarm()
-            else:
-                pyrtc.rtcSetAlarm( time.gmtime( t ) )
+            pyrtc.rtcSetAlarm( time.gmtime( t ) )
 
 #----------------------------------------------------------------------------#
 def factory( prefix, controller ):
@@ -512,7 +501,7 @@ def factory( prefix, controller ):
     if os.path.exists( rtcpath ):
         for ( index, node ) in enumerate( os.listdir( rtcpath ) ):
             logger.debug( "scanning %s %s", index, node )
-            objects.append( RealTimeClock( bus, index, "%s/%s" % ( rtcpath, node ) ) )
+            objects.append( RealtimeClock( bus, index, "%s/%s" % ( rtcpath, node ) ) )
 
     return objects
 
@@ -570,7 +559,7 @@ if __name__ == "__main__":
 
     rtc = []
     for i in count():
-        iface = requestInterfaceForObject( DBUS_INTERFACE_PREFIX, RealTimeClock.DBUS_INTERFACE, DBUS_PATH_PREFIX+"/RealTimeClock/%s" % i )
+        iface = requestInterfaceForObject( DBUS_INTERFACE_PREFIX, RealtimeClock.DBUS_INTERFACE, DBUS_PATH_PREFIX+"/RTC/%s" % i )
         if iface is not None:
             rtc.append( iface )
         else:
