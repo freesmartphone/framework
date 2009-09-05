@@ -2,7 +2,7 @@
 """
 Open Device Daemon - A plugin for audio device peripherals
 
-(C) 2008 Michael 'Mickey' Lauer <mlauer@vanille-media.de>
+(C) 2008-2009 Michael 'Mickey' Lauer <mlauer@vanille-media.de>
 (C) 2008 Openmoko, Inc.
 GPLv2 or later
 
@@ -11,7 +11,7 @@ Module: audio
 """
 
 MODULE_NAME = "odeviced.audio"
-__version__ = "0.5.9.10"
+__version__ = "0.5.9.11"
 
 from framework.config import config
 from framework.patterns import asyncworker, processguard
@@ -485,10 +485,17 @@ class Audio( dbus.service.Object ):
     #
     # dbus info methods
     #
-    @dbus.service.method( DBUS_INTERFACE, "", "s",
+    @dbus.service.method( DBUS_INTERFACE, "", "a{sv}",
                           async_callbacks=( "dbus_ok", "dbus_error" ) )
     def GetInfo( self, dbus_ok, dbus_error ):
-        dbus_ok( self.player.__class__.__name__ )
+        info = {}
+        formats = []
+        for player in self.players.values():
+            formats += player.supportedFormats()
+        info["name"] = "Default Audio Device"
+        info["formats"] = list( set( formats ) )
+        info["scenario"] = self.scenario.getScenario()
+        dbus_ok( info )
 
     #
     # dbus sound methods
