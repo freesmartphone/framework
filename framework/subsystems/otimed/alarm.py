@@ -12,7 +12,7 @@ Module: alarm
 """
 
 MODULE_NAME = "otimed.alarm"
-__version__ = "0.1.4"
+__version__ = "0.1.4.1"
 
 DBUS_INTERFACE_PREFIX = "org.freesmartphone.Time.Alarm"
 DBUS_PATH_PREFIX = "/org/freesmartphone/Time/Alarm"
@@ -92,10 +92,10 @@ class AlarmController( dbus.service.Object ):
 
         # gather realtime clock dbus object
         o = bus.get_object( "org.freesmartphone.odeviced",
-                            "/org/freesmartphone/Device/RealTimeClock/0",
+                            "/org/freesmartphone/Device/RTC/0",
                             follow_name_owner_changes=True,
                             introspect=False )
-        self.rtc = dbus.Interface( o, "org.freesmartphone.Device.RealTimeClock" )
+        self.rtc = dbus.Interface( o, "org.freesmartphone.Device.RealtimeClock" )
         logger.info( "%s %s initialized. Serving %s at %s", self.__class__.__name__, __version__, self.interface, self.path )
 
     def _nameOwnerChangedHandler( self, name, old_owner, new_owner ):
