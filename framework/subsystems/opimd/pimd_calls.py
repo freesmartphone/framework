@@ -357,7 +357,7 @@ class CallDomain(Domain, GenericDomain):
         self.check_entry_id(num_id)
 
         call = self._entries[num_id].get_fields(self._entries[num_id]._field_idx)
-        if call['New'] and not call['Answered'] and call['Direction'] == 'in':
+        if call.get('New') and not call.get('Answered') and call.get('Direction') == 'in':
             self._new_missed_calls -= 1
             self.NewMissedCalls(self._new_missed_calls)
 
