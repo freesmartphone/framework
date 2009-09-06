@@ -349,7 +349,7 @@ class TaskDomain(Domain, GenericDomain):
         self.check_entry_id(num_id)
 
         taskif = self._entries[num_id]
-        task = taskif.get_fields(taskif._task_idx)
+        task = taskif.get_fields(taskif._field_idx)
 
         if task.has_key('Finished') or data.has_key('Finished'):
             if task.get('Finished') and not data.get('Finished'):
