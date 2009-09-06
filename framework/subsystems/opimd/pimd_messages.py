@@ -177,7 +177,7 @@ class QueryManager(DBusFBObject):
         return self._queries[num_id].get_result(sender)
 
 
-    @dbus_method(_DIN_QUERY, "i", "a{ia{sv}}", rel_path_keyword="rel_path", sender_keyword="sender")
+    @dbus_method(_DIN_QUERY, "i", "aa{sv}", rel_path_keyword="rel_path", sender_keyword="sender")
     def GetMultipleResults(self, num_entries, rel_path, sender):
         num_id = int(rel_path[1:])
         self.check_query_id_ok( num_id )
