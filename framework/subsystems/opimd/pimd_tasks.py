@@ -229,10 +229,9 @@ class TaskDomain(Domain, GenericDomain):
         new_task_id = len(self._entries)
         task_id = GenericDomain.register_entry(self, backend, task_data)
         if task_id == new_task_id:
-            if task_data.has_key('Finished'):
-                if not task_data['Finished']:
-                    self._unfinished_tasks += 1
-                    self.UnfinishedTasks(self._unfinished_tasks)
+            if not task_data.get('Finished'):
+                self._unfinished_tasks += 1
+                self.UnfinishedTasks(self._unfinished_tasks)
         return task_id
 
  
@@ -323,7 +322,7 @@ class TaskDomain(Domain, GenericDomain):
         self.check_entry_id(num_id)
 
         task = self._entries[num_id].get_fields(self._entries[num_id]._field_idx)
-        if not task['Finished']:
+        if not task.get('Finished'):
             self._unfinished_tasks -= 1
             self.UnfinishedTasks(self._unfinished_tasks)
 
@@ -353,10 +352,10 @@ class TaskDomain(Domain, GenericDomain):
         task = taskif.get_fields(callif._task_idx)
 
         if task.has_key('Finished') or data.has_key('Finished'):
-            if task['Finished'] and not data.get('Finished'):
+            if task.get('Finished') and not data.get('Finished'):
                 self._unfinished_tasks -= 1
                 self.UnfinishedTasks(self._unfinished_tasks)
-            elif not task['Finished'] and data.get('Finished'):
+            elif not task.get('Finished') and data.get('Finished'):
                 self._unfinished_tasks += 1
                 self.UnfinishedTasks(self._unfinished_tasks)
 
