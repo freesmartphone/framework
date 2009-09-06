@@ -533,7 +533,7 @@ class MessageDomain(Domain, GenericDomain):
         self.check_entry_id(num_id)
 
         message = self._entries[num_id].get_fields(self._entries[num_id]._field_idx)
-        if not message['MessageRead'] and message['Direction'] == 'in':
+        if not message.get('MessageRead') and message.get('Direction') == 'in':
             self._unread_messages -= 1
             self.UnreadMessages(self._unread_messages)
 
