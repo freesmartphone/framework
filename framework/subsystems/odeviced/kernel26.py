@@ -455,7 +455,11 @@ class RealtimeClock( dbus.service.Object ):
         """Return wakeup time in seconds since epoch (UTC) if a wakeup
         time has been set. Return 0, otherwise."""
         # the wakealarm attribute is not always present
-        ( enabled, pending ), t = pyrtc.rtcReadAlarm()
+        result = pyrtc.rtcReadAlarm()
+        if result is None:
+            logger.error( "Can't read RTC alarm. Returning 0" )
+            result = ( ( False, False ), 0 )
+        ( enabled, pending ), t = result
         return 0 if not enabled else calendar.timegm( t )
 
     @dbus.service.method( DBUS_INTERFACE, "i", "" )
