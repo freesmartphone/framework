@@ -389,8 +389,19 @@ class MessageDomain(Domain, GenericDomain):
         @param message_data List of fields; format is [Key:Value, Key:Value, ...]
         @return URI of the newly created d-bus message object"""
 
-        # We use the default backend for now
         return self.add(entry_data)
+
+
+    @dbus_method(_DIN_MESSAGES, "a{sv}", "s")
+    def AddIncoming(self, entry_data):
+        """Adds a message to the list, and send signal about incoming message
+        @param message_data List of fields; format is [Key:Value, Key:Value, ...]
+        @return URI of the newly created d-bus message object"""
+
+        message_id = self.add(entry_data)
+        self.IncomingMessage(_DBUS_PATH_MESSAGES+ '/' + str(message_id))
+        return message_id
+
 
     @dbus_method(_DIN_MESSAGES, "a{sv}s", "s")
     def GetSingleEntrySingleField(self, query, field_name):
