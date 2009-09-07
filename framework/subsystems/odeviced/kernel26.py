@@ -450,6 +450,10 @@ class RealtimeClock( dbus.service.Object ):
         """Set time by seconds since epoch (UTC)"""
         pyrtc.rtcSetTime( time.gmtime( t ) )
 
+    @dbus.service.signal( DBUS_INTERFACE, "i" )
+    def WakeupTimeChanged ( self, t ):
+        pass
+
     @dbus.service.method( DBUS_INTERFACE, "", "i" )
     def GetWakeupTime( self ):
         """Return wakeup time in seconds since epoch (UTC) if a wakeup
@@ -469,6 +473,7 @@ class RealtimeClock( dbus.service.Object ):
             pyrtc.rtcDisableAlarm()
         else:
             pyrtc.rtcSetAlarm( time.gmtime( t ) )
+        self.WakeupTimeChanged( t )
 
 #----------------------------------------------------------------------------#
 def factory( prefix, controller ):
