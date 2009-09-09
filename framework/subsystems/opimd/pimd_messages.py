@@ -399,7 +399,7 @@ class MessageDomain(Domain, GenericDomain):
         @return URI of the newly created d-bus message object"""
 
         message_id = self.add(entry_data)
-        self.IncomingMessage(_DBUS_PATH_MESSAGES+ '/' + str(message_id))
+        self.IncomingMessage(message_id)
         return message_id
 
 
