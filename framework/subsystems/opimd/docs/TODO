@@ -9,6 +9,7 @@ After that:
 * updating with SIM-Messages-FSO
 * adding new fields to for example SIM entry (by merging)
 Think about:
+* vcard support in SIM-Messages-FSO
 * RSS-Messages backend (handler)
 * Google-Contacts backend
 * Evolution backends
