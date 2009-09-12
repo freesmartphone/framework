@@ -147,7 +147,7 @@ class SIMMessageBackendFSO(Backend):
                     path = self._domain_handlers['Messages'].GetSingleEntrySingleField({'Direction':'in', 'SMS-combined_message':1, 'SMS-complete_message':0, 'SMS-csm_num':entry['SMS-csm_num'], 'SMS-csm_id':entry['SMS-csm_id'], 'Source':'SMS'},'Path')
                     if path:
                         rel_path = path.replace('/org/freesmartphone/PIM/Messages','')
-                        result = self._domain_handlers['Messages'].GetContent(rel_path)
+                        result = self._domain_handlers['Messages'].get_full_content(rel_path)
                         new_content = ''
                         complete = 1
                         edit_data = {}
@@ -180,7 +180,7 @@ class SIMMessageBackendFSO(Backend):
                         logger.debug('CSM: first part')
                 except:
                     register = 1
-                    log.error('%s: failed to handle CSM message!', self.name)
+                    logger.error('%s: failed to handle CSM message!', self.name)
             else:
                 register = 1
             if register:
