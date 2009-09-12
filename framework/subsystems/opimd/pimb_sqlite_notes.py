@@ -60,7 +60,7 @@ class SQLiteNotesBackend(Backend):
         self._domain_handlers = {}
         self._entry_ids = []
         try:
-            self.con = sqlite3.connect(_SQLITE_FILE_NAME)
+            self.con = sqlite3.connect(_SQLITE_FILE_NAME, isolation_level=None)
             cur = self.con.cursor()
             cur.execute("""CREATE TABLE IF NOT EXISTS notes (
                 id INTEGER PRIMARY KEY,
