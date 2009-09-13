@@ -4,7 +4,8 @@
 The Open GSM Daemon - Python Implementation
 
 (C) 2006 Adam Sampson <ats@offog.org>
-(C) 2008 Michael 'Mickey' Lauer <mlauer@vanille-media.de>
+(C) 2008-2009 Michael 'Mickey' Lauer <mlauer@vanille-media.de>
+(C) 2008 Daniel 'alphaone' Willmann
 (C) 2008 Openmoko, Inc.
 GPLv2 or later
 
@@ -72,8 +73,13 @@ def decodePDUTime(bs):
     year += 1900
   else:
     year += 2000
-  sign = (timezone >> 7) * 2 - 1
-  zone = (timezone & 0x7f) / -4. * sign
+
+  # Timezone sign bit started out as bit 3 of the nibble-swapped byte. We
+  # converted to bcd, so negative timezones are now offset by 10*(1<<3)=80
+  if timezone < 80:
+    zone = timezone / 4
+  else:
+    zone = (timezone - 80) / -4.
 
   # Invalid dates will generate a ValueError here which needs catching in
   # higher levels
@@ -90,11 +96,13 @@ def encodePDUTime(timeobj):
     year = td.year % 100
 
     zone = 0
+    # Timezone sign bit will go to bit 3 of the nibble-swapped byte. Right
+    # now this is an offset of 10*(1<<3)=80
     if tzone < 0:
-        zone = 0x80
+        zone = 80
         tzone = -tzone
 
-    zone |= int(tzone * 4)
+    zone += int(tzone * 4)
     return bcd_encode( [ year/10, year%10, td.month/10, td.month%10,
         td.day/10, td.day%10, td.hour/10, td.hour%10, td.minute/10,
         td.minute%10, td.second/10, td.second%10, zone/10, zone%10 ] )
