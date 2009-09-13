@@ -123,6 +123,26 @@ class TiCalypso( AbstractModem ):
         return ok
 
     def _modemOff( self ):
+        device = serial.Serial()
+        device.port = DEVICE_CALYPSO_PATH
+        device.baudrate = 115200
+        device.rtscts = True
+        device.xonxoff = False
+        device.bytesize = serial.EIGHTBITS
+        device.parity = serial.PARITY_NONE
+        device.stopbits = serial.STOPBITS_ONE
+        device.timeout = 1
+        logger.debug( "opening port now" )
+        device.open()
+        device.write( "\0xf9\0xf9" )
+        device.flush()
+        sleep( 0.2 )
+        device.write( "\0x7E\0x03\0xEF\0xC3\0x01\0x70\0x7E" )
+        device.flush()
+        sleep( 0.2 )
+        device.write( "\r\nAT@POFF\r\n" )
+        device.flush()
+        sleep( 0.2 )
         writeToFile( SYSFS_CALYPSO_POWER_PATH, "0\n" )
 
     def close( self ): # SYNC
