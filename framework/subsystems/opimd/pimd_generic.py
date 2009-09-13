@@ -835,6 +835,14 @@ class GenericDomain():
 
         return result
 
+    def get_full_content(self, rel_path):
+        num_id = int(rel_path[1:])
+
+        # Make sure the requested entry exists
+        self.check_entry_id(num_id)
+
+        return self._entries[num_id].get_content(True)
+
 '''
     #---------------------------------------------------------------------#
     # dbus methods and signals                                            #
@@ -872,7 +880,6 @@ class GenericDomain():
         @return dbus path of the query object, e.g. /org.freesmartphone.PIM/Entries/Queries/4"""
 
         return self.query_manager.process_query(query, sender)
-
 
     @dbus_method(_DIN_ENTRY, "", "a{sv}", rel_path_keyword="rel_path")
     def GetContent(self, rel_path):
