@@ -191,7 +191,7 @@ class SQLiteDatesBackend(Backend):
                 date_data[field]=''
 
         cur = self.con.cursor()
-        cur.execute('INSERT INTO dates (Begin, End, Message) VALUES (?,?,?)',(date_data['Begin'], date_data['End'], date_data['End']))
+        cur.execute('INSERT INTO dates (Begin, End, Message) VALUES (?,?,?)',(date_data['Begin'], date_data['End'], date_data['Message']))
         cid = cur.lastrowid
         for field in date_data:
             if not field in reqfields:
