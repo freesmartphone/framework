@@ -137,10 +137,12 @@ class GenericEntry():
 
     def make_comp_value(self, field_value):
         # We only generate compare values for specific fields
-        if str(field_value).startswith('tel:'):
-            return get_compare_for_tel(field_value)
-        else:
-            return ''
+        try:
+            if isinstance(field_value, (str, dbus.String)) and field_value.startswith('tel:'):
+                return get_compare_for_tel(field_value)
+        except:
+            pass
+        return ''
 
     def import_fields(self, entry_data, backend_name):
         """Adds an array of entry data fields to this entry
@@ -741,7 +743,7 @@ class GenericDomain():
                     else:
                         raise InvalidBackend( "There is no backend which can store new field" )
             elif not field_name.startswith('_'):
-                if data[field_name]=='' or isinstance(data[field_name], list) or isinstance(data[field_name], dbus.Array):
+                if data[field_name]=='' or isinstance(data[field_name], (list, dbus.Array)):
                     field_idx = entryif._field_idx[field_name]
                     field_idx.reverse()
                     for field_nr in field_idx:
