@@ -40,9 +40,7 @@ from framework.config import config, rootdir
 rootdir = os.path.join( rootdir, 'opim' )
 
 _DOMAINS = ('Contacts', )
-_VCARD_FILE_NAME = 'addressbook.vcf'
-_VCARD_FILE_NAME2 = 'addressbook2.vcf'
-
+_VCARD_FILE_NAME = 'vcard-contacts.vcf'
 
 
 #----------------------------------------------------------------------------#
@@ -100,7 +98,7 @@ class VCARDContactBackend(Backend):
                     elif (key == "FN"):
                         key = "Name"
                     elif (key == "EMAIL"):
-                        key = "EMail"
+                        key = "E-mail"
                     else:
                         continue
 
@@ -123,7 +121,7 @@ class VCARDContactBackend(Backend):
     def save_entries_to_file(self):
         """Saves all entries to disk"""
         
-        path = os.path.join(rootdir, _VCARD_FILE_NAME2)
+        path = os.path.join(rootdir, _VCARD_FILE_NAME)
         file = open(path, 'w')
 
         logger.error("vcard saving entry ti files")        
@@ -132,20 +130,20 @@ class VCARDContactBackend(Backend):
             card = vobject.vCard()
             for field in entry:
                 (field_name, field_data) = field
-                if type(field_data) == Array or type(field_data) == list:
+                if isinstance(field_data, (Array, list)):
                     for value in field_data:
                         logger.error("vcard parsing memory entry")        
                         if (field_name == "Name"): 
                             card.add('fn').value = value
                         elif (field_name == "Phone"): 
                             card.add('tel').value = value
-                        elif (field_name == "EMail"): 
+                        elif (field_name == "E-mail"):
                             card.add('email').value = value
                         logger.error("vcard done")        
                 else:
                     if (field_name == "Name"): card.add('fn').value = value
                     elif (field_name == "Phone"): card.add('tel').value = value
-                    elif (field_name == "EMail"): card.add('email').value = value
+                    elif (field_name == "E-mail"): card.add('email').value = value
                 file.write(card.serialize())
         
         file.close()
