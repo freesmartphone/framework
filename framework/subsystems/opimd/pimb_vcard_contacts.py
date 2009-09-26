@@ -47,9 +47,9 @@ _VCARD_FILE_NAME = 'vcard-contacts.vcf'
 
 
 #----------------------------------------------------------------------------#
-class VCARDContactBackend(Backend):
+class VCardContactBackend(Backend):
 #----------------------------------------------------------------------------#
-    name = 'VCARD-Contacts'
+    name = 'VCard-Contacts'
     properties = [PIMB_CAN_ADD_ENTRY, PIMB_CAN_DEL_ENTRY, PIMB_CAN_UPD_ENTRY, PIMB_CAN_UPD_ENTRY_WITH_NEW_FIELD, PIMB_NEEDS_SYNC]
 
     _domain_handlers = None           # Map of the domain handler objects we support
@@ -57,7 +57,7 @@ class VCARDContactBackend(Backend):
 #----------------------------------------------------------------------------#
 
     def __init__(self):
-        super(VCARDContactBackend, self).__init__()
+        super(VCardContactBackend, self).__init__()
         self._domain_handlers = {}
         self._entry_ids = []
         
@@ -143,9 +143,9 @@ class VCARDContactBackend(Backend):
                         elif (field_name == "E-mail"):
                             card.add('email').value = value
                 else:
-                    if (field_name == "Name"): card.add('fn').value = value
-                    elif (field_name == "Phone"): card.add('tel').value = value
-                    elif (field_name == "E-mail"): card.add('email').value = value
+                    if (field_name == "Name"): card.add('fn').value = field_data
+                    elif (field_name == "Phone"): card.add('tel').value = field_data
+                    elif (field_name == "E-mail"): card.add('email').value = field_data
                 file.write(card.serialize())
                 logger.debug("vcard done")
         
