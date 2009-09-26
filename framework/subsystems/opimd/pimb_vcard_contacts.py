@@ -127,27 +127,27 @@ class VCARDContactBackend(Backend):
         path = os.path.join(rootdir, _VCARD_FILE_NAME)
         file = open(path, 'w')
 
-        logger.error("vcard saving entry ti files")        
+        logger.debug("vcard saving entry ti files")        
         for entry in self._domain_handlers['Contacts'].enumerate_items(self):
             line = ""
             card = vobject.vCard()
             for field in entry:
+                logger.debug("vcard parsing memory entry")
                 (field_name, field_data) = field
                 if isinstance(field_data, (Array, list)):
                     for value in field_data:
-                        logger.error("vcard parsing memory entry")        
                         if (field_name == "Name"): 
                             card.add('fn').value = value
                         elif (field_name == "Phone"): 
                             card.add('tel').value = value
                         elif (field_name == "E-mail"):
                             card.add('email').value = value
-                        logger.error("vcard done")        
                 else:
                     if (field_name == "Name"): card.add('fn').value = value
                     elif (field_name == "Phone"): card.add('tel').value = value
                     elif (field_name == "E-mail"): card.add('email').value = value
                 file.write(card.serialize())
+                logger.debug("vcard done")
         
         file.close()
 
