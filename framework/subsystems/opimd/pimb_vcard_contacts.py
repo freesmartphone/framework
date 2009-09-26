@@ -25,9 +25,12 @@
 
 """opimd VCARD-Contacts Backend Plugin"""
 import os
-import vobject
 import logging
 logger = logging.getLogger('opimd')
+try:
+    import vobject
+except:
+    logger.error('To use VCard-Contacts backend you need to have python-vobject installed!')
 
 from domain_manager import DomainManager
 from backend_manager import BackendManager, Backend
