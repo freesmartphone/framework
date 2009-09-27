@@ -6,7 +6,9 @@
 #   http://openmoko.org/
 #   http://pyneo.org/
 #
-#   Copyright (C) 2008 by Guillaume Anciaux (g.anciaux@laposte.net)
+#   Copyright (C) 2008 by Soeren Apel (abraxa@dar-clan.de)
+#   Copyright (C) 2009 by Sebastian Krzyszkowiak (seba.dos1@gmail.com)
+#   Copyright (C) 2009 by Guillaume Anciaux (g.anciaux@laposte.net)
 #
 #   This program is free software; you can redistribute it and/or modify
 #   it under the terms of the GNU General Public License as published by
@@ -23,7 +25,7 @@
 #   Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
 #
 
-"""opimd VCARD-Contacts Backend Plugin"""
+"""opimd VCard-Contacts Backend Plugin"""
 import os
 import logging
 logger = logging.getLogger('opimd')
@@ -44,7 +46,6 @@ rootdir = os.path.join( rootdir, 'opim' )
 
 _DOMAINS = ('Contacts', )
 _VCARD_FILE_NAME = 'vcard-contacts.vcf'
-
 
 #----------------------------------------------------------------------------#
 class VCardContactBackend(Backend):
@@ -96,12 +97,13 @@ class VCardContactBackend(Backend):
                     key = pair.name
                     parameters = pair.params
                     logger.debug("read from vcard %s %s" , key, value)
-                    if (key == "TEL"): 
-                        key = "Phone"
+                    if (key == "TEL"):
+                        key = 'Phone'
+                        value = 'tel:'+value
                     elif (key == "FN"):
-                        key = "Name"
+                        key = 'Name'
                     elif (key == "EMAIL"):
-                        key = "E-mail"
+                        key = 'E-mail'
                     else:
                         continue
 
@@ -127,28 +129,44 @@ class VCardContactBackend(Backend):
         path = os.path.join(rootdir, _VCARD_FILE_NAME)
         file = open(path, 'w')
 
-        logger.debug("vcard saving entry ti files")        
+        logger.debug("vcard saving entry ti files")
         for entry in self._domain_handlers['Contacts'].enumerate_items(self):
             line = ""
             card = vobject.vCard()
+            logger.debug( "vcard doing new card")
             for field in entry:
-                logger.debug("vcard parsing memory entry")
                 (field_name, field_data) = field
                 if isinstance(field_data, (Array, list)):
                     for value in field_data:
-                        if (field_name == "Name"): 
+                        logger.debug("vcard parsing memory entry")
+                        if (field_name == "Name"):
                             card.add('fn').value = value
-                        elif (field_name == "Phone"): 
-                            card.add('tel').value = value
+                            card.add('n').value = vobject.vcard.Name(value,value)
+                            logger.debug("adding FN " +  value)
+                        elif (field_name == "Phone"):
+                            list_fields = value.split(':')
+                            if (len(list_fields) == 1): card.add('tel').value = value
+                            else : card.add('tel').value = value.split(':')[1]
+                            logger.debug("adding TEL " +  value)
                         elif (field_name == "E-mail"):
                             card.add('email').value = value
+                            logger.debug("adding EMAIL " +  value)
                 else:
-                    if (field_name == "Name"): card.add('fn').value = field_data
-                    elif (field_name == "Phone"): card.add('tel').value = field_data
-                    elif (field_name == "E-mail"): card.add('email').value = field_data
-                file.write(card.serialize())
-                logger.debug("vcard done")
-        
+                    if (field_name == "Name"):
+                        card.add('fn').value = field_data
+                        card.add('n').value = vobject.vcard.Name(field_data,field_data)
+                        logger.debug("adding FN " +  field_data)
+                    elif (field_name == "Phone"):
+                        list_fields = field_data.split(':')
+                        if (len(list_fields) == 1): card.add('tel').value = field_data
+                        else : card.add('tel').value = list_fields[1]
+                        logger.debug("adding TEL " +  field_data)
+                    elif (field_name == "E-mail"):
+                        card.add('email').value = field_data
+                        logger.debug("adding EMAIL " +  field_data)
+            logger.debug("vcard done")
+            file.write(card.serialize())
+
         file.close()
 
 
