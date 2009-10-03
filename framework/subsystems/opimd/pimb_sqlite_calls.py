@@ -65,10 +65,10 @@ class SQLiteCallBackend(Backend):
             cur.execute("""CREATE TABLE IF NOT EXISTS calls (
                 id INTEGER PRIMARY KEY,
                 Type TEXT,
-                Timestamp TEXT,
+                Timestamp FLOAT,
                 Timezone TEXT,
                 Direction TEXT,
-                Duration TEXT,
+                Duration FLOAT,
                 Cost TEXT,
                 Answered INTEGER DEFAULT 0,
                 New INTEGER DEFAULT 0,

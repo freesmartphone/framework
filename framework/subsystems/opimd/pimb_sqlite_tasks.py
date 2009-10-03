@@ -64,7 +64,7 @@ class SQLiteTasksBackend(Backend):
             cur = self.con.cursor()
             cur.execute("""CREATE TABLE IF NOT EXISTS tasks (
                 id INTEGER PRIMARY KEY,
-                Timestamp TEXT,
+                Timestamp FLOAT,
                 Timezone TEXT,
                 Title TEXT,
                 Content TEXT,

@@ -64,7 +64,7 @@ class SQLiteNotesBackend(Backend):
             cur = self.con.cursor()
             cur.execute("""CREATE TABLE IF NOT EXISTS notes (
                 id INTEGER PRIMARY KEY,
-                Timestamp TEXT,
+                Timestamp FLOAT,
                 Timezone TEXT,
                 Title TEXT,
                 Content TEXT);""")

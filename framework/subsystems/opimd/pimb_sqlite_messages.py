@@ -65,7 +65,7 @@ class SQLiteMessagesBackend(Backend):
             cur.execute("""CREATE TABLE IF NOT EXISTS messages (
                 id INTEGER PRIMARY KEY,
                 Source TEXT,
-                Timestamp TEXT,
+                Timestamp FLOAT,
                 Timezone TEXT,
                 Direction TEXT,
                 Title TEXT,
