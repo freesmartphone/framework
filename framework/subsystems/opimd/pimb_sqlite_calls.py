@@ -65,10 +65,10 @@ class SQLiteCallBackend(Backend):
             cur.execute("""CREATE TABLE IF NOT EXISTS calls (
                 id INTEGER PRIMARY KEY,
                 Type TEXT,
-                Timestamp FLOAT,
+                Timestamp INTEGER,
                 Timezone TEXT,
                 Direction TEXT,
-                Duration FLOAT,
+                Duration INTEGER,
                 Cost TEXT,
                 Answered INTEGER DEFAULT 0,
                 New INTEGER DEFAULT 0,
@@ -117,7 +117,7 @@ class SQLiteCallBackend(Backend):
     def load_entries_from_db(self):
         """Loads all entries from db"""
         keys = {0:'_backend_entry_id', 1:'Type', 2:'Timestamp', 3:'Timezone', 4:'Direction', 5:'Duration', 6:'Cost', 7:'Answered', 8:'New', 9:'Replied'}
-        floatKeys = ['Timestamp', 'Duration']
+        intKeys = ['Timestamp', 'Duration']
         cur = self.con.cursor()
         try:
             cur.execute('SELECT id, Type, Timestamp, Timezone, Direction, Duration, Cost, Answered, New, Replied FROM calls WHERE deleted=0 ORDER BY id DESC')
@@ -129,8 +129,8 @@ class SQLiteCallBackend(Backend):
         for line in lines:
             entry = {}
             for key in keys:
-                if keys[key] in floatKeys and line[key]:
-                    entry[keys[key]] = float(line[key])
+                if keys[key] in intKeys and line[key]:
+                    entry[keys[key]] = int(line[key])
                 else:
                     entry[keys[key]] = line[key]
             try:
