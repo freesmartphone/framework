@@ -64,7 +64,7 @@ class SQLiteNotesBackend(Backend):
             cur = self.con.cursor()
             cur.execute("""CREATE TABLE IF NOT EXISTS notes (
                 id INTEGER PRIMARY KEY,
-                Timestamp FLOAT,
+                Timestamp INTEGER,
                 Timezone TEXT,
                 Title TEXT,
                 Content TEXT);""")
@@ -138,7 +138,7 @@ class SQLiteNotesBackend(Backend):
                 raise OperationalError
 
             if entry.get('Timestamp'):
-                entry['Timestamp']=float(entry['Timestamp'])
+                entry['Timestamp']=int(entry['Timestamp'])
             entry_id = self._domain_handlers['Notes'].register_entry(self, entry)
             self._entry_ids.append(entry_id)
         cur.close()
