@@ -119,7 +119,7 @@ class SIMMessageBackendFSO(Backend):
             try:
                 timestamp = props['timestamp'][:len(props['timestamp'])-6]
                 entry['Timezone'] = props['timestamp'][len(props['timestamp'])-5:]
-                entry['Timestamp'] = time.mktime(time.strptime(timestamp))
+                entry['Timestamp'] = int(time.mktime(time.strptime(timestamp)))
             except ValueError:
                 logger.error("Couldn't handle timestamp!")
 
