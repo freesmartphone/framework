@@ -10,7 +10,7 @@ Interactive console for the freesmartphone.org framework
 GPLv2 or later
 """
 
-__version__ = "0.9.3.2"
+__version__ = "0.9.3.3"
 
 import dbus.service
 import dbus.mainloop.glib
@@ -186,6 +186,10 @@ gsmdevice = getInterface( \
     "org.freesmartphone.ogsmd",
     "/org/freesmartphone/GSM/Device",
     "org.freesmartphone.GSM.Device" )
+gsmrtc = getInterface( \
+    "org.freesmartphone.ogsmd",
+    "/org/freesmartphone/GSM/Device",
+    "org.freesmartphone.Device.RealtimeClock" )
 gsmsim = getInterface( \
     "org.freesmartphone.ogsmd",
     "/org/freesmartphone/GSM/Device",
