@@ -64,7 +64,7 @@ class SQLiteTasksBackend(Backend):
             cur = self.con.cursor()
             cur.execute("""CREATE TABLE IF NOT EXISTS tasks (
                 id INTEGER PRIMARY KEY,
-                Timestamp FLOAT,
+                Timestamp INTEGER,
                 Timezone TEXT,
                 Title TEXT,
                 Content TEXT,
@@ -140,7 +140,7 @@ class SQLiteTasksBackend(Backend):
                 raise OperationalError
 
             if entry.get('Timestamp'):
-                entry['Timestamp']=float(entry['Timestamp'])
+                entry['Timestamp']=int(entry['Timestamp'])
             entry_id = self._domain_handlers['Tasks'].register_entry(self, entry)
             self._entry_ids.append(entry_id)
         cur.close()
