@@ -65,7 +65,7 @@ class SQLiteMessagesBackend(Backend):
             cur.execute("""CREATE TABLE IF NOT EXISTS messages (
                 id INTEGER PRIMARY KEY,
                 Source TEXT,
-                Timestamp FLOAT,
+                Timestamp INTEGER,
                 Timezone TEXT,
                 Direction TEXT,
                 Title TEXT,
@@ -173,7 +173,7 @@ class SQLiteMessagesBackend(Backend):
                 raise OperationalError
 
             if entry.get('Timestamp'):
-                entry['Timestamp']=float(entry['Timestamp'])
+                entry['Timestamp']=int(entry['Timestamp'])
             entry_id = self._domain_handlers['Messages'].register_entry(self, entry)
             self._entry_ids.append(entry_id)
         cur.close()
@@ -217,8 +217,8 @@ class SQLiteMessagesBackend(Backend):
         return message_id
 
     def add_message_to_db(self, message_data):
-        reqfields = ['Source', 'Timestamp', 'Timezone', 'Direction', 'Title', 'Sender', 'TransmitLoc', 'Content']
-        reqIntFields = ['MessageRead', 'MessageSent', 'Processing']
+        reqfields = ['Source', 'Timezone', 'Direction', 'Title', 'Sender', 'TransmitLoc', 'Content']
+        reqIntFields = ['MessageRead', 'MessageSent', 'Processing', 'Timestamp']
         for field in reqfields:
             try:
                 message_data[field]
