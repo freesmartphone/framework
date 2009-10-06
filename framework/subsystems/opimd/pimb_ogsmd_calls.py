@@ -99,12 +99,12 @@ class OgsmdCallsBackend(Backend):
             self.props[line]['Direction'] = 'out'
         elif call_status == "active":
             self.props[line]['Answered'] = 1
-            self.props[line]['Timestamp'] = time.time()
+            self.props[line]['Timestamp'] = int(time.time())
         elif call_status == "release":
             if self.props[line].has_key('Timestamp'):
-                self.props[line]['Duration'] = time.time() - self.props[line]['Timestamp']
+                self.props[line]['Duration'] = int(time.time() - self.props[line]['Timestamp'])
             else:
-                self.props[line]['Timestamp'] = time.time()
+                self.props[line]['Timestamp'] = int(time.time())
             self.props[line]['Timezone'] = time.tzname[time.daylight]
             self.props[line]['New']=1
             if self.props[line]['Direction']=='in' and not self.props[line]['Answered']:
