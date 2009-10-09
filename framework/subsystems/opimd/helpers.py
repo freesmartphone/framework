@@ -22,7 +22,7 @@ except:
 #----------------------------------------------------------------------------#
 def field_value_to_list(field_value):
 #----------------------------------------------------------------------------#
-    if isinstance(field_value, list) or isinstance(field_value, Array):
+    if isinstance(field_value, (list, Array)):
         return field_value
     else:
         return [ field_value ]
