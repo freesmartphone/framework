@@ -79,6 +79,11 @@ def factory( prefix, subsystem ):
     if INIT:
         return []
 
+    try:
+        phoneutils.init()
+    except:
+        logger.error('Failed to init libphone-utils!')
+
     DomainManager.init()
     backend_manager = BackendManager()
 
@@ -90,11 +95,6 @@ def factory( prefix, subsystem ):
         dbus_objects.append(dbus_obj)
 
     dbus_objects.append(backend_manager)
-
-    try:
-        phoneutils.init()
-    except:
-        logger.error('Failed to init libphone-utils!')
 
     INIT = True
 
