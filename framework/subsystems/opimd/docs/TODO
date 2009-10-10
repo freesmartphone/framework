@@ -1,7 +1,6 @@
 Near future:
-* fix sorting by timestamps (float vs. string)
 * Initialized signal in source
-* INTEGER for Timestamp and Duration in SQLite databases
+* uninitialize SIM backend on GSM resource release
 In mean-time:
 * write documentation
 After that:
