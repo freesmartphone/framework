@@ -276,7 +276,7 @@ class UBXDevice( GPSDevice ):
     def initializeDevice( self ):
         # Use high sensitivity mode
         #self.send("CFG-RXM", 2, {"gps_mode" : 2, "lp_mode" : 0})
-        # Enable use of SBAS (even in testmode)
+        # Enable use of SBAS
         self.send("CFG-SBAS", 8, {"mode" : 1, "usage" : 7, "maxsbas" : 3, "scanmode" : 0})
 
         # Disable NMEA for current port
