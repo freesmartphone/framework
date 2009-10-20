@@ -16,6 +16,7 @@ import struct
 import calendar
 import dbus
 import dbus.service
+from framework.config import config
 
 import logging
 logger = logging.getLogger('ogpsd')
@@ -276,8 +277,26 @@ class UBXDevice( GPSDevice ):
     def initializeDevice( self ):
         # Use high sensitivity mode
         #self.send("CFG-RXM", 2, {"gps_mode" : 2, "lp_mode" : 0})
-        # Enable use of SBAS (even in testmode)
+        # Enable use of SBAS
         self.send("CFG-SBAS", 8, {"mode" : 1, "usage" : 7, "maxsbas" : 3, "scanmode" : 0})
+        # Setup NAV2 parameters (all parameters other than StaticThres are the same as the default
+        self.send("CFG-NAV2", 40, {"DGPSTO": 60,
+                "FixMode": 2,
+                "FixedAltitude": 50000,
+                "MaxDR": 5,
+                "MaxSVs": 16,
+                "MinCN0After": 10,
+                "MinCN0Initial": 15,
+                "MinELE": 5,
+                "MinSVInitial": 3,
+                "MinSVs": 3,
+                "NAVOPT": 1,
+                "PACC": 100,
+                "PDOP": 250,
+                "Platform": 3, # Automotive = 3, pedestrian = 2, stationary = 1
+                "StaticThres": config.getInt( "ogpsd", "static_threshold", 10),
+                "TACC": 300,
+                "TDOP": 250})
 
         # Disable NMEA for current port
         self.ubx["CFG-PRT"] = {"In_proto_mask" : 1, "Out_proto_mask" : 1}
