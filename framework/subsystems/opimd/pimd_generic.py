@@ -138,10 +138,10 @@ class GenericEntry():
     def make_comp_value(self, field_value):
         # We only generate compare values for specific fields
         try:
-            if isinstance(field_value, (str, dbus.String)) and field_value.startswith('tel:'):
+            if isinstance(field_value, (str, unicode, dbus.String)) and field_value.startswith('tel:'):
                 return get_compare_for_tel(field_value)
-        except:
-            pass
+        except Exception as exp:
+            logger.error(str(exp))
         return ''
 
     def import_fields(self, entry_data, backend_name):
