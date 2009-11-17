@@ -2,7 +2,7 @@
 """
 Dummy Subsystem for Testing Purposes
 
-(C) 2008 Michael 'Mickey' Lauer <mlauer@vanille-media.de>
+(C) 2008-2009 Michael 'Mickey' Lauer <mlauer@vanille-media.de>
 (C) 2008 Openmoko, Inc.
 GPLv2 or later
 
@@ -21,6 +21,8 @@ import gobject
 
 import logging
 logger = logging.getLogger( MODULE_NAME )
+
+import time
 
 DBUS_INTERFACE = "org.freesmartphone.Testing"
 DBUS_OBJECT_PATH = "/org/freesmartphone/Testing"
@@ -46,18 +48,22 @@ class Resource( resource.Resource ):
     #
     def _enable( self, on_ok, on_error ):
         logger.info( "enabling" )
+        time.sleep( 5.0 )
         self._doit( "enabling", on_ok, on_error )
 
     def _disable( self, on_ok, on_error ):
         logger.info( "disabling" )
+        time.sleep( 5.0 )
         self._doit( "disabling", on_ok, on_error )
 
     def _suspend( self, on_ok, on_error ):
         logger.info( "suspending" )
+        time.sleep( 5.0 )
         self._doit( "suspending", on_ok, on_error )
 
     def _resume( self, on_ok, on_error ):
         logger.info("resuming")
+        time.sleep( 5.0 )
         self._doit( "resuming", on_ok, on_error )
 
     def _doit( self, category, on_ok, on_error ):
@@ -75,6 +81,7 @@ class Resource( resource.Resource ):
     #
     @dbus.service.method( DBUS_INTERFACE, "", "",
                           async_callbacks=( "dbus_ok", "dbus_error" ) )
+    @resource.checkedmethod
     def SetResourceBehaviour( self, category, behaviour, dbus_ok, dbus_error ):
         try:
             value = self.catmap[category]
@@ -88,12 +95,14 @@ class Resource( resource.Resource ):
 
     @dbus.service.method( DBUS_INTERFACE, "", "aa{sv}",
                           async_callbacks=( "dbus_ok", "dbus_error" ) )
+    @resource.checkedmethod
     def ReturnTest( self, dbus_ok, dbus_error ):
         d = {"foo":"bar"}
         dbus_ok( [d,d] )
 
     @dbus.service.method( DBUS_INTERFACE, "", "",
                           async_callbacks=( "dbus_ok", "dbus_error" ) )
+    @resource.checkedmethod
     def SignalTest( self, dbus_ok, dbus_error ):
         self.Test( dict(yo="kurt") )
         dbus_ok()
