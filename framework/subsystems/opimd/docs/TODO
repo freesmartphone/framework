@@ -1,9 +1,11 @@
 Near future:
 * Initialized signal in source
 * uninitialize SIM backend on GSM resource release
+* UpdatedEntry signals on generic path, with entry path as argument
 In mean-time:
 * write documentation
 After that:
+* prelimiting and postlimiting
 * sorting by multiple fields (_sortby:['Surname','Name'])
 * backends configuration, status
 * finished inteligent queries (ContactDeleted, ContactUpdated)
