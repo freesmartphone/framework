@@ -293,12 +293,17 @@ class DateDomain(Domain, GenericDomain):
 
         return self.get_multiple_fields(num_id, field_list)
 
+    @dbus_signal(_DIN_DATES, "s")
+    def DeletedDate(self, path):
+        pass
+
     @dbus_signal(_DIN_ENTRY, "", rel_path_keyword="rel_path")
     def DateDeleted(self, rel_path=None):
         pass
 
     def EntryDeleted(self, rel_path=None):
         self.DateDeleted(rel_path=rel_path)
+        self.DeletedDate(_DBUS_PATH_CALLS+rel_path)
 
     @dbus_method(_DIN_ENTRY, "", "", rel_path_keyword="rel_path")
     def Delete(self, rel_path):
@@ -308,6 +313,11 @@ class DateDomain(Domain, GenericDomain):
 
     def EntryUpdated(self, data, rel_path=None):
         self.DateUpdated(data, rel_path=rel_path)
+        self.UpdatedDate(_DBUS_PATH_CALLS+rel_path, data)
+
+    @dbus_signal(_DIN_DATES, "sa{sv}")
+    def UpdatedDate(self, path, data):
+        pass
 
     @dbus_signal(_DIN_ENTRY, "a{sv}", rel_path_keyword="rel_path")
     def DateUpdated(self, data, rel_path=None):
