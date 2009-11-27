@@ -45,9 +45,9 @@ _DIN_NOTES_BASE = DIN_BASE_FSO
 
 _DBUS_PATH_QUERIES = _DBUS_PATH_NOTES + '/Queries'
 
-_DIN_NOTES = _DIN_NOTES_BASE + '.' + 'Tasks'
-_DIN_ENTRY = _DIN_NOTES_BASE + '.' + 'Task'
-_DIN_QUERY = _DIN_NOTES_BASE + '.' + 'TaskQuery'
+_DIN_TASKS = _DIN_TASKS_BASE + '.' + 'Tasks'
+_DIN_ENTRY = _DIN_TASKS_BASE + '.' + 'Task'
+_DIN_QUERY = _DIN_TASKS_BASE + '.' + 'TaskQuery'
 
 
 #----------------------------------------------------------------------------#
@@ -91,7 +91,7 @@ class QueryManager(DBusFBObject):
         DBusFBObject.__init__( self, conn=busmap["opimd"], object_path=_DBUS_PATH_QUERIES )
 
         # Still necessary?
-        self.interface = _DIN_NOTES
+        self.interface = _DIN_TASKS
         self.path = _DBUS_PATH_QUERIES
 
 
@@ -214,7 +214,7 @@ class TaskDomain(Domain, GenericDomain):
 
         self._backends = {}
         self._entries = []
-        self._dbus_path = _DBUS_PATH_NOTES
+        self._dbus_path = _DBUS_PATH_TASKS
         self.query_manager = QueryManager(self._entries)
         self._unfinished_tasks = 0
 
@@ -222,8 +222,8 @@ class TaskDomain(Domain, GenericDomain):
         Domain.__init__( self, conn=busmap["opimd"], object_path=DBUS_PATH_BASE_FSO + '/' + self.name )
 
         # Keep frameworkd happy
-        self.interface = _DIN_NOTES
-        self.path = _DBUS_PATH_NOTES
+        self.interface = _DIN_TASKS
+        self.path = _DBUS_PATH_TASKS
 
     def register_entry(self, backend, task_data):
         new_task_id = len(self._entries)
@@ -242,19 +242,19 @@ class TaskDomain(Domain, GenericDomain):
     def NewEntry(self, path):
         self.NewTask(path)
 
-    @dbus_signal(_DIN_NOTES, "s")
+    @dbus_signal(_DIN_TASKS, "s")
     def NewTask(self, path):
         pass
 
-    @dbus_signal(_DIN_NOTES, "i")
+    @dbus_signal(_DIN_TASKS, "i")
     def UnfinishedTasks(self, amount):
         pass
 
-    @dbus_method(_DIN_NOTES, "", "i")
+    @dbus_method(_DIN_TASKS, "", "i")
     def GetUnfinishedTasks(self):
         return self._unfinished_tasks
 
-    @dbus_method(_DIN_NOTES, "a{sv}", "s")
+    @dbus_method(_DIN_TASKS, "a{sv}", "s")
     def Add(self, entry_data):
         """Adds a entry to the list, assigning it to the default backend and saving it
 
@@ -263,7 +263,7 @@ class TaskDomain(Domain, GenericDomain):
 
         return self.add(entry_data)
 
-    @dbus_method(_DIN_NOTES, "a{sv}s", "s")
+    @dbus_method(_DIN_TASKS, "a{sv}s", "s")
     def GetSingleEntrySingleField(self, query, field_name):
         """Returns the first entry found for a query, making it real easy to query simple things
 
@@ -273,7 +273,7 @@ class TaskDomain(Domain, GenericDomain):
 
         return self.get_single_entry_single_field(query, field_name)
 
-    @dbus_method(_DIN_NOTES, "a{sv}", "s", sender_keyword="sender")
+    @dbus_method(_DIN_TASKS, "a{sv}", "s", sender_keyword="sender")
     def Query(self, query, sender):
         """Processes a query and returns the dbus path of the resulting query object
 
