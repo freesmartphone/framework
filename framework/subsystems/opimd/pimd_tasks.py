@@ -314,6 +314,11 @@ class TaskDomain(Domain, GenericDomain):
 
     def EntryDeleted(self, rel_path=None):
         self.TaskDeleted(rel_path=rel_path)
+        self.DeletedTask(_DBUS_PATH_TASKS+rel_path)
+
+    @dbus_signal(_DIN_TASKS, "s")
+    def DeletedTask(self, path):
+        pass
 
     @dbus_method(_DIN_ENTRY, "", "", rel_path_keyword="rel_path")
     def Delete(self, rel_path):
@@ -331,6 +336,11 @@ class TaskDomain(Domain, GenericDomain):
 
     def EntryUpdated(self, data, rel_path=None):
         self.TaskUpdated(data, rel_path=rel_path)
+        self.UpdatedTask(_DBUS_PATH_TASKS+rel_path, data)
+
+    @dbus_signal(_DIN_TASKS, "sa{sv}")
+    def UpdatedTask(self, path, data):
+        pass
 
     @dbus_signal(_DIN_ENTRY, "a{sv}", rel_path_keyword="rel_path")
     def TaskUpdated(self, data, rel_path=None):
