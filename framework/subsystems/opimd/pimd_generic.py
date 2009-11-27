@@ -140,7 +140,7 @@ class GenericEntry():
         try:
             if isinstance(field_value, (str, unicode, dbus.String)) and field_value.startswith('tel:'):
                 return get_compare_for_tel(field_value)
-        except Exception as exp:
+        except Exception, exp:
             logger.error(str(exp))
         return ''
 
