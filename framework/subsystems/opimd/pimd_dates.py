@@ -303,7 +303,7 @@ class DateDomain(Domain, GenericDomain):
 
     def EntryDeleted(self, rel_path=None):
         self.DateDeleted(rel_path=rel_path)
-        self.DeletedDate(_DBUS_PATH_CALLS+rel_path)
+        self.DeletedDate(_DBUS_PATH_DATES+rel_path)
 
     @dbus_method(_DIN_ENTRY, "", "", rel_path_keyword="rel_path")
     def Delete(self, rel_path):
@@ -313,7 +313,7 @@ class DateDomain(Domain, GenericDomain):
 
     def EntryUpdated(self, data, rel_path=None):
         self.DateUpdated(data, rel_path=rel_path)
-        self.UpdatedDate(_DBUS_PATH_CALLS+rel_path, data)
+        self.UpdatedDate(_DBUS_PATH_DATES+rel_path, data)
 
     @dbus_signal(_DIN_DATES, "sa{sv}")
     def UpdatedDate(self, path, data):
