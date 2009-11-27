@@ -289,7 +289,7 @@ class ContactDomain(Domain, GenericDomain):
 
         return self.get_multiple_fields(num_id, field_list)
 
-    @dbus_signal(_DIN_ENTRY, "s")
+    @dbus_signal(_DIN_CONTACTS, "s")
     def DeletedContact(self, path):
         pass
 
@@ -311,7 +311,7 @@ class ContactDomain(Domain, GenericDomain):
         self.ContactUpdated(data, rel_path=rel_path)
         self.UpdatedContact(_DBUS_PATH_CONTACTS+rel_path, data)
 
-    @dbus_signal(_DIN_ENTRY, "sa{sv}")
+    @dbus_signal(_DIN_CONTACTS, "sa{sv}")
     def UpdatedContact(self, path, data):
         pass
 
