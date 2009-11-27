@@ -505,6 +505,11 @@ class MessageDomain(Domain, GenericDomain):
 
     def EntryUpdated(self, data, rel_path=None):
         self.MessageUpdated(data, rel_path=rel_path)
+        self.UpdatedMessage(_DBUS_PATH_MESSAGES+rel_path, data)
+
+    @dbus_signal(_DIN_MESSAGES, "sa{sv}")
+    def UpdatedMessage(self, path, data):
+        pass
 
     @dbus_signal(_DIN_ENTRY, "a{sv}", rel_path_keyword="rel_path")
     def MessageUpdated(self, data, rel_path=None):
@@ -530,8 +535,13 @@ class MessageDomain(Domain, GenericDomain):
 
         self.update(num_id, data, entryif = messageif, entry = message)
 
+    @dbus_signal(_DIN_MESSAGES, "s")
+    def DeletedMessage(self, path):
+        pass
+
     def EntryDeleted(self, rel_path=None):
         self.MessageDeleted(rel_path=rel_path)
+        self.DeletedMessage(_DBUS_PATH_MESSAGES+rel_path)
 
     @dbus_signal(_DIN_ENTRY, "", rel_path_keyword="rel_path")
     def MessageDeleted(self, rel_path=None):
