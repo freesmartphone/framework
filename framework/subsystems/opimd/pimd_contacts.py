@@ -289,12 +289,17 @@ class ContactDomain(Domain, GenericDomain):
 
         return self.get_multiple_fields(num_id, field_list)
 
+    @dbus_signal(_DIN_ENTRY, "s")
+    def DeletedContact(self, path):
+        pass
+
     @dbus_signal(_DIN_ENTRY, "", rel_path_keyword="rel_path")
     def ContactDeleted(self, rel_path=None):
         pass
 
     def EntryDeleted(self, rel_path=None):
         self.ContactDeleted(rel_path=rel_path)
+        self.DeletedContact(_DBUS_PATH_CONTACTS+rel_path)
 
     @dbus_method(_DIN_ENTRY, "", "", rel_path_keyword="rel_path")
     def Delete(self, rel_path):
@@ -304,6 +309,11 @@ class ContactDomain(Domain, GenericDomain):
 
     def EntryUpdated(self, data, rel_path=None):
         self.ContactUpdated(data, rel_path=rel_path)
+        self.UpdatedContact(_DBUS_PATH_CONTACTS+rel_path, data)
+
+    @dbus_signal(_DIN_ENTRY, "sa{sv}")
+    def UpdatedContact(self, path, data):
+        pass
 
     @dbus_signal(_DIN_ENTRY, "a{sv}", rel_path_keyword="rel_path")
     def ContactUpdated(self, data, rel_path=None):
