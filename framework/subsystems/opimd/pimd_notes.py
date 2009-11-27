@@ -327,6 +327,11 @@ class NoteDomain(Domain, GenericDomain):
 
     def EntryDeleted(self, rel_path=None):
         self.NoteDeleted(rel_path=rel_path)
+        self.UpdatedNote(_DBUS_PATH_NOTES+rel_path, data)
+
+    @dbus_signal(_DIN_NOTES, "s")
+    def UpdatedNote(self, path):
+        pass
 
     @dbus_method(_DIN_ENTRY, "", "", rel_path_keyword="rel_path")
     def Delete(self, rel_path):
@@ -351,6 +356,11 @@ class NoteDomain(Domain, GenericDomain):
 
     def EntryUpdated(self, data, rel_path=None):
         self.NoteUpdated(data, rel_path=rel_path)
+        self.UpdatedNote(_DBUS_PATH_NOTES+rel_path, data)
+
+    @dbus_signal(_DIN_NOTES, "sa{sv}")
+    def UpdatedNote(self, path, data):
+        pass
 
     @dbus_signal(_DIN_ENTRY, "a{sv}", rel_path_keyword="rel_path")
     def NoteUpdated(self, data, rel_path=None):
