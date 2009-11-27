@@ -343,12 +343,17 @@ class CallDomain(Domain, GenericDomain):
 
         return self.get_multiple_fields(num_id, field_list)
 
+    @dbus_signal(_DIN_CALLS, "s")
+    def DeletedCall(self, path):
+        pass
+
     @dbus_signal(_DIN_ENTRY, "", rel_path_keyword="rel_path")
     def CallDeleted(self, rel_path=None):
         pass
 
     def EntryDeleted(self, rel_path=None):
         self.CallDeleted(rel_path=rel_path)
+        self.DeletedCall(_DBUS_PATH_CALLS+rel_path)
 
     @dbus_method(_DIN_ENTRY, "", "", rel_path_keyword="rel_path")
     def Delete(self, rel_path):
@@ -363,8 +368,14 @@ class CallDomain(Domain, GenericDomain):
 
         self.delete(num_id)
 
+
+    @dbus_signal(_DIN_CALLS, "sa{sv}")
+    def UpdatedCall(self, path, data):
+        pass
+
     def EntryUpdated(self, data, rel_path=None):
         self.CallUpdated(data, rel_path=rel_path)
+        self.UpdatedCall(_DBUS_PATH_CALLS+rel_path, data)
 
     @dbus_signal(_DIN_ENTRY, "a{sv}", rel_path_keyword="rel_path")
     def CallUpdated(self, data, rel_path=None):
