@@ -3,7 +3,7 @@
 """
 The Open GSM Daemon - Python Implementation
 
-(C) 2008 Michael 'Mickey' Lauer <mlauer@vanille-media.de>
+(C) 2008-2009 Michael 'Mickey' Lauer <mlauer@vanille-media.de>
 (C) 2008 Openmoko, Inc.
 GPLv2 or later
 
@@ -13,7 +13,7 @@ Module: const
 GSM constants, strings, formats, parse patterns, timeouts, you name it.
 """
 
-__version__ = "0.8.3.2"
+__version__ = "0.8.3.3"
 MODULE_NAME = "ogsmd.const"
 
 from framework import config
@@ -1135,10 +1135,13 @@ def parseNetworks( filename ):
     common = {}
     network_header = []
     network = {}
-    # FIXME: Wrap this in try/except, the file may not be there or corrupt!
+
+    if not os.path.exists( filename ):
+        logger.warning( "Network database %s not present" % networksFile )
+        return {}
     for line in open( filename, "r" ):
         linenumber += 1
-        line = line.decode( "UTF-8" ).rstrip()
+        line = line.rstrip()
         if not line: # empty line, flush and reset
             if network:
                 networks[( network["mcc"], network["mnc"] )] = network
@@ -1162,23 +1165,39 @@ def parseNetworks( filename ):
             data = line.split("\t")
             data = [x.strip() for x in data]
             if data[0]: # new common, should be flushed already
-                if not common_header: raise "Missing common header near line %i" % linenumber
-                if common or network_header or network: raise "Missing empty line near line %i" % linenumber
+                if not common_header:
+                    logger.warning( "Missing common header near line %i" % linenumber )
+                    continue
+                if common or network_header or network:
+                    logger.warning( "Missing empty line near line %i" % linenumber )
+                    continue
                 common = dict( zip( common_header, data ) )
             elif data[1]: # new network, flush old
                 if network:
                     networks[( int( network["mcc"] ), int( network["mnc"] ) )] = network
                     del network["mcc"]
                     del network["mnc"]
-                if not common: raise "Missing common info near line %i" % linenumber
-                if not network_header: raise "Missing network header near line %i" % linenumber
+                if not common:
+                    logger.warning( "Missing common info near line %i" % linenumber )
+                    continue
+                if not network_header:
+                    logger.warning( "Missing network header near line %i" % linenumber )
+                    continue
                 network = dict( zip( network_header, data[1:] ) )
-                if not (network["mcc"]+network["mnc"]).isdigit(): raise "Invaild MCC or MNC near line %i" % linenumber
+                if not (network["mcc"]+network["mnc"]).isdigit():
+                    logger.warning( "Invaild MCC or MNC near line %i" % linenumber )
+                    continue
                 network.update( common )
             elif data[2]:
-                if not common: raise "Missing common info near line %i" % linenumber
-                if not network: raise "Missing network info near line %i" % linenumber
-                if len( data[2:] ) != 2 : raise "Missing network info near line %i" % linenumber
+                if not common:
+                    logger.warning( "Missing common info near line %i" % linenumber )
+                    continue
+                if not network:
+                    logger.warning( "Missing network info near line %i" % linenumber )
+                    continue
+                if len( data[2:] ) != 2:
+                    logger.warning( "Missing network info near line %i" % linenumber )
+                    continue
                 network[ data[2] ] = data[3]
     return networks
 
