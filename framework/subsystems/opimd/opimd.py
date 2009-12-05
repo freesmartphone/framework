@@ -64,6 +64,8 @@ from backend_manager import BackendManager
 
 from domain_manager import DomainManager
 
+from type_manager import TypeManager
+
 INIT = False
 
 #----------------------------------------------------------------------------#
@@ -86,6 +88,7 @@ def factory( prefix, subsystem ):
 
     DomainManager.init()
     backend_manager = BackendManager()
+    type_manager = TypeManager()
 
     dbus_objects = []
 
@@ -95,6 +98,7 @@ def factory( prefix, subsystem ):
         dbus_objects.append(dbus_obj)
 
     dbus_objects.append(backend_manager)
+    dbus_objects.append(type_manager)
 
     INIT = True
 
