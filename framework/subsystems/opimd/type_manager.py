@@ -23,6 +23,13 @@ from dbus.service import FallbackObject as DBusFBObject
 from dbus.service import signal as dbus_signal
 from dbus.service import method as dbus_method
 
+try:
+    from phoneutils import normalize_number
+except:
+    def normalize_number(num):
+        return num
+
+import re
 import logging
 logger = logging.getLogger('opimd')
 
@@ -46,6 +53,16 @@ class TypeManager(DBusFBObject):
         # Still necessary?
         self.interface = _DIN_TYPES
         self.path = _DBUS_PATH_TYPES
+
+    @classmethod
+    def make_comp_value(self, field_type, field_value, from_query = False):
+        if field_type=='phonenumber':
+            if from_query:
+                return re.escape(normalize_number(field_value)) # +'$'
+            else:
+                return normalize_number(field_value)
+        else:
+            return field_value
 
     @dbus_method(_DIN_TYPES, "", "as")
     def List(self):

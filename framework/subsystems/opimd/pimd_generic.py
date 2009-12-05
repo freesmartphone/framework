@@ -32,6 +32,8 @@ logger = logging.getLogger('opimd')
 from backend_manager import BackendManager
 from backend_manager import PIMB_CAN_ADD_ENTRY, PIMB_CAN_DEL_ENTRY, PIMB_CAN_UPD_ENTRY, PIMB_CAN_UPD_ENTRY_WITH_NEW_FIELD, PIMB_NEEDS_SYNC
 
+from type_manager import TypeManager
+
 from domain_manager import Domain
 from helpers import *
 
@@ -153,15 +155,15 @@ class GenericEntry():
                     if self._fields[field][3]==backend_name:
                         for field_value in field_value_to_list(entry_data[field_name]):
                             self._fields[field][1]=field_value
-                            self._fields[field][2] = make_comp_value(self.domain.field_type_from_name(field_name), field_value)
+                            self._fields[field][2] = TypeManager.make_comp_value(self.domain.field_type_from_name(field_name), field_value)
                     else:
                         for field_value in field_value_to_list(entry_data[field_name]):
-                            self._fields.append([field_name, field_value, make_comp_value(self.domain.field_type_from_name(field_name), field_value), backend_name])
+                            self._fields.append([field_name, field_value, TypeManager.make_comp_value(self.domain.field_type_from_name(field_name), field_value), backend_name])
                             self._field_idx[field_name].append(len(self._fields)-1)
             except KeyError:
                 for field_value in field_value_to_list(entry_data[field_name]):
 
-                    compare_value = make_comp_value(self.domain.field_type_from_name(field_name), field_value)
+                    compare_value = TypeManager.make_comp_value(self.domain.field_type_from_name(field_name), field_value)
 
                     our_field = [field_name, field_value, compare_value, backend_name]
 
@@ -401,6 +403,7 @@ class GenericEntry():
             best_field_match = 0.0
 
             #if field_value.startswith('tel:'): field_value=re.escape(get_compare_for_tel(field_value))+'$'
+            field_value = TypeManager.make_comp_value(self.domain.field_type_from_name(field_name), field_value, True)
 
             matcher = re.compile(field_value)
 
@@ -647,6 +650,8 @@ class GenericDomain():
 
     @classmethod
     def field_type_from_name(self, name):
+        if name=='Phone':
+            return 'phonenumber'
         return 'generic'
 
     def enumerate_items(self, backend):
@@ -749,13 +754,13 @@ class GenericDomain():
                         for value in data[field_name]:
                             #newfieldid = len(entryif._fields)-1
                             #entryif._field_idx[field_name].append(newfieldid)
-                            entryif._fields.append([field_name, value, make_comp_value(self.field_type_from_name(field_name), value), backend])
+                            entryif._fields.append([field_name, value, TypeManager.make_comp_value(self.field_type_from_name(field_name), value), backend])
                     entryif.rebuild_index()
                 else:
                     for field_nr in entryif._field_idx[field_name]:
                         #if entry[field_name]!=data[field_name]:
                         entryif._fields[field_nr][1]=data[field_name]
-                        entryif._fields[field_nr][2]=make_comp_value(self.field_type_from_name(field_name), data[field_name])
+                        entryif._fields[field_nr][2]=TypeManager.make_comp_value(self.field_type_from_name(field_name), data[field_name])
 
         for backend_name in entryif._used_backends:
             backend = self._backends[backend_name]
