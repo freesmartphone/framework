@@ -1,7 +1,7 @@
 Near future:
 * Initialized signal in source
 * uninitialize SIM backend on GSM resource release
-* UpdatedEntry signals on generic path, with entry path as argument
+* types - as in http://wiki.openmoko.org/wiki/Opimd_redesign
 In mean-time:
 * write documentation
 After that:
@@ -17,7 +17,7 @@ Think about:
 * RSS-Messages backend (handler)
 * Google-Contacts backend
 * Evolution backends
-* should quering "Phone" check also "Office phone"? regexps in fields?
+* should quering "Phone" check also "Office phone"? regexps in fields? (will types fix that?)
 Finishing:
 * faster merging and avoiding duplicates
 * using backend engine to query instead of cache when possible
