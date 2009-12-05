@@ -107,7 +107,7 @@ class SIMContactBackendFSO(Backend):
             if field=='Name':
                 name=value
             elif field=='Phone':
-                phone=value.replace('tel:','')
+                phone=value
             elif field=='_backend_entry_id':
                 entry_id=int(value)
         self.gsm_sim_iface.StoreEntry('contacts', entry_id, name, phone, reply_handler=self.dbus_ok, error_handler=self.dbus_err)
@@ -120,7 +120,7 @@ class SIMContactBackendFSO(Backend):
             if field=='Name':
                 name=value
             elif field=='Phone':
-                phone=value.replace('tel:','')
+                phone=value
         ret = 1
         sim_ids = []
         for con in self._domain_handlers['Contacts'].enumerate_items(self):

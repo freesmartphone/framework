@@ -28,27 +28,16 @@ def field_value_to_list(field_value):
         return [ field_value ]
 
 #----------------------------------------------------------------------------#
-def phone_number_to_tel_uri(phone_num):
-#----------------------------------------------------------------------------#
-    """Transforms a regular phone number into a tel URI"""
-
-    uri = "tel:"
-
-    uri += phone_num
-    return uri
-
-
-#----------------------------------------------------------------------------#
-def get_compare_for_tel(tel_value):
+def make_comp_value(value):
 #----------------------------------------------------------------------------#
     """Determines and returns a representation of a tel URI that is comparable to human input"""
 
     # Remove tel:
-    res = tel_value[4:]
+    #res = tel_value[4:]
 
-    res = normalize_number(res)
+    #res = normalize_number(res)
 
-    return 'tel:'+res
+    return res
 
 #----------------------------------------------------------------------------#
 class InvalidBackend( DBusException ):
