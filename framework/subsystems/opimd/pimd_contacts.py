@@ -64,7 +64,7 @@ class Contact(GenericEntry):
     
     def __init__(self, path):
         """Creates a new entry instance"""
-        self.domain_name = _DOMAIN_NAME
+        self.domain = ContactDomain
         GenericEntry.__init__( self, path )
 
 

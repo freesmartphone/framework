@@ -64,7 +64,7 @@ class Task(GenericEntry):
     
     def __init__(self, path):
         """Creates a new entry instance"""
-        self.domain_name = _DOMAIN_NAME
+        self.domain = TaskDomain
         GenericEntry.__init__( self, path )
 
 

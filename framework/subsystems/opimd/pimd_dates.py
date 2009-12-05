@@ -65,7 +65,7 @@ class Date(GenericEntry):
     
     def __init__(self, path):
         """Creates a new entry instance"""
-        self.domain_name = _DOMAIN_NAME
+        self.domain = DateDomain
         GenericEntry.__init__( self, path )
 
 #----------------------------------------------------------------------------#

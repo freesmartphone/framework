@@ -28,16 +28,15 @@ def field_value_to_list(field_value):
         return [ field_value ]
 
 #----------------------------------------------------------------------------#
-def make_comp_value(value):
+def make_comp_value(field_type, value):
 #----------------------------------------------------------------------------#
     """Determines and returns a representation of a tel URI that is comparable to human input"""
 
     # Remove tel:
     #res = tel_value[4:]
-
     #res = normalize_number(res)
 
-    return res
+    return value
 
 #----------------------------------------------------------------------------#
 class InvalidBackend( DBusException ):
