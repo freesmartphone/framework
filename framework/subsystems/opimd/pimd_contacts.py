@@ -49,6 +49,16 @@ _DIN_CONTACTS = _DIN_CONTACTS_BASE + '.' + 'Contacts'
 _DIN_ENTRY = _DIN_CONTACTS_BASE + '.' + 'Contact'
 _DIN_QUERY = _DIN_CONTACTS_BASE + '.' + 'ContactQuery'
 
+_CONTACTS_DEFAULT_TYPES = {
+                          'Path'    : 'objectpath',
+                          'Phone'   : 'phonenumber',
+                          'E-mail'  : 'email',
+                          'Name'    : 'name',
+                          'Surname' : 'name',
+                          'Birthday': 'date',
+                          'Photo'   : 'photo',
+                          'Address' : 'address'
+                          }
 
 #----------------------------------------------------------------------------#
 class Contact(GenericEntry):
@@ -205,6 +215,7 @@ class ContactDomain(Domain, GenericDomain):
     query_manager = None
     _dbus_path = None
     Entry = None
+    DefaultTypes = _CONTACTS_DEFAULT_TYPES
 
     def __init__(self):
         """Creates a new ContactDomain instance"""
