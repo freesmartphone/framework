@@ -679,6 +679,24 @@ class GenericDomain():
         else:
             return 'generic'
 
+    @classmethod
+    def add_new_field(self, name, type):
+        if not name in self.FieldTypes and type in TypeManager.Types:
+            self.FieldTypes[name] = type
+        else:
+            raise InvalidField ( "Field %s does already exist or type %s is invalid." % name, type)
+
+    @classmethod
+    def remove_field(self, name):
+        if name in self.FieldTypes:
+            del self.FieldTypes[name]
+        else:
+            raise InvalidField ("Field %s does not exist!" % name)
+
+    @classmethod
+    def list_fields(self):
+        return self.FieldTypes
+
     def enumerate_items(self, backend):
         """Enumerates all entry data belonging to a specific backend
 

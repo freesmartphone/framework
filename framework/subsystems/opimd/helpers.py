@@ -35,6 +35,12 @@ class InvalidDomain( DBusException ):
     _dbus_error_name = "org.freesmartphone.PIM.InvalidDomain"
 
 #----------------------------------------------------------------------------#
+class InvalidField( DBusException ):
+#----------------------------------------------------------------------------#
+    """Raised when a field name or type is invalid"""
+    _dbus_error_name = "org.freesmartphone.PIM.InvalidField"
+
+#----------------------------------------------------------------------------#
 class InvalidBackendID( DBusException ):
 #----------------------------------------------------------------------------#
     """Raised when a submitted backend ID is invalid / out of range"""

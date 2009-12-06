@@ -44,6 +44,8 @@ _TYPES = ['objectpath', 'phonenumber', 'address', 'email', 'name', 'date', 'uri'
 class TypeManager(DBusFBObject):
 #----------------------------------------------------------------------------#
 
+    Types = _TYPES
+
     def __init__(self):
         """Initializes the type manager"""
 
