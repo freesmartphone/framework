@@ -49,7 +49,7 @@ _DBUS_PATH_QUERIES = _DBUS_PATH_DATES + '/Queries'
 _DIN_DATES = _DIN_DATES_BASE + '.' + 'Dates'
 _DIN_ENTRY = _DIN_DATES_BASE + '.' + 'Date'
 _DIN_QUERY = _DIN_DATES_BASE + '.' + 'DateQuery'
-
+_DIN_FIELDS = _DIN_DATES_BASE + '.' + 'Fields'
 
 #----------------------------------------------------------------------------#
 class Date(GenericEntry):
@@ -328,3 +328,20 @@ class DateDomain(Domain, GenericDomain):
         num_id = int(rel_path[1:])
 
         self.update(num_id, data)
+
+    @dbus_method(_DIN_FIELDS, "ss", "")
+    def Add(self, name, type):
+        self.add_new_field(name, type)
+
+    @dbus_method(_DIN_FIELDS, "", "a{ss}")
+    def List(self):
+        return self.list_fields()
+
+    @dbus_method(_DIN_FIELDS, "s", "")
+    def Delete(self, name):
+        self.remove_field(name)
+
+    @dbus_method(_DIN_FIELDS, "s", "s")
+    def Get(self, name):
+        return self.field_type_from_name(name)
+
