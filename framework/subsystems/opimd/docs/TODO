@@ -1,7 +1,7 @@
 Near future:
 * Initialized signal in source
 * uninitialize SIM backend on GSM resource release
-* types - as in http://wiki.openmoko.org/wiki/Opimd_redesign
+* add ListFieldsWithType(type) to Types interface
 In mean-time:
 * write documentation
 After that:
