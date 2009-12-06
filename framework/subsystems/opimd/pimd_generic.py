@@ -664,6 +664,8 @@ class GenericDomain():
             pickleFile.close()
         else:
             self.FieldTypes = self.DefaultTypes
+        if not self.FieldTypes:
+            self.FieldTypes = {}
 
     @classmethod
     def save_field_types(self):
@@ -698,10 +700,7 @@ class GenericDomain():
 
     @classmethod
     def list_fields(self):
-        if self.FieldTypes:
-            return self.FieldTypes
-        else:
-            return {}
+        return self.FieldTypes
 
     def enumerate_items(self, backend):
         """Enumerates all entry data belonging to a specific backend
