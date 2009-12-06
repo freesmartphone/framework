@@ -41,6 +41,10 @@ from query_manager import QueryMatcher, SingleQueryHandler
 
 from framework.config import config, busmap
 
+import os,pickle
+
+_CONF_PATH = '/etc/freesmartphone/opim/'
+
 #----------------------------------------------------------------------------#
 
 #_DOMAIN_NAME = "Generic"
@@ -590,11 +594,14 @@ class GenericDomain():
     query_manager = None
     Entry = None
     _dbus_path = None
+    DefaultTypes = None
+    FieldTypes = None
 
     def __init__(self):
         """Creates a new GenericDomain instance"""
         self._backends = {}
         self._entries = []
+        self.DefaultTypes = {}
         self.Entry = GenericEntry
         self._dbus_path = _DIN_ENTRY
         self.query_manager = QueryManager(self._entries, self.name)
@@ -649,10 +656,28 @@ class GenericDomain():
         return entry_id
 
     @classmethod
+    def load_field_types(self):
+        if os.path.exists(_CONF_PATH+self.name+'Fields.pickle'):
+            pickleFile = open(_CONF_PATH+self.name+'Fields.pickle', "r")
+            self.FieldTypes = pickle.load(pickleFile)
+            pickleFile.close()
+        else:
+            self.FieldTypes = self.DefaultTypes
+
+    @classmethod
+    def save_field_types(self):
+        pickleFile = open(_CONF_PATH+self.name+'Fields.pickle', "w")
+        pickle.dump(self.FieldTypes,pickleFile)
+        pickleFile.close()
+
+    @classmethod
     def field_type_from_name(self, name):
-        if name=='Phone':
-            return 'phonenumber'
-        return 'generic'
+        if not self.FieldTypes:
+            self.load_field_types()
+        if name in self.FieldTypes:
+            return self.FieldTypes[name]
+        else:
+            return 'generic'
 
     def enumerate_items(self, backend):
         """Enumerates all entry data belonging to a specific backend
