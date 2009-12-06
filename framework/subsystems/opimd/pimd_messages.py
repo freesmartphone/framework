@@ -49,6 +49,7 @@ _DIN_MESSAGES = _DIN_MESSAGES_BASE + '.' + 'Messages'
 _DIN_ENTRY = _DIN_MESSAGES_BASE + '.' + 'Message'
 _DIN_QUERY = _DIN_MESSAGES_BASE + '.' + 'MessageQuery'
 _DIN_FOLDER = _DIN_MESSAGES_BASE + '.' + 'MessageFolder'
+_DIN_FIELDS = _DIN_MESSAGES_BASE + '.' + 'Fields'
 
 #----------------------------------------------------------------------------#
 class Message(GenericEntry):
@@ -559,3 +560,20 @@ class MessageDomain(Domain, GenericDomain):
             self.UnreadMessages(self._unread_messages)
 
         self.delete(num_id)
+
+    @dbus_method(_DIN_FIELDS, "ss", "")
+    def Add(self, name, type):
+        self.add_new_field(name, type)
+
+    @dbus_method(_DIN_FIELDS, "", "a{ss}")
+    def List(self):
+        return self.list_fields()
+
+    @dbus_method(_DIN_FIELDS, "s", "")
+    def Delete(self, name):
+        self.remove_field(name)
+
+    @dbus_method(_DIN_FIELDS, "s", "s")
+    def Get(self, name):
+        return self.field_type_from_name(name)
+
