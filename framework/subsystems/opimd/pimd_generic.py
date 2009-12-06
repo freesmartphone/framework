@@ -57,7 +57,7 @@ _DIN_DOMAIN_BASE = DIN_BASE_FSO
 _DIN_ENTRIES = _DIN_DOMAIN_BASE + '.' + 'Entries'
 _DIN_ENTRY = _DIN_DOMAIN_BASE + '.' + 'Entry'
 _DIN_QUERY = _DIN_DOMAIN_BASE + '.' + 'EntryQuery'
-
+_DIN_FIELDS = _DIN_DOMAIN_BASE + '.' + 'Fields'
 
 #----------------------------------------------------------------------------#
 class GenericEntry():
@@ -534,6 +534,7 @@ class QueryManager(DBusFBObject):
         return self._queries[num_id].get_result_count()
 
 
+
     @dbus_method(_DIN_QUERY, "", "", rel_path_keyword="rel_path", sender_keyword="sender")
     def Rewind(self, rel_path, sender):
         num_id = int(rel_path[1:])
@@ -682,9 +683,10 @@ class GenericDomain():
     @classmethod
     def add_new_field(self, name, type):
         if not name in self.FieldTypes and type in TypeManager.Types:
-            self.FieldTypes[name] = type
+            self.FieldTypes[str(name)] = str(type)
         else:
-            raise InvalidField ( "Field %s does already exist or type %s is invalid." % name, type)
+            raise InvalidField ( "Field %s does already exist or type %s is invalid." % (name, type))
+        self.save_field_types()
 
     @classmethod
     def remove_field(self, name):
@@ -692,10 +694,14 @@ class GenericDomain():
             del self.FieldTypes[name]
         else:
             raise InvalidField ("Field %s does not exist!" % name)
+        self.save_field_types()
 
     @classmethod
     def list_fields(self):
-        return self.FieldTypes
+        if self.FieldTypes:
+            return self.FieldTypes
+        else:
+            return {}
 
     def enumerate_items(self, backend):
         """Enumerates all entry data belonging to a specific backend
@@ -969,4 +975,22 @@ class GenericDomain():
         num_id = int(rel_path[1:])
 
         self.update(num_id, data)
+
+    @dbus_method(_DIN_FIELDS, "ss", "")
+    def Add(self, name, type):
+        self.add_new_field(name, type)
+
+    @dbus_method(_DIN_FIELDS, "", "a{ss}")
+    def List(self):
+        return self.list_fields()
+
+    @dbus_method(_DIN_FIELDS, "s", "")
+    def Delete(self, name):
+        self.remove_field(name)
+
+    @dbus_method(_DIN_FIELDS, "s", "s")
+    def Get(self, name):
+        return self.field_type_from_name(name)
+
+
 '''
