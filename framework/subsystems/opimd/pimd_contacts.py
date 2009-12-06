@@ -48,6 +48,7 @@ _DBUS_PATH_QUERIES = _DBUS_PATH_CONTACTS + '/Queries'
 _DIN_CONTACTS = _DIN_CONTACTS_BASE + '.' + 'Contacts'
 _DIN_ENTRY = _DIN_CONTACTS_BASE + '.' + 'Contact'
 _DIN_QUERY = _DIN_CONTACTS_BASE + '.' + 'ContactQuery'
+_DIN_FIELDS = _DIN_CONTACTS_BASE + '.' + 'Fields'
 
 _CONTACTS_DEFAULT_TYPES = {
                           'Path'    : 'objectpath',
@@ -335,3 +336,20 @@ class ContactDomain(Domain, GenericDomain):
         num_id = int(rel_path[1:])
 
         self.update(num_id, data)
+
+    @dbus_method(_DIN_FIELDS, "ss", "")
+    def Add(self, name, type):
+        self.add_new_field(name, type)
+
+    @dbus_method(_DIN_FIELDS, "", "a{ss}")
+    def List(self):
+        return self.list_fields()
+
+    @dbus_method(_DIN_FIELDS, "s", "")
+    def Delete(self, name):
+        self.remove_field(name)
+
+    @dbus_method(_DIN_FIELDS, "s", "s")
+    def Get(self, name):
+        return self.field_type_from_name(name)
+
