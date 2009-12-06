@@ -48,7 +48,7 @@ _DBUS_PATH_QUERIES = _DBUS_PATH_TASKS + '/Queries'
 _DIN_TASKS = _DIN_TASKS_BASE + '.' + 'Tasks'
 _DIN_ENTRY = _DIN_TASKS_BASE + '.' + 'Task'
 _DIN_QUERY = _DIN_TASKS_BASE + '.' + 'TaskQuery'
-
+_DIN_FIELDS = _DIN_TASKS_BASE + '.' + 'Fields'
 
 #----------------------------------------------------------------------------#
 class Task(GenericEntry):
@@ -370,3 +370,20 @@ class TaskDomain(Domain, GenericDomain):
                 self.UnfinishedTasks(self._unfinished_tasks)
 
         self.update(num_id, data, entryif = taskif, entry = task)
+
+    @dbus_method(_DIN_FIELDS, "ss", "")
+    def Add(self, name, type):
+        self.add_new_field(name, type)
+
+    @dbus_method(_DIN_FIELDS, "", "a{ss}")
+    def List(self):
+        return self.list_fields()
+
+    @dbus_method(_DIN_FIELDS, "s", "")
+    def Delete(self, name):
+        self.remove_field(name)
+
+    @dbus_method(_DIN_FIELDS, "s", "s")
+    def Get(self, name):
+        return self.field_type_from_name(name)
+
