@@ -38,7 +38,7 @@ logger = logging.getLogger('opimd')
 _DBUS_PATH_TYPES = DBUS_PATH_BASE_FSO + '/Types'
 _DIN_TYPES = DIN_BASE_FSO + '.Types'
 
-_TYPES = ['objectpath', 'phonenumber', 'address', 'email', 'name', 'date', 'uri', 'photo', 'text', 'longtext', 'boolean', 'timezone', 'generic']
+_TYPES = ['objectpath', 'phonenumber', 'number', 'integer', 'address', 'email', 'name', 'date', 'uri', 'photo', 'text', 'longtext', 'boolean', 'timezone', 'generic']
 
 #----------------------------------------------------------------------------#
 class TypeManager(DBusFBObject):
