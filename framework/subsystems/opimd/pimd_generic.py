@@ -702,6 +702,14 @@ class GenericDomain():
     def list_fields(self):
         return self.FieldTypes
 
+    @classmethod
+    def list_fields_with_type(self, type):
+        fields = []
+        for field in self.FieldTypes:
+            if self.FieldTypes[field]==type:
+                fields.appends(field)
+        return fields
+
     def enumerate_items(self, backend):
         """Enumerates all entry data belonging to a specific backend
 
@@ -982,6 +990,10 @@ class GenericDomain():
     @dbus_method(_DIN_FIELDS, "", "a{ss}")
     def List(self):
         return self.list_fields()
+
+    @dbus_method(_DIN_FIELDS, "s", "as")
+    def ListFieldsWithType(self, type):
+        return self.list_fields_with_type(type)
 
     @dbus_method(_DIN_FIELDS, "s", "")
     def Delete(self, name):
