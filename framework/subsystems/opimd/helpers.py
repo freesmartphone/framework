@@ -74,5 +74,5 @@ class NoMoreEntries( DBusException ):
 class InvalidData( DBusException ):
 #----------------------------------------------------------------------------#
     """Raised when data passed to method are not valid"""
-    _dbus_error_name = "org.freesmartphone.PIM.InvalidDate"
+    _dbus_error_name = "org.freesmartphone.PIM.InvalidData"
 
