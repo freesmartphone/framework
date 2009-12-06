@@ -50,6 +50,20 @@ _DIN_ENTRY = _DIN_CALLS_BASE + '.' + 'Call'
 _DIN_QUERY = _DIN_CALLS_BASE + '.' + 'CallQuery'
 _DIN_FIELDS = _DIN_CALLS_BASE + '.' + 'Fields'
 
+_CALLS_DEFAULT_TYPES = {
+                          'Path'      : 'objectpath',
+                          'Peer'      : 'phonenumber',
+                          'Line'      : 'integer',
+                          'Type'      : 'string',
+                          'New'       : 'boolean',
+                          'Answered'  : 'boolean',
+                          'Replied'   : 'boolean',
+                          'Direction' : 'string',
+                          'Duration'  : 'number',
+                          'Timestamp' : 'date',
+                          'Timezone'  : 'timezone'
+                          }
+
 #----------------------------------------------------------------------------#
 class Call(GenericEntry):
 #----------------------------------------------------------------------------#
@@ -205,6 +219,7 @@ class CallDomain(Domain, GenericDomain):
     _dbus_path = None
     _new_missed_calls = None
     Entry = None
+    DefaultTypes = _CALLS_DEFAULT_TYPES
 
     def __init__(self):
         """Creates a new CallDomain instance"""
