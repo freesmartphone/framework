@@ -48,7 +48,7 @@ _DBUS_PATH_QUERIES = _DBUS_PATH_CALLS + '/Queries'
 _DIN_CALLS = _DIN_CALLS_BASE + '.' + 'Calls'
 _DIN_ENTRY = _DIN_CALLS_BASE + '.' + 'Call'
 _DIN_QUERY = _DIN_CALLS_BASE + '.' + 'CallQuery'
-
+_DIN_FIELDS = _DIN_CALLS_BASE + '.' + 'Fields'
 
 #----------------------------------------------------------------------------#
 class Call(GenericEntry):
@@ -399,3 +399,20 @@ class CallDomain(Domain, GenericDomain):
                     self.NewMissedCalls(self._new_missed_calls)
 
         self.update(num_id, data, entryif = callif, entry = call)
+
+    @dbus_method(_DIN_FIELDS, "ss", "")
+    def Add(self, name, type):
+        self.add_new_field(name, type)
+
+    @dbus_method(_DIN_FIELDS, "", "a{ss}")
+    def List(self):
+        return self.list_fields()
+
+    @dbus_method(_DIN_FIELDS, "s", "")
+    def Delete(self, name):
+        self.remove_field(name)
+
+    @dbus_method(_DIN_FIELDS, "s", "s")
+    def Get(self, name):
+        return self.field_type_from_name(name)
+
