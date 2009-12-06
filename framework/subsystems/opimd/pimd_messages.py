@@ -290,7 +290,7 @@ class MessageDomain(Domain, GenericDomain):
     query_manager = None
     Entry = None
     _dbus_path = None
-    DefaultTypes = _CONTACTS_DEFAULT_TYPES
+    DefaultTypes = _MESSAGES_DEFAULT_TYPES
 
     def __init__(self):
         """Creates a new MessageDomain instance"""
