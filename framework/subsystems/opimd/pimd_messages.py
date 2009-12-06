@@ -51,6 +51,20 @@ _DIN_QUERY = _DIN_MESSAGES_BASE + '.' + 'MessageQuery'
 _DIN_FOLDER = _DIN_MESSAGES_BASE + '.' + 'MessageFolder'
 _DIN_FIELDS = _DIN_MESSAGES_BASE + '.' + 'Fields'
 
+_MESSAGES_DEFAULT_TYPES = {
+                          'Path'        : 'objectpath',
+                          'Recipient'   : 'phonenumber',
+                          'Sender'      : 'phonenumber',
+                          'Source'      : 'text',
+                          'Direction'   : 'text',
+                          'MessageSent' : 'boolean',
+                          'MessageRead' : 'boolean',
+                          'Timestamp'   : 'date',
+                          'Timezone'    : 'timezone',
+                          'Content'     : 'text',
+                          'Folder'      : 'text'
+                          }
+
 #----------------------------------------------------------------------------#
 class Message(GenericEntry):
 #----------------------------------------------------------------------------#
@@ -276,6 +290,7 @@ class MessageDomain(Domain, GenericDomain):
     query_manager = None
     Entry = None
     _dbus_path = None
+    DefaultTypes = _CONTACTS_DEFAULT_TYPES
 
     def __init__(self):
         """Creates a new MessageDomain instance"""
