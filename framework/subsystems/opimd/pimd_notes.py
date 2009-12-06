@@ -409,6 +409,10 @@ class NoteDomain(Domain, GenericDomain):
     def List(self):
         return self.list_fields()
 
+    @dbus_method(_DIN_FIELDS, "s", "as")
+    def ListFieldsWithType(self, type):
+        return self.list_fields_with_type(type)
+
     @dbus_method(_DIN_FIELDS, "s", "")
     def Delete(self, name):
         self.remove_field(name)
