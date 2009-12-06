@@ -49,7 +49,7 @@ _DBUS_PATH_QUERIES = _DBUS_PATH_NOTES + '/Queries'
 _DIN_NOTES = _DIN_NOTES_BASE + '.' + 'Notes'
 _DIN_ENTRY = _DIN_NOTES_BASE + '.' + 'Note'
 _DIN_QUERY = _DIN_NOTES_BASE + '.' + 'NoteQuery'
-
+_DIN_FIELDS = _DIN_NOTES_BASE + '.' + 'Fields'
 
 #----------------------------------------------------------------------------#
 class Note(GenericEntry):
@@ -400,3 +400,20 @@ class NoteDomain(Domain, GenericDomain):
                         self._tags[tag].append(num_id)
 
         self.update(num_id, data, entryif = noteif, entry = note)
+
+    @dbus_method(_DIN_FIELDS, "ss", "")
+    def Add(self, name, type):
+        self.add_new_field(name, type)
+
+    @dbus_method(_DIN_FIELDS, "", "a{ss}")
+    def List(self):
+        return self.list_fields()
+
+    @dbus_method(_DIN_FIELDS, "s", "")
+    def Delete(self, name):
+        self.remove_field(name)
+
+    @dbus_method(_DIN_FIELDS, "s", "s")
+    def Get(self, name):
+        return self.field_type_from_name(name)
+
