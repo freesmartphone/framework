@@ -1,7 +1,7 @@
 Near future:
 * Initialized signal in source
 * uninitialize SIM backend on GSM resource release
-* add ListFieldsWithType(type) to Types interface
+* use dbus.ObjectPath("foo") and "o" dbus signature
 In mean-time:
 * write documentation
 After that:
