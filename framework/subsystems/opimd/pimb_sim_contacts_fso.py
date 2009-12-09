@@ -81,7 +81,7 @@ class SIMContactBackendFSO(Backend):
             # name.translate({"\xbf":None, "$":None})
             
             entry = {}
-            entry['Phone'] = phone_number_to_tel_uri(number)
+            entry['Phone'] = number
             entry['Name'] = name
             if len(entry['Name'])==self.contact_book_info['name_length']:
                 entry['_backend_field_truncated_Name'] = 1
