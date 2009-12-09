@@ -707,7 +707,7 @@ class GenericDomain():
         fields = []
         for field in self.FieldTypes:
             if self.FieldTypes[field]==type:
-                fields.appends(field)
+                fields.append(field)
         return fields
 
     def enumerate_items(self, backend):
