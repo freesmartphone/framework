@@ -102,9 +102,9 @@ class SIMMessageBackendFSO(Backend):
         if status == 'sent': entry['MessageSent'] = 1
         
         if entry['Direction'] == 'in':
-            entry['Sender'] = phone_number_to_tel_uri(number)
+            entry['Sender'] = number
         else:
-            entry['Recipient'] = phone_number_to_tel_uri(number)
+            entry['Recipient'] = number
         
         # TODO Handle text properly, i.e. make it on-demand if >1KiB
         entry['Content'] = text
