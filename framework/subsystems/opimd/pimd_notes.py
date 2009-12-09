@@ -402,11 +402,11 @@ class NoteDomain(Domain, GenericDomain):
         self.update(num_id, data, entryif = noteif, entry = note)
 
     @dbus_method(_DIN_FIELDS, "ss", "")
-    def Add(self, name, type):
+    def AddField(self, name, type):
         self.add_new_field(name, type)
 
     @dbus_method(_DIN_FIELDS, "", "a{ss}")
-    def List(self):
+    def ListFields(self):
         return self.list_fields()
 
     @dbus_method(_DIN_FIELDS, "s", "as")
@@ -414,10 +414,10 @@ class NoteDomain(Domain, GenericDomain):
         return self.list_fields_with_type(type)
 
     @dbus_method(_DIN_FIELDS, "s", "")
-    def Delete(self, name):
+    def DeleteField(self, name):
         self.remove_field(name)
 
     @dbus_method(_DIN_FIELDS, "s", "s")
-    def Get(self, name):
+    def GetType(self, name):
         return self.field_type_from_name(name)
 
