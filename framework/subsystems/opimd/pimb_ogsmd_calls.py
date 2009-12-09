@@ -84,7 +84,7 @@ class OgsmdCallsBackend(Backend):
         if call_props.has_key('mode'):
             self.props[line]['Type']='gsm_'+call_props['mode']
         if call_props.has_key('peer'):
-            peer = phone_number_to_tel_uri(call_props["peer"])
+            peer = call_props["peer"]
         elif self.props[line].has_key('Peer'):
             peer = self.props[line]['Peer']
 
