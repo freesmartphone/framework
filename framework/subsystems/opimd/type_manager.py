@@ -64,7 +64,7 @@ class TypeManager(DBusFBObject):
             else:
                 return normalize_number(field_value)
         else:
-            return field_value
+            return str(field_value)
 
     @dbus_method(_DIN_TYPES, "", "as")
     def List(self):
