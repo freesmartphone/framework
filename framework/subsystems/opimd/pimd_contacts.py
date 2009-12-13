@@ -56,6 +56,7 @@ _CONTACTS_DEFAULT_TYPES = {
                           'E-mail'  : 'email',
                           'Name'    : 'name',
                           'Surname' : 'name',
+                          'Nickname': 'name',
                           'Birthday': 'date',
                           'Photo'   : 'photo',
                           'Address' : 'address'
