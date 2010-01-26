@@ -1,23 +1,23 @@
 Near future:
+* CopyTo, MoveTo (in entries and in queries)
+* use dbus.ObjectPath("foo") and "o" dbus signature
 * Initialized signal in source
 * uninitialize SIM backend on GSM resource release
-* use dbus.ObjectPath("foo") and "o" dbus signature
 In mean-time:
 * write documentation
 After that:
 * prelimiting and postlimiting
 * sorting by multiple fields (_sortby:['Surname','Name'])
+* quering by field type
 * backends configuration, status
 * finished inteligent queries (ContactDeleted, ContactUpdated)
 * updating with SIM-Messages-FSO
 * adding new fields to for example SIM entry (by merging)
-* CopyTo, MoveTo (in entries and in queries)
 Think about:
 * vcard support in SIM-Messages-FSO
 * RSS-Messages backend (handler)
 * Google-Contacts backend
 * Evolution backends
-* should quering "Phone" check also "Office phone"? regexps in fields? (will types fix that?)
 Finishing:
 * faster merging and avoiding duplicates
 * using backend engine to query instead of cache when possible
