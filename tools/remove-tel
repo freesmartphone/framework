@@ -1,0 +1,110 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
+import dbus
+from sys import argv
+from time import sleep
+
+# define some nice dbus helper, which I really like, cause make code easier to read :)
+def getDbusObject (bus, busname , objectpath , interface):
+        dbusObject = bus.get_object(busname, objectpath)
+        return dbus.Interface(dbusObject, dbus_interface=interface)
+
+def print_array(array):
+  for entry in array:
+    print ' - ' + str(entry)
+
+def strip_tel(value):
+  if value.startswith('tel:'):
+    return value[4:]
+  elif value.startswith('mail:'):
+    return value[5:]
+  else:
+    return False
+
+bus = dbus.SystemBus()
+
+initialized = False
+print "Waiting for opimd to be ready..."
+while (not initialized):
+  try:
+    interface = getDbusObject (bus, "org.freesmartphone.opimd", "/org/freesmartphone/PIM/Contacts", "org.freesmartphone.PIM.Contacts")
+    types = getDbusObject (bus, "org.freesmartphone.opimd", "/org/freesmartphone/PIM/Contacts", "org.freesmartphone.PIM.Fields")
+    initialized = True
+  except:
+    sleep(10)
+
+x = interface.Query({})
+
+query = getDbusObject (bus, "org.freesmartphone.opimd", x, "org.freesmartphone.PIM.ContactQuery")
+
+def list_phone_fields():
+  return types.ListFieldsWithType('phonenumber')
+
+def list_mail_fields():
+  return types.ListFieldsWithType('email')
+
+def add_phone_field(field):
+  global phone_fields
+  if not field in phone_fields:
+    types.AddField(field, 'phonenumber')
+    phone_fields.append(field)
+
+def add_mail_field(field):
+  global mail_fields
+  if not field in mail_fields:
+    types.AddField(field, 'email')
+    mail_fields.append(field)
+
+try:
+  phone_fields = list_phone_fields()
+  mail_fields = list_mail_fields()
+except:
+  print "Error: Couldn't get field types. Still running old opimd?"
+  exit(1)
+
+results = query.GetResultCount()
+for i in range(0, results):
+  x = query.GetContactPath()
+  print 'Processing ' + x
+  result = getDbusObject (bus, "org.freesmartphone.opimd", x, "org.freesmartphone.PIM.Contact")
+  content = result.GetContent()
+  to_update = {}
+  for field in content:
+    field = str(field)
+    if field.lower().endswith('phone'):
+      print '  Found field ' + field
+      if type(content[field]) == dbus.Array:
+        fresult = []
+        for entry in content[field]:
+          fresult.append(strip_tel(entry))
+      else:
+        fresult = strip_tel(content[field])
+      if fresult:
+        to_update[field] = fresult
+        add_phone_field(field)
+    if field.lower().endswith('e-mail') or field.lower().endswith('email'):
+      print '  Found field '+field
+      if type(content[field]) == dbus.Array:
+        fresult = []
+        for entry in content[field]:
+          fresult.append(strip_tel(entry))
+      else:
+        fresult = strip_tel(content[field])
+      if fresult:
+        to_update[field] = fresult 
+        add_mail_field(field)
+  try:
+    if to_update!={}:
+      print to_update
+      print ' Updating entry...'
+      result.Update(to_update)
+    else:
+      print " Nothing to update"
+  except:
+    print ' Failed to update entry!'
+print 'Finished'
+print 'Fields with phonenumber type:'
+print_array( phone_fields )
+print 'Fields with email type:'
+print_array( mail_fields )
