@@ -79,8 +79,8 @@ class QueryMatcher(object):
             matches.sort(reverse = True, key=itemgetter(0))
 
             limit = result_count
-            if self.query_obj.has_key("_limit"):
-                limit = self.query_obj["_limit"]
+            if self.query_obj.has_key("_pre_limit"):
+                limit = self.query_obj["_pre_limit"]
                 if limit > result_count:
                     limit = result_count
 
@@ -123,6 +123,13 @@ class QueryMatcher(object):
             except AttributeError:
                 casesens = True
                 results.sort(key=getkey, cmp=compare, reverse = reverse)
+
+            limit = result_count
+            if self.query_obj.has_key("_limit"):
+                limit = self.query_obj["_limit"] - 1
+                if limit > result_count or limit < 0:
+                    limit = result_count
+                results = results[:limit]
 
         return results
 

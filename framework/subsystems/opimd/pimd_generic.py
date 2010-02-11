@@ -878,7 +878,7 @@ class GenericDomain():
         result = ""
 
         # Only return one entry
-        query['_limit'] = 1
+        query['_pre_limit'] = 1
         matcher = QueryMatcher(query)
         res = matcher.match(self._entries)
 
