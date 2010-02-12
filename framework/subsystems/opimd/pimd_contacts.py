@@ -23,9 +23,6 @@ import re
 import logging
 logger = logging.getLogger('opimd')
 
-from backend_manager import BackendManager
-from backend_manager import PIMB_CAN_ADD_ENTRY, PIMB_CAN_DEL_ENTRY, PIMB_CAN_UPD_ENTRY, PIMB_CAN_UPD_ENTRY_WITH_NEW_FIELD, PIMB_NEEDS_SYNC
-
 from domain_manager import DomainManager, Domain
 from helpers import *
 from opimd import *
@@ -35,6 +32,8 @@ from query_manager import QueryMatcher, SingleQueryHandler
 from framework.config import config, busmap
 
 from pimd_generic import GenericEntry, GenericDomain
+
+from db_handler import ContactsDbHandler
 
 #----------------------------------------------------------------------------#
 
@@ -50,16 +49,9 @@ _DIN_ENTRY = _DIN_CONTACTS_BASE + '.' + 'Contact'
 _DIN_QUERY = _DIN_CONTACTS_BASE + '.' + 'ContactQuery'
 _DIN_FIELDS = _DIN_CONTACTS_BASE + '.' + 'Fields'
 
-_CONTACTS_DEFAULT_TYPES = {
-                          'Path'    : 'objectpath',
-                          'Phone'   : 'phonenumber',
-                          'E-mail'  : 'email',
-                          'Name'    : 'name',
-                          'Surname' : 'name',
-                          'Nickname': 'name',
-                          'Birthday': 'date',
-                          'Photo'   : 'photo',
-                          'Address' : 'address'
+"""Reserved types"""
+_CONTACTS_SYSTEM_TYPES = {
+                          'Path'    : 'objectpath'
                           }
 
 #----------------------------------------------------------------------------#
@@ -212,22 +204,21 @@ class ContactDomain(Domain, GenericDomain):
 #----------------------------------------------------------------------------#
     name = _DOMAIN_NAME
 
-    _backends = None
     _entries = None
     query_manager = None
     _dbus_path = None
     Entry = None
-    DefaultTypes = _CONTACTS_DEFAULT_TYPES
+    DefaultTypes = _CONTACTS_SYSTEM_TYPES
 
     def __init__(self):
         """Creates a new ContactDomain instance"""
 
         self.Entry = Contact
 
-        self._backends = {}
         self._entries = []
         self._dbus_path = _DBUS_PATH_CONTACTS
         self.query_manager = QueryManager(self._entries)
+        self.db_handler = ContactsDbHandler(self)
 
         # Initialize the D-Bus-Interface
         Domain.__init__( self, conn=busmap["opimd"], object_path=DBUS_PATH_BASE_FSO + '/' + self.name )
@@ -235,6 +226,7 @@ class ContactDomain(Domain, GenericDomain):
         # Keep frameworkd happy
         self.interface = _DIN_CONTACTS
         self.path = _DBUS_PATH_CONTACTS
+        
 
  
     #---------------------------------------------------------------------#
@@ -286,15 +278,6 @@ class ContactDomain(Domain, GenericDomain):
         self.check_entry_id(num_id)
 
         return self._entries[num_id].get_content()
-
-    @dbus_method(_DIN_ENTRY, "", "as", rel_path_keyword="rel_path")
-    def GetUsedBackends(self, rel_path):
-        num_id = int(rel_path[1:])
-                
-        # Make sure the requested entry exists
-        self.check_entry_id(num_id)
-        
-        return self._entries[num_id]._used_backends
 
     @dbus_method(_DIN_ENTRY, "s", "a{sv}", rel_path_keyword="rel_path")
     def GetMultipleFields(self, field_list, rel_path):

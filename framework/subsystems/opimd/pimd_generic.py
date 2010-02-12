@@ -29,9 +29,6 @@ import re
 import logging
 logger = logging.getLogger('opimd')
 
-from backend_manager import BackendManager
-from backend_manager import PIMB_CAN_ADD_ENTRY, PIMB_CAN_DEL_ENTRY, PIMB_CAN_UPD_ENTRY, PIMB_CAN_UPD_ENTRY_WITH_NEW_FIELD, PIMB_NEEDS_SYNC
-
 from type_manager import TypeManager
 
 from domain_manager import Domain
@@ -73,7 +70,6 @@ class GenericEntry():
 
     _fields = None
     _field_idx = None
-    _used_backends = None
     domain = None
 
     def __init__(self, path):
@@ -83,7 +79,6 @@ class GenericEntry():
 
         self._fields = []
         self._field_idx = {}
-        self._used_backends = []
 
         # Add Path field
         self._fields.append( ['Path', path, '', ''] )
@@ -127,19 +122,6 @@ class GenericEntry():
     def __repr__(self):
         return str(self.get_content())
 
-
-    def rebuild_index(self):
-        """Rebuilds the field index, thereby ensuring consistency
-        @note Should only be performed when absolutely necessary"""
-
-        self._field_idx = {}
-        for (field_idx, field) in enumerate(self._fields):
-            (field_name, field_data, comp_value, field_source) = field
-
-            try:
-                self._field_idx[field_name].append(field_idx)
-            except KeyError:
-                self._field_idx[field_name] = [field_idx]
 
     def import_fields(self, entry_data, backend_name):
         """Adds an array of entry data fields to this entry
@@ -590,7 +572,7 @@ class GenericDomain():
 #----------------------------------------------------------------------------#
     name = 'Generic'
 
-    _backends = None
+    db_handler = None
     _entries = None
     query_manager = None
     Entry = None
@@ -614,66 +596,15 @@ class GenericDomain():
 
         return (self, self.query_manager)
 
-
-    def register_backend(self, backend):
-        """Registers a backend for usage with this domain
-
-        @param backend Backend plugin object to register"""
-
-        self._backends[backend.name] = backend
-
-
-    def register_entry(self, backend, entry_data):
-        """Merges/inserts the given entry into the entry list and returns its ID
-
-        @param backend Backend objects that requests the registration
-        @param entry_data entry data; format: {Key:Value, Key:Value, ...}"""
-
-        entry_id = -1
-        merged = 0
-
-        # Check if the entry can be merged with one we already know of
-        if int(config.getValue('opimd', self.name.lower()+'_merging_enabled', default='0')):
-            for (entry_idx, entry) in enumerate(self._entries):
-                if entry:
-                    if entry.attempt_merge(entry_data, backend.name):
-                        entry_id = entry_idx
-                        # TODO: send EntryUpdated signal
-                        # Stop trying to merge
-                        merged = 1
-                        break
-        if not merged:
-            # Merging failed, so create a new entry and append it to the list
-            entry_id = len(self._entries)
-
-            path = self._dbus_path+ '/' + str(entry_id)
-            entry = self.Entry(path)
-            entry.import_fields(entry_data, backend.name)
-
-            self._entries.append(entry)
-
-            self.NewEntry(path)
-
-        return entry_id
-
-    @classmethod
+    def id_to_path(self, entry_id):
+        path = self._dbus_path+ '/' + str(entry_id)
+        return path
+        
     def load_field_types(self):
-        if os.path.exists(_CONF_PATH+self.name+'Fields.pickle'):
-            pickleFile = open(_CONF_PATH+self.name+'Fields.pickle', "r")
-            self.FieldTypes = pickle.load(pickleFile)
-            pickleFile.close()
-        else:
-            self.FieldTypes = self.DefaultTypes
+        self.FieldTypes = self.db_handler.load_field_types()
         if not self.FieldTypes:
             self.FieldTypes = {}
-
-    @classmethod
-    def save_field_types(self):
-        pickleFile = open(_CONF_PATH+self.name+'Fields.pickle', "w")
-        pickle.dump(self.FieldTypes,pickleFile)
-        pickleFile.close()
-
-    @classmethod
+  
     def field_type_from_name(self, name):
         if not self.FieldTypes:
             self.load_field_types()
@@ -682,21 +613,21 @@ class GenericDomain():
         else:
             return 'generic'
 
-    @classmethod
     def add_new_field(self, name, type):
+        if self.FieldTypes == None:
+            self.load_field_types()
         if not name in self.FieldTypes and type in TypeManager.Types:
             self.FieldTypes[str(name)] = str(type)
         else:
             raise InvalidField ( "Field %s does already exist or type %s is invalid." % (name, type))
-        self.save_field_types()
+        self.db_handler.add_field_type(name, type)
 
-    @classmethod
     def remove_field(self, name):
         if name in self.FieldTypes:
             del self.FieldTypes[name]
         else:
             raise InvalidField ("Field %s does not exist!" % name)
-        self.save_field_types()
+        self.db_handler.remove_field_type(name)
 
     @classmethod
     def list_fields(self):
@@ -736,126 +667,53 @@ class GenericDomain():
                     entry.rebuild_index()
             i += 1
 
+#FIXME: remove
     def check_entry_id( self, num_id ):
         """
         Checks whether the given entry id is valid. Raises InvalidEntryID, if not.
         """
-        if num_id >= len(self._entries) or self._entries[num_id]==None:
+        if self.db_handler.entry_exists(num_id):
             raise InvalidEntryID()
 
     def add(self, entry_data):
         # We use the default backend for now
-        backend = BackendManager.get_default_backend(self.name)
         result = ""
 
-        if not PIMB_CAN_ADD_ENTRY in backend.properties:
-            raise InvalidBackend( "Backend properties not including PIMB_CAN_ADD_ENTRY" )
-
         try:
-            entry_id = backend.add_entry(entry_data)
-        except AttributeError:
-            raise InvalidBackend( "Backend does not feature add_entry" )
+            entry_id = self.db_handler.add_entry(entry_data)
+        except AttributeError as details:
+            raise InvalidBackend( details )
 
-        entry = self._entries[entry_id]
-        result = entry['Path']
+        result = self.id_to_path(entry_id)
 
         # As we just added a new entry, we check it against all queries to see if it matches
         self.query_manager.check_new_entry(entry_id)
-
+        self.NewEntry(result)
         return result
 
     def update(self, num_id, data, *args, **kargs):
         # Make sure the requested entry exists
-        self.check_entry_id(num_id)
-
+        #self.check_entry_id(num_id)
+        #FIXME: TBD
         entryif = kargs.get('entryif')
         entry = kargs.get('entry')
         if not entryif:
             entryif = self._entries[num_id]
         if not entry:
             entry = entryif.get_fields(entryif._field_idx)
-
-        default_backend = BackendManager.get_default_backend(self.name)
-        
-        # Search for backend in which we can store new fields
-        backend = ''
-        if default_backend.name in entryif._used_backends:
-            backend = default_backend.name
-        else:
-            for backend_name in entryif._used_backends:
-                if PIMB_CAN_UPD_ENTRY_WITH_NEW_FIELD in self._backends[backend_name].properties:
-                    backend = self._backends[backend_name]
-                    break
-
-        # TODO: implement adding new data to backend, which doesn't incorporate entry data
-        # For instance: we have SIM contact with Name and Phone. We want to add "Birthday" field.
-        # opimd should then try to add "Birthday" field to default backend and then merge contacts.
-
-        for field_name in data:
-            if not field_name in entryif._field_idx:
-                if data[field_name]!='':
-                    if backend!='':
-                        entryif.import_fields({field_name:data[field_name]}, backend)
-                    else:
-                        raise InvalidBackend( "There is no backend which can store new field" )
-            elif not field_name.startswith('_'):
-                if data[field_name]=='' or isinstance(data[field_name], (list, dbus.Array)):
-                    field_idx = entryif._field_idx[field_name]
-                    field_idx.reverse()
-                    for field_nr in field_idx:
-                        del entryif._fields[field_nr]
-                    del entryif._field_idx[field_name]
-                    if data[field_name]!='':
-                        entryif._field_idx[field_name] = []
-                        for value in data[field_name]:
-                            #newfieldid = len(entryif._fields)-1
-                            #entryif._field_idx[field_name].append(newfieldid)
-                            entryif._fields.append([field_name, value, TypeManager.make_comp_value(self.field_type_from_name(field_name), value), backend])
-                    entryif.rebuild_index()
-                else:
-                    for field_nr in entryif._field_idx[field_name]:
-                        #if entry[field_name]!=data[field_name]:
-                        entryif._fields[field_nr][1]=data[field_name]
-                        entryif._fields[field_nr][2]=TypeManager.make_comp_value(self.field_type_from_name(field_name), data[field_name])
-
-        for backend_name in entryif._used_backends:
-            backend = self._backends[backend_name]
-            if not PIMB_CAN_UPD_ENTRY in backend.properties:
-                raise InvalidBackend( "Backend properties not including PIMB_CAN_UPD_ENTRY" )
-            try:
-                backend.upd_entry(entryif.export_fields(backend_name))
-            except AttributeError:
-                raise InvalidBackend( "Backend does not feature upd_entry" )
-
-            if PIMB_NEEDS_SYNC in backend.properties:
-                backend.sync() # If backend needs - sync entries
-
-
+            
+        self.db_handler.upd_entry(entryif.export_fields(backend_name))
         self.EntryUpdated(data, rel_path='/'+str(num_id))
 
     def delete(self, num_id):
         # Make sure the requested entry exists
-        self.check_entry_id(num_id)
+        #self.check_entry_id(num_id)
 
-        backends = self._entries[num_id]._used_backends
-
-        for backend_name in backends:
-            backend = self._backends[backend_name]
-            if not PIMB_CAN_DEL_ENTRY in backend.properties:
-                raise InvalidBackend( "Backend properties not including PIMB_CAN_DEL_ENTRY" )
-
-            try:
-                backend.del_entry(self._entries[num_id].export_fields(backend_name))
-            except AttributeError:
+        try:
+                if self.db_handler.del_entry(num_id):
+                        raise InvalidEntryID()
+        except AttributeError:
                 raise InvalidBackend( "Backend does not feature del_entry" )
-
-        #del self._entries[num_id]
-        self._entries[num_id] = None
-
-        for backend_name in backends:
-            backend = self._backends[backend_name]
-            if PIMB_NEEDS_SYNC in backend.properties:
-                backend.sync() # If backend needs - sync entries
 
         self.EntryDeleted(rel_path='/'+str(num_id))
 
@@ -878,18 +736,9 @@ class GenericDomain():
         result = ""
 
         # Only return one entry
-        query['_pre_limit'] = 1
+        query['_limit'] = 1
         matcher = QueryMatcher(query)
         res = matcher.match(self._entries)
-
-        # Copy all requested fields if we got a result
-        if len(res) > 0:
-            entry = self._entries[res[0]]
-            result = entry[field_name]
-
-            # Merge results if we received multiple results
-            if isinstance(result, list):
-                result = ",".join(map(str, result))
 
         return result
 
@@ -900,108 +749,3 @@ class GenericDomain():
         self.check_entry_id(num_id)
 
         return self._entries[num_id].get_content(True)
-
-'''
-    #---------------------------------------------------------------------#
-    # dbus methods and signals                                            #
-    #---------------------------------------------------------------------#
-
-    @dbus_signal(_DIN_ENTRIES, "s")
-    def NewEntry(self, path):
-        pass
-
-    @dbus_method(_DIN_ENTRIES, "a{sv}", "s")
-    def Add(self, entry_data):
-        """Adds a entry to the list, assigning it to the default backend and saving it
-
-        @param entry_data List of fields; format is [Key:Value, Key:Value, ...]
-        @return Path of the newly created d-bus entry object"""
-
-        return self.add(entry_data)
-
-    @dbus_method(_DIN_ENTRIES, "a{sv}s", "s")
-    def GetSingleEntrySingleField(self, query, field_name):
-        """Returns the first entry found for a query, making it real easy to query simple things
-
-        @param query The query object
-        @param field_name The name of the field to return
-        @return The requested data"""
-
-        return self.get_single_entry_single_field(query, field_name)
-
-    @dbus_method(_DIN_ENTRIES, "a{sv}", "s", sender_keyword="sender")
-    def Query(self, query, sender):
-        """Processes a query and returns the dbus path of the resulting query object
-
-        @param query Query
-        @param sender Unique name of the query sender on the bus
-        @return dbus path of the query object, e.g. /org.freesmartphone.PIM/Entries/Queries/4"""
-
-        return self.query_manager.process_query(query, sender)
-
-    @dbus_method(_DIN_ENTRY, "", "a{sv}", rel_path_keyword="rel_path")
-    def GetContent(self, rel_path):
-        num_id = int(rel_path[1:])
-
-        # Make sure the requested entry exists
-        self.check_entry_id(num_id)
-
-        return self._entries[num_id].get_content()
-
-    @dbus_method(_DIN_ENTRY, "", "as", rel_path_keyword="rel_path")
-    def GetUsedBackends(self, rel_path):
-        num_id = int(rel_path[1:])
-                
-        # Make sure the requested entry exists
-        self.check_entry_id(num_id)
-        
-        return self._entries[num_id]._used_backends
-
-    @dbus_method(_DIN_ENTRY, "s", "a{sv}", rel_path_keyword="rel_path")
-    def GetMultipleFields(self, field_list, rel_path):
-        num_id = int(rel_path[1:])
-
-        return self.get_multiple_fields(num_id, field_list)
-
-    @dbus_signal(_DIN_ENTRY, "", rel_path_keyword="rel_path")
-    def EntryDeleted(self, rel_path=None):
-        pass
-
-    @dbus_method(_DIN_ENTRY, "", "", rel_path_keyword="rel_path")
-    def Delete(self, rel_path):
-        num_id = int(rel_path[1:])
-
-        self.delete(num_id)
-
-    @dbus_signal(_DIN_ENTRY, "a{sv}", rel_path_keyword="rel_path")
-    def EntryUpdated(self, data, rel_path=None):
-        pass
-
-    @dbus_method(_DIN_ENTRY, "a{sv}", "", rel_path_keyword="rel_path")
-    def Update(self, data, rel_path):
-        num_id = int(rel_path[1:])
-
-        self.update(num_id, data)
-
-    @dbus_method(_DIN_FIELDS, "ss", "")
-    def AddField(self, name, type):
-        self.add_new_field(name, type)
-
-    @dbus_method(_DIN_FIELDS, "", "a{ss}")
-    def ListFields(self):
-        return self.list_fields()
-
-    @dbus_method(_DIN_FIELDS, "s", "as")
-    def ListFieldsWithType(self, type):
-        return self.list_fields_with_type(type)
-
-    @dbus_method(_DIN_FIELDS, "s", "")
-    def DeleteField(self, name):
-        self.remove_field(name)
-
-    @dbus_method(_DIN_FIELDS, "s", "s")
-    def GetType(self, name):
-        return self.field_type_from_name(name)
-
-
-'''
