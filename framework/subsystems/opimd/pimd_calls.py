@@ -34,7 +34,7 @@ from query_manager import QueryMatcher, SingleQueryHandler
 
 from framework.config import config, busmap
 
-from pimd_generic import GenericEntry, GenericDomain
+from pimd_generic import GenericDomain
 
 #----------------------------------------------------------------------------#
 
@@ -63,24 +63,6 @@ _CALLS_DEFAULT_TYPES = {
                           'Timestamp' : 'date',
                           'Timezone'  : 'timezone'
                           }
-
-#----------------------------------------------------------------------------#
-class Call(GenericEntry):
-#----------------------------------------------------------------------------#
-    """Represents one single call with all the data fields it consists of.
-
-    _fields[n] = [field_name, field_value, value_used_for_comparison, source]
-
-    Best way to explain the usage of _fields and _field_idx is by example:
-    _fields[3] = ["EMail", "foo@bar.com", "", "CSV-Contacts"]
-    _fields[4] = ["EMail", "moo@cow.com", "", "LDAP-Contacts"]
-    _field_idx["EMail"] = [3, 4]"""
-    
-    def __init__(self, path):
-        """Creates a new entry instance"""
-        self.domain = CallDomain
-        GenericEntry.__init__( self, path )
-
 
 #----------------------------------------------------------------------------#
 class QueryManager(DBusFBObject):
@@ -224,7 +206,6 @@ class CallDomain(Domain, GenericDomain):
     def __init__(self):
         """Creates a new CallDomain instance"""
 
-        self.Entry = Call
 
         self._backends = {}
         self._entries = []

@@ -33,7 +33,7 @@ from opimd import *
 
 from framework.config import config, busmap
 
-from pimd_generic import GenericEntry, GenericDomain
+from pimd_generic import GenericDomain
 
 #----------------------------------------------------------------------------#
 
@@ -64,27 +64,6 @@ _MESSAGES_DEFAULT_TYPES = {
                           'Content'     : 'text',
                           'Folder'      : 'text'
                           }
-
-#----------------------------------------------------------------------------#
-class Message(GenericEntry):
-#----------------------------------------------------------------------------#
-    """Represents one single message with all the data fields it consists of.
-
-    _fields[n] = [field_name, field_value, value_used_for_comparison, source]
-
-    Best way to explain the usage of _fields and _field_idx is by example:
-    _fields[3] = ["Recipient", "foo@bar.com", "", "EMail-Messages"]
-    _fields[4] = ["Recipient", "moo@cow.com", "", "EMail-Messages"]
-    _field_idx["Recipient"] = [3, 4]"""
-
-    _fields = None
-    _field_idx = None
-    _used_backends = None
-
-    def __init__(self, path):
-        """Creates a new entry instance"""
-        self.domain = MessageDomain
-        GenericEntry.__init__( self, path )
 
 
 #----------------------------------------------------------------------------#
@@ -295,7 +274,6 @@ class MessageDomain(Domain, GenericDomain):
     def __init__(self):
         """Creates a new MessageDomain instance"""
 
-        self.Entry = Message
 
         self._backends = {}
         self._entries = []

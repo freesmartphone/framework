@@ -7,6 +7,7 @@
 #
 #   Copyright (C) 2009 by Thomas "Heinervdm" Zimmermann (zimmermann@vdm-design.de)
 #                         Sebastian dos Krzyszkowiak (seba.dos1@gmail.com)
+#                         Tom "TAsn" Hacohen (tom@stosb.com)
 #
 #   This program is free software; you can redistribute it and/or modify
 #   it under the terms of the GNU General Public License as published by

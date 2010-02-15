@@ -9,6 +9,7 @@
 #   Copyright (C) 2008-2009 by Openmoko, Inc.
 #   Copyright (C) 2009 Michael 'Mickey' Lauer <mlauer@vanille-media.de>
 #   Copyright (C) 2009 Sebastian dos Krzyszkowiak <seba.dos1@gmail.com>
+#   Copyright (C) 2009 Tom "TAsn" Hacohen <tom@stosb.com>
 #
 #   This program is free software; you can redistribute it and/or modify
 #   it under the terms of the GNU General Public License as published by
@@ -61,71 +62,6 @@ class QueryMatcher(object):
         matches = []      
         results = db_handler.query(self.query_obj)
 	return results
-        # Match all entires
-        for (entry_id, entry) in enumerate(entries):
-            match = self.single_entry_matches(entry)
-            if match:
-                matches.append((match, entry_id))
-
-        result_count = len(matches)
-        # Sort matches by relevance and return the best hits
-        if result_count > 0:
-            matches.sort(reverse = True, key=itemgetter(0))
-
-            limit = result_count
-            if self.query_obj.has_key("_pre_limit"):
-                limit = self.query_obj["_pre_limit"]
-                if limit > result_count:
-                    limit = result_count
-
-            # Append the entry IDs to the result list in the order of the sorted list
-            for i in range(limit):
-                results.append(matches[i][1])
-
-        if self.query_obj.get('_sortby'):
-            reverse = self.query_obj.get('_sortdesc')
-            if reverse:
-                reverse = True
-            else:
-                reverse = False
-            casesens = self.query_obj.get('_sortcasesens')
-            sortby = self.query_obj['_sortby']
-
-            def compare(x,y):
-                if x == None and y == None:
-                    return 0
-                elif x == None:
-                    if reverse:
-                        return -1
-                    else:
-                        return 1
-                elif y == None:
-                    if reverse:
-                        return 1
-                    else:
-                        return -1
-                if casesens:
-                    return cmp(x,y)
-                else:
-                    return cmp(x.lower(),y.lower())
-
-            def getkey(element):
-                return entries[element][sortby]
-
-            try:
-                results.sort(key=getkey, cmp=compare, reverse = reverse)
-            except AttributeError:
-                casesens = True
-                results.sort(key=getkey, cmp=compare, reverse = reverse)
-
-            limit = result_count
-            if self.query_obj.has_key("_limit"):
-                limit = self.query_obj["_limit"] - 1
-                if limit > result_count or limit < 0:
-                    limit = result_count
-                results = results[:limit]
-
-        return results
 
 #----------------------------------------------------------------------------#
 class SingleQueryHandler(object):
@@ -246,7 +182,7 @@ class SingleQueryHandler(object):
             raise NoMoreEntries( "All results have been submitted" )
 
         #entry_id = self.entries[self.cursors[dbus_sender]]
-        result = self._entries[self.cursors[dbus_sender]]
+        #result = self._entries[self.cursors[dbus_sender]]
         self.cursors[dbus_sender] += 1
 
 

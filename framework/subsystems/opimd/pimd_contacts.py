@@ -7,6 +7,7 @@ Open PIM Daemon
 (C) 2008 Openmoko, Inc.
 (C) 2009 Michael 'Mickey' Lauer <mlauer@vanille-media.de>
 (C) 2009 Sebastian Krzyszkowiak <seba.dos1@gmail.com>
+(C) 2009 Tom "TAsn" Hacohen (tom@stosb.com)
 GPLv2 or later
 
 Contacts Domain Plugin
@@ -31,7 +32,7 @@ from query_manager import QueryMatcher, SingleQueryHandler
 
 from framework.config import config, busmap
 
-from pimd_generic import GenericEntry, GenericDomain
+from pimd_generic import GenericDomain
 
 from db_handler import ContactsDbHandler
 
@@ -53,24 +54,6 @@ _DIN_FIELDS = _DIN_CONTACTS_BASE + '.' + 'Fields'
 _CONTACTS_SYSTEM_TYPES = {
                           'Path'    : 'objectpath'
                           }
-
-#----------------------------------------------------------------------------#
-class Contact(GenericEntry):
-#----------------------------------------------------------------------------#
-    """Represents one single contact with all the data fields it consists of.
-
-    _fields[n] = [field_name, field_value, value_used_for_comparison, source]
-
-    Best way to explain the usage of _fields and _field_idx is by example:
-    _fields[3] = ["EMail", "foo@bar.com", "", "CSV-Contacts"]
-    _fields[4] = ["EMail", "moo@cow.com", "", "LDAP-Contacts"]
-    _field_idx["EMail"] = [3, 4]"""
-    
-    def __init__(self, path):
-        """Creates a new entry instance"""
-        self.domain = ContactDomain
-        GenericEntry.__init__( self, path )
-
 
 
 #----------------------------------------------------------------------------#
@@ -212,8 +195,6 @@ class ContactDomain(Domain, GenericDomain):
 
     def __init__(self):
         """Creates a new ContactDomain instance"""
-
-        self.Entry = Contact
 
         self._entries = []
         self._dbus_path = _DBUS_PATH_CONTACTS

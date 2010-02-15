@@ -34,7 +34,7 @@ from query_manager import QueryMatcher, SingleQueryHandler
 
 from framework.config import config, busmap
 
-from pimd_generic import GenericEntry, GenericDomain
+from pimd_generic import GenericDomain
 
 #----------------------------------------------------------------------------#
 
@@ -49,25 +49,6 @@ _DIN_TASKS = _DIN_TASKS_BASE + '.' + 'Tasks'
 _DIN_ENTRY = _DIN_TASKS_BASE + '.' + 'Task'
 _DIN_QUERY = _DIN_TASKS_BASE + '.' + 'TaskQuery'
 _DIN_FIELDS = _DIN_TASKS_BASE + '.' + 'Fields'
-
-#----------------------------------------------------------------------------#
-class Task(GenericEntry):
-#----------------------------------------------------------------------------#
-    """Represents one single task with all the data fields it consists of.
-
-    _fields[n] = [field_name, field_value, value_used_for_comparison, source]
-
-    Best way to explain the usage of _fields and _field_idx is by example:
-    _fields[3] = ["EMail", "foo@bar.com", "", "CSV-Contacts"]
-    _fields[4] = ["EMail", "moo@cow.com", "", "LDAP-Contacts"]
-    _field_idx["EMail"] = [3, 4]"""
-    
-    def __init__(self, path):
-        """Creates a new entry instance"""
-        self.domain = TaskDomain
-        GenericEntry.__init__( self, path )
-
-
 
 #----------------------------------------------------------------------------#
 class QueryManager(DBusFBObject):
@@ -210,7 +191,6 @@ class TaskDomain(Domain, GenericDomain):
     def __init__(self):
         """Creates a new TaskDomain instance"""
 
-        self.Entry = Task
 
         self._backends = {}
         self._entries = []
