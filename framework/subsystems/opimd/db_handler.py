@@ -82,10 +82,6 @@ class DbHandler(object):
         id's of those who meet the dictionaries restrictions"""
         params = []
         not_first = False
-
-        sortby = ""
-        sortby_table = ""
-        sortcasesnes = None
         
         #FIXME: support _sortcasesens and _pre_limit
         
@@ -112,14 +108,50 @@ class DbHandler(object):
                 query = query + " DESC"
         if '_limit' in query_desc:
             query = query + " LIMIT ?"
-        params.append(int(query_desc['_limit']))
+            params.append(int(query_desc['_limit']))
 
         return {'Query':query, 'Parameters':params}
+    def sanitize_result(self, raw):
+        map = {}
 
+        for (field, name) in raw:
+            map[field] = name
+        return map
+        
+    def get_full_result(self, raw_result):
+        if raw_result == None:
+            return None
+        #convert from a list of tuples of ids to a list of ids
+        ids = map(lambda x: x[0], raw_result)
+        return self.get_content(ids)
+        
+    def query(self, query_desc):
+        query = self.build_search_query(query_desc)
+        if query == None:
+            #FIXME: error
+            pass
+        cur = self.con.cursor()
+        cur.execute(query['Query'], query['Parameters'])
+        res = self.get_full_result(cur.fetchall())
+        cur.close()
+        return res
+        
+    def get_content(self, ids):
+        cur = self.con.cursor()
+        res = []
+        query = self.build_rerieve_query()
+        for id in ids:
+            cur.execute(query, {'id': id})
+            tmp = self.sanitize_result(cur.fetchall())
+            #add path
+            tmp['Path'] = self.domain.id_to_path(id)
+            res.append(tmp)
+        cur.close()
+        return res
+        
     def add_field_type(self, name, type):
         cur = self.con.cursor()
         #FIXME: add sanity checks, verify type exists
-        #INSECURE!!
         cur.execute("INSERT INTO " + self.db_prefix + "_fields (field_name, type) " \
                         "VALUES (?, ?)", (name, type))
         self.con.commit()
@@ -238,43 +270,7 @@ class ContactsDbHandler(DbHandler):
             return 'contacts_numbers'
         else:
             return 'contacts_generic'
-    def sanitize_result(self, raw):
-        map = {}
-
-        for (field, name) in raw:
-            map[field] = name
-        return map
-        
-    def get_full_result(self, raw_result):
-        if raw_result == None:
-            return None
-        #convert from a list of tuples of ids to a list of ids
-        ids = map(lambda x: x[0], raw_result)
-        return self.get_content(ids)
-        
-    def query(self, query_desc):
-        query = self.build_search_query(query_desc)
-        if query == None:
-            #FIXME: error
-            pass
-        cur = self.con.cursor()
-        cur.execute(query['Query'], query['Parameters'])
-        res = self.get_full_result(cur.fetchall())
-        cur.close()
-        return res
-        
-    def get_content(self, ids):
-        cur = self.con.cursor()
-        res = []
-        query = self.build_rerieve_query()
-        for id in ids:
-            cur.execute(query, {'id': id})
-            tmp = self.sanitize_result(cur.fetchall())
-            #add path
-            tmp['Path'] = self.domain.id_to_path(id)
-            res.append(tmp)
-        cur.close()
-        return res
+    
     def del_entry(self, contact_id):
         cur = self.con.cursor()
         cur.execute('DELETE FROM contacts WHERE contacts_id=?',(contact_id,))
