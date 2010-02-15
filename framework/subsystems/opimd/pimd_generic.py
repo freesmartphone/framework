@@ -476,7 +476,7 @@ class QueryManager(DBusFBObject):
         @param dbus_sender Sender's unique name on the bus
         @return dbus path of the query result"""
 
-        query_handler = SingleQueryHandler(query, self._entries, dbus_sender)
+        query_handler = SingleQueryHandler(query, self.db_handler, dbus_sender)
 
         query_id = self._next_query_id
         self._next_query_id += 1
@@ -587,7 +587,7 @@ class GenericDomain():
         self.DefaultTypes = {}
         self.Entry = GenericEntry
         self._dbus_path = _DIN_ENTRY
-        self.query_manager = QueryManager(self._entries, self.name)
+        self.query_manager = QueryManager(self.db_handler, self.name)
 
     def get_dbus_objects(self):
         """Returns a list of all d-bus objects we manage
@@ -599,6 +599,9 @@ class GenericDomain():
     def id_to_path(self, entry_id):
         path = self._dbus_path+ '/' + str(entry_id)
         return path
+    def path_to_id(self, entry_path):
+	id = entry_path.rpartition('/')
+	return id[2]
         
     def load_field_types(self):
         self.FieldTypes = self.db_handler.load_field_types()
@@ -693,16 +696,11 @@ class GenericDomain():
 
     def update(self, num_id, data, *args, **kargs):
         # Make sure the requested entry exists
-        #self.check_entry_id(num_id)
         #FIXME: TBD
-        entryif = kargs.get('entryif')
-        entry = kargs.get('entry')
-        if not entryif:
-            entryif = self._entries[num_id]
-        if not entry:
-            entry = entryif.get_fields(entryif._field_idx)
+
+        #self.db_handler.check_entry_id(num_id)
             
-        self.db_handler.upd_entry(entryif.export_fields(backend_name))
+        self.db_handler.upd_entry(num_id, data)
         self.EntryUpdated(data, rel_path='/'+str(num_id))
 
     def delete(self, num_id):
@@ -738,7 +736,7 @@ class GenericDomain():
         # Only return one entry
         query['_limit'] = 1
         matcher = QueryMatcher(query)
-        res = matcher.match(self._entries)
+        res = matcher.match(self.db_handler)
 
         return result
 

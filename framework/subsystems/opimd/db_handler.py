@@ -51,6 +51,7 @@ _SQLITE_FILE_NAME = os.path.join(rootdir,'pim.db')
 class DbHandler(object):
     con = None
     db_prefix = "generic"
+    tables = None
     def __init__(self):
         try:
             self.con = sqlite3.connect(_SQLITE_FILE_NAME, isolation_level=None)
@@ -61,55 +62,64 @@ class DbHandler(object):
     def get_table_name(self, name):
 #FIXME: make it a real virtual function
         raise OperationalError
-        
-    def build_query(self, query_desc):
-        #FIXME handle special comp
+    def build_rerieve_query(self):
         query = ""
-        comp_part = ""
+        not_first = False
+        for table in self.tables:
+            if not_first:
+                query = query + " UNION "
+
+            not_first = True
+            query = query + "SELECT field_name, value FROM " + table + \
+                        " WHERE " + self.db_prefix + "_id=:id"
+
+            #FIXME: support non strings as well
+     
+        return query
+    def build_search_query(self, query_desc):
+        #FIXME handle special comp
+        """Recieves a dictionary and makes an sql query that returns all the
+        id's of those who meet the dictionaries restrictions"""
         params = []
-        index = 1
+        not_first = False
 
         sortby = ""
         sortby_table = ""
         sortcasesnes = None
-        if '_sortby' in query_desc:
-            sortby = query_desc['_sortby']
-        #FIXME: support all of those
-        if '_sortcasesens' in query_desc:
-            sortcasesnes = query_desc['_sortcasesens']
         
+        #FIXME: support _sortcasesens and _pre_limit
         
+        query = ""
         for name, value in query_desc.iteritems():
             if name.startswith('_'):
                 continue
-            tmp_name = " t" + str(index)
-            if index == 1:
-                query = "SELECT * FROM " + self.get_table_name(name) + tmp_name
-                first = False
-            else:
-                comp_part = comp_part + " and "
-                query = query + " JOIN " + self.get_table_name(name) + tmp_name + \
-                        " USING (" + db_prefix + "_id)"
-            if sortby == name:
-                sortby_table = tmp_name
-            comp_part = "(" + tmp_name + ".field_name = ? and " + tmp_name + ".value = ?)"
-            params.append(name)
-            params.append(value)
-            index = index + 1
-        query = query + " WHERE " + comp_part
+            if not_first:
+                query = query + " INTERSECT "
 
-        if sortby_table != "":
-            query = query + " SORT BY " + sortby_table
+            not_first = True
+            query = query + "SELECT " + self.db_prefix + "_id FROM " + \
+                        self.get_table_name(name) + " WHERE field_name = ? AND value = ?"
+
+            #FIXME: support non strings as well
+            params.append(str(name))
+            params.append(str(value))
+        if '_sortby' in query_desc:
+            sortby = query_desc['_sortby']
+            query = "SELECT " + self.db_prefix + "_id FROM (" + query + \
+                        ") JOIN " + self.get_table_name(sortby) + " USING (" + \
+                        self.db_prefix + "_id) ORDER BY value"
             if '_sortdesc' in query_desc:
                 query = query + " DESC"
         if '_limit' in query_desc:
-            query = query + " LIMIT " + str(int(query_desc['_limit']))
+            query = query + " LIMIT ?"
+        params.append(int(query_desc['_limit']))
 
-        return (query, params)
+        return {'Query':query, 'Parameters':params}
 
     def add_field_type(self, name, type):
         cur = self.con.cursor()
-        #FIXME: add sanity checks
+        #FIXME: add sanity checks, verify type exists
+        #INSECURE!!
         cur.execute("INSERT INTO " + self.db_prefix + "_fields (field_name, type) " \
                         "VALUES (?, ?)", (name, type))
         self.con.commit()
@@ -117,7 +127,7 @@ class DbHandler(object):
         
     def remove_field_type(self, name):
         cur = self.con.cursor()
-        #FIXME: add sanity checks
+        #FIXME: add sanity checks and update fields according to type change
         cur.execute("DELETE FROM " + self.db_prefix + "_fields WHERE field_name = ?", (name, ))
         self.con.commit()
         cur.close()
@@ -150,6 +160,7 @@ class ContactsDbHandler(DbHandler):
         self.domain = domain
 
         self.db_prefix = 'contacts'
+        self.tables = ['contacts_numbers', 'contacts_generic']
         
         try:
             cur = self.con.cursor()
@@ -219,31 +230,51 @@ class ContactsDbHandler(DbHandler):
         return _DOMAINS
 
     def get_table_name(self, name):
+        #check for systerm reserved names
+        if name.lower() in ('path', ):
+                return None
         type = self.domain.field_type_from_name(name)
         if type in ('phonenumber', ):
             return 'contacts_numbers'
         else:
             return 'contacts_generic'
-    def sanitize_results(self, raw_results):
-        results = []
-        for row in raw_results:
-            map = {}
-            for i in range(1, len(row) - 2, 2):
-                map[row[i]] = row[i + 1]
-            results.append(map)
-        return results
+    def sanitize_result(self, raw):
+        map = {}
+
+        for (field, name) in raw:
+            map[field] = name
+        return map
+        
+    def get_full_result(self, raw_result):
+        if raw_result == None:
+            return None
+        #convert from a list of tuples of ids to a list of ids
+        ids = map(lambda x: x[0], raw_result)
+        return self.get_content(ids)
+        
     def query(self, query_desc):
-        query = self.build_query(query_desc)
+        query = self.build_search_query(query_desc)
         if query == None:
             #FIXME: error
             pass
         cur = self.con.cursor()
-        cur.execute(query[0], query[1])
-        res = self.sanitize_results(cur.fetchall())
+        cur.execute(query['Query'], query['Parameters'])
+        res = self.get_full_result(cur.fetchall())
         cur.close()
         return res
         
-
+    def get_content(self, ids):
+        cur = self.con.cursor()
+        res = []
+        query = self.build_rerieve_query()
+        for id in ids:
+            cur.execute(query, {'id': id})
+            tmp = self.sanitize_result(cur.fetchall())
+            #add path
+            tmp['Path'] = self.domain.id_to_path(id)
+            res.append(tmp)
+        cur.close()
+        return res
     def del_entry(self, contact_id):
         cur = self.con.cursor()
         cur.execute('DELETE FROM contacts WHERE contacts_id=?',(contact_id,))
@@ -256,37 +287,32 @@ class ContactsDbHandler(DbHandler):
         cur.close()
         return False
 
-    def upd_entry(self, contact_data):
-#FIXME TBD
-        reqfields = ['Name', 'Surname', 'Nickname', 'Birthdate', 'MarrDate', 'Partner', 'Spouse', 'MetAt', 'HomeLoc', 'Department']
+    def upd_entry(self, cid, contact_data):
         cur = self.con.cursor()
-        for (field, value) in contact_data:
-            if field=='_backend_entry_id':
-                contactId=value
-        deleted = []
-        for (field, value) in contact_data:
-            if field in reqfields:
-                cur.execute('UPDATE contacts SET '+field+'=? WHERE id=?',(value,contactId))
-            elif not field.startswith('_'):
-                if not field in deleted:
-                    cur.execute('DELETE FROM contact_values WHERE contactId=? AND field=?',(contactId,field))
-                    deleted.append(field)
-                if isinstance(value, Array) or isinstance(value, list):
-                    for val in value:
-                        cur.execute('INSERT INTO contact_values (field,value,contactId) VALUES (?,?,?)',(field,val,contactId))
-                else:
-                    cur.execute('INSERT INTO contact_values (field,value,contactId) VALUES (?,?,?)',(field,value,contactId))
-    #    cur.execute('UPDATE contacts SET updated=1 WHERE id=?',(contactId,))
+        for field in contact_data:
+            table = self.get_table_name(field)
+            if table == None:
+                    continue
+            #FIXME appears the API states you should delete in any case
+            cur.execute("DELETE FROM " + table + " WHERE contacts_id = ?", (cid, ))
+            if type(contact_data[field]) == Array or type(contact_data[field]) == list:
+                for value in contact_data[field]:
+                    cur.execute('INSERT INTO ' + table + ' (contacts_id, Field_name, Value) VALUES (?,?,?)',(cid, field, value))
+            elif contact_data[field] == "": #is this correct?
+                pass
+            else:
+                cur.execute('INSERT INTO ' + table + ' (contacts_id, Field_name, Value) VALUES (?,?,?)',(cid, field, contact_data[field]))
+               
         self.con.commit()
         cur.close()
 
     def add_entry(self, contact_data):
         contact_id = self.add_contact_to_db(contact_data)
         return contact_id
+    #FIXME: move to general
     def entry_exists(self, id):
         cur = self.con.cursor()
         cur.execute('SELECT contact_id FROM contacts WHERE contact_id = ?', (id, ))
-        count = cur.rowcount()
         cur.close()
         return (count > 0)
     def add_contact_to_db(self, contact_data):
@@ -295,6 +321,8 @@ class ContactsDbHandler(DbHandler):
         cid = cur.lastrowid
         for field in contact_data:
             table = self.get_table_name(field)
+            if table == None:
+                    continue
             if type(contact_data[field]) == Array or type(contact_data[field]) == list:
                 for value in contact_data[field]:
                     cur.execute('INSERT INTO ' + table + ' (contacts_id, Field_name, Value) VALUES (?,?,?)',(cid, field, value))

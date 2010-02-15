@@ -33,6 +33,8 @@ from dbus.service import FallbackObject as DBusFBObject
 from helpers import *
 from operator import itemgetter
 
+import db_handler
+
 import logging
 logger = logging.getLogger( MODULE_NAME )
 
@@ -48,25 +50,17 @@ class QueryMatcher(object):
 
         self.query_obj = query
 
-    def single_entry_matches(self, entry):
-        assert(self.query_obj, "Query object is empty, cannot match!")
+    def match(self, db_handler):
+        """Tries to match a db_handler to the current query
 
-        if entry:
-            return entry.match_query(self.query_obj)
-        else:
-            return False
-
-    def match(self, entries):
-        """Tries to match a given set of entries to the current query
-
-        @param entries List of Entry objects
+        @param a db_handler
         @return List of entry IDs that match"""
 
         assert(self.query_obj, "Query object is empty, cannot match!")
 
-        matches = []
-        results = []
-
+        matches = []      
+        results = db_handler.query(self.query_obj)
+	return results
         # Match all entires
         for (entry_id, entry) in enumerate(entries):
             match = self.single_entry_matches(entry)
@@ -136,12 +130,12 @@ class QueryMatcher(object):
 #----------------------------------------------------------------------------#
 class SingleQueryHandler(object):
 #----------------------------------------------------------------------------#
-    _entries = None
+    db_handler = None
     query = None      # The query this handler is processing
     entries = None
     cursors = None    # The next entry we'll serve, depending on the client calling us
 
-    def __init__(self, query, entries, dbus_sender):
+    def __init__(self, query, db_handler, dbus_sender):
         """Creates a new SingleQueryHandler instance
 
         @param query Query to evaluate
@@ -153,8 +147,8 @@ class SingleQueryHandler(object):
 
         matcher = QueryMatcher(self.query)
 
-        self._entries = entries
-        self.entries = matcher.match(self._entries)
+        self.db_handler = db_handler
+        self._entries = matcher.match(self.db_handler)
         self.cursors = {}
 
         # TODO Register with all entries to receive updates
@@ -193,7 +187,7 @@ class SingleQueryHandler(object):
 
         @return Number of result entries"""
 
-        return len(self.entries)
+        return len(self._entries)
 
 
     def rewind(self, dbus_sender):
@@ -247,20 +241,14 @@ class SingleQueryHandler(object):
 
         # Check whether we've reached the end of the entry list
         try:
-            result = self.entries[self.cursors[dbus_sender]]
+            result = self._entries[self.cursors[dbus_sender]]
         except IndexError:
             raise NoMoreEntries( "All results have been submitted" )
 
-        entry_id = self.entries[self.cursors[dbus_sender]]
-        entry = self._entries[entry_id]
+        #entry_id = self.entries[self.cursors[dbus_sender]]
+        result = self._entries[self.cursors[dbus_sender]]
         self.cursors[dbus_sender] += 1
 
-        try:
-            fields = self.query['_result_fields']
-            field_list = fields.split(',')
-            result = entry.get_fields(field_list)
-        except KeyError:
-            result = entry.get_content()
 
         return result
 
@@ -296,7 +284,7 @@ class SingleQueryHandler(object):
 
         matcher = QueryMatcher(self.query)
         if matcher.single_entry_matches(self._entries[entry_id]):
-            self.entries = matcher.match(self._entries)
+            self.entries = matcher.match(self.db_handler)
 
             # TODO Register with the new entry to receive changes
 

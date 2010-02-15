@@ -77,17 +77,17 @@ class Contact(GenericEntry):
 class QueryManager(DBusFBObject):
 #----------------------------------------------------------------------------#
     _queries = None
-    _entries = None
+    db_handler = None
     _next_query_id = None
 
     # Note: _queries must be a dict so we can remove queries without messing up query IDs
 
-    def __init__(self, entries):
+    def __init__(self, db_handler):
         """Creates a new QueryManager instance
 
         @param entries Set of Entry objects to use"""
 
-        self._entries = entries
+        self.db_handler = db_handler
         self._queries = {}
         self._next_query_id = 0
 
@@ -106,7 +106,7 @@ class QueryManager(DBusFBObject):
         @param dbus_sender Sender's unique name on the bus
         @return dbus path of the query result"""
 
-        query_handler = SingleQueryHandler(query, self._entries, dbus_sender)
+        query_handler = SingleQueryHandler(query, self.db_handler, dbus_sender)
 
         query_id = self._next_query_id
         self._next_query_id += 1
@@ -204,7 +204,7 @@ class ContactDomain(Domain, GenericDomain):
 #----------------------------------------------------------------------------#
     name = _DOMAIN_NAME
 
-    _entries = None
+    db_handler = None
     query_manager = None
     _dbus_path = None
     Entry = None
@@ -217,8 +217,8 @@ class ContactDomain(Domain, GenericDomain):
 
         self._entries = []
         self._dbus_path = _DBUS_PATH_CONTACTS
-        self.query_manager = QueryManager(self._entries)
         self.db_handler = ContactsDbHandler(self)
+        self.query_manager = QueryManager(self.db_handler)
 
         # Initialize the D-Bus-Interface
         Domain.__init__( self, conn=busmap["opimd"], object_path=DBUS_PATH_BASE_FSO + '/' + self.name )
