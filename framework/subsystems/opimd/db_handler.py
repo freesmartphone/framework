@@ -151,9 +151,15 @@ class DbHandler(object):
         
     def add_field_type(self, name, type):
         cur = self.con.cursor()
-        #FIXME: add sanity checks, verify type exists
+        #FIXME: add sanity checks, move from generic to the correct table
         cur.execute("INSERT INTO " + self.db_prefix + "_fields (field_name, type) " \
                         "VALUES (?, ?)", (name, type))
+        if self.get_table_name(name) != self.db_prefix + "_generic":
+                cur.execute("INSERT INTO " + self.get_table_name(name) + " (contacts_id, field_name, value)" + \
+                                " SELECT contacts_id, field_name, value FROM " + self.db_prefix + "_generic" + \
+                                " WHERE field_name = ?;", (name, ))
+                cur.execute("DELETE FROM " + self.db_prefix + "_generic WHERE field_name = ?;"
+                                , (name, ))
         self.con.commit()
         cur.close()
         
@@ -161,6 +167,12 @@ class DbHandler(object):
         cur = self.con.cursor()
         #FIXME: add sanity checks and update fields according to type change
         cur.execute("DELETE FROM " + self.db_prefix + "_fields WHERE field_name = ?", (name, ))
+        if self.get_table_name(name) != self.db_prefix + "_generic":
+                cur.execute("INSERT INTO " + self.db_prefix + "_generic (contacts_id, field_name, value)" + \
+                                " SELECT contacts_id, field_name, value FROM " + self.get_table_name(name) + \
+                                " WHERE field_name = ?;", (name, ))
+                cur.execute("DELETE FROM " + self.get_table_name(name) + " WHERE field_name = ?;"
+                        , (name, )) 
         self.con.commit()
         cur.close()
         

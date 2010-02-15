@@ -623,14 +623,18 @@ class GenericDomain():
             self.FieldTypes[str(name)] = str(type)
         else:
             raise InvalidField ( "Field %s does already exist or type %s is invalid." % (name, type))
+        #must be last, assumes already loaded
         self.db_handler.add_field_type(name, type)
 
     def remove_field(self, name):
+	if self.FieldTypes == None:
+            self.load_field_types()
         if name in self.FieldTypes:
+	    #handler must be first, assumes type exists
+	    self.db_handler.remove_field_type(name)
             del self.FieldTypes[name]
         else:
             raise InvalidField ("Field %s does not exist!" % name)
-        self.db_handler.remove_field_type(name)
 
     @classmethod
     def list_fields(self):
