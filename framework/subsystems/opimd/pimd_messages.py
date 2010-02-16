@@ -66,59 +66,13 @@ class MessagesDbHandler(DbHandler):
 #----------------------------------------------------------------------------#
 
     def __init__(self, domain):
-        super(MessagesDbHandler, self).__init__()
+        
         self.domain = domain
 
         self.db_prefix = self.name.lower()
-        self.tables = ['messages_phonenumber', 'messages_generic']
-        
-        try:
-            cur = self.con.cursor()
-            #FIXME: just a poc, should better design the db
-            cur.executescript("""
-                    CREATE TABLE IF NOT EXISTS messages (
-                        messages_id INTEGER PRIMARY KEY,
-                        name TEXT
-                    );
-                    
 
-                    CREATE TABLE IF NOT EXISTS messages_phonenumber (
-                        messages_phonenumber_id INTEGER PRIMARY KEY,
-                        messages_id REFERENCES messages(id),
-                        field_name TEXT,
-                        value TEXT
-                    );
-                    CREATE INDEX IF NOT EXISTS messages_phonenumber_messages_id
-                        ON messages_phonenumber(messages_id);
-
-                    CREATE TABLE IF NOT EXISTS messages_generic (
-                        messages_generic_id INTEGER PRIMARY KEY,
-                        messages_id REFERENCES messages(id),
-                        field_name TEXT,
-                        value TEXT
-                    );
-                    CREATE INDEX IF NOT EXISTS messages_generic_messages_id
-                        ON messages_generic(messages_id);
-                    CREATE INDEX IF NOT EXISTS messages_generic_field_name
-                        ON messages_generic(field_name);
-
-
-                    CREATE TABLE IF NOT EXISTS messages_fields (
-                        field_name TEXT PRIMARY KEY,
-                        type TEXT
-                    );
-                    CREATE INDEX IF NOT EXISTS messages_fields_field_name
-                        ON messages_fields(field_name);
-                    CREATE INDEX IF NOT EXISTS messages_fields_type
-                        ON messages_fields(type);
-                        
-            """)
-
-            self.con.commit()
-            cur.close()
-        except:
-            logger.error("%s: Could not open database! Possible reason is old, uncompatible table structure. If you don't have important data, please remove %s file.", self.name, _SQLITE_FILE_NAME)
-            raise OperationalError
+        super(MessagesDbHandler, self).__init__()
+        self.create_db()
  
 #----------------------------------------------------------------------------#
 class QueryManager(DBusFBObject):

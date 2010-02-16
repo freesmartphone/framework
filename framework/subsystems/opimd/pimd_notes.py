@@ -65,59 +65,12 @@ class NotesDbHandler(DbHandler):
 #----------------------------------------------------------------------------#
 
     def __init__(self, domain):
-        super(NotesDbHandler, self).__init__()
         self.domain = domain
 
         self.db_prefix = self.name.lower()
-        self.tables = ['notes_phonenumber', 'notes_generic']
         
-        try:
-            cur = self.con.cursor()
-            #FIXME: just a poc, should better design the db
-            cur.executescript("""
-                    CREATE TABLE IF NOT EXISTS notes (
-                        notes_id INTEGER PRIMARY KEY,
-                        name TEXT
-                    );
-                    
-
-                    CREATE TABLE IF NOT EXISTS notes_phonenumber (
-                        notes_phonenumber_id INTEGER PRIMARY KEY,
-                        notes_id REFERENCES notes(id),
-                        field_name TEXT,
-                        value TEXT
-                    );
-                    CREATE INDEX IF NOT EXISTS notes_phonenumber_notes_id
-                        ON notes_phonenumber(notes_id);
-
-                    CREATE TABLE IF NOT EXISTS notes_generic (
-                        notes_generic_id INTEGER PRIMARY KEY,
-                        notes_id REFERENCES notes(id),
-                        field_name TEXT,
-                        value TEXT
-                    );
-                    CREATE INDEX IF NOT EXISTS notes_generic_notes_id
-                        ON notes_generic(notes_id);
-                    CREATE INDEX IF NOT EXISTS notes_generic_field_name
-                        ON notes_generic(field_name);
-
-
-                    CREATE TABLE IF NOT EXISTS notes_fields (
-                        field_name TEXT PRIMARY KEY,
-                        type TEXT
-                    );
-                    CREATE INDEX IF NOT EXISTS notes_fields_field_name
-                        ON notes_fields(field_name);
-                    CREATE INDEX IF NOT EXISTS notes_fields_type
-                        ON notes_fields(type);
-                        
-            """)
-
-            self.con.commit()
-            cur.close()
-        except:
-            logger.error("%s: Could not open database! Possible reason is old, uncompatible table structure. If you don't have important data, please remove %s file.", self.name, _SQLITE_FILE_NAME)
-            raise OperationalError
+        super(NotesDbHandler, self).__init__()
+        self.create_db()
 
 #----------------------------------------------------------------------------#
 class QueryManager(DBusFBObject):

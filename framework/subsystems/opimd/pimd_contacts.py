@@ -65,59 +65,17 @@ class ContactsDbHandler(DbHandler):
 #----------------------------------------------------------------------------#
 
     def __init__(self, domain):
-        super(ContactsDbHandler, self).__init__()
         self.domain = domain
 
         self.db_prefix = self.name.lower()
-        self.tables = ['contacts_phonenumber', 'contacts_generic']
-        
-        try:
-            cur = self.con.cursor()
-            #FIXME: just a poc, should better design the db
-            cur.executescript("""
-                    CREATE TABLE IF NOT EXISTS contacts (
-                        contacts_id INTEGER PRIMARY KEY,
-                        name TEXT
-                    );
-                    
+        #Uses basic stuff already assumed to be initalized here (otherwise made generic)
+        super(ContactsDbHandler, self).__init__()
 
-                    CREATE TABLE IF NOT EXISTS contacts_phonenumber (
-                        contacts_phonenumber_id INTEGER PRIMARY KEY,
-                        contacts_id REFERENCES contacts(id),
-                        field_name TEXT,
-                        value TEXT
-                    );
-                    CREATE INDEX IF NOT EXISTS contacts_phonenumber_contacts_id
-                        ON contacts_phonenumber(contacts_id);
+        self.create_db()
+        cur = self.con.cursor()
 
-                    CREATE TABLE IF NOT EXISTS contacts_generic (
-                        contacts_generic_id INTEGER PRIMARY KEY,
-                        contacts_id REFERENCES contacts(id),
-                        field_name TEXT,
-                        value TEXT
-                    );
-                    CREATE INDEX IF NOT EXISTS contacts_generic_contacts_id
-                        ON contacts_generic(contacts_id);
-                    CREATE INDEX IF NOT EXISTS contacts_generic_field_name
-                        ON contacts_generic(field_name);
-
-
-                    CREATE TABLE IF NOT EXISTS contacts_fields (
-                        field_name TEXT PRIMARY KEY,
-                        type TEXT
-                    );
-                    CREATE INDEX IF NOT EXISTS contacts_fields_field_name
-                        ON contacts_fields(field_name);
-                    CREATE INDEX IF NOT EXISTS contacts_fields_type
-                        ON contacts_fields(type);
-                        
-            """)
-
-            self.con.commit()
-            cur.close()
-        except:
-            logger.error("%s: Could not open database! Possible reason is old, uncompatible table structure. If you don't have important data, please remove %s file.", self.name, _SQLITE_FILE_NAME)
-            raise OperationalError
+        self.con.commit()
+        cur.close()
     
 
 #----------------------------------------------------------------------------#

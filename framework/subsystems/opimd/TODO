@@ -6,7 +6,7 @@
 * Do a lot of testing because everything may be broken
 * Add default fields, atm there are none
 * Change the query system so it won't cache anything (or at least only entry ids, depends on the speed it'll work)
-* Make table creation generic
+* Change the list of default types "deserving a table" per backend and handle others better
 
 -- Notes 
 * Fix Tagging

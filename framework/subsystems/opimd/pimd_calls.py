@@ -65,59 +65,13 @@ class CallsDbHandler(DbHandler):
 #----------------------------------------------------------------------------#
 
     def __init__(self, domain):
-        super(CallsDbHandler, self).__init__()
+        
         self.domain = domain
 
         self.db_prefix = self.name.lower()
         self.tables = ['calls_phonenumber', 'calls_generic']
-        
-        try:
-            cur = self.con.cursor()
-            #FIXME: just a poc, should better design the db
-            cur.executescript("""
-                    CREATE TABLE IF NOT EXISTS calls (
-                        calls_id INTEGER PRIMARY KEY,
-                        name TEXT
-                    );
-                    
-
-                    CREATE TABLE IF NOT EXISTS calls_phonenumber (
-                        calls_phonenumber_id INTEGER PRIMARY KEY,
-                        calls_id REFERENCES calls(id),
-                        field_name TEXT,
-                        value TEXT
-                    );
-                    CREATE INDEX IF NOT EXISTS calls_phonenumber_calls_id
-                        ON calls_phonenumber(calls_id);
-
-                    CREATE TABLE IF NOT EXISTS calls_generic (
-                        calls_generic_id INTEGER PRIMARY KEY,
-                        calls_id REFERENCES calls(id),
-                        field_name TEXT,
-                        value TEXT
-                    );
-                    CREATE INDEX IF NOT EXISTS calls_generic_calls_id
-                        ON calls_generic(calls_id);
-                    CREATE INDEX IF NOT EXISTS calls_generic_field_name
-                        ON calls_generic(field_name);
-
-
-                    CREATE TABLE IF NOT EXISTS calls_fields (
-                        field_name TEXT PRIMARY KEY,
-                        type TEXT
-                    );
-                    CREATE INDEX IF NOT EXISTS calls_fields_field_name
-                        ON calls_fields(field_name);
-                    CREATE INDEX IF NOT EXISTS calls_fields_type
-                        ON calls_fields(type);
-                        
-            """)
-
-            self.con.commit()
-            cur.close()
-        except:
-            logger.error("%s: Could not open database! Possible reason is old, uncompatible table structure. If you don't have important data, please remove %s file.", self.name, _SQLITE_FILE_NAME)
-            raise OperationalError
+        super(CallsDbHandler, self).__init__()
+        self.create_db()
 
 #----------------------------------------------------------------------------#
 class QueryManager(DBusFBObject):

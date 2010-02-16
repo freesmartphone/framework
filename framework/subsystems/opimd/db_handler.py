@@ -40,6 +40,7 @@ except:
 from dbus import Array
 
 from domain_manager import DomainManager
+from helpers import *
 
 import framework.patterns.tasklet as tasklet
 from framework.config import config, rootdir
@@ -51,22 +52,69 @@ _SQLITE_FILE_NAME = os.path.join(rootdir,'pim.db')
 class DbHandler(object):
     con = None
     db_prefix = "generic"
+#FIXME: should change both to sets instead of lists
     tables = None
+    table_types = None
     def __init__(self):
-        try:
-            self.con = sqlite3.connect(_SQLITE_FILE_NAME, isolation_level=None)
-            self.con.text_factory = sqlite3.OptimizedUnicode
-            self.con.create_function("normalize_phonenumber", 1, normalize_number) 
-        except:
-            logger.error("%s: Could not open database! Possible reason is old, uncompatible table structure. If you don't have important data, please remove %s file.", self.name, _SQLITE_FILE_NAME)
-            raise OperationalError
+        self.tables = []
+        if self.table_types == None:
+            self.table_types = []
+        #A list of all the basic types that deserve a table, maybe in the future
+        # group the rest by sql type
+        self.table_types.extend(['phonenumber', 'name', 'date', 'boolean', 'entry_id', 'generic'])
     def __repr__(self):
         return self.name
 
     def __del__(self):
         self.con.commit()
         self.con.close()
+    def create_db(self):
+        try:
+            self.con = sqlite3.connect(_SQLITE_FILE_NAME, isolation_level=None)
+            self.con.text_factory = sqlite3.OptimizedUnicode
+            self.con.create_function("normalize_phonenumber", 1, normalize_number)
+            
+            #Creates basic db structue (tables and basic indexes) more complex
+            #indexes should be done per backend
+            cur = self.con.cursor()
+            cur.executescript("""
+                    CREATE TABLE IF NOT EXISTS """ + self.db_prefix + """ (
+                        """ + self.db_prefix + """_id INTEGER PRIMARY KEY,
+                        name TEXT
+                    );
+
+                    
+                    CREATE TABLE IF NOT EXISTS contacts_fields (
+                        field_name TEXT PRIMARY KEY,
+                        type TEXT
+                    );
+                    CREATE INDEX IF NOT EXISTS contacts_fields_field_name
+                        ON contacts_fields(field_name);
+                    CREATE INDEX IF NOT EXISTS contacts_fields_type
+                        ON contacts_fields(type);
+                    """)
+                    
+            #FIXME make special attributes for some tables even here
+            for type in self.table_types:
+                    cur.executescript("CREATE TABLE IF NOT EXISTS " + \
+                                      self.db_prefix + "_" + type + \
+                                      " (" + self.db_prefix + "_" + type + "_id INTEGER PRIMARY KEY," \
+                                      + self.db_prefix + \
+                                      "_id REFERENCES " + self.db_prefix + \
+                                      "(" + self.db_prefix + "_id), field_name TEXT, value TEXT);" + \
+                                      "CREATE INDEX IF NOT EXISTS " + \
+                                      self.db_prefix + "_" + type + "_" + self.db_prefix + \
+                                      "_id ON " + self.db_prefix + "_" + type + \
+                                      "(" + self.db_prefix + "_id);"
+                                      )
+                    self.tables.append(self.db_prefix + "_" + type)
+            self.con.commit()
+            cur.close()
         
+        except Exception as exp:
+            logger.error("""The following errors occured when trying to init db: %s\n%s""", _SQLITE_FILE_NAME, str(exp))
+            raise OperationalError
+            
     def get_table_name(self, field):
         if self.is_system_field(field):
             return None
@@ -77,11 +125,11 @@ class DbHandler(object):
         else:
             return self.db_prefix + '_generic'
     def get_table_name_from_type(self, type):
-	name = self.db_prefix + "_" + type
+        name = self.db_prefix + "_" + type
         if name in self.tables:
-	    return name
-	else:
-	    return None
+            return name
+        else:
+            return None
     def build_rerieve_query(self):
         query = ""
         not_first = False

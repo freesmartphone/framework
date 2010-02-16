@@ -65,59 +65,13 @@ class DatesDbHandler(DbHandler):
 #----------------------------------------------------------------------------#
 
     def __init__(self, domain):
-        super(DatesDbHandler, self).__init__()
+        
         self.domain = domain
 
         self.db_prefix = self.name.lower()
-        self.tables = ['dates_phonenumber', 'dates_generic']
-        
-        try:
-            cur = self.con.cursor()
-            #FIXME: just a poc, should better design the db
-            cur.executescript("""
-                    CREATE TABLE IF NOT EXISTS dates (
-                        dates_id INTEGER PRIMARY KEY,
-                        name TEXT
-                    );
-                    
 
-                    CREATE TABLE IF NOT EXISTS dates_phonenumber (
-                        dates_phonenumber_id INTEGER PRIMARY KEY,
-                        dates_id REFERENCES dates(id),
-                        field_name TEXT,
-                        value TEXT
-                    );
-                    CREATE INDEX IF NOT EXISTS dates_phonenumber_dates_id
-                        ON dates_phonenumber(dates_id);
-
-                    CREATE TABLE IF NOT EXISTS dates_generic (
-                        dates_generic_id INTEGER PRIMARY KEY,
-                        dates_id REFERENCES dates(id),
-                        field_name TEXT,
-                        value TEXT
-                    );
-                    CREATE INDEX IF NOT EXISTS dates_generic_dates_id
-                        ON dates_generic(dates_id);
-                    CREATE INDEX IF NOT EXISTS dates_generic_field_name
-                        ON dates_generic(field_name);
-
-
-                    CREATE TABLE IF NOT EXISTS dates_fields (
-                        field_name TEXT PRIMARY KEY,
-                        type TEXT
-                    );
-                    CREATE INDEX IF NOT EXISTS dates_fields_field_name
-                        ON dates_fields(field_name);
-                    CREATE INDEX IF NOT EXISTS dates_fields_type
-                        ON dates_fields(type);
-                        
-            """)
-
-            self.con.commit()
-            cur.close()
-        except:
-            logger.error("%s: Could not open database! Possible reason is old, uncompatible table structure. If you don't have important data, please remove %s file.", self.name, _SQLITE_FILE_NAME)
-            raise OperationalError
+        super(DatesDbHandler, self).__init__()
+        self.create_db()
 
 #----------------------------------------------------------------------------#
 class QueryManager(DBusFBObject):

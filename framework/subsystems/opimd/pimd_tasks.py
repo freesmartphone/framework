@@ -65,59 +65,11 @@ class TasksDbHandler(DbHandler):
 #----------------------------------------------------------------------------#
 
     def __init__(self, domain):
-        super(TasksDbHandler, self).__init__()
         self.domain = domain
 
         self.db_prefix = self.name.lower()
-        self.tables = ['tasks_phonenumber', 'tasks_generic']
-        
-        try:
-            cur = self.con.cursor()
-            #FIXME: just a poc, should better design the db
-            cur.executescript("""
-                    CREATE TABLE IF NOT EXISTS tasks (
-                        tasks_id INTEGER PRIMARY KEY,
-                        name TEXT
-                    );
-                    
-
-                    CREATE TABLE IF NOT EXISTS tasks_phonenumber (
-                        tasks_phonenumber_id INTEGER PRIMARY KEY,
-                        tasks_id REFERENCES tasks(id),
-                        field_name TEXT,
-                        value TEXT
-                    );
-                    CREATE INDEX IF NOT EXISTS tasks_phonenumber_tasks_id
-                        ON tasks_phonenumber(tasks_id);
-
-                    CREATE TABLE IF NOT EXISTS tasks_generic (
-                        tasks_generic_id INTEGER PRIMARY KEY,
-                        tasks_id REFERENCES tasks(id),
-                        field_name TEXT,
-                        value TEXT
-                    );
-                    CREATE INDEX IF NOT EXISTS tasks_generic_tasks_id
-                        ON tasks_generic(tasks_id);
-                    CREATE INDEX IF NOT EXISTS tasks_generic_field_name
-                        ON tasks_generic(field_name);
-
-
-                    CREATE TABLE IF NOT EXISTS tasks_fields (
-                        field_name TEXT PRIMARY KEY,
-                        type TEXT
-                    );
-                    CREATE INDEX IF NOT EXISTS tasks_fields_field_name
-                        ON tasks_fields(field_name);
-                    CREATE INDEX IF NOT EXISTS tasks_fields_type
-                        ON tasks_fields(type);
-                        
-            """)
-
-            self.con.commit()
-            cur.close()
-        except:
-            logger.error("%s: Could not open database! Possible reason is old, uncompatible table structure. If you don't have important data, please remove %s file.", self.name, _SQLITE_FILE_NAME)
-            raise OperationalError
+        super(TasksDbHandler, self).__init__()
+        self.create_db()
 
 #----------------------------------------------------------------------------#
 class QueryManager(DBusFBObject):
