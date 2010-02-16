@@ -202,6 +202,8 @@ class GenericDomain():
         self._dbus_path = _DIN_ENTRY
         self.query_manager = QueryManager(self.db_handler, self.name)
 
+        self.load_field_types()
+
     def get_dbus_objects(self):
         """Returns a list of all d-bus objects we manage
 
