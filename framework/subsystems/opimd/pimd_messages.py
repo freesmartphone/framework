@@ -406,8 +406,8 @@ class MessagesFSO(object):
 #----------------------------------------------------------------------------#
 
     def __init__(self, domain):        
-	self.domain = domain
-	
+        self.domain = domain
+        
         self.signals = False
         self.ready_signal = False
         self.enable()        
@@ -515,7 +515,7 @@ class MessagesFSO(object):
                 
 
     def process_split_entries(self, entries):
-	#FIXME: remove
+        #FIXME: remove
         last_msg = []
         text_msg = ''
         ids = []
@@ -583,8 +583,8 @@ class MessagesFSO(object):
                     logger.error("%s: Could not install signal handler!", self.name)
 
     def handle_incoming_stored_message(self, message_id):
-	logger.error("Got incoming stored message, shouldn't happen")
-	#SHOLUD WE HANDLE?
+        logger.error("Got incoming stored message, shouldn't happen")
+        #SHOLUD WE HANDLE?
         self.gsm_sim_iface.RetrieveMessage(
             message_id,
             reply_handler=partial(self.process_incoming_stored_entry, message_id=message_id),

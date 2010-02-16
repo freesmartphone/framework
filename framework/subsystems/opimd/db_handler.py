@@ -48,7 +48,7 @@ except:
         return num
 
 def phonenumber_matches(string1, string2):
-    if string1 == string2:
+    if normalize_number(string1) == string2:
         return 1
     return 0        
 
@@ -194,12 +194,12 @@ class DbHandler(object):
             
             #handle type searching
             if name.startswith('$'):
-		#FIXME handle type doesn't exist gracefully
+                #FIXME handle type doesn't exist gracefully
                 field_type = name[1:]
                 query = query + "SELECT " + self.db_prefix + "_id FROM " + \
                         self.get_table_name_from_type(field_type) + " WHERE ("
             else:
-                field_type = self.domain.field_type_from_name(field)
+                field_type = self.domain.field_type_from_name(name)
                 query = query + "SELECT " + self.db_prefix + "_id FROM " + \
                         self.get_table_name(name) + " WHERE field_name = ? AND ("
                 params.append(str(name))
