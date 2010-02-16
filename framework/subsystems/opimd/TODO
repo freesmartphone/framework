@@ -5,7 +5,20 @@
 * Add regex + number normalization support
 * Do a lot of testing because everything may be broken
 * Add default fields, atm there are none
+* Change the query system so it won't cache anything (or at least only entry ids, depends on the speed it'll work)
+
+-- Notes 
+* Fix Tagging
+
+-- Tasks
+* <dos1> and Tasks is Contacts + UnfinishedTasks support :P
 
 -- Messages
-* Fix message folder
+* Ack and Nack messages (and special handling)
 * Drop internal unread count?
+
+-- Calls
+* Do it
+* <dos1> you should also look at pimb_ogsmd_calls.py IIRC filename :P
+
+
