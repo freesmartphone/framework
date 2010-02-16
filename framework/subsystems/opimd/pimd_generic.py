@@ -278,7 +278,7 @@ class GenericDomain():
         self.NewEntry(result)
         return result
 
-    def update(self, num_id, data, *args, **kargs):
+    def update(self, num_id, data):
         # Make sure the requested entry exists
 
         if self.db_handler.entry_exists(num_id):

@@ -23,17 +23,18 @@ import re
 import logging
 logger = logging.getLogger('opimd')
 
-from backend_manager import BackendManager
-from backend_manager import PIMB_CAN_ADD_ENTRY, PIMB_CAN_UPD_ENTRY, PIMB_CAN_UPD_ENTRY_WITH_NEW_FIELD, PIMB_CAN_DEL_ENTRY, PIMB_NEEDS_SYNC
-
 from domain_manager import DomainManager, Domain
-from query_manager import QueryMatcher, SingleQueryHandler
 from helpers import *
 from opimd import *
+
+from query_manager import QueryMatcher, SingleQueryHandler
 
 from framework.config import config, busmap
 
 from pimd_generic import GenericDomain
+
+from db_handler import DbHandler
+
 
 #----------------------------------------------------------------------------#
 
@@ -51,55 +52,118 @@ _DIN_QUERY = _DIN_MESSAGES_BASE + '.' + 'MessageQuery'
 _DIN_FOLDER = _DIN_MESSAGES_BASE + '.' + 'MessageFolder'
 _DIN_FIELDS = _DIN_MESSAGES_BASE + '.' + 'Fields'
 
-_MESSAGES_DEFAULT_TYPES = {
-                          'Path'        : 'objectpath',
-                          'Recipient'   : 'phonenumber',
-                          'Sender'      : 'phonenumber',
-                          'Source'      : 'text',
-                          'Direction'   : 'text',
-                          'MessageSent' : 'boolean',
-                          'MessageRead' : 'boolean',
-                          'Timestamp'   : 'date',
-                          'Timezone'    : 'timezone',
-                          'Content'     : 'text',
-                          'Folder'      : 'text'
+"""Reserved types"""
+_CONTACTS_SYSTEM_FIELDS = {
+                          'Path'    : 'objectpath'
                           }
 
 
 #----------------------------------------------------------------------------#
+class MessagesDbHandler(DbHandler):
+#----------------------------------------------------------------------------#
+    name = 'Messages'
+
+    domain = None
+#----------------------------------------------------------------------------#
+
+    def __init__(self, domain):
+        super(MessagesDbHandler, self).__init__()
+        self.domain = domain
+
+        self.db_prefix = self.name.lower()
+        self.tables = ['messages_numbers', 'messages_generic']
+        
+        try:
+            cur = self.con.cursor()
+            #FIXME: just a poc, should better design the db
+            cur.executescript("""
+                    CREATE TABLE IF NOT EXISTS messages (
+                        messages_id INTEGER PRIMARY KEY,
+                        name TEXT
+                    );
+                    
+
+                    CREATE TABLE IF NOT EXISTS messages_numbers (
+                        messages_numbers_id INTEGER PRIMARY KEY,
+                        messages_id REFERENCES messages(id),
+                        field_name TEXT,
+                        value TEXT
+                    );
+                    CREATE INDEX IF NOT EXISTS messages_numbers_messages_id
+                        ON messages_numbers(messages_id);
+
+                    CREATE TABLE IF NOT EXISTS messages_generic (
+                        messages_generic_id INTEGER PRIMARY KEY,
+                        messages_id REFERENCES messages(id),
+                        field_name TEXT,
+                        value TEXT
+                    );
+                    CREATE INDEX IF NOT EXISTS messages_generic_messages_id
+                        ON messages_generic(messages_id);
+                    CREATE INDEX IF NOT EXISTS messages_generic_field_name
+                        ON messages_generic(field_name);
+
+
+                    CREATE TABLE IF NOT EXISTS messages_fields (
+                        field_name TEXT PRIMARY KEY,
+                        type TEXT
+                    );
+                    CREATE INDEX IF NOT EXISTS messages_fields_field_name
+                        ON messages_fields(field_name);
+                    CREATE INDEX IF NOT EXISTS messages_fields_type
+                        ON messages_fields(type);
+                        
+            """)
+
+            self.con.commit()
+            cur.close()
+        except:
+            logger.error("%s: Could not open database! Possible reason is old, uncompatible table structure. If you don't have important data, please remove %s file.", self.name, _SQLITE_FILE_NAME)
+            raise OperationalError
+
+    def get_table_name(self, name):
+	if self.is_system_field(name):
+	    return None
+        type = self.domain.field_type_from_name(name)
+        if type in ('phonenumber', ):
+            return self.db_prefix + '_numbers'
+        else:
+            return self.db_prefix + '_generic'
+    
+#----------------------------------------------------------------------------#
 class QueryManager(DBusFBObject):
 #----------------------------------------------------------------------------#
     _queries = None
-    _entries = None
+    db_handler = None
     _next_query_id = None
 
     # Note: _queries must be a dict so we can remove queries without messing up query IDs
 
-    def __init__(self, messages):
+    def __init__(self, db_handler):
         """Creates a new QueryManager instance
 
-        @param messages Set of Message objects to use"""
+        @param entries Set of Entry objects to use"""
 
-        self._entries = messages
+        self.db_handler = db_handler
         self._queries = {}
         self._next_query_id = 0
 
         # Initialize the D-Bus-Interface
         DBusFBObject.__init__( self, conn=busmap["opimd"], object_path=_DBUS_PATH_QUERIES )
 
-        # Keep frameworkd happy
+        # Still necessary?
         self.interface = _DIN_MESSAGES
         self.path = _DBUS_PATH_QUERIES
 
 
     def process_query(self, query, dbus_sender):
-        """Handles a query and returns the URI of the newly created query result
+        """Handles a query and returns the dbus path of the newly created query result
 
         @param query Query to evaluate
         @param dbus_sender Sender's unique name on the bus
-        @return URI of the query result"""
+        @return dbus path of the query result"""
 
-        query_handler = SingleQueryHandler(query, self._entries, dbus_sender)
+        query_handler = SingleQueryHandler(query, self.db_handler, dbus_sender)
 
         query_id = self._next_query_id
         self._next_query_id += 1
@@ -109,23 +173,24 @@ class QueryManager(DBusFBObject):
         return _DBUS_PATH_QUERIES + '/' + str(query_id)
 
 
-    def check_new_entry(self, message_id):
-        """Checks whether a newly added message matches one or more queries so they can signal clients
+    def check_new_entry(self, entry_id):
+        """Checks whether a newly added entry matches one or more queries so they can signal clients
 
-        @param message_id Message ID of the message that was added"""
-
+        @param entry_id Message ID of the message that was added"""
         for (query_id, query_handler) in self._queries.items():
-            if query_handler.check_new_entry(message_id):
-                message = self._entries[message_id]
-                message_path = message['Path']
-                self.MessageAdded(message_path, rel_path='/' + str(query_id))
+            if query_handler.check_new_entry(entry_id):
+                entry_path = self.id_to_path(entry_id)
+                self.EntryAdded(entry_path, rel_path='/' + str(query_id))
 
-    def check_query_id_ok( self, query_id ):
+    def check_query_id_ok( self, num_id ):
         """
         Checks whether a query ID is existing. Raises InvalidQueryID, if not.
         """
-        if not query_id in self._queries:
+        if not num_id in self._queries:
             raise InvalidQueryID( "Existing query IDs: %s" % self._queries.keys() )
+
+    def EntryAdded(self, path, rel_path=None):
+        self.MessageAdded(path, rel_path=rel_path)
 
     @dbus_signal(_DIN_QUERY, "s", rel_path_keyword="rel_path")
     def MessageAdded(self, path, rel_path=None):
@@ -189,8 +254,7 @@ class QueryManager(DBusFBObject):
         self._queries[num_id].dispose()
         self._queries.__delitem__(num_id)
 
-
-
+#TBD: Fix MessageFolder
 #----------------------------------------------------------------------------#
 class MessageFolder(DBusFBObject):
 #----------------------------------------------------------------------------#
@@ -262,25 +326,20 @@ class MessageDomain(Domain, GenericDomain):
 #----------------------------------------------------------------------------#
     name = _DOMAIN_NAME
 
-    _backends = None
-    _entries = None
+    db_handler = None
+    query_manager = None
+    _dbus_path = None
+    DefaultFields = _MESSAGES_SYSTEM_FIELDS
+    
     _folders = None
     _unread_messages = None
-    query_manager = None
-    Entry = None
-    _dbus_path = None
-    DefaultTypes = _MESSAGES_DEFAULT_TYPES
 
     def __init__(self):
         """Creates a new MessageDomain instance"""
 
-
-        self._backends = {}
-        self._entries = []
         self._dbus_path = _DBUS_PATH_MESSAGES
-        self._folders = []
-        self._unread_messages = 0
-        self.query_manager = QueryManager(self._entries)
+        self.db_handler = MessagesDbHandler(self)
+        self.query_manager = QueryManager(self.db_handler)
 
         # Initialize the D-Bus-Interface
         Domain.__init__( self, conn=busmap["opimd"], object_path=DBUS_PATH_BASE_FSO + '/' + self.name )
@@ -288,6 +347,9 @@ class MessageDomain(Domain, GenericDomain):
         # Keep frameworkd happy
         self.interface = _DIN_MESSAGES
         self.path = _DBUS_PATH_MESSAGES
+
+        self._folders = []
+        self._unread_messages = 0
 
         # Create the default folders
         folder_name = config.getValue('opimd', 'messages_default_folder', default="Unfiled")
@@ -308,42 +370,8 @@ class MessageDomain(Domain, GenericDomain):
         raise UnknownFolder( "Valid folders are %s" % list(self._folders) )
 
 
-    def register_entry(self, backend, message_data):
-        """Merges/inserts the given message into the message list and returns its ID
-
-        @param backend Backend objects that requests the registration
-        @param message Message data; format: [Key:Value, Key:Value, ...]"""
-
-        new_message_id = len(self._entries)
-        message_id = GenericDomain.register_entry(self, backend, message_data)
-        if message_id == new_message_id:
-
-            # Put it in the corresponding folder
-            try:
-                folder_name = message_data['Folder']
-            except KeyError:
-                folder_name = config.getValue('opimd', 'messages_default_folder', "Unfiled")
-
-            try:
-                folder_id = self.get_folder_id_from_name(folder_name)
-                folder = self._folders[folder_id]
-
-            except UnknownFolder:
-                folder_id = len(self._folders)
-                folder = MessageFolder(self._entries, folder_id, folder_name)
-                self._folders.append(folder)
-
-            folder.register_message(message_id)
-
-            if message_data.has_key('MessageRead') and message_data.has_key('Direction'):
-                if not message_data['MessageRead'] and message_data['Direction'] == 'in':
-                    self._unread_messages += 1
-                    self.UnreadMessages(self._unread_messages)
-
-        return message_id
-
-
     def register_incoming_message(self, backend, message_data, stored_on_input_backend = True):
+	#FIXME: TBD
         logger.debug("Registering incoming message...")
         if stored_on_input_backend:
             message_id = self.register_message(backend, message_data)
@@ -375,6 +403,17 @@ class MessageDomain(Domain, GenericDomain):
         self.IncomingMessage(_DBUS_PATH_MESSAGES+ '/' + str(message_id))
         return message_id
 
+ 
+    #---------------------------------------------------------------------#
+    # dbus methods and signals                                            #
+    #---------------------------------------------------------------------#
+
+    def NewEntry(self, path):
+        self.NewMessage(path)
+
+    @dbus_signal(_DIN_MESSAGES, "s")
+    def NewMessage(self, path):
+        pass
 
     @dbus_method(_DIN_MESSAGES, "a{sv}", "s")
     def Add(self, entry_data):
@@ -440,20 +479,13 @@ class MessageDomain(Domain, GenericDomain):
 
         folder_id = self.get_folder_id_from_name(folder_name)
         return _DBUS_PATH_FOLDERS + '/' + str(folder_id)
-
+#FIXME: TBD take from db?
     @dbus_method(_DIN_MESSAGES, "", "i")
     def GetUnreadMessages(self):
         return self._unread_messages
 
     @dbus_signal(_DIN_MESSAGES, "i")
     def UnreadMessages(self, amount):
-        pass
-
-    def NewEntry(self, message_path):
-        self.NewMessage(message_path)
-
-    @dbus_signal(_DIN_MESSAGES, "s")
-    def NewMessage(self, message_path):
         pass
 
     @dbus_signal(_DIN_MESSAGES, "s")
@@ -465,7 +497,7 @@ class MessageDomain(Domain, GenericDomain):
         num_id = int(rel_path[1:])
         self.check_entry_id(num_id)
 
-        return self._entries[num_id].get_content()
+        return self.db_handler.get_content([num_id, ])
 
 
     @dbus_method(_DIN_ENTRY, "s", "a{sv}", rel_path_keyword="rel_path")
@@ -474,6 +506,82 @@ class MessageDomain(Domain, GenericDomain):
 
         return self.get_multiple_fields(num_id, field_list)
 
+    @dbus_signal(_DIN_MESSAGES, "s")
+    def DeletedMessage(self, path):
+        pass
+        
+    @dbus_signal(_DIN_ENTRY, "", rel_path_keyword="rel_path")
+    def MessageDeleted(self, rel_path=None):
+        pass
+        
+    def EntryDeleted(self, rel_path=None):
+        self.MessageDeleted(rel_path=rel_path)
+        self.DeletedMessage(_DBUS_PATH_MESSAGES+rel_path)
+
+    @dbus_method(_DIN_ENTRY, "", "", rel_path_keyword="rel_path")
+    def Delete(self, rel_path):
+        num_id = int(rel_path[1:])
+
+        self.check_entry_id(num_id)
+#FIXME: TBD drop the internal unread count?
+        message = self._entries[num_id].get_fields(self._entries[num_id]._field_idx)
+        if not message.get('MessageRead') and message.get('Direction') == 'in':
+            self._unread_messages -= 1
+            self.UnreadMessages(self._unread_messages)
+
+        self.delete(num_id)
+     def EntryUpdated(self, data, rel_path=None):
+        self.MessageUpdated(data, rel_path=rel_path)
+        self.UpdatedMessage(_DBUS_PATH_MESSAGES+rel_path, data)
+
+    @dbus_signal(_DIN_MESSAGES, "sa{sv}")
+    def UpdatedMessage(self, path, data):
+        pass
+
+    @dbus_signal(_DIN_ENTRY, "a{sv}", rel_path_keyword="rel_path")
+    def MessageUpdated(self, data, rel_path=None):
+        pass
+
+    @dbus_method(_DIN_ENTRY, "a{sv}", "", rel_path_keyword="rel_path")
+    def Update(self, data, rel_path):
+        num_id = int(rel_path[1:])
+
+        self.check_entry_id(num_id)
+
+        message = self.get_contet(num_id)
+
+        if message.has_key('MessageRead') and data.has_key('MessageRead') and message.has_key('Direction'):
+            if message['Direction'] == 'in':
+                if not message['MessageRead'] and data['MessageRead']:
+                    self._unread_messages -= 1
+                    self.UnreadMessages(self._unread_messages)
+                elif message['MessageRead'] and not data['MessageRead']:
+                    self._unread_messages += 1
+                    self.UnreadMessages(self._unread_messages)
+
+        self.update(num_id, data)
+
+    @dbus_method(_DIN_FIELDS, "ss", "")
+    def AddField(self, name, type):
+        self.add_new_field(name, type)
+
+    @dbus_method(_DIN_FIELDS, "", "a{ss}")
+    def ListFields(self):
+        return self.list_fields()
+
+    @dbus_method(_DIN_FIELDS, "s", "as")
+    def ListFieldsWithType(self, type):
+        return self.list_fields_with_type(type)
+
+    @dbus_method(_DIN_FIELDS, "s", "")
+    def DeleteField(self, name):
+        self.remove_field(name)
+
+    @dbus_method(_DIN_FIELDS, "s", "s")
+    def GetType(self, name):
+        return self.field_type_from_name(name)
+               
+#FIXME: TBD fix
     @dbus_method(_DIN_ENTRY, "s", "", rel_path_keyword="rel_path")
     def MoveToFolder(self, new_folder_name, rel_path):
         """Moves a message into a specific folder, if it exists
@@ -497,80 +605,5 @@ class MessageDomain(Domain, GenericDomain):
         folder = self._folders[folder_id]
         folder.register_message(num_id)
 
-    def EntryUpdated(self, data, rel_path=None):
-        self.MessageUpdated(data, rel_path=rel_path)
-        self.UpdatedMessage(_DBUS_PATH_MESSAGES+rel_path, data)
 
-    @dbus_signal(_DIN_MESSAGES, "sa{sv}")
-    def UpdatedMessage(self, path, data):
-        pass
-
-    @dbus_signal(_DIN_ENTRY, "a{sv}", rel_path_keyword="rel_path")
-    def MessageUpdated(self, data, rel_path=None):
-        pass
-
-    @dbus_method(_DIN_ENTRY, "a{sv}", "", rel_path_keyword="rel_path")
-    def Update(self, data, rel_path):
-        num_id = int(rel_path[1:])
-
-        self.check_entry_id(num_id)
-
-        messageif = self._entries[num_id]
-        message = messageif.get_fields(messageif._field_idx)
-
-        if message.has_key('MessageRead') and data.has_key('MessageRead') and message.has_key('Direction'):
-            if message['Direction'] == 'in':
-                if not message['MessageRead'] and data['MessageRead']:
-                    self._unread_messages -= 1
-                    self.UnreadMessages(self._unread_messages)
-                elif message['MessageRead'] and not data['MessageRead']:
-                    self._unread_messages += 1
-                    self.UnreadMessages(self._unread_messages)
-
-        self.update(num_id, data, entryif = messageif, entry = message)
-
-    @dbus_signal(_DIN_MESSAGES, "s")
-    def DeletedMessage(self, path):
-        pass
-
-    def EntryDeleted(self, rel_path=None):
-        self.MessageDeleted(rel_path=rel_path)
-        self.DeletedMessage(_DBUS_PATH_MESSAGES+rel_path)
-
-    @dbus_signal(_DIN_ENTRY, "", rel_path_keyword="rel_path")
-    def MessageDeleted(self, rel_path=None):
-        pass
-
-    @dbus_method(_DIN_ENTRY, "", "", rel_path_keyword="rel_path")
-    def Delete(self, rel_path):
-        num_id = int(rel_path[1:])
-
-        self.check_entry_id(num_id)
-
-        message = self._entries[num_id].get_fields(self._entries[num_id]._field_idx)
-        if not message.get('MessageRead') and message.get('Direction') == 'in':
-            self._unread_messages -= 1
-            self.UnreadMessages(self._unread_messages)
-
-        self.delete(num_id)
-
-    @dbus_method(_DIN_FIELDS, "ss", "")
-    def AddField(self, name, type):
-        self.add_new_field(name, type)
-
-    @dbus_method(_DIN_FIELDS, "", "a{ss}")
-    def ListFields(self):
-        return self.list_fields()
-
-    @dbus_method(_DIN_FIELDS, "s", "as")
-    def ListFieldsWithType(self, type):
-        return self.list_fields_with_type(type)
-
-    @dbus_method(_DIN_FIELDS, "s", "")
-    def DeleteField(self, name):
-        self.remove_field(name)
-
-    @dbus_method(_DIN_FIELDS, "s", "s")
-    def GetType(self, name):
-        return self.field_type_from_name(name)
 
