@@ -34,7 +34,7 @@ from framework.config import config, busmap
 
 from pimd_generic import GenericDomain
 
-from db_handler import ContactsDbHandler
+from db_handler import DbHandler
 
 #----------------------------------------------------------------------------#
 
@@ -51,10 +51,84 @@ _DIN_QUERY = _DIN_CONTACTS_BASE + '.' + 'ContactQuery'
 _DIN_FIELDS = _DIN_CONTACTS_BASE + '.' + 'Fields'
 
 """Reserved types"""
-_CONTACTS_SYSTEM_TYPES = {
+_CONTACTS_SYSTEM_FIELDS = {
                           'Path'    : 'objectpath'
                           }
 
+
+#----------------------------------------------------------------------------#
+class ContactsDbHandler(DbHandler):
+#----------------------------------------------------------------------------#
+    name = 'Contacts'
+
+    domain = None
+#----------------------------------------------------------------------------#
+
+    def __init__(self, domain):
+        super(ContactsDbHandler, self).__init__()
+        self.domain = domain
+
+        self.db_prefix = 'contacts'
+        self.tables = ['contacts_numbers', 'contacts_generic']
+        
+        try:
+            cur = self.con.cursor()
+            #FIXME: just a poc, should better design the db
+            cur.executescript("""
+                    CREATE TABLE IF NOT EXISTS contacts (
+                        contacts_id INTEGER PRIMARY KEY,
+                        name TEXT
+                    );
+                    
+
+                    CREATE TABLE IF NOT EXISTS contacts_numbers (
+                        contacts_numbers_id INTEGER PRIMARY KEY,
+                        contacts_id REFERENCES contacts(id),
+                        field_name TEXT,
+                        value TEXT
+                    );
+                    CREATE INDEX IF NOT EXISTS contacts_numbers_contacts_id
+                        ON contacts_numbers(contacts_id);
+
+                    CREATE TABLE IF NOT EXISTS contacts_generic (
+                        contacts_generic_id INTEGER PRIMARY KEY,
+                        contacts_id REFERENCES contacts(id),
+                        field_name TEXT,
+                        value TEXT
+                    );
+                    CREATE INDEX IF NOT EXISTS contacts_generic_contacts_id
+                        ON contacts_generic(contacts_id);
+                    CREATE INDEX IF NOT EXISTS contacts_generic_field_name
+                        ON contacts_generic(field_name);
+
+
+                    CREATE TABLE IF NOT EXISTS contacts_fields (
+                        field_name TEXT PRIMARY KEY,
+                        type TEXT
+                    );
+                    CREATE INDEX IF NOT EXISTS contacts_fields_field_name
+                        ON contacts_fields(field_name);
+                    CREATE INDEX IF NOT EXISTS contacts_fields_type
+                        ON contacts_fields(type);
+                        
+            """)
+
+            self.con.commit()
+            cur.close()
+        except:
+            logger.error("%s: Could not open database! Possible reason is old, uncompatible table structure. If you don't have important data, please remove %s file.", self.name, _SQLITE_FILE_NAME)
+            raise OperationalError
+
+    def get_table_name(self, name):
+        #check for systerm reserved names
+        if name.lower() in ('path', ):
+                return None
+        type = self.domain.field_type_from_name(name)
+        if type in ('phonenumber', ):
+            return 'contacts_numbers'
+        else:
+            return 'contacts_generic'
+    
 
 #----------------------------------------------------------------------------#
 class QueryManager(DBusFBObject):
@@ -106,7 +180,7 @@ class QueryManager(DBusFBObject):
 #FIXME: TBD
         for (query_id, query_handler) in self._queries.items():
             if query_handler.check_new_entry(entry_id):
-                entry = self._entries[entry_id]
+                #entry = self._entries[entry_id]
                 entry_path = entry['Path']
                 self.EntryAdded(entry_path, rel_path='/' + str(query_id))
 
@@ -191,12 +265,11 @@ class ContactDomain(Domain, GenericDomain):
     query_manager = None
     _dbus_path = None
     Entry = None
-    DefaultTypes = _CONTACTS_SYSTEM_TYPES
+    DefaultFields = _CONTACTS_SYSTEM_FIELDS
 
     def __init__(self):
         """Creates a new ContactDomain instance"""
 
-        self._entries = []
         self._dbus_path = _DBUS_PATH_CONTACTS
         self.db_handler = ContactsDbHandler(self)
         self.query_manager = QueryManager(self.db_handler)
@@ -254,11 +327,12 @@ class ContactDomain(Domain, GenericDomain):
     @dbus_method(_DIN_ENTRY, "", "a{sv}", rel_path_keyword="rel_path")
     def GetContent(self, rel_path):
         num_id = int(rel_path[1:])
-
+#FIXME: TBD
         # Make sure the requested entry exists
         self.check_entry_id(num_id)
 
-        return self._entries[num_id].get_content()
+        #return self._entries[num_id].get_content()
+        return None
 
     @dbus_method(_DIN_ENTRY, "s", "a{sv}", rel_path_keyword="rel_path")
     def GetMultipleFields(self, field_list, rel_path):

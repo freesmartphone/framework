@@ -60,6 +60,13 @@ class DbHandler(object):
         except:
             logger.error("%s: Could not open database! Possible reason is old, uncompatible table structure. If you don't have important data, please remove %s file.", self.name, _SQLITE_FILE_NAME)
             raise OperationalError
+    def __repr__(self):
+        return self.name
+
+    def __del__(self):
+        self.con.commit()
+        self.con.close()
+        
     def get_table_name(self, name):
 #FIXME: make it a real virtual function
         raise OperationalError
@@ -244,89 +251,3 @@ class DbHandler(object):
         cur.close()
         return False
         
-#----------------------------------------------------------------------------#
-class ContactsDbHandler(DbHandler):
-#----------------------------------------------------------------------------#
-    name = 'Contacts'
-
-    domain = None
-    _entry_ids = None                 # List of all entry IDs that have data from us
-#----------------------------------------------------------------------------#
-
-    def __init__(self, domain):
-        super(ContactsDbHandler, self).__init__()
-        self._entry_ids = []
-        self.domain = domain
-
-        self.db_prefix = 'contacts'
-        self.tables = ['contacts_numbers', 'contacts_generic']
-        
-        try:
-            cur = self.con.cursor()
-            #FIXME: just a poc, should better design the db
-            cur.executescript("""
-                    CREATE TABLE IF NOT EXISTS contacts (
-                        contacts_id INTEGER PRIMARY KEY,
-                        name TEXT
-                    );
-                    
-
-                    CREATE TABLE IF NOT EXISTS contacts_numbers (
-                        contacts_numbers_id INTEGER PRIMARY KEY,
-                        contacts_id REFERENCES contacts(id),
-                        field_name TEXT,
-                        value TEXT
-                    );
-                    CREATE INDEX IF NOT EXISTS contacts_numbers_contacts_id
-                        ON contacts_numbers(contacts_id);
-
-                    CREATE TABLE IF NOT EXISTS contacts_generic (
-                        contacts_generic_id INTEGER PRIMARY KEY,
-                        contacts_id REFERENCES contacts(id),
-                        field_name TEXT,
-                        value TEXT
-                    );
-                    CREATE INDEX IF NOT EXISTS contacts_generic_contacts_id
-                        ON contacts_generic(contacts_id);
-                    CREATE INDEX IF NOT EXISTS contacts_generic_field_name
-                        ON contacts_generic(field_name);
-
-
-                    CREATE TABLE IF NOT EXISTS contacts_fields (
-                        field_name TEXT PRIMARY KEY,
-                        type TEXT
-                    );
-                    CREATE INDEX IF NOT EXISTS contacts_fields_field_name
-                        ON contacts_fields(field_name);
-                    CREATE INDEX IF NOT EXISTS contacts_fields_type
-                        ON contacts_fields(type);
-                        
-            """)
-
-            self.con.commit()
-            cur.close()
-        except:
-            logger.error("%s: Could not open database! Possible reason is old, uncompatible table structure. If you don't have important data, please remove %s file.", self.name, _SQLITE_FILE_NAME)
-            raise OperationalError
-
-    def __repr__(self):
-        return self.name
-
-
-    def __del__(self):
-        self.con.commit()
-        self.con.close()
-
-
-    def get_table_name(self, name):
-        #check for systerm reserved names
-        if name.lower() in ('path', ):
-                return None
-        type = self.domain.field_type_from_name(name)
-        if type in ('phonenumber', ):
-            return 'contacts_numbers'
-        else:
-            return 'contacts_generic'
-    
-
-

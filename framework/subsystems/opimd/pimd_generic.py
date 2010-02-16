@@ -190,17 +190,15 @@ class GenericDomain():
     name = 'Generic'
 
     db_handler = None
-    _entries = None
     query_manager = None
     _dbus_path = None
-    DefaultTypes = None
+    DefaultFields = None
     FieldTypes = None
 
     def __init__(self):
         """Creates a new GenericDomain instance"""
-        self._backends = {}
-        self._entries = []
-        self.DefaultTypes = {}
+
+        self.DefaulFields = {}
         self._dbus_path = _DIN_ENTRY
         self.query_manager = QueryManager(self.db_handler, self.name)
 
@@ -268,26 +266,12 @@ class GenericDomain():
 
         @param backend Backend object whose entries should be enumerated
         @return Lists of (field_name,field_value) tuples of all entries that have data from this particular backend"""
-
+#FIXME: TBD
+	return
         for entry in self._entries:
             if entry:
                 if entry.incorporates_data_from(backend.name):
                     yield entry.export_fields(backend.name)
-
-    def remove_entries_from_backend(self, backend):
-        i = 0
-        for entry in self._entries:
-            if entry:
-                if entry._used_backends == [backend]:
-                    self._entries[i]=None                
-                elif backend in entry._used_backends:
-                    j = 0
-                    for field in entry._fields:
-                        if field[3]==backend:
-                            del entry._fields[j]
-                        j+=1
-                    entry.rebuild_index()
-            i += 1
 
 #FIXME: remove
     def check_entry_id( self, num_id ):
@@ -337,7 +321,7 @@ class GenericDomain():
     def get_multiple_fields(self, num_id, field_list):
         # Make sure the requested entry exists
         self.check_entry_id(num_id)
-
+	#FIXME: TBD
         # Break the string up into a list
         fields = field_list.split(',')
         new_field_list = []
@@ -364,5 +348,5 @@ class GenericDomain():
 
         # Make sure the requested entry exists
         self.check_entry_id(num_id)
-
+#FIXME: TBD
         return self._entries[num_id].get_content(True)
