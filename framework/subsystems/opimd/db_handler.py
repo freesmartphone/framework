@@ -45,7 +45,6 @@ import framework.patterns.tasklet as tasklet
 from framework.config import config, rootdir
 rootdir = os.path.join( rootdir, 'opim' )
 
-_DOMAINS = ('Contacts', )
 _SQLITE_FILE_NAME = os.path.join(rootdir,'pim.db')
 
 
@@ -57,6 +56,7 @@ class DbHandler(object):
         try:
             self.con = sqlite3.connect(_SQLITE_FILE_NAME, isolation_level=None)
             self.con.text_factory = sqlite3.OptimizedUnicode
+            self.con.create_function("normalize_phonenumber", 1, normalize_number) 
         except:
             logger.error("%s: Could not open database! Possible reason is old, uncompatible table structure. If you don't have important data, please remove %s file.", self.name, _SQLITE_FILE_NAME)
             raise OperationalError
@@ -73,9 +73,7 @@ class DbHandler(object):
             not_first = True
             query = query + "SELECT field_name, value FROM " + table + \
                         " WHERE " + self.db_prefix + "_id=:id"
-
-            #FIXME: support non strings as well
-     
+    
         return query
     def build_search_query(self, query_desc):
         #FIXME handle special comp
@@ -97,9 +95,13 @@ class DbHandler(object):
             query = query + "SELECT " + self.db_prefix + "_id FROM " + \
                         self.get_table_name(name) + " WHERE field_name = ? AND value = ?"
 
-            #FIXME: support non strings as well
             params.append(str(name))
+            #FIXME: support non strings as well (according to type)
             params.append(str(value))
+            
+        #If there are no restrictions get everything
+        if query == "":
+            query = "SELECT " + self.db_prefix + "_id FROM " + self.db_prefix
         if '_sortby' in query_desc:
             sortby = query_desc['_sortby']
             query = "SELECT " + self.db_prefix + "_id FROM (" + query + \
@@ -187,6 +189,60 @@ class DbHandler(object):
             res[row[0]] = row[1]
         return res
 
+    def entry_exists(self, id):
+        cur = self.con.cursor()
+        cur.execute('SELECT ' + self.db_prefix + '_id FROM contacts WHERE ' + self.db_prefix + '_id = ?', (id, ))
+        count = cur.rowcount
+        cur.close()
+        return (count > 0)
+        
+    def add_entry(self, entry_data):
+        cur = self.con.cursor()
+        cur.execute("INSERT INTO " + self.db_prefix + " (name) VALUES('')")
+        eid = cur.lastrowid
+        for field in entry_data:
+            table = self.get_table_name(field)
+            if table == None:
+                    continue
+            if type(entry_data[field]) == Array or type(entry_data[field]) == list:
+                for value in entry_data[field]:
+                    cur.execute('INSERT INTO ' + table + ' (' + self.db_prefix + '_id, Field_name, Value) VALUES (?,?,?)',(eid, field, value))
+            else:
+                cur.execute('INSERT INTO ' + table + ' (' + self.db_prefix + '_id, Field_name, Value) VALUES (?,?,?)',(eid, field, entry_data[field]))        
+        self.con.commit()
+        cur.close()
+
+        return eid
+    def upd_entry(self, eid, entry_data):
+        cur = self.con.cursor()
+        for field in entry_data:
+            table = self.get_table_name(field)
+            if table == None:
+                    continue
+            #FIXME appears the API states you should delete in any case
+            cur.execute("DELETE FROM " + table + " WHERE " + self.db_prefix + "_id = ?", (eid, ))
+            if type(entry_data[field]) == Array or type(entry_data[field]) == list:
+                for value in entry_data[field]:
+                    cur.execute("INSERT INTO " + table + " (" + self.db_prefix + "_id, Field_name, Value) VALUES (?,?,?)",(eid, field, value))
+            elif entry_data[field] == "": #is this correct?
+                pass
+            else:
+                cur.execute("INSERT INTO " + table + " (" + self.db_prefix + "_id, Field_name, Value) VALUES (?,?,?)",(eid, field, entry_data[field]))
+               
+        self.con.commit()
+        cur.close()
+        
+    def del_entry(self, eid):
+        cur = self.con.cursor()
+        cur.execute("DELETE FROM " + self.db_prefix + " WHERE " + self.db_prefix + "_id=?",(eid,))
+        if cur.rowcount == 0:
+            cur.close()
+            return True
+        for table in self.tables:
+	    cur.execute("DELETE FROM " + table + " WHERE " + self.db_prefix + "_id=?",(eid,))
+        self.con.commit()
+        cur.close()
+        return False
         
 #----------------------------------------------------------------------------#
 class ContactsDbHandler(DbHandler):
@@ -194,13 +250,11 @@ class ContactsDbHandler(DbHandler):
     name = 'Contacts'
 
     domain = None
-    _domain_handlers = None           # Map of the domain handler objects we support
     _entry_ids = None                 # List of all entry IDs that have data from us
 #----------------------------------------------------------------------------#
 
     def __init__(self, domain):
         super(ContactsDbHandler, self).__init__()
-        self._domain_handlers = {}
         self._entry_ids = []
         self.domain = domain
 
@@ -249,17 +303,11 @@ class ContactsDbHandler(DbHandler):
                         
             """)
 
-            self.con.create_function("normalize_phonenumber", 1, normalize_number) 
-
             self.con.commit()
             cur.close()
         except:
             logger.error("%s: Could not open database! Possible reason is old, uncompatible table structure. If you don't have important data, please remove %s file.", self.name, _SQLITE_FILE_NAME)
             raise OperationalError
-
-        for domain in _DOMAINS:
-            self._domain_handlers[domain] = DomainManager.get_domain_handler(domain)
-
 
     def __repr__(self):
         return self.name
@@ -269,10 +317,6 @@ class ContactsDbHandler(DbHandler):
         self.con.commit()
         self.con.close()
 
-
-    def get_supported_domains(self):
-        """Returns a list of PIM domains that this plugin supports"""
-        return _DOMAINS
 
     def get_table_name(self, name):
         #check for systerm reserved names
@@ -284,62 +328,5 @@ class ContactsDbHandler(DbHandler):
         else:
             return 'contacts_generic'
     
-    def del_entry(self, contact_id):
-        cur = self.con.cursor()
-        cur.execute('DELETE FROM contacts WHERE contacts_id=?',(contact_id,))
-        if cur.rowcount == 0:
-            cur.close()
-            return True
-        cur.execute('DELETE FROM contacts_numbers WHERE contacts_id=?',(contact_id,))
-        cur.execute('DELETE FROM contacts_generic WHERE contacts_id=?',(contact_id,))
-        self.con.commit()
-        cur.close()
-        return False
-
-    def upd_entry(self, cid, contact_data):
-        cur = self.con.cursor()
-        for field in contact_data:
-            table = self.get_table_name(field)
-            if table == None:
-                    continue
-            #FIXME appears the API states you should delete in any case
-            cur.execute("DELETE FROM " + table + " WHERE contacts_id = ?", (cid, ))
-            if type(contact_data[field]) == Array or type(contact_data[field]) == list:
-                for value in contact_data[field]:
-                    cur.execute('INSERT INTO ' + table + ' (contacts_id, Field_name, Value) VALUES (?,?,?)',(cid, field, value))
-            elif contact_data[field] == "": #is this correct?
-                pass
-            else:
-                cur.execute('INSERT INTO ' + table + ' (contacts_id, Field_name, Value) VALUES (?,?,?)',(cid, field, contact_data[field]))
-               
-        self.con.commit()
-        cur.close()
-
-    def add_entry(self, contact_data):
-        contact_id = self.add_contact_to_db(contact_data)
-        return contact_id
-    #FIXME: move to general
-    def entry_exists(self, id):
-        cur = self.con.cursor()
-        cur.execute('SELECT contact_id FROM contacts WHERE contact_id = ?', (id, ))
-        cur.close()
-        return (count > 0)
-    def add_contact_to_db(self, contact_data):
-        cur = self.con.cursor()
-        cur.execute("INSERT INTO contacts (name) VALUES('')")
-        cid = cur.lastrowid
-        for field in contact_data:
-            table = self.get_table_name(field)
-            if table == None:
-                    continue
-            if type(contact_data[field]) == Array or type(contact_data[field]) == list:
-                for value in contact_data[field]:
-                    cur.execute('INSERT INTO ' + table + ' (contacts_id, Field_name, Value) VALUES (?,?,?)',(cid, field, value))
-            else:
-                cur.execute('INSERT INTO ' + table + ' (contacts_id, Field_name, Value) VALUES (?,?,?)',(cid, field, contact_data[field]))        
-        self.con.commit()
-        cur.close()
 
 
-        #contact_id = self._domain_handlers['Contacts'].register_entry(self, contact_data)
-        return cid

@@ -103,7 +103,7 @@ class QueryManager(DBusFBObject):
         """Checks whether a newly added entry matches one or more queries so they can signal clients
 
         @param entry_id Contact ID of the contact that was added"""
-
+#FIXME: TBD
         for (query_id, query_handler) in self._queries.items():
             if query_handler.check_new_entry(entry_id):
                 entry = self._entries[entry_id]
