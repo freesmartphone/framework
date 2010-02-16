@@ -1,0 +1,11 @@
+* Do all the backends
+* Fix FIXMEs
+* Clean up all the old relics
+* Support "connecting" backends
+* Add regex + number normalization support
+* Do a lot of testing because everything may be broken
+* Add default fields, atm there are none
+
+-- Messages
+* Fix message folder
+* Drop internal unread count?
