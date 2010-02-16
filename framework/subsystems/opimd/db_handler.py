@@ -195,7 +195,11 @@ class DbHandler(object):
         for row in raw_res:
             res[row[0]] = row[1]
         return res
-
+    def is_system_field(self, name):
+	#check for systerm reserved names
+        if name.lower() in ('path', ):
+	    return True
+        return False
     def entry_exists(self, id):
         cur = self.con.cursor()
         cur.execute('SELECT ' + self.db_prefix + '_id FROM ' + self.db_prefix + ' WHERE ' + self.db_prefix + '_id = ?', (id, ))

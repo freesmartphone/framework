@@ -68,7 +68,7 @@ class ContactsDbHandler(DbHandler):
         super(ContactsDbHandler, self).__init__()
         self.domain = domain
 
-        self.db_prefix = 'contacts'
+        self.db_prefix = self.name.lower()
         self.tables = ['contacts_numbers', 'contacts_generic']
         
         try:
@@ -120,14 +120,13 @@ class ContactsDbHandler(DbHandler):
             raise OperationalError
 
     def get_table_name(self, name):
-        #check for systerm reserved names
-        if name.lower() in ('path', ):
-                return None
+	if self.is_system_field(name):
+	    return None
         type = self.domain.field_type_from_name(name)
         if type in ('phonenumber', ):
-            return 'contacts_numbers'
+            return self.db_prefix + '_numbers'
         else:
-            return 'contacts_generic'
+            return self.db_prefix + '_generic'
     
 
 #----------------------------------------------------------------------------#
@@ -262,7 +261,6 @@ class ContactDomain(Domain, GenericDomain):
     db_handler = None
     query_manager = None
     _dbus_path = None
-    Entry = None
     DefaultFields = _CONTACTS_SYSTEM_FIELDS
 
     def __init__(self):
