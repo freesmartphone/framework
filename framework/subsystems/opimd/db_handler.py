@@ -165,8 +165,8 @@ class DbHandler(object):
         cur.execute("INSERT INTO " + self.db_prefix + "_fields (field_name, type) " \
                         "VALUES (?, ?)", (name, type))
         if self.get_table_name(name) != self.db_prefix + "_generic":
-                cur.execute("INSERT INTO " + self.get_table_name(name) + " (contacts_id, field_name, value)" + \
-                                " SELECT contacts_id, field_name, value FROM " + self.db_prefix + "_generic" + \
+                cur.execute("INSERT INTO " + self.get_table_name(name) + " (" + self.db_prefix + "_id, field_name, value)" + \
+                                " SELECT " + self.db_prefix + "_id, field_name, value FROM " + self.db_prefix + "_generic" + \
                                 " WHERE field_name = ?;", (name, ))
                 cur.execute("DELETE FROM " + self.db_prefix + "_generic WHERE field_name = ?;"
                                 , (name, ))
@@ -178,8 +178,8 @@ class DbHandler(object):
         #FIXME: add sanity checks and update fields according to type change
         cur.execute("DELETE FROM " + self.db_prefix + "_fields WHERE field_name = ?", (name, ))
         if self.get_table_name(name) != self.db_prefix + "_generic":
-                cur.execute("INSERT INTO " + self.db_prefix + "_generic (contacts_id, field_name, value)" + \
-                                " SELECT contacts_id, field_name, value FROM " + self.get_table_name(name) + \
+                cur.execute("INSERT INTO " + self.db_prefix + "_generic (" + self.db_prefix + "_id, field_name, value)" + \
+                                " SELECT " + self.db_prefix + "_id, field_name, value FROM " + self.get_table_name(name) + \
                                 " WHERE field_name = ?;", (name, ))
                 cur.execute("DELETE FROM " + self.get_table_name(name) + " WHERE field_name = ?;"
                         , (name, )) 
@@ -198,7 +198,7 @@ class DbHandler(object):
 
     def entry_exists(self, id):
         cur = self.con.cursor()
-        cur.execute('SELECT ' + self.db_prefix + '_id FROM contacts WHERE ' + self.db_prefix + '_id = ?', (id, ))
+        cur.execute('SELECT ' + self.db_prefix + '_id FROM ' + self.db_prefix + ' WHERE ' + self.db_prefix + '_id = ?', (id, ))
         count = cur.rowcount
         cur.close()
         return (count > 0)

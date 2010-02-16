@@ -177,11 +177,9 @@ class QueryManager(DBusFBObject):
         """Checks whether a newly added entry matches one or more queries so they can signal clients
 
         @param entry_id Contact ID of the contact that was added"""
-#FIXME: TBD
         for (query_id, query_handler) in self._queries.items():
             if query_handler.check_new_entry(entry_id):
-                #entry = self._entries[entry_id]
-                entry_path = entry['Path']
+                entry_path = self.id_to_path(entry_id)
                 self.EntryAdded(entry_path, rel_path='/' + str(query_id))
 
     def check_query_id_ok( self, num_id ):
@@ -327,12 +325,11 @@ class ContactDomain(Domain, GenericDomain):
     @dbus_method(_DIN_ENTRY, "", "a{sv}", rel_path_keyword="rel_path")
     def GetContent(self, rel_path):
         num_id = int(rel_path[1:])
-#FIXME: TBD
+
         # Make sure the requested entry exists
         self.check_entry_id(num_id)
 
-        #return self._entries[num_id].get_content()
-        return None
+        return self.db_handler.get_content([num_id, ])
 
     @dbus_method(_DIN_ENTRY, "s", "a{sv}", rel_path_keyword="rel_path")
     def GetMultipleFields(self, field_list, rel_path):

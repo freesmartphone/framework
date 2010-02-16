@@ -213,8 +213,8 @@ class GenericDomain():
         path = self._dbus_path+ '/' + str(entry_id)
         return path
     def path_to_id(self, entry_path):
-	id = entry_path.rpartition('/')
-	return id[2]
+        id = entry_path.rpartition('/')
+        return id[2]
         
     def load_field_types(self):
         self.FieldTypes = self.db_handler.load_field_types()
@@ -240,11 +240,11 @@ class GenericDomain():
         self.db_handler.add_field_type(name, type)
 
     def remove_field(self, name):
-	if self.FieldTypes == None:
+        if self.FieldTypes == None:
             self.load_field_types()
         if name in self.FieldTypes:
-	    #handler must be first, assumes type exists
-	    self.db_handler.remove_field_type(name)
+            #handler must be first, assumes type exists
+            self.db_handler.remove_field_type(name)
             del self.FieldTypes[name]
         else:
             raise InvalidField ("Field %s does not exist!" % name)
@@ -261,19 +261,6 @@ class GenericDomain():
                 fields.append(field)
         return fields
 
-    def enumerate_items(self, backend):
-        """Enumerates all entry data belonging to a specific backend
-
-        @param backend Backend object whose entries should be enumerated
-        @return Lists of (field_name,field_value) tuples of all entries that have data from this particular backend"""
-#FIXME: TBD
-	return
-        for entry in self._entries:
-            if entry:
-                if entry.incorporates_data_from(backend.name):
-                    yield entry.export_fields(backend.name)
-
-#FIXME: remove
     def check_entry_id( self, num_id ):
         """
         Checks whether the given entry id is valid. Raises InvalidEntryID, if not.
@@ -282,27 +269,21 @@ class GenericDomain():
             raise InvalidEntryID()
 
     def add(self, entry_data):
-        # We use the default backend for now
-        result = ""
+        eid = self.db_handler.add_entry(entry_data)        
 
-        try:
-            entry_id = self.db_handler.add_entry(entry_data)
-        except AttributeError as details:
-            raise InvalidBackend( details )
-
-        result = self.id_to_path(entry_id)
+        result = self.id_to_path(eid)
 
         # As we just added a new entry, we check it against all queries to see if it matches
-        self.query_manager.check_new_entry(entry_id)
+        self.query_manager.check_new_entry(eid)
         self.NewEntry(result)
         return result
 
     def update(self, num_id, data, *args, **kargs):
         # Make sure the requested entry exists
-        #FIXME: TBD
 
-        #self.db_handler.check_entry_id(num_id)
-            
+        if self.db_handler.entry_exists(num_id):
+            raise InvalidEntryID()
+
         self.db_handler.upd_entry(num_id, data)
         self.EntryUpdated(data, rel_path='/'+str(num_id))
 
@@ -310,28 +291,26 @@ class GenericDomain():
         # Make sure the requested entry exists
         #self.check_entry_id(num_id)
 
-        try:
-                if self.db_handler.del_entry(num_id):
-                        raise InvalidEntryID()
-        except AttributeError:
-                raise InvalidBackend( "Backend does not feature del_entry" )
+        if self.db_handler.del_entry(num_id):
+            raise InvalidEntryID()
 
         self.EntryDeleted(rel_path='/'+str(num_id))
 
     def get_multiple_fields(self, num_id, field_list):
         # Make sure the requested entry exists
         self.check_entry_id(num_id)
-	#FIXME: TBD
+        
         # Break the string up into a list
         fields = field_list.split(',')
-        new_field_list = []
+        #strip all the fields
+        map(lambda x: field_name.strip(), fields)
+        entry = self.db_handler.get_content([numb_id, ])
 
-        for field_name in fields:
-            # Make sure the field list entries contain no spaces and aren't empty
-            field_name = field_name.strip()
-            if field_name: new_field_list.append(field_name)
-
-        return self._entries[num_id].get_fields(new_field_list)
+        for key in entry.keys():
+            if key not in fields:
+                del entry[key]
+                
+        return entry
 
     def get_single_entry_single_field(self, query, field_name):
         result = ""
@@ -340,13 +319,15 @@ class GenericDomain():
         query['_limit'] = 1
         matcher = QueryMatcher(query)
         res = matcher.match(self.db_handler)
-
-        return result
+        if field_name in res:
+            return res[field_name]
+        else:
+            return None
 
     def get_full_content(self, rel_path):
         num_id = int(rel_path[1:])
 
         # Make sure the requested entry exists
         self.check_entry_id(num_id)
-#FIXME: TBD
-        return self._entries[num_id].get_content(True)
+
+        return self.db_handler.get_content([num_id, ])
