@@ -31,12 +31,6 @@ import sqlite3
 import logging
 logger = logging.getLogger('opimd')
 
-try:
-    from phoneutils import normalize_number
-except:
-    def normalize_number(num):
-        return num
-
 from dbus import Array
 
 from domain_manager import DomainManager
@@ -44,6 +38,30 @@ from helpers import *
 
 import framework.patterns.tasklet as tasklet
 from framework.config import config, rootdir
+
+import re
+
+try:
+    from phoneutils import normalize_number
+except:
+    def normalize_number(num):
+        return num
+
+def phonenumber_matches(string1, string2):
+    if string1 == string2:
+        return 1
+    return 0        
+
+#I use ints because there's no boolean in sqlite
+def regex_matches(string, pattern):
+    try:
+        if re.search(str(pattern), str(string)) == None:
+            return 0
+        return 1
+    except Exception as exp:
+        logger.error("While matching regex got: ", exp)
+
+
 rootdir = os.path.join( rootdir, 'opim' )
 
 _SQLITE_FILE_NAME = os.path.join(rootdir,'pim.db')
@@ -72,8 +90,8 @@ class DbHandler(object):
         try:
             self.con = sqlite3.connect(_SQLITE_FILE_NAME, isolation_level=None)
             self.con.text_factory = sqlite3.OptimizedUnicode
-            self.con.create_function("normalize_phonenumber", 1, normalize_number)
-            
+            self.con.create_function("phonenumber_matches", 2, phonenumber_matches)
+            self.con.create_function("regex_matches", 2, regex_matches)
             #Creates basic db structue (tables and basic indexes) more complex
             #indexes should be done per backend
             cur = self.con.cursor()
@@ -130,6 +148,19 @@ class DbHandler(object):
             return name
         else:
             return None
+    def get_value_compare_string(self, type, field):
+        #FIXME use field
+        if type == "phonenumber":
+            return " phonenumber_matches(value, ?) = 1 "
+        else:
+            return " regex_matches(value, ?) = 1 "
+    def get_value_compare_object(self, type, field, value):
+        #FIMXE use field
+        if type == "phonenumber":
+            return normalize_number(str(value))
+        else:
+            return str(value)
+            
     def build_rerieve_query(self):
         query = ""
         not_first = False
@@ -163,27 +194,33 @@ class DbHandler(object):
             
             #handle type searching
             if name.startswith('$'):
+		#FIXME handle type doesn't exist gracefully
+                field_type = name[1:]
                 query = query + "SELECT " + self.db_prefix + "_id FROM " + \
-                        self.get_table_name_from_type(name[1:]) + " WHERE ("
+                        self.get_table_name_from_type(field_type) + " WHERE ("
             else:
+                field_type = self.domain.field_type_from_name(field)
                 query = query + "SELECT " + self.db_prefix + "_id FROM " + \
                         self.get_table_name(name) + " WHERE field_name = ? AND ("
                 params.append(str(name))
             #FIXME: support non strings as well (according to type)
             #If multi values, make OR connections
+            comp_string = self.get_value_compare_string(field_type, name)
+            
             if type(value) == Array or type(value) == list:
                 first_val = True
+                
                 for val in value:
                     if first_val:
                         first_val = False
                     else:
                         query = query + " OR "
                     
-                    query = query + "value = ?"
-                    params.append(str(val))
+                    query = query + comp_string
+                    params.append(self.get_value_compare_object(field_type, name, val))
             else:
-                query = query + "value = ?"
-                params.append(str(value))
+                query = query + comp_string
+                params.append(self.get_value_compare_object(field_type, name, value))
             
             query = query + ")"
             

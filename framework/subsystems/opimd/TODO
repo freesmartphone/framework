@@ -1,12 +1,14 @@
-* Do all the backends
 * Fix FIXMEs
 * Clean up all the old relics
 * Support "connecting" backends
-* Add regex + number normalization support
+* optimized number normalization comparison
+* add all the types to the comparison (i.e support not only strings)
 * Do a lot of testing because everything may be broken
 * Add default fields, atm there are none
 * Change the query system so it won't cache anything (or at least only entry ids, depends on the speed it'll work)
 * Change the list of default types "deserving a table" per backend and handle others better
+* create tables/indexes specific per type
+* optimize stuff
 
 -- Notes 
 * Fix Tagging
