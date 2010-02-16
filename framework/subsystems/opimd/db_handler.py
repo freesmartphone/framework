@@ -100,11 +100,27 @@ class DbHandler(object):
 
             not_first = True
             query = query + "SELECT " + self.db_prefix + "_id FROM " + \
-                        self.get_table_name(name) + " WHERE field_name = ? AND value = ?"
-
+                        self.get_table_name(name) + " WHERE field_name = ? AND ("
             params.append(str(name))
             #FIXME: support non strings as well (according to type)
-            params.append(str(value))
+            #If multi values, make OR connections
+            if type(value) == Array or type(value) == list:
+		first_val = True
+                for val in value:
+		    if first_val:
+	                first_val = False
+		    else:
+	                query = query + " OR "
+	            
+                    query = query + "value = ?"
+                    params.append(str(val))
+            else:
+                query = query + "value = ?"
+                params.append(str(value))
+            
+            query = query + ")"
+            
+            
             
         #If there are no restrictions get everything
         if query == "":
@@ -196,9 +212,9 @@ class DbHandler(object):
             res[row[0]] = row[1]
         return res
     def is_system_field(self, name):
-	#check for systerm reserved names
+        #check for systerm reserved names
         if name.lower() in ('path', ):
-	    return True
+            return True
         return False
     def entry_exists(self, id):
         cur = self.con.cursor()
@@ -250,7 +266,7 @@ class DbHandler(object):
             cur.close()
             return True
         for table in self.tables:
-	    cur.execute("DELETE FROM " + table + " WHERE " + self.db_prefix + "_id=?",(eid,))
+            cur.execute("DELETE FROM " + table + " WHERE " + self.db_prefix + "_id=?",(eid,))
         self.con.commit()
         cur.close()
         return False
