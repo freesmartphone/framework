@@ -120,8 +120,8 @@ class ContactsDbHandler(DbHandler):
             raise OperationalError
 
     def get_table_name(self, name):
-	if self.is_system_field(name):
-	    return None
+        if self.is_system_field(name):
+            return None
         type = self.domain.field_type_from_name(name)
         if type in ('phonenumber', ):
             return self.db_prefix + '_numbers'

@@ -52,7 +52,7 @@ _DIN_QUERY = _DIN_MESSAGES_BASE + '.' + 'MessageQuery'
 _DIN_FIELDS = _DIN_MESSAGES_BASE + '.' + 'Fields'
 
 """Reserved types"""
-_CONTACTS_SYSTEM_FIELDS = {
+_MESSAGES_SYSTEM_FIELDS = {
                           'Path'    : 'objectpath'
                           }
 
@@ -121,8 +121,8 @@ class MessagesDbHandler(DbHandler):
             raise OperationalError
 
     def get_table_name(self, name):
-	if self.is_system_field(name):
-	    return None
+        if self.is_system_field(name):
+            return None
         type = self.domain.field_type_from_name(name)
         if type in ('phonenumber', ):
             return self.db_prefix + '_numbers'
@@ -282,7 +282,7 @@ class MessageDomain(Domain, GenericDomain):
         self._unread_messages = 0
 
     def register_incoming_message(self, backend, message_data, stored_on_input_backend = True):
-	#FIXME: TBD
+        #FIXME: TBD
         logger.debug("Registering incoming message...")
         if stored_on_input_backend:
             message_id = self.register_message(backend, message_data)
@@ -420,7 +420,7 @@ class MessageDomain(Domain, GenericDomain):
             self.UnreadMessages(self._unread_messages)
 
         self.delete(num_id)
-     def EntryUpdated(self, data, rel_path=None):
+    def EntryUpdated(self, data, rel_path=None):
         self.MessageUpdated(data, rel_path=rel_path)
         self.UpdatedMessage(_DBUS_PATH_MESSAGES+rel_path, data)
 
