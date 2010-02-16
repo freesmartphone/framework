@@ -7,25 +7,22 @@ Open PIM Daemon
 (C) 2008 Openmoko, Inc.
 (C) 2009 Michael 'Mickey' Lauer <mlauer@vanille-media.de>
 (C) 2009 Sebastian Krzyszkowiak <seba.dos1@gmail.com>
+(C) 2009 Tom "TAsn" Hacohen <tom@stosb.com>
 GPLv2 or later
 
 Notes Domain Plugin
 
-Establishes the 'Notes' PIM domain and handles all related requests
+Establishes the 'notes' PIM domain and handles all related requests
 """
 
 from dbus.service import FallbackObject as DBusFBObject
 from dbus.service import signal as dbus_signal
 from dbus.service import method as dbus_method
-from dbus import Array
 
 import re
 
 import logging
 logger = logging.getLogger('opimd')
-
-from backend_manager import BackendManager
-from backend_manager import PIMB_CAN_ADD_ENTRY, PIMB_CAN_DEL_ENTRY, PIMB_CAN_UPD_ENTRY, PIMB_CAN_UPD_ENTRY_WITH_NEW_FIELD, PIMB_NEEDS_SYNC
 
 from domain_manager import DomainManager, Domain
 from helpers import *
@@ -36,6 +33,8 @@ from query_manager import QueryMatcher, SingleQueryHandler
 from framework.config import config, busmap
 
 from pimd_generic import GenericDomain
+
+from db_handler import DbHandler
 
 #----------------------------------------------------------------------------#
 
@@ -51,21 +50,100 @@ _DIN_ENTRY = _DIN_NOTES_BASE + '.' + 'Note'
 _DIN_QUERY = _DIN_NOTES_BASE + '.' + 'NoteQuery'
 _DIN_FIELDS = _DIN_NOTES_BASE + '.' + 'Fields'
 
+"""Reserved types"""
+_NOTES_SYSTEM_FIELDS = {
+                          'Path'    : 'objectpath'
+                          }
+
+
+#----------------------------------------------------------------------------#
+class NotesDbHandler(DbHandler):
+#----------------------------------------------------------------------------#
+    name = 'Notes'
+
+    domain = None
+#----------------------------------------------------------------------------#
+
+    def __init__(self, domain):
+        super(NotesDbHandler, self).__init__()
+        self.domain = domain
+
+        self.db_prefix = self.name.lower()
+        self.tables = ['notes_numbers', 'notes_generic']
+        
+        try:
+            cur = self.con.cursor()
+            #FIXME: just a poc, should better design the db
+            cur.executescript("""
+                    CREATE TABLE IF NOT EXISTS notes (
+                        notes_id INTEGER PRIMARY KEY,
+                        name TEXT
+                    );
+                    
+
+                    CREATE TABLE IF NOT EXISTS notes_numbers (
+                        notes_numbers_id INTEGER PRIMARY KEY,
+                        notes_id REFERENCES notes(id),
+                        field_name TEXT,
+                        value TEXT
+                    );
+                    CREATE INDEX IF NOT EXISTS notes_numbers_notes_id
+                        ON notes_numbers(notes_id);
+
+                    CREATE TABLE IF NOT EXISTS notes_generic (
+                        notes_generic_id INTEGER PRIMARY KEY,
+                        notes_id REFERENCES notes(id),
+                        field_name TEXT,
+                        value TEXT
+                    );
+                    CREATE INDEX IF NOT EXISTS notes_generic_notes_id
+                        ON notes_generic(notes_id);
+                    CREATE INDEX IF NOT EXISTS notes_generic_field_name
+                        ON notes_generic(field_name);
+
+
+                    CREATE TABLE IF NOT EXISTS notes_fields (
+                        field_name TEXT PRIMARY KEY,
+                        type TEXT
+                    );
+                    CREATE INDEX IF NOT EXISTS notes_fields_field_name
+                        ON notes_fields(field_name);
+                    CREATE INDEX IF NOT EXISTS notes_fields_type
+                        ON notes_fields(type);
+                        
+            """)
+
+            self.con.commit()
+            cur.close()
+        except:
+            logger.error("%s: Could not open database! Possible reason is old, uncompatible table structure. If you don't have important data, please remove %s file.", self.name, _SQLITE_FILE_NAME)
+            raise OperationalError
+
+    def get_table_name(self, name):
+	if self.is_system_field(name):
+	    return None
+        type = self.domain.field_type_from_name(name)
+        if type in ('phonenumber', ):
+            return self.db_prefix + '_numbers'
+        else:
+            return self.db_prefix + '_generic'
+    
+
 #----------------------------------------------------------------------------#
 class QueryManager(DBusFBObject):
 #----------------------------------------------------------------------------#
     _queries = None
-    _entries = None
+    db_handler = None
     _next_query_id = None
 
     # Note: _queries must be a dict so we can remove queries without messing up query IDs
 
-    def __init__(self, entries):
+    def __init__(self, db_handler):
         """Creates a new QueryManager instance
 
         @param entries Set of Entry objects to use"""
 
-        self._entries = entries
+        self.db_handler = db_handler
         self._queries = {}
         self._next_query_id = 0
 
@@ -84,7 +162,7 @@ class QueryManager(DBusFBObject):
         @param dbus_sender Sender's unique name on the bus
         @return dbus path of the query result"""
 
-        query_handler = SingleQueryHandler(query, self._entries, dbus_sender)
+        query_handler = SingleQueryHandler(query, self.db_handler, dbus_sender)
 
         query_id = self._next_query_id
         self._next_query_id += 1
@@ -98,11 +176,9 @@ class QueryManager(DBusFBObject):
         """Checks whether a newly added entry matches one or more queries so they can signal clients
 
         @param entry_id Note ID of the note that was added"""
-
         for (query_id, query_handler) in self._queries.items():
             if query_handler.check_new_entry(entry_id):
-                entry = self._entries[entry_id]
-                entry_path = entry['Path']
+                entry_path = self.id_to_path(entry_id)
                 self.EntryAdded(entry_path, rel_path='/' + str(query_id))
 
     def check_query_id_ok( self, num_id ):
@@ -182,22 +258,17 @@ class NoteDomain(Domain, GenericDomain):
 #----------------------------------------------------------------------------#
     name = _DOMAIN_NAME
 
-    _backends = None
-    _entries = None
-    _tags = None
+    db_handler = None
     query_manager = None
     _dbus_path = None
-    Entry = None
+    DefaultFields = _NOTES_SYSTEM_FIELDS
 
     def __init__(self):
         """Creates a new NoteDomain instance"""
 
-
-        self._backends = {}
-        self._entries = []
-        self._tags = {}
         self._dbus_path = _DBUS_PATH_NOTES
-        self.query_manager = QueryManager(self._entries)
+        self.db_handler = NotesDbHandler(self)
+        self.query_manager = QueryManager(self.db_handler)
 
         # Initialize the D-Bus-Interface
         Domain.__init__( self, conn=busmap["opimd"], object_path=DBUS_PATH_BASE_FSO + '/' + self.name )
@@ -205,22 +276,9 @@ class NoteDomain(Domain, GenericDomain):
         # Keep frameworkd happy
         self.interface = _DIN_NOTES
         self.path = _DBUS_PATH_NOTES
+        
 
-    def register_entry(self, backend, note_data):
-        note_id = GenericDomain.register_entry(self, backend, note_data)
-        if note_data.get('Tag'):
-            tags = note_data['Tag']
-            if not isinstance(tags, list) and not isinstance(tags, Array):
-                tags = [tags]
-            for tag in tags:
-                if not tag in self._tags:
-                    self._tags[tag] = [note_id]
-                    self.NewTag(tag)
-                else:
-                    if not note_id in self._tags[tag]:
-                        self._tags[tag].append(note_id)
-        return note_id
-
+ 
     #---------------------------------------------------------------------#
     # dbus methods and signals                                            #
     #---------------------------------------------------------------------#
@@ -251,21 +309,6 @@ class NoteDomain(Domain, GenericDomain):
 
         return self.get_single_entry_single_field(query, field_name)
 
-    @dbus_signal(_DIN_NOTES, "s")
-    def NewTag(self, tag):
-        pass
-
-    @dbus_signal(_DIN_NOTES, "s")
-    def TagRemoved(self, tag):
-        pass
-
-    @dbus_method(_DIN_NOTES, "", "as")
-    def GetUsedTags(self):
-        tags = []
-        for tag in self._tags:
-            tags.append(tag)
-        return tags
-
     @dbus_method(_DIN_NOTES, "a{sv}", "s", sender_keyword="sender")
     def Query(self, query, sender):
         """Processes a query and returns the dbus path of the resulting query object
@@ -284,22 +327,17 @@ class NoteDomain(Domain, GenericDomain):
         # Make sure the requested entry exists
         self.check_entry_id(num_id)
 
-        return self._entries[num_id].get_content()
-
-    @dbus_method(_DIN_ENTRY, "", "as", rel_path_keyword="rel_path")
-    def GetUsedBackends(self, rel_path):
-        num_id = int(rel_path[1:])
-                
-        # Make sure the requested entry exists
-        self.check_entry_id(num_id)
-        
-        return self._entries[num_id]._used_backends
+        return self.db_handler.get_content([num_id, ])
 
     @dbus_method(_DIN_ENTRY, "s", "a{sv}", rel_path_keyword="rel_path")
     def GetMultipleFields(self, field_list, rel_path):
         num_id = int(rel_path[1:])
 
         return self.get_multiple_fields(num_id, field_list)
+
+    @dbus_signal(_DIN_NOTES, "s")
+    def DeletedNote(self, path):
+        pass
 
     @dbus_signal(_DIN_ENTRY, "", rel_path_keyword="rel_path")
     def NoteDeleted(self, rel_path=None):
@@ -309,28 +347,9 @@ class NoteDomain(Domain, GenericDomain):
         self.NoteDeleted(rel_path=rel_path)
         self.DeletedNote(_DBUS_PATH_NOTES+rel_path)
 
-    @dbus_signal(_DIN_NOTES, "s")
-    def DeletedNote(self, path):
-        pass
-
     @dbus_method(_DIN_ENTRY, "", "", rel_path_keyword="rel_path")
     def Delete(self, rel_path):
         num_id = int(rel_path[1:])
-
-        self.check_entry_id(num_id)
-
-        note = self._entries[num_id].get_fields(self._entries[num_id]._field_idx)
-
-        if note.get('Tag'):
-            tags = note['Tag']
-            if not isinstance(tags, list) and not isinstance(tags, Array):
-                tags = [tags]
-            for tag in tags:
-                if self._tags[tag]==[num_id]:
-                    del self._tags[tag]
-                    self.TagRemoved(tag)
-                else:
-                    self._tags[tag].remove(num_id) 
 
         self.delete(num_id)
 
@@ -350,36 +369,7 @@ class NoteDomain(Domain, GenericDomain):
     def Update(self, data, rel_path):
         num_id = int(rel_path[1:])
 
-        self.check_entry_id(num_id)
-
-        noteif = self._entries[num_id]
-        note = noteif.get_fields(noteif._field_idx)
-
-        if note.get('Tag') and data.get('Tag'):
-            tags = note['Tag']
-            if not isinstance(tags, list) and not isinstance(tags, Array):
-                tags = [tags]
-            for tag in tags:
-                if self._tags[tag]==[num_id]:
-                    del self._tags[tag]
-                    self.TagRemoved(tag)
-                else:
-                    self._tags[tag].remove(num_id)
- 
-        if data.get('Tag'):
-            tags = data['Tag']
-            if not isinstance(tags, list) and not isinstance(tags, Array):
-                tags = [tags]
-
-            for tag in tags:
-                if not tag in self._tags:
-                    self._tags[tag] = [num_id]
-                    self.NewTag(tag)
-                else:
-                    if not num_id in self._tags[tag]:
-                        self._tags[tag].append(num_id)
-
-        self.update(num_id, data, entryif = noteif, entry = note)
+        self.update(num_id, data)
 
     @dbus_method(_DIN_FIELDS, "ss", "")
     def AddField(self, name, type):
