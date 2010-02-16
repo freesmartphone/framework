@@ -7,6 +7,7 @@ Open PIM Daemon
 (C) 2008 Openmoko, Inc.
 (C) 2009 Michael 'Mickey' Lauer <mlauer@vanille-media.de>
 (C) 2009 Sebastian Krzyszkowiak <seba.dos1@gmail.com>
+(C) 2009 Tom "TAsn" Hacohen <tom@stosb.com>
 GPLv2 or later
 
 Messages Domain Plugin
@@ -44,12 +45,10 @@ _DBUS_PATH_MESSAGES = DBUS_PATH_BASE_FSO + '/' + _DOMAIN_NAME
 _DIN_MESSAGES_BASE = DIN_BASE_FSO
 
 _DBUS_PATH_QUERIES = _DBUS_PATH_MESSAGES + '/Queries'
-_DBUS_PATH_FOLDERS = _DBUS_PATH_MESSAGES + '/Folders'
 
 _DIN_MESSAGES = _DIN_MESSAGES_BASE + '.' + 'Messages'
 _DIN_ENTRY = _DIN_MESSAGES_BASE + '.' + 'Message'
 _DIN_QUERY = _DIN_MESSAGES_BASE + '.' + 'MessageQuery'
-_DIN_FOLDER = _DIN_MESSAGES_BASE + '.' + 'MessageFolder'
 _DIN_FIELDS = _DIN_MESSAGES_BASE + '.' + 'Fields'
 
 """Reserved types"""
@@ -254,74 +253,7 @@ class QueryManager(DBusFBObject):
         self._queries[num_id].dispose()
         self._queries.__delitem__(num_id)
 
-#TBD: Fix MessageFolder
-#----------------------------------------------------------------------------#
-class MessageFolder(DBusFBObject):
-#----------------------------------------------------------------------------#
-    _messages = None   # List of all messages registered with the messages domain
-    _entries = None    # List of all messages within this folder
-    name = None
-
-    def __init__(self, messages, folder_id, folder_name):
-        self._messages = messages
-        self._entries = []
-        self.name = folder_name
-
-        # Initialize the D-Bus-Interface
-        DBusFBObject.__init__( self, conn=busmap["opimd"], object_path=_DBUS_PATH_FOLDERS + '/' + str(folder_id) )
-
-    def register_message(self, message_id):
-        self._entries.append(message_id)
-
-        # TODO Send "new message" signal for this folder
-
-
-    def notify_message_move(self, message_id, new_folder_name):
-
-        message = self._messages[message_id]
-        message_uri = message['Path']
-
-        self._entries.remove(message_id)
-
-        self.MessageMoved(message_uri, new_folder_name)
-
-
-    @dbus_method(_DIN_FOLDER, "", "i")
-    def GetMessageCount(self):
-        """Returns number of messages in this folder"""
-
-        return len(self._entries)
-
-
-    @dbus_method(_DIN_FOLDER, "ii", "as")
-    def GetMessagePaths(self, first_message_id, message_count):
-        """Produces and returns a list of message URIs
-
-        @param first_message_id Number of first message to deliver
-        @param message_count Number of messages to deliver
-        @return Array of message URIs"""
-
-        result = []
-
-        for i in range(message_count):
-            entry_id = first_message_id + i
-
-            try:
-                message_id = self._entries[entry_id]
-                message = self._messages[message_id]
-                result.append(message['Path'])
-
-            except IndexError:
-                break
-
-        return result
-
-
-    @dbus_signal(_DIN_FOLDER, "ss")
-    def MessageMoved(self, message_uri, new_folder_name):
-        pass
-
-#----------------------------------------------------------------------------#
+##----------------------------------------------------------------------------#
 class MessageDomain(Domain, GenericDomain):
 #----------------------------------------------------------------------------#
     name = _DOMAIN_NAME
@@ -331,7 +263,6 @@ class MessageDomain(Domain, GenericDomain):
     _dbus_path = None
     DefaultFields = _MESSAGES_SYSTEM_FIELDS
     
-    _folders = None
     _unread_messages = None
 
     def __init__(self):
@@ -348,27 +279,7 @@ class MessageDomain(Domain, GenericDomain):
         self.interface = _DIN_MESSAGES
         self.path = _DBUS_PATH_MESSAGES
 
-        self._folders = []
         self._unread_messages = 0
-
-        # Create the default folders
-        folder_name = config.getValue('opimd', 'messages_default_folder', default="Unfiled")
-        self._folders.append(MessageFolder(self._entries, 0, folder_name))
-
-        folder_name = config.getValue('opimd', 'messages_trash_folder', default="Trash")
-        self._folders.append(MessageFolder(self._entries, 1, folder_name))
-
-    def get_folder_id_from_name(self, folder_name):
-        """Resolves a folder's name to its numerical list ID
-
-        @param folder_name Folder Name
-        @return Numerical folder ID"""
-
-        for (folder_id, folder) in enumerate(self._folders):
-            if folder.name == folder_name: return folder_id
-
-        raise UnknownFolder( "Valid folders are %s" % list(self._folders) )
-
 
     def register_incoming_message(self, backend, message_data, stored_on_input_backend = True):
 	#FIXME: TBD
@@ -458,27 +369,6 @@ class MessageDomain(Domain, GenericDomain):
         return self.query_manager.process_query(query, sender)
 
 
-    @dbus_method(_DIN_MESSAGES, "", "as")
-    def GetFolderNames(self):
-        """Retrieves a list of all available folders"""
-
-        result = []
-
-        for folder in self._folders:
-            result.append(folder.name)
-
-        return result
-
-
-    @dbus_method(_DIN_MESSAGES, "s", "s")
-    def GetFolderPathFromName(self, folder_name):
-        """Retrieves a folder's D-Bus URI
-
-        @param folder_name Name of folder whose URI to return
-        @return D-Bus URI for the folder object"""
-
-        folder_id = self.get_folder_id_from_name(folder_name)
-        return _DBUS_PATH_FOLDERS + '/' + str(folder_id)
 #FIXME: TBD take from db?
     @dbus_method(_DIN_MESSAGES, "", "i")
     def GetUnreadMessages(self):
@@ -581,29 +471,3 @@ class MessageDomain(Domain, GenericDomain):
     def GetType(self, name):
         return self.field_type_from_name(name)
                
-#FIXME: TBD fix
-    @dbus_method(_DIN_ENTRY, "s", "", rel_path_keyword="rel_path")
-    def MoveToFolder(self, new_folder_name, rel_path):
-        """Moves a message into a specific folder, if it exists
-
-        @param new_folder_name Name of new folder
-        @param rel_path Relative part of D-Bus object path, e.g. '/4'"""
-        num_id = int(rel_path[1:])
-        self.check_message_id_ok(num_id)
-
-        message = self._entries[num_id]
-
-        # Notify old folder of the move
-        folder_name = message['Folder']
-        folder_id = self.get_folder_id_from_name(folder_name)
-        folder = self._folders[folder_id]
-        folder.notify_message_move(num_id, new_folder_name)
-
-        # Register message with new folder
-        message['Folder'] = new_folder_name
-        folder_id = self.get_folder_id_from_name(new_folder_name)
-        folder = self._folders[folder_id]
-        folder.register_message(num_id)
-
-
-
