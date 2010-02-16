@@ -276,7 +276,12 @@ class ContactDomain(Domain, GenericDomain):
         # Make sure the requested entry exists
         self.check_entry_id(num_id)
 
-        return self.db_handler.get_content([num_id, ])
+        res = self.db_handler.get_content([num_id, ])
+        #FIXME improve:
+        if len(res) > 0:
+            return res[0]
+        else:
+	    return {}
 
     @dbus_method(_DIN_ENTRY, "s", "a{sv}", rel_path_keyword="rel_path")
     def GetMultipleFields(self, field_list, rel_path):

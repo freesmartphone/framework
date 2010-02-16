@@ -581,7 +581,9 @@ class MessagesFSO(object):
                     self.ready_signal = True
                 except:
                     logger.error("%s: Could not install signal handler!", self.name)
-
+    def process_incoming_stored_entry(self, status, number, text, props, message_id):
+        self.process_single_entry((-1, status, number, text, props), True)
+        
     def handle_incoming_stored_message(self, message_id):
         logger.error("Got incoming stored message, shouldn't happen")
         #SHOLUD WE HANDLE?
@@ -617,9 +619,8 @@ class MessagesFSO(object):
             self.enable()    
 
     def handle_sim_ready(self, ready):
-        if ready:
-            self.load_entries().start()
-#FIXME: DROP?
+        return 
+
     def handle_incoming_message_receipt(self, number, text, props):
         path = self.domain.GetSingleEntrySingleField({'SMS-message-reference':props['message-reference'], 'Direction':'out', 'Source':'SMS', 'SMS-status-report-request':1},'Path')
         if path:
