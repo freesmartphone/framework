@@ -53,6 +53,3 @@ class TypeManager(DBusFBObject):
     @dbus_method(_DIN_TYPES, "", "as")
     def List(self):
         return Types
-
-def list_types():
-    return _TYPES
