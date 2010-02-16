@@ -9,6 +9,7 @@
 * Change the list of default types "deserving a table" per backend and handle others better
 * create tables/indexes specific per type
 * optimize stuff
+* Discuss breaking API? for instance Peer instead of Sender/Recipient etc
 
 -- Notes 
 * Fix Tagging
@@ -17,8 +18,8 @@
 * <dos1> and Tasks is Contacts + UnfinishedTasks support :P
 
 -- Messages
-* Ack and Nack messages (and special handling)
-* Drop internal unread count?
+* Verify Ack and Nack messages (and special handling) work
+* Fix unread count
 
 -- Calls
 * <dos1> you should also look at pimb_ogsmd_calls.py IIRC filename :P
