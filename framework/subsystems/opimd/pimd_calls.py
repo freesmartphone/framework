@@ -69,7 +69,7 @@ class CallsDbHandler(DbHandler):
         self.domain = domain
 
         self.db_prefix = self.name.lower()
-        self.tables = ['calls_numbers', 'calls_generic']
+        self.tables = ['calls_phonenumber', 'calls_generic']
         
         try:
             cur = self.con.cursor()
@@ -81,14 +81,14 @@ class CallsDbHandler(DbHandler):
                     );
                     
 
-                    CREATE TABLE IF NOT EXISTS calls_numbers (
-                        calls_numbers_id INTEGER PRIMARY KEY,
+                    CREATE TABLE IF NOT EXISTS calls_phonenumber (
+                        calls_phonenumber_id INTEGER PRIMARY KEY,
                         calls_id REFERENCES calls(id),
                         field_name TEXT,
                         value TEXT
                     );
-                    CREATE INDEX IF NOT EXISTS calls_numbers_calls_id
-                        ON calls_numbers(calls_id);
+                    CREATE INDEX IF NOT EXISTS calls_phonenumber_calls_id
+                        ON calls_phonenumber(calls_id);
 
                     CREATE TABLE IF NOT EXISTS calls_generic (
                         calls_generic_id INTEGER PRIMARY KEY,
@@ -118,16 +118,6 @@ class CallsDbHandler(DbHandler):
         except:
             logger.error("%s: Could not open database! Possible reason is old, uncompatible table structure. If you don't have important data, please remove %s file.", self.name, _SQLITE_FILE_NAME)
             raise OperationalError
-
-    def get_table_name(self, name):
-	if self.is_system_field(name):
-	    return None
-        type = self.domain.field_type_from_name(name)
-        if type in ('phonenumber', ):
-            return self.db_prefix + '_numbers'
-        else:
-            return self.db_prefix + '_generic'
-    
 
 #----------------------------------------------------------------------------#
 class QueryManager(DBusFBObject):

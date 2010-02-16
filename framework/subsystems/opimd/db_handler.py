@@ -67,9 +67,21 @@ class DbHandler(object):
         self.con.commit()
         self.con.close()
         
-    def get_table_name(self, name):
-#FIXME: make it a real virtual function
-        raise OperationalError
+    def get_table_name(self, field):
+        if self.is_system_field(field):
+            return None
+        type = self.domain.field_type_from_name(field)
+        table = self.get_table_name_from_type(type)
+        if table:
+            return table
+        else:
+            return self.db_prefix + '_generic'
+    def get_table_name_from_type(self, type):
+	name = self.db_prefix + "_" + type
+        if name in self.tables:
+	    return name
+	else:
+	    return None
     def build_rerieve_query(self):
         query = ""
         not_first = False
@@ -93,25 +105,32 @@ class DbHandler(object):
         
         query = ""
         for name, value in query_desc.iteritems():
+            #skip system fields
             if name.startswith('_'):
                 continue
             if not_first:
                 query = query + " INTERSECT "
 
             not_first = True
-            query = query + "SELECT " + self.db_prefix + "_id FROM " + \
+            
+            #handle type searching
+            if name.startswith('$'):
+                query = query + "SELECT " + self.db_prefix + "_id FROM " + \
+                        self.get_table_name_from_type(name[1:]) + " WHERE ("
+            else:
+                query = query + "SELECT " + self.db_prefix + "_id FROM " + \
                         self.get_table_name(name) + " WHERE field_name = ? AND ("
-            params.append(str(name))
+                params.append(str(name))
             #FIXME: support non strings as well (according to type)
             #If multi values, make OR connections
             if type(value) == Array or type(value) == list:
-		first_val = True
+                first_val = True
                 for val in value:
-		    if first_val:
-	                first_val = False
-		    else:
-	                query = query + " OR "
-	            
+                    if first_val:
+                        first_val = False
+                    else:
+                        query = query + " OR "
+                    
                     query = query + "value = ?"
                     params.append(str(val))
             else:
@@ -247,7 +266,8 @@ class DbHandler(object):
             if table == None:
                     continue
             #FIXME appears the API states you should delete in any case
-            cur.execute("DELETE FROM " + table + " WHERE " + self.db_prefix + "_id = ?", (eid, ))
+            cur.execute("DELETE FROM " + table + " WHERE " + self.db_prefix + \
+                        "_id = ? AND field_name = ?", (eid, field))
             if type(entry_data[field]) == Array or type(entry_data[field]) == list:
                 for value in entry_data[field]:
                     cur.execute("INSERT INTO " + table + " (" + self.db_prefix + "_id, Field_name, Value) VALUES (?,?,?)",(eid, field, value))

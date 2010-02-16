@@ -70,7 +70,7 @@ class MessagesDbHandler(DbHandler):
         self.domain = domain
 
         self.db_prefix = self.name.lower()
-        self.tables = ['messages_numbers', 'messages_generic']
+        self.tables = ['messages_phonenumber', 'messages_generic']
         
         try:
             cur = self.con.cursor()
@@ -82,14 +82,14 @@ class MessagesDbHandler(DbHandler):
                     );
                     
 
-                    CREATE TABLE IF NOT EXISTS messages_numbers (
-                        messages_numbers_id INTEGER PRIMARY KEY,
+                    CREATE TABLE IF NOT EXISTS messages_phonenumber (
+                        messages_phonenumber_id INTEGER PRIMARY KEY,
                         messages_id REFERENCES messages(id),
                         field_name TEXT,
                         value TEXT
                     );
-                    CREATE INDEX IF NOT EXISTS messages_numbers_messages_id
-                        ON messages_numbers(messages_id);
+                    CREATE INDEX IF NOT EXISTS messages_phonenumber_messages_id
+                        ON messages_phonenumber(messages_id);
 
                     CREATE TABLE IF NOT EXISTS messages_generic (
                         messages_generic_id INTEGER PRIMARY KEY,
@@ -119,16 +119,7 @@ class MessagesDbHandler(DbHandler):
         except:
             logger.error("%s: Could not open database! Possible reason is old, uncompatible table structure. If you don't have important data, please remove %s file.", self.name, _SQLITE_FILE_NAME)
             raise OperationalError
-
-    def get_table_name(self, name):
-        if self.is_system_field(name):
-            return None
-        type = self.domain.field_type_from_name(name)
-        if type in ('phonenumber', ):
-            return self.db_prefix + '_numbers'
-        else:
-            return self.db_prefix + '_generic'
-    
+ 
 #----------------------------------------------------------------------------#
 class QueryManager(DBusFBObject):
 #----------------------------------------------------------------------------#

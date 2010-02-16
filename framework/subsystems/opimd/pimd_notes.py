@@ -69,7 +69,7 @@ class NotesDbHandler(DbHandler):
         self.domain = domain
 
         self.db_prefix = self.name.lower()
-        self.tables = ['notes_numbers', 'notes_generic']
+        self.tables = ['notes_phonenumber', 'notes_generic']
         
         try:
             cur = self.con.cursor()
@@ -81,14 +81,14 @@ class NotesDbHandler(DbHandler):
                     );
                     
 
-                    CREATE TABLE IF NOT EXISTS notes_numbers (
-                        notes_numbers_id INTEGER PRIMARY KEY,
+                    CREATE TABLE IF NOT EXISTS notes_phonenumber (
+                        notes_phonenumber_id INTEGER PRIMARY KEY,
                         notes_id REFERENCES notes(id),
                         field_name TEXT,
                         value TEXT
                     );
-                    CREATE INDEX IF NOT EXISTS notes_numbers_notes_id
-                        ON notes_numbers(notes_id);
+                    CREATE INDEX IF NOT EXISTS notes_phonenumber_notes_id
+                        ON notes_phonenumber(notes_id);
 
                     CREATE TABLE IF NOT EXISTS notes_generic (
                         notes_generic_id INTEGER PRIMARY KEY,
@@ -118,16 +118,6 @@ class NotesDbHandler(DbHandler):
         except:
             logger.error("%s: Could not open database! Possible reason is old, uncompatible table structure. If you don't have important data, please remove %s file.", self.name, _SQLITE_FILE_NAME)
             raise OperationalError
-
-    def get_table_name(self, name):
-	if self.is_system_field(name):
-	    return None
-        type = self.domain.field_type_from_name(name)
-        if type in ('phonenumber', ):
-            return self.db_prefix + '_numbers'
-        else:
-            return self.db_prefix + '_generic'
-    
 
 #----------------------------------------------------------------------------#
 class QueryManager(DBusFBObject):
