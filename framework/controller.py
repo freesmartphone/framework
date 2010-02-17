@@ -2,7 +2,7 @@
 """
 freesmartphone.org Framework Daemon
 
-(C) 2008-2009 Michael 'Mickey' Lauer <mlauer@vanille-media.de>
+(C) 2008-2010 Michael 'Mickey' Lauer <mlauer@vanille-media.de>
 (C) 2008-2009 Openmoko, Inc.
 GPLv2 or later
 
@@ -58,7 +58,7 @@ class Controller( daemon.Daemon ):
         self.bus = dbus.SystemBus()
 
         # check if there's already something owning our bus name org.freesmartphone.frameworkd
-        if "%s.frameworkd" % DBUS_BUS_NAME_PREFIX in self.bus.list_names():
+        if ( not self.options.values.noframework ) and ( "%s.frameworkd" % DBUS_BUS_NAME_PREFIX in self.bus.list_names() ):
             logger.error( "dbus bus name org.freesmartphone.frameworkd already claimed. Exiting." )
             sys.exit( -1 )
 
@@ -76,8 +76,10 @@ class Controller( daemon.Daemon ):
         self._configureLoggers()
         self._handleOverrides()
 
-        self._subsystems["frameworkd"] = subsystem.Framework( self.bus, path, scantype, self )
-        Controller.objects.update( self._subsystems["frameworkd"].objects() )
+        # launch special framework subsystem
+        if ( not self.options.values.noframework ):
+            self._subsystems["frameworkd"] = subsystem.Framework( self.bus, path, scantype, self )
+            Controller.objects.update( self._subsystems["frameworkd"].objects() )
 
         systemstolaunch = self.options.values.subsystems.split( ',' )
 
@@ -111,7 +113,7 @@ class Controller( daemon.Daemon ):
             Controller.objects.update( self._subsystems[s].objects() )
 
         # do we have any subsystems left?
-        if len( self._subsystems ) == 1: # no additional subsystems could be loaded
+        if len( self._subsystems ) <= 1: # no additional subsystems could be loaded
             logger.error( "can't launch without at least one subsystem. Exiting." )
             sys.exit( -1 )
 

@@ -95,6 +95,18 @@ class EventsManager(dbus.service.Object):
 
         return False
 
+    @dbus.service.method( "org.freesmartphone.Events" )
+    def DebugListRules( self, name ):
+        return repr(self.rules)
+
+        for rule in self.rules:
+            trigger = rule._Rule__trigger
+            if isinstance( trigger, TestTrigger ) and trigger.name == name:
+                if value:
+                    trigger._trigger()
+                else:
+                    trigger._untrigger()
+
     @dbus.service.method( "org.freesmartphone.Events" , in_signature='sb' )
     def TriggerTest( self, name, value = True ):
         """Trigger or untrigger all the 'Test' triggers with matching names

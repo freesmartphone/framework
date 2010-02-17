@@ -65,8 +65,10 @@ class AsyncWorker( object ):
         restart = self._queue.empty() # should we wrap this in a mutex to play thread-safe?
         self._queue.put( element )
         if restart:
-           logger.debug( "no elements in queue: starting idle task." )
-           self._source = gobject.idle_add( self._processElement )
+            logger.debug( "no elements in queue: starting idle task." )
+            self._source = gobject.idle_add( self._processElement )
+        else:
+            logger.debug( "queue already filled (%s). idle task should still be running (source=%d)..." % ( self._queue.queue, self._source ) )
 
     def remove( self, *element ):
         """
