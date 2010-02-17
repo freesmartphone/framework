@@ -27,5 +27,6 @@
 
 -- Calls
 * Verify Phone logging works
+* Load number of missed calls from db on init
 
 

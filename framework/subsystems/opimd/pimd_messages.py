@@ -331,7 +331,7 @@ class MessageDomain(Domain, GenericDomain):
 
         self.check_entry_id(num_id)
 #FIXME: TBD drop the internal unread count?
-        message = self._entries[num_id].get_fields(self._entries[num_id]._field_idx)
+        message = self.get_content(num_id)
         if not message.get('MessageRead') and message.get('Direction') == 'in':
             self._unread_messages -= 1
             self.UnreadMessages(self._unread_messages)
@@ -418,16 +418,21 @@ class MessagesFSO(object):
     def dbus_err(self, *args, **kargs):
         pass
 
-    def process_single_entry(self, data, incoming = True):
-        (sim_entry_id, status, number, text, props) = data
+    def process_single_entry(self, data):
+        (status, number, text, props) = data
         entry = {}
         #FIXME: removing incoming and sanitize this function
         
 
         logger.debug("Processing entry \"%s\"...", text)
 
-        entry['Direction'] = 'in' if status in ('read', 'unread') else 'out'
-        
+        if status in ('read', 'unread'):
+	    entry['Direction'] = 'in'
+	    entry['MessageRead'] = 0
+	else:
+            entry['Direction'] = 'out'
+            entry['MessageSent'] = 0
+            
         if status == 'read': entry['MessageRead'] = 1
         if status == 'sent': entry['MessageSent'] = 1
         
@@ -459,88 +464,51 @@ class MessagesFSO(object):
         for field in props:
             entry['SMS-'+field] = props[field]
 
-        if not incoming:
-            logger.debug("Message was already stored")
-            entry_id = self._domain_handlers['Messages'].register_entry(self, entry)
-            self._entry_ids.append(entry_id)
-        else:
-            logger.debug("Message is incoming!")
-            if entry['SMS-combined_message']:
-                logger.debug("It's CSM!")
-                register = 0
-                try:
-                    path = self.domain.GetSingleEntrySingleField({'Direction':'in', 'SMS-combined_message':1, 'SMS-complete_message':0, 'SMS-csm_num':entry['SMS-csm_num'], 'SMS-csm_id':entry['SMS-csm_id'], 'Source':'SMS'},'Path')
-                    if path:
-                        rel_path = path.replace('/org/freesmartphone/PIM/Messages','')
-                        result = self.domain.get_full_content(rel_path)
-                        new_content = ''
-                        complete = 1
-                        edit_data = {}
-                        for i in range(1, entry['SMS-csm_num']+1):
-                            if i==entry['SMS-csm_seq']:
-                                new_content += entry['Content']
-                                edit_data['SMS-csm_seq'+str(i)+'_content'] = entry['Content']
-                            else:
-                                try:
-                                    new_content += result['SMS-csm_seq'+str(i)+'_content']
-                                except KeyError:
-                                    new_content += self._UNAVAILABLE_PART
-                                    complete = 0
-                        if complete:
-                            edit_data['SMS-complete_message']=1
-                        edit_data['Content'] = new_content
-                        edit_data['MessageRead'] = 0
-                        #if isinstance(result['_backend_entry_id'], (list, dbus.Array)):
-                        #    result['_backend_entry_id'].append(sim_entry_id)
-                        #    edit_data['_backend_entry_id'] = result['_backend_entry_id']
-                        #else:
-                        #    edit_data['_backend_entry_id'] = [result['_backend_entry_id'], sim_entry_id]
-                        self.domain.Update(edit_data, rel_path)
-                    else:
-                        register = 1
-                        if entry['SMS-csm_seq']>1:
-                            entry['Content']=self._UNAVAILABLE_PART+entry['Content']
-                        if entry['SMS-csm_seq']<entry['SMS-csm_num']:
-                            entry['Content']=entry['Content']+self._UNAVAILABLE_PART
-                        logger.debug('CSM: first part')
-                except:
+	logger.debug("Message is incoming!")
+        if entry['SMS-combined_message']:
+            logger.debug("It's CSM!")
+            register = 0
+            try:
+                path = self.domain.GetSingleEntrySingleField({'Direction':'in', 'SMS-combined_message':1, 'SMS-complete_message':0, 'SMS-csm_num':entry['SMS-csm_num'], 'SMS-csm_id':entry['SMS-csm_id'], 'Source':'SMS'},'Path')
+                if path:
+                    id = self.domain.path_to_id(path)
+                    result = self.domain.get_content(id)
+                    new_content = ''
+                    complete = 1
+                    edit_data = {}
+                    # Make the whole content
+                    for i in range(1, entry['SMS-csm_num']+1):
+                        if i==entry['SMS-csm_seq']:
+                            new_content += entry['Content']
+                            edit_data['SMS-csm_seq'+str(i)+'_content'] = entry['Content']
+                        else:
+                            try:
+                                new_content += result['SMS-csm_seq'+str(i)+'_content']
+                            except KeyError:
+                                new_content += self._UNAVAILABLE_PART
+                                complete = 0
+                    if complete:
+                        edit_data['SMS-complete_message']=1
+                    edit_data['Content'] = new_content
+                    edit_data['MessageRead'] = 0
+                    self.domain.Update(edit_data, '/' + str(id))
+                else:
                     register = 1
-                    logger.error('%s: failed to handle CSM message!', self.name)
-            else:
-                entry_id = self.AddIncoming(self, entry)
-                
-
-    def process_split_entries(self, entries):
-        #FIXME: remove
-        last_msg = []
-        text_msg = ''
-        ids = []
-        max_id = -1
-
-        for i in range(1, len(entries)+1):
-            added = 0
-            for msg in entries:
-                if msg[4]['csm_seq']==i:
-                    added = 1
-                    text_msg += msg[3]
-                    ids.append(msg[0])
-                    if i>max_id:
-                        max_id=i
-                        last_msg = msg
-            if not added:
-                text_msg += self._UNAVAILABLE_PART
-
-        last_msg[4]['combined_message'] = 1
-        if len(entries)==last_msg[4]['csm_num']:
-            last_msg[4]['complete_message'] = 1
+                    if entry['SMS-csm_seq']>1:
+                        entry['Content']=self._UNAVAILABLE_PART+entry['Content']
+                    if entry['SMS-csm_seq']<entry['SMS-csm_num']:
+                        entry['Content']=entry['Content']+self._UNAVAILABLE_PART
+                    logger.debug('CSM: first part')
+            except:
+                register = 1
+                logger.error('%s: failed to handle CSM message!', self.name)
         else:
-            last_msg[4]['complete_message'] = 0
+            register = 1
 
-        for msg in entries:
-            last_msg[4]['csm_seq'+str(msg[4]['csm_seq'])+'_content']=msg[3]
-
-        combined_msg = [ids,last_msg[1],last_msg[2],text_msg,last_msg[4]]
-        self.process_single_entry(combined_msg)
+        #If needed to add, add.
+        if register:
+	    self.domain.AddIncoming(entry)
+                
 
     def disable(self):
         if self.ready_signal:
@@ -578,7 +546,7 @@ class MessagesFSO(object):
                 except:
                     logger.error("%s: Could not install signal handler!", self.name)
     def process_incoming_stored_entry(self, status, number, text, props, message_id):
-        self.process_single_entry((-1, status, number, text, props), True)
+        self.process_single_entry((status, number, text, props))
         
     def handle_incoming_stored_message(self, message_id):
         logger.error("Got incoming stored message, shouldn't happen")
@@ -591,7 +559,7 @@ class MessagesFSO(object):
 
     def handle_incoming_message(self, number, text, props):
         try:
-            self.process_single_entry((-1, "unread", number, text, props), True)
+            self.process_single_entry(("unread", number, text, props))
             self.gsm_sms_iface.AckMessage('', {}, reply_handler=self.dbus_ok, error_handler=self.dbus_err)
         except Exception as exp:
             self.gsm_sms_iface.NackMessage('', {}, reply_handler=self.dbus_ok, error_handler=self.dbus_err)
