@@ -249,6 +249,7 @@ class MessageDomain(Domain, GenericDomain):
 
         @param message_data List of fields; format is [Key:Value, Key:Value, ...]
         @return URI of the newly created d-bus message object"""
+
         read = entry_data.get('MessageRead')
         #Make sure is boolean
         if read == None:
@@ -270,6 +271,7 @@ class MessageDomain(Domain, GenericDomain):
         @return URI of the newly created d-bus message object"""
 
         message_id = self.Add(entry_data)
+
         self.IncomingMessage(message_id)
         
         return message_id
@@ -439,7 +441,7 @@ class MessagesFSO(object):
     def process_single_entry(self, data):
         (status, number, text, props) = data
         entry = {}
-        #FIXME: removing incoming and sanitize this function
+        #FIXME: removing status and sanitize this function
         
 
         logger.debug("Processing entry \"%s\"...", text)
@@ -581,7 +583,7 @@ class MessagesFSO(object):
             self.gsm_sms_iface.AckMessage('', {}, reply_handler=self.dbus_ok, error_handler=self.dbus_err)
         except Exception as exp:
             self.gsm_sms_iface.NackMessage('', {}, reply_handler=self.dbus_ok, error_handler=self.dbus_err)
-            logger.error("Message nacked!\nReason: ", str(exp))
+            logger.error("Message nacked! - Reason: %s", str(exp))
 
     def install_signal_handlers(self):
         """Hooks to some d-bus signals that are of interest to us"""
