@@ -206,6 +206,8 @@ class CallDomain(Domain, GenericDomain):
     query_manager = None
     _dbus_path = None
     DefaultFields = _CALLS_SYSTEM_FIELDS
+    fso_handler = None
+    _new_missed_calls = None
 
     def __init__(self):
         """Creates a new CallDomain instance"""
@@ -220,6 +222,9 @@ class CallDomain(Domain, GenericDomain):
         # Keep frameworkd happy
         self.interface = _DIN_CALLS
         self.path = _DBUS_PATH_CALLS
+
+        self._new_missed_calls = 0
+        self.fso_handler = CallsLogFSO(self)
         
 
  
@@ -228,6 +233,12 @@ class CallDomain(Domain, GenericDomain):
     #---------------------------------------------------------------------#
 
     def NewEntry(self, path):
+        #FIXME: move to a better place (function) and fix the reject bug
+        if entry_data.has_key('Direction') and entry_data.has_key('Answered') and \
+              entry_data['Direction'] == 'in' and not entry_data['Answered']:
+
+            self.MissedCall(id, _DBUS_PATH_CALLS+ '/' + str(id))
+            self.NewMissedCalls
         self.NewCall(path)
 
     @dbus_signal(_DIN_CALLS, "s")
@@ -240,9 +251,9 @@ class CallDomain(Domain, GenericDomain):
 
         @param entry_data List of fields; format is [Key:Value, Key:Value, ...]
         @return Path of the newly created d-bus entry object"""
-
+        
         return self.add(entry_data)
-
+        
     @dbus_method(_DIN_CALLS, "a{sv}s", "s")
     def GetSingleEntrySingleField(self, query, field_name):
         """Returns the first entry found for a query, making it real easy to query simple things
@@ -294,7 +305,12 @@ class CallDomain(Domain, GenericDomain):
     @dbus_method(_DIN_ENTRY, "", "", rel_path_keyword="rel_path")
     def Delete(self, rel_path):
         num_id = int(rel_path[1:])
+        call = self._entries[num_id].get_fields(self._entries[num_id]._field_idx)
 
+        if call.get('New') and not call.get('Answered') and call.get('Direction') == 'in':
+            self._new_missed_calls -= 1
+            self.NewMissedCalls(self._new_missed_calls)
+ 
         self.delete(num_id)
 
     def EntryUpdated(self, data, rel_path=None):
@@ -312,7 +328,16 @@ class CallDomain(Domain, GenericDomain):
     @dbus_method(_DIN_ENTRY, "a{sv}", "", rel_path_keyword="rel_path")
     def Update(self, data, rel_path):
         num_id = int(rel_path[1:])
-
+        #FIXME: not complete
+        if call.has_key('New') and data.has_key('New') and call.has_key('Answered') and call.has_key('Direction'):
+            if not call['Answered'] and call['Direction'] == 'in':
+                if call['New'] and not data['New']:
+                    self._new_missed_calls -= 1
+                    self.NewMissedCalls(self._new_missed_calls)
+                elif not call['New'] and data['New']:
+                    self._new_missed_calls += 1
+                    self.NewMissedCalls(self._new_missed_calls)
+                    self.MissedCall(_DBUS_PATH_CALLS+ '/' + str(num_id))
         self.update(num_id, data)
 
     @dbus_method(_DIN_FIELDS, "ss", "")
@@ -335,6 +360,10 @@ class CallDomain(Domain, GenericDomain):
     def GetType(self, name):
         return self.field_type_from_name(name)
 
+    @dbus_signal(_DIN_CALLS, "s")
+    def MissedCall(self, path):
+        pass
+ 
     @dbus_signal(_DIN_CALLS, "i")
     def NewMissedCalls(self, amount):
         pass
@@ -343,3 +372,68 @@ class CallDomain(Domain, GenericDomain):
     def GetNewMissedCalls(self):
         return self._new_missed_calls
 
+#----------------------------------------------------------------------------#
+class CallsLogFSO(object):
+#----------------------------------------------------------------------------#
+    name = 'FSO-CallsLog-Handler'
+    domain = None
+    props = None
+#----------------------------------------------------------------------------#
+
+    def __init__(self, domain):
+        self.domain = domain
+        self.props = {}
+
+    def __repr__(self):
+        return self.name
+
+    def handle_call_status(self, line, call_status, call_props):
+
+        if not self.props.has_key(line):
+            self.props[line] = {}
+            self.props[line]['Line'] = str(line)
+
+        if not self.props[line].has_key('Answered'):
+            self.props[line]['Answered']=0
+        if call_props.has_key('mode'):
+            self.props[line]['Type']='gsm_'+call_props['mode']
+        if call_props.has_key('peer'):
+            peer = call_props["peer"]
+        elif self.props[line].has_key('Peer'):
+            peer = self.props[line]['Peer']
+
+        if call_status == "incoming":
+            try:
+                self.props[line]['Peer'] = peer
+            except:
+                pass
+            self.props[line]['Direction'] = 'in'
+        elif call_status == "outgoing":
+            self.props[line]['Peer'] = peer
+            self.props[line]['Direction'] = 'out'
+        elif call_status == "active":
+            self.props[line]['Answered'] = 1
+            self.props[line]['Timestamp'] = int(time.time())
+        elif call_status == "release":
+            if self.props[line].has_key('Timestamp'):
+                self.props[line]['Duration'] = int(time.time() - self.props[line]['Timestamp'])
+            else:
+                self.props[line]['Timestamp'] = int(time.time())
+            self.props[line]['Timezone'] = time.tzname[time.daylight]
+            self.props[line]['New']=1
+            #FIXME: Bug when rejecting call, fix
+            self.domain.Add(self.props[line])
+
+            del self.props[line]
+
+    def disable(self):
+        if self.handler:
+            self.signal.remove()
+            self.handler = False
+
+    def enable(self):
+        bus = SystemBus()
+        if not self.handler:
+            self.signal = bus.add_signal_receiver(self.handle_call_status, signal_name='CallStatus', dbus_interface='org.freesmartphone.GSM.Call', bus_name='org.freesmartphone.ogsmd')
+            self.handler = True
+        self._initialized = True
