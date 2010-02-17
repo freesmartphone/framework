@@ -22,8 +22,8 @@
 * <dos1> and Tasks is Contacts + UnfinishedTasks support :P
 
 -- Messages
-* Verify Ack and Nack messages (and special handling) work
-* Fix unread count
+* Verify Ack and Nack messages (and special handling) work + support multifields
+* Fix unread count + init count on load
 
 -- Calls
 * Verify Phone logging works

@@ -249,7 +249,17 @@ class MessageDomain(Domain, GenericDomain):
 
         @param message_data List of fields; format is [Key:Value, Key:Value, ...]
         @return URI of the newly created d-bus message object"""
-
+        read = entry_data.get('MessageRead')
+        #Make sure is boolean
+        if read == None:
+           read = 0
+        else:
+           read = int(entry_data.get('MessageRead'))
+           
+        if entry_data.get('Direction') == 'in' and not read:
+           self._unread_messages += 1
+           self.UnreadMessages(self._unread_messages)
+           
         return self.add(entry_data)
 
 
@@ -259,8 +269,9 @@ class MessageDomain(Domain, GenericDomain):
         @param message_data List of fields; format is [Key:Value, Key:Value, ...]
         @return URI of the newly created d-bus message object"""
 
-        message_id = self.add(entry_data)
+        message_id = self.Add(entry_data)
         self.IncomingMessage(message_id)
+        
         return message_id
 
 
@@ -332,7 +343,14 @@ class MessageDomain(Domain, GenericDomain):
         self.check_entry_id(num_id)
 #FIXME: TBD drop the internal unread count?
         message = self.get_content(num_id)
-        if not message.get('MessageRead') and message.get('Direction') == 'in':
+        read = message.get('MessageRead')
+        #Make sure is boolean
+        if read == None:
+           read = 0
+        else:
+           read = int(message.get('MessageRead'))
+           
+        if not read and message.get('Direction') == 'in':
             self._unread_messages -= 1
             self.UnreadMessages(self._unread_messages)
 
@@ -355,14 +373,14 @@ class MessageDomain(Domain, GenericDomain):
 
         self.check_entry_id(num_id)
 
-        message = self.get_contet(num_id)
-
+        message = self.get_content(num_id)
+#FIXME: What if it was outgoing and is now incoming?
         if message.has_key('MessageRead') and data.has_key('MessageRead') and message.has_key('Direction'):
             if message['Direction'] == 'in':
-                if not message['MessageRead'] and data['MessageRead']:
+                if not int(message['MessageRead']) and int(data['MessageRead']):
                     self._unread_messages -= 1
                     self.UnreadMessages(self._unread_messages)
-                elif message['MessageRead'] and not data['MessageRead']:
+                elif int(message['MessageRead']) and not int(data['MessageRead']):
                     self._unread_messages += 1
                     self.UnreadMessages(self._unread_messages)
 
@@ -427,9 +445,9 @@ class MessagesFSO(object):
         logger.debug("Processing entry \"%s\"...", text)
 
         if status in ('read', 'unread'):
-	    entry['Direction'] = 'in'
-	    entry['MessageRead'] = 0
-	else:
+            entry['Direction'] = 'in'
+            entry['MessageRead'] = 0
+        else:
             entry['Direction'] = 'out'
             entry['MessageSent'] = 0
             
@@ -464,7 +482,7 @@ class MessagesFSO(object):
         for field in props:
             entry['SMS-'+field] = props[field]
 
-	logger.debug("Message is incoming!")
+        logger.debug("Message is incoming!")
         if entry['SMS-combined_message']:
             logger.debug("It's CSM!")
             register = 0
@@ -507,7 +525,7 @@ class MessagesFSO(object):
 
         #If needed to add, add.
         if register:
-	    self.domain.AddIncoming(entry)
+            self.domain.AddIncoming(entry)
                 
 
     def disable(self):
