@@ -593,9 +593,9 @@ class MessagesFSO(object):
         try:
             self.process_single_entry((-1, "unread", number, text, props), True)
             self.gsm_sms_iface.AckMessage('', {}, reply_handler=self.dbus_ok, error_handler=self.dbus_err)
-        except:
+        except Exception as exp:
             self.gsm_sms_iface.NackMessage('', {}, reply_handler=self.dbus_ok, error_handler=self.dbus_err)
-            logger.error("Message nacked!")
+            logger.error("Message nacked!\nReason: ", str(exp))
 
     def install_signal_handlers(self):
         """Hooks to some d-bus signals that are of interest to us"""

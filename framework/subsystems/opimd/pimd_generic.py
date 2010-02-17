@@ -325,7 +325,7 @@ class GenericDomain():
         if field_name in res:
             return res[field_name]
         else:
-            return None
+            return ""
 
     def get_full_content(self, rel_path):
         num_id = int(rel_path[1:])

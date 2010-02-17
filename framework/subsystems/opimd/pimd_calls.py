@@ -18,6 +18,8 @@ Establishes the 'calls' PIM domain and handles all related requests
 from dbus.service import FallbackObject as DBusFBObject
 from dbus.service import signal as dbus_signal
 from dbus.service import method as dbus_method
+from dbus import SystemBus
+import time
 
 import re
 
@@ -229,12 +231,6 @@ class CallDomain(Domain, GenericDomain):
     #---------------------------------------------------------------------#
 
     def NewEntry(self, path):
-        #FIXME: move to a better place (function) and fix the reject bug
-        if entry_data.has_key('Direction') and entry_data.has_key('Answered') and \
-              entry_data['Direction'] == 'in' and not entry_data['Answered']:
-
-            self.MissedCall(id, _DBUS_PATH_CALLS+ '/' + str(id))
-            self.NewMissedCalls
         self.NewCall(path)
 
     @dbus_signal(_DIN_CALLS, "s")
@@ -247,7 +243,12 @@ class CallDomain(Domain, GenericDomain):
 
         @param entry_data List of fields; format is [Key:Value, Key:Value, ...]
         @return Path of the newly created d-bus entry object"""
-        
+        #FIXME: move to a better place (function) and fix the reject bug
+        if entry_data.has_key('Direction') and entry_data.has_key('Answered') and \
+              entry_data['Direction'] == 'in' and not entry_data['Answered']:
+            self._new_missed_calls += 1
+            self.MissedCall(id, _DBUS_PATH_CALLS+ '/' + str(id))
+            self.NewMissedCalls(self._new_missed_calls)
         return self.add(entry_data)
         
     @dbus_method(_DIN_CALLS, "a{sv}s", "s")
@@ -324,16 +325,8 @@ class CallDomain(Domain, GenericDomain):
     @dbus_method(_DIN_ENTRY, "a{sv}", "", rel_path_keyword="rel_path")
     def Update(self, data, rel_path):
         num_id = int(rel_path[1:])
-        #FIXME: not complete
-        if call.has_key('New') and data.has_key('New') and call.has_key('Answered') and call.has_key('Direction'):
-            if not call['Answered'] and call['Direction'] == 'in':
-                if call['New'] and not data['New']:
-                    self._new_missed_calls -= 1
-                    self.NewMissedCalls(self._new_missed_calls)
-                elif not call['New'] and data['New']:
-                    self._new_missed_calls += 1
-                    self.NewMissedCalls(self._new_missed_calls)
-                    self.MissedCall(_DBUS_PATH_CALLS+ '/' + str(num_id))
+        #FIXME: also alert missed on update
+        
         self.update(num_id, data)
 
     @dbus_method(_DIN_FIELDS, "ss", "")
@@ -374,12 +367,15 @@ class CallsLogFSO(object):
     name = 'FSO-CallsLog-Handler'
     domain = None
     props = None
+    handler = None
 #----------------------------------------------------------------------------#
 
     def __init__(self, domain):
         self.domain = domain
         self.props = {}
-
+        self.handler = False
+        
+        self.enable()
     def __repr__(self):
         return self.name
 
