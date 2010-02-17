@@ -231,9 +231,10 @@ class DbHandler(object):
             query = "SELECT " + self.db_prefix + "_id FROM " + self.db_prefix
         if '_sortby' in query_desc:
             sortby = query_desc['_sortby']
-            query = "SELECT " + self.db_prefix + "_id FROM (" + query + \
+            query = "SELECT DISTINCT " + self.db_prefix + "_id FROM (" + query + \
                         ") JOIN " + self.get_table_name(sortby) + " USING (" + \
-                        self.db_prefix + "_id) ORDER BY value"
+                        self.db_prefix + "_id) WHERE field_name = ? ORDER BY value"
+            params.append(sortby)
             if '_sortdesc' in query_desc:
                 query = query + " DESC"
         if '_limit' in query_desc:
