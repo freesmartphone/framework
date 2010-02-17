@@ -220,7 +220,7 @@ class GenericDomain():
         return path
     def path_to_id(self, entry_path):
         id = entry_path.rpartition('/')
-        return id[2]
+        return int(id[2])
         
     def is_system_field(self, field):
         return (field in self._SYSTEM_FIELDS)
