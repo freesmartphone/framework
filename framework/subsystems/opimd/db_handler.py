@@ -102,14 +102,14 @@ class DbHandler(object):
                     );
 
                     
-                    CREATE TABLE IF NOT EXISTS contacts_fields (
+                    CREATE TABLE IF NOT EXISTS """ + self.db_prefix + """_fields (
                         field_name TEXT PRIMARY KEY,
                         type TEXT
                     );
-                    CREATE INDEX IF NOT EXISTS contacts_fields_field_name
-                        ON contacts_fields(field_name);
-                    CREATE INDEX IF NOT EXISTS contacts_fields_type
-                        ON contacts_fields(type);
+                    CREATE INDEX IF NOT EXISTS """ + self.db_prefix + """_fields_field_name
+                        ON """ + self.db_prefix + """_fields(field_name);
+                    CREATE INDEX IF NOT EXISTS """ + self.db_prefix + """_fields_type
+                        ON """ + self.db_prefix + """_fields(type);
                     """)
                     
             #FIXME make special attributes for some tables even here

@@ -211,6 +211,8 @@ class DateDomain(Domain, GenericDomain):
         # Initialize the D-Bus-Interface
         Domain.__init__( self, conn=busmap["opimd"], object_path=DBUS_PATH_BASE_FSO + '/' + self.name )
 
+        self.load_field_types()
+
         # Keep frameworkd happy
         self.interface = _DIN_DATES
         self.path = _DBUS_PATH_DATES

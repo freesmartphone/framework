@@ -216,6 +216,8 @@ class ContactDomain(Domain, GenericDomain):
         # Initialize the D-Bus-Interface
         Domain.__init__( self, conn=busmap["opimd"], object_path=DBUS_PATH_BASE_FSO + '/' + self.name )
 
+        self.load_field_types()
+
         # Keep frameworkd happy
         self.interface = _DIN_CONTACTS
         self.path = _DBUS_PATH_CONTACTS
@@ -275,7 +277,7 @@ class ContactDomain(Domain, GenericDomain):
         if len(res) > 0:
             return res[0]
         else:
-	    return {}
+            return {}
 
     @dbus_method(_DIN_ENTRY, "s", "a{sv}", rel_path_keyword="rel_path")
     def GetMultipleFields(self, field_list, rel_path):

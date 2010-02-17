@@ -231,16 +231,12 @@ class GenericDomain():
             self.FieldTypes = {}
 
     def field_type_from_name(self, name):
-        if not self.FieldTypes:
-            self.load_field_types()
         if name in self.FieldTypes:
             return self.FieldTypes[name]
         else:
             return 'generic'
 
     def add_new_field(self, name, type):
-        if self.FieldTypes == None:
-            self.load_field_types()
         if not name in self.FieldTypes and not self.is_system_field(name) and \
            type in TypeManager.Types:
 
@@ -251,8 +247,6 @@ class GenericDomain():
         self.db_handler.add_field_type(name, type)
 
     def remove_field(self, name):
-        if self.FieldTypes == None:
-            self.load_field_types()
         if name in self.FieldTypes and not self.is_system_field(name):
             #handler must be first, assumes type exists
             self.db_handler.remove_field_type(name)
@@ -260,11 +254,9 @@ class GenericDomain():
         else:
             raise InvalidField ("Field %s does not exist!" % name)
 
-    @classmethod
     def list_fields(self):
         return self.FieldTypes
 
-    @classmethod
     def list_fields_with_type(self, type):
         fields = []
         for field in self.FieldTypes:
