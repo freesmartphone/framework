@@ -114,8 +114,9 @@ class Controller( daemon.Daemon ):
 
         # do we have any subsystems left?
         if len( self._subsystems ) <= 1: # no additional subsystems could be loaded
-            logger.error( "can't launch without at least one subsystem. Exiting." )
-            sys.exit( -1 )
+	    if len( self._subsystems ) == 0 or 'frameworkd' in self._subsystems:
+                logger.error( "can't launch without at least one subsystem. Exiting." )
+                sys.exit( -1 )
 
     def launch( self ):
         if self.options.values.daemonize:
