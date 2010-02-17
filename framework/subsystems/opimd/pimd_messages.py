@@ -610,7 +610,7 @@ class MessagesFSO(object):
                 self.imrsignal = self.gsm_sms_iface.connect_to_signal("IncomingMessageReceipt", self.handle_incoming_message_receipt)
                 logger.info("%s: Installed signal handlers", self.name)
                 self.signals = True
-                self.gsm_device_iface.SetSimBuffersSms(self.am_i_default(), reply_handler=self.dbus_ok, error_handler=self.dbus_err)
+                self.gsm_device_iface.SetSimBuffersSms(False, reply_handler=self.dbus_ok, error_handler=self.dbus_err)
             except:
                 logger.error("%s: Could not install signal handlers!", self.name)
 
