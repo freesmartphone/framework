@@ -322,8 +322,8 @@ class GenericDomain():
         query['_limit'] = 1
         matcher = QueryMatcher(query)
         res = matcher.match(self.db_handler)
-        if field_name in res:
-            return res[field_name]
+        if len(res) > 0 and field_name in res[0]:
+            return res[0][field_name]
         else:
             return ""
     def get_content(self, num_id):
