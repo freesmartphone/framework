@@ -220,7 +220,7 @@ class CallDomain(Domain, GenericDomain):
         # Keep frameworkd happy
         self.interface = _DIN_CALLS
         self.path = _DBUS_PATH_CALLS
-
+#FIXME: Load from db
         self._new_missed_calls = 0
         self.fso_handler = CallsLogFSO(self)
         
@@ -247,7 +247,7 @@ class CallDomain(Domain, GenericDomain):
         if entry_data.has_key('Direction') and entry_data.has_key('Answered') and \
               entry_data['Direction'] == 'in' and not entry_data['Answered']:
             self._new_missed_calls += 1
-            self.MissedCall(id, _DBUS_PATH_CALLS+ '/' + str(id))
+            self.MissedCall(_DBUS_PATH_CALLS+ '/' + str(id))
             self.NewMissedCalls(self._new_missed_calls)
         return self.add(entry_data)
         
@@ -279,7 +279,7 @@ class CallDomain(Domain, GenericDomain):
         # Make sure the requested entry exists
         self.check_entry_id(num_id)
 
-        return self.db_handler.get_content([num_id, ])
+        return self.get_content(num_id)
 
     @dbus_method(_DIN_ENTRY, "s", "a{sv}", rel_path_keyword="rel_path")
     def GetMultipleFields(self, field_list, rel_path):
@@ -302,9 +302,9 @@ class CallDomain(Domain, GenericDomain):
     @dbus_method(_DIN_ENTRY, "", "", rel_path_keyword="rel_path")
     def Delete(self, rel_path):
         num_id = int(rel_path[1:])
-        call = self._entries[num_id].get_fields(self._entries[num_id]._field_idx)
+        call = self.get_content(num_id)
 
-        if call.get('New') and not call.get('Answered') and call.get('Direction') == 'in':
+        if int(call.get('New')) and not call.get('Answered') and call.get('Direction') == 'in':
             self._new_missed_calls -= 1
             self.NewMissedCalls(self._new_missed_calls)
  
@@ -326,7 +326,17 @@ class CallDomain(Domain, GenericDomain):
     def Update(self, data, rel_path):
         num_id = int(rel_path[1:])
         #FIXME: also alert missed on update
+	call = self.get_content(num_id)
         
+        if call.has_key('New') and data.has_key('New') and call.has_key('Answered') and call.has_key('Direction'):
+            if not int(call['Answered']) and call['Direction'] == 'in':
+                if int(call['New']) and not int(data['New']):
+                    self._new_missed_calls -= 1
+                    self.NewMissedCalls(self._new_missed_calls)
+                elif not int(call['New']) and int(data['New']):
+                    self._new_missed_calls += 1
+                    self.NewMissedCalls(self._new_missed_calls)
+                    self.MissedCall(_DBUS_PATH_CALLS+ '/' + str(num_id))
         self.update(num_id, data)
 
     @dbus_method(_DIN_FIELDS, "ss", "")

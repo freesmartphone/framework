@@ -307,7 +307,7 @@ class GenericDomain():
         fields = field_list.split(',')
         #strip all the fields
         map(lambda x: field_name.strip(), fields)
-        entry = self.db_handler.get_content([numb_id, ])
+        entry = self.get_content(numb_id)
 
         for key in entry.keys():
             if key not in fields:
@@ -326,11 +326,17 @@ class GenericDomain():
             return res[field_name]
         else:
             return ""
-
+    def get_content(self, num_id):
+        self.check_entry_id(num_id)
+        res = self.db_handler.get_content([num_id, ])
+        if len(res) > 0:
+            return res[0]
+        else:
+            return {}
     def get_full_content(self, rel_path):
         num_id = int(rel_path[1:])
 
         # Make sure the requested entry exists
         self.check_entry_id(num_id)
-
-        return self.db_handler.get_content([num_id, ])
+        self.get_content(num_id)
+        return self.get_content(num_id)

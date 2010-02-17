@@ -304,7 +304,7 @@ class MessageDomain(Domain, GenericDomain):
         num_id = int(rel_path[1:])
         self.check_entry_id(num_id)
 
-        return self.db_handler.get_content([num_id, ])
+        return self.get_content(num_id)
 
 
     @dbus_method(_DIN_ENTRY, "s", "a{sv}", rel_path_keyword="rel_path")
