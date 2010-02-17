@@ -317,9 +317,7 @@ class DbHandler(object):
         return res
     def is_system_field(self, name):
         #check for systerm reserved names
-        if name.lower() in ('path', ):
-            return True
-        return False
+        return self.domain.is_system_field(name)
     def entry_exists(self, id):
         cur = self.con.cursor()
         cur.execute('SELECT ' + self.db_prefix + '_id FROM ' + self.db_prefix + ' WHERE ' + self.db_prefix + '_id = ?', (id, ))

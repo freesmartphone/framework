@@ -50,11 +50,6 @@ _DIN_ENTRY = _DIN_DATES_BASE + '.' + 'Date'
 _DIN_QUERY = _DIN_DATES_BASE + '.' + 'DateQuery'
 _DIN_FIELDS = _DIN_DATES_BASE + '.' + 'Fields'
 
-"""Reserved types"""
-_DATES_SYSTEM_FIELDS = {
-                          'Path'    : 'objectpath'
-                          }
-
 
 #----------------------------------------------------------------------------#
 class DatesDbHandler(DbHandler):
@@ -205,7 +200,6 @@ class DateDomain(Domain, GenericDomain):
     db_handler = None
     query_manager = None
     _dbus_path = None
-    DefaultFields = _DATES_SYSTEM_FIELDS
 
     def __init__(self):
         """Creates a new DateDomain instance"""

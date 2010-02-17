@@ -50,11 +50,6 @@ _DIN_ENTRY = _DIN_CONTACTS_BASE + '.' + 'Contact'
 _DIN_QUERY = _DIN_CONTACTS_BASE + '.' + 'ContactQuery'
 _DIN_FIELDS = _DIN_CONTACTS_BASE + '.' + 'Fields'
 
-"""Reserved types"""
-_CONTACTS_SYSTEM_FIELDS = {
-                          'Path'    : 'objectpath'
-                          }
-
 
 #----------------------------------------------------------------------------#
 class ContactsDbHandler(DbHandler):
@@ -210,7 +205,6 @@ class ContactDomain(Domain, GenericDomain):
     db_handler = None
     query_manager = None
     _dbus_path = None
-    DefaultFields = _CONTACTS_SYSTEM_FIELDS
 
     def __init__(self):
         """Creates a new ContactDomain instance"""

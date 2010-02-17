@@ -50,12 +50,6 @@ _DIN_ENTRY = _DIN_TASKS_BASE + '.' + 'Task'
 _DIN_QUERY = _DIN_TASKS_BASE + '.' + 'TaskQuery'
 _DIN_FIELDS = _DIN_TASKS_BASE + '.' + 'Fields'
 
-"""Reserved types"""
-_TASKS_SYSTEM_FIELDS = {
-                          'Path'    : 'objectpath'
-                          }
-
-
 #----------------------------------------------------------------------------#
 class TasksDbHandler(DbHandler):
 #----------------------------------------------------------------------------#
@@ -203,7 +197,6 @@ class TaskDomain(Domain, GenericDomain):
     db_handler = None
     query_manager = None
     _dbus_path = None
-    DefaultFields = _TASKS_SYSTEM_FIELDS
 
     def __init__(self):
         """Creates a new TaskDomain instance"""

@@ -50,11 +50,6 @@ _DIN_ENTRY = _DIN_CALLS_BASE + '.' + 'Call'
 _DIN_QUERY = _DIN_CALLS_BASE + '.' + 'CallQuery'
 _DIN_FIELDS = _DIN_CALLS_BASE + '.' + 'Fields'
 
-"""Reserved types"""
-_CALLS_SYSTEM_FIELDS = {
-                          'Path'    : 'objectpath'
-                          }
-
 
 #----------------------------------------------------------------------------#
 class CallsDbHandler(DbHandler):
@@ -205,7 +200,6 @@ class CallDomain(Domain, GenericDomain):
     db_handler = None
     query_manager = None
     _dbus_path = None
-    DefaultFields = _CALLS_SYSTEM_FIELDS
     fso_handler = None
     _new_missed_calls = None
 

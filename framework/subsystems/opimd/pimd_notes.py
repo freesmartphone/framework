@@ -50,11 +50,6 @@ _DIN_ENTRY = _DIN_NOTES_BASE + '.' + 'Note'
 _DIN_QUERY = _DIN_NOTES_BASE + '.' + 'NoteQuery'
 _DIN_FIELDS = _DIN_NOTES_BASE + '.' + 'Fields'
 
-"""Reserved types"""
-_NOTES_SYSTEM_FIELDS = {
-                          'Path'    : 'objectpath'
-                          }
-
 
 #----------------------------------------------------------------------------#
 class NotesDbHandler(DbHandler):
@@ -204,7 +199,6 @@ class NoteDomain(Domain, GenericDomain):
     db_handler = None
     query_manager = None
     _dbus_path = None
-    DefaultFields = _NOTES_SYSTEM_FIELDS
 
     def __init__(self):
         """Creates a new NoteDomain instance"""

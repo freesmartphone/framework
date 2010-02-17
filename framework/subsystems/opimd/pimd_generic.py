@@ -107,7 +107,7 @@ class QueryManager(DBusFBObject):
         """Checks whether a newly added entry matches one or more queries so they can signal clients
 
         @param entry_id entry ID of the entry that was added"""
-
+#FIXME: TBD
         for (query_id, query_handler) in self._queries.items():
             if query_handler.check_new_entry(entry_id):
                 entry = self._entries[entry_id]
@@ -192,15 +192,19 @@ class GenericDomain():
     db_handler = None
     query_manager = None
     _dbus_path = None
-    DefaultFields = None
     FieldTypes = None
-
+    """Reserved types"""
+    _SYSTEM_FIELDS = {
+                          'Path'    : 'objectpath',
+                          'Id'      : 'entryid'
+                          }
+#FIXME: doesn't get called
     def __init__(self):
         """Creates a new GenericDomain instance"""
-
-        self.DefaulFields = {}
+        
         self._dbus_path = _DIN_ENTRY
         self.query_manager = QueryManager(self.db_handler, self.name)
+
 
         self.load_field_types()
 
@@ -218,11 +222,14 @@ class GenericDomain():
         id = entry_path.rpartition('/')
         return id[2]
         
+    def is_system_field(self, field):
+        return (field in self._SYSTEM_FIELDS)
+        
     def load_field_types(self):
         self.FieldTypes = self.db_handler.load_field_types()
         if not self.FieldTypes:
             self.FieldTypes = {}
-  
+
     def field_type_from_name(self, name):
         if not self.FieldTypes:
             self.load_field_types()
@@ -234,7 +241,9 @@ class GenericDomain():
     def add_new_field(self, name, type):
         if self.FieldTypes == None:
             self.load_field_types()
-        if not name in self.FieldTypes and type in TypeManager.Types:
+        if not name in self.FieldTypes and not self.is_system_field(name) and \
+           type in TypeManager.Types:
+
             self.FieldTypes[str(name)] = str(type)
         else:
             raise InvalidField ( "Field %s does already exist or type %s is invalid." % (name, type))
@@ -244,7 +253,7 @@ class GenericDomain():
     def remove_field(self, name):
         if self.FieldTypes == None:
             self.load_field_types()
-        if name in self.FieldTypes:
+        if name in self.FieldTypes and not self.is_system_field(name):
             #handler must be first, assumes type exists
             self.db_handler.remove_field_type(name)
             del self.FieldTypes[name]
@@ -271,7 +280,7 @@ class GenericDomain():
             raise InvalidEntryID()
 
     def add(self, entry_data):
-        eid = self.db_handler.add_entry(entry_data)        
+        eid = self.db_handler.add_entry(entry_data)
 
         result = self.id_to_path(eid)
 
@@ -301,7 +310,7 @@ class GenericDomain():
     def get_multiple_fields(self, num_id, field_list):
         # Make sure the requested entry exists
         self.check_entry_id(num_id)
-        
+
         # Break the string up into a list
         fields = field_list.split(',')
         #strip all the fields
@@ -311,7 +320,7 @@ class GenericDomain():
         for key in entry.keys():
             if key not in fields:
                 del entry[key]
-                
+
         return entry
 
     def get_single_entry_single_field(self, query, field_name):

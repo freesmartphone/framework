@@ -59,11 +59,6 @@ _DIN_ENTRY = _DIN_MESSAGES_BASE + '.' + 'Message'
 _DIN_QUERY = _DIN_MESSAGES_BASE + '.' + 'MessageQuery'
 _DIN_FIELDS = _DIN_MESSAGES_BASE + '.' + 'Fields'
 
-"""Reserved types"""
-_MESSAGES_SYSTEM_FIELDS = {
-                          'Path'    : 'objectpath'
-                          }
-
 
 #----------------------------------------------------------------------------#
 class MessagesDbHandler(DbHandler):
@@ -215,7 +210,6 @@ class MessageDomain(Domain, GenericDomain):
     db_handler = None
     query_manager = None
     _dbus_path = None
-    DefaultFields = _MESSAGES_SYSTEM_FIELDS
     
     _unread_messages = None
 

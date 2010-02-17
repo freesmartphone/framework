@@ -10,6 +10,10 @@
 * create tables/indexes specific per type
 * optimize stuff
 * Discuss breaking API? for instance Peer instead of Sender/Recipient etc
+* Verify signals work
+* Write a convert DB script
+* Drop Path, got an "approvement" from mickey, first use both Path and Id, and then only Id
+* Don't allow adding reserved fields (i.e start with $ or _) or using them
 
 -- Notes 
 * Fix Tagging
@@ -22,6 +26,6 @@
 * Fix unread count
 
 -- Calls
-* <dos1> you should also look at pimb_ogsmd_calls.py IIRC filename :P
+* Verify Phone logging works
 
 
