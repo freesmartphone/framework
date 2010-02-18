@@ -299,7 +299,6 @@ class MessageDomain(Domain, GenericDomain):
         return self.query_manager.process_query(query, sender)
 
 
-#FIXME: TBD take from db?
     @dbus_method(_DIN_MESSAGES, "", "i")
     def GetUnreadMessages(self):
         return self._unread_messages
@@ -441,7 +440,7 @@ class MessagesFSO(object):
     def process_single_entry(self, data):
         (status, number, text, props) = data
         entry = {}
-        #FIXME: removing status and sanitize this function
+        #FIXME: removing status and sanitize this function remove seq/etc after getting second message
         
 
         logger.debug("Processing entry \"%s\"...", text)

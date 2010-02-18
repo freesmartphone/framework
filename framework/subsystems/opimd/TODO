@@ -10,10 +10,12 @@
 * create tables/indexes specific per type
 * optimize stuff
 * Discuss breaking API? for instance Peer instead of Sender/Recipient etc
-* Verify signals work
+* Verify ALL signals work (only messages/calls) are important to check
 * Write a convert DB script
 * Drop Path, got an "approvement" from mickey, first use both Path and Id, and then only Id
 * Don't allow adding reserved fields (i.e start with $ or _ or path) or using them
+* Force fields to type (python type) atm means buggy phonelog, etc
+* Add support for _at_least_one
 -- Notes 
 * Fix Tagging
 
@@ -21,7 +23,7 @@
 * <dos1> and Tasks is Contacts + UnfinishedTasks support :P
 
 -- Messages
-* Verify Ack and Nack messages (and special handling) work + support multifields
+* Verify Ack and Nack messages (and special handling) work
 * Fix unread count + init count on load
 
 -- Calls

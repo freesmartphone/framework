@@ -180,15 +180,18 @@ class DbHandler(object):
         params = []
         not_first = False
         
-        #FIXME: support _sortcasesens and _pre_limit
-        
+        #FIXME: support _sortcasesens and _pre_limit and 
+        if '_at_least_one' in query_desc:
+            table_join_operator = " UNION "
+        else:
+	    table_join_operator = " INTERSECT "        
         query = ""
         for name, value in query_desc.iteritems():
             #skip system fields
             if name.startswith('_'):
                 continue
             if not_first:
-                query = query + " INTERSECT "
+                query = query + table_join_operator
 
             not_first = True
             
