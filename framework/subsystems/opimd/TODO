@@ -11,11 +11,11 @@
 * optimize stuff
 * Discuss breaking API? for instance Peer instead of Sender/Recipient etc
 * Verify ALL signals work (only messages/calls) are important to check
-* Write a convert DB script
+* Fix the hardcoded path in the conversion script
 * Drop Path, got an "approvement" from mickey, first use both Path and Id, and then only Id
 * Don't allow adding reserved fields (i.e start with $ or _ or path) or using them
 * Force fields to type (python type) atm means buggy phonelog, etc
-* Add support for _at_least_one
+
 -- Notes 
 * Fix Tagging
 
