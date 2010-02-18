@@ -3,7 +3,6 @@
 * Support "connecting" backends maybe using %DOMAIN, i.e %Contacts will be a field containing a dictionary with (list containing dicotinaries when needed?) the matching contact should find a way to say how to match
 * optimize number normalization comparison
 * Do a lot of testing because everything may be broken
-* Add default fields, atm there are none
 * Change the query system so it won't cache anything (or at least only entry ids, depends on the speed it'll work)
 * Change the list of default types "deserving a table" per backend and handle others better
 * create tables/indexes specific per type
@@ -12,6 +11,7 @@
 * Fix the hardcoded path in the conversion script
 * Drop Path, got an "approvement" from mickey, first use both Path and Id, and then only Id
 * We don't allow to query system fields, but we should catch the exceptions that makes, Add log messages when doing that and when trying to add reserved field
+* Don't let removing default must have fields
 * Add a get_single_entry_single_field operation in db_handler that'll save us the loading of all the fields that we do now
 
 -- Notes 

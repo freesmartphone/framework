@@ -223,7 +223,7 @@ class GenericDomain():
         return int(id[2])
 
     def is_reserved_field(self, field):
-	return (field.startswith('_') or field.startswith('$') or self.is_system_field(field))
+        return (field.startswith('_') or field.startswith('$') or self.is_system_field(field))
     def is_system_field(self, field):
         return (field in self._SYSTEM_FIELDS)
         
@@ -237,7 +237,14 @@ class GenericDomain():
             return self.FieldTypes[name]
         else:
             return 'generic'
-
+    def add_default_fields(self):
+        #Add default fields if don't exist
+        for field in self.DEFAULT_FIELDS:
+            try:
+                self.add_new_field(field, self.DEFAULT_FIELDS[field])
+            except InvalidField:
+                #If field already exists or can't add default field, just pass
+                pass
     def add_new_field(self, name, type):
         if not name in self.FieldTypes and not self.is_reserved_field(name) and \
            type in TypeManager.Types:

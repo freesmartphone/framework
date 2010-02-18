@@ -205,7 +205,24 @@ class ContactDomain(Domain, GenericDomain):
     db_handler = None
     query_manager = None
     _dbus_path = None
+    DEFAULT_FIELDS = {}
+    """
+                        'Name'          : 'name',
+                        'Nickname'      : 'name',
+                        'Surname'       : 'name',
 
+                        'Home phone'    : 'phonenumber',
+                        'Mobile phone'  : 'phonenumber',
+                        'Work phone'    : 'phonenumber',
+                        'Phone'         : 'phonenumber',
+
+                        'Address'       : 'address',
+                        'Birthday'      : 'date',
+                        'E-mail'        : 'email',
+                        'Photo'         : 'photo',
+                        'Affiliation'   : 'text',
+                        'Note'          : 'text'
+    """
     def __init__(self):
         """Creates a new ContactDomain instance"""
 
@@ -218,6 +235,7 @@ class ContactDomain(Domain, GenericDomain):
 
         self.load_field_types()
 
+        self.add_default_fields()
         # Keep frameworkd happy
         self.interface = _DIN_CONTACTS
         self.path = _DBUS_PATH_CONTACTS

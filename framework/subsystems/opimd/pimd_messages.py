@@ -212,7 +212,17 @@ class MessageDomain(Domain, GenericDomain):
     _dbus_path = None
     
     _unread_messages = None
-
+    DEFAULT_FIELDS = {
+                        'Recipient'   : 'phonenumber',
+                        'Sender'      : 'phonenumber',
+                        'Source'      : 'text',
+                        'Direction'   : 'text',
+                        'MessageSent' : 'boolean',
+                        'MessageRead' : 'boolean',
+                        'Timestamp'   : 'date',
+                        'Timezone'    : 'timezone',
+                        'Content'     : 'text'
+                     }
     def __init__(self):
         """Creates a new MessageDomain instance"""
 
@@ -224,6 +234,8 @@ class MessageDomain(Domain, GenericDomain):
         Domain.__init__( self, conn=busmap["opimd"], object_path=DBUS_PATH_BASE_FSO + '/' + self.name )
 
         self.load_field_types()
+
+        self.add_default_fields()
 
         # Keep frameworkd happy
         self.interface = _DIN_MESSAGES

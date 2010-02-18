@@ -204,7 +204,17 @@ class CallDomain(Domain, GenericDomain):
     _dbus_path = None
     fso_handler = None
     _new_missed_calls = None
-
+    DEFAULT_FIELDS = {
+                        'Peer'      : 'phonenumber',
+                        'Line'      : 'integer',
+                        'Type'      : 'string',
+                        'New'       : 'boolean',
+                        'Answered'  : 'boolean',
+                        'Direction' : 'string',
+                        'Duration'  : 'number',
+                        'Timestamp' : 'date',
+                        'Timezone'  : 'timezone'
+                     }
     def __init__(self):
         """Creates a new CallDomain instance"""
 
@@ -217,6 +227,7 @@ class CallDomain(Domain, GenericDomain):
 
         self.load_field_types()
 
+        self.add_default_fields()
         # Keep frameworkd happy
         self.interface = _DIN_CALLS
         self.path = _DBUS_PATH_CALLS
