@@ -78,7 +78,11 @@ class OldDb(object):
                 entry['Timestamp']=int(entry['Timestamp'])
             #Remove bad fields
             for field in entry.keys():
-                if not entry[field]:
+                #convert those nulls to false
+                if field in ('Answered', 'New', 'Duration') and not entry[field]:
+                    entry[field] = 0
+                #Don't delete empty fields
+                elif not entry[field]:
                     del entry[field]
             self.entries[prefix].append(entry)
         cur.close()
@@ -115,6 +119,9 @@ class NewDb(object):
         handler = DbHandler(prefix + 's', self.old_db.fields[prefix])
         print "Adding fields"
         for field in self.old_db.fields[prefix]:
+	    if handler.is_reserved_field(field):
+                print "Not adding reserved field: " + field
+                continue
             handler.add_field_type(field, self.old_db.fields[prefix][field])
         print "Adding entries"
         try:
@@ -129,6 +136,24 @@ class DbHandler(object):
     con = None
     db_prefix = "generic"
     FieldTypes = None
+    Types = {
+                'objectpath':	str,
+                'phonenumber':	unicode,
+                'number':	float,
+                'integer':	int,
+                'address':	unicode,
+                'email':	unicode,
+                'name':		unicode,
+                'date':		int,
+                'uri':		unicode,
+                'photo':	unicode,
+                'text':		unicode,
+                'longtext':	unicode,
+                'boolean':	int,
+                'timezone':	unicode,
+                'entryid':	int,
+                'generic':	unicode
+            }
     _SYSTEM_FIELDS = {
                           'Path'    : 'objectpath',
                           'Id'      : 'entryid'
@@ -144,7 +169,7 @@ class DbHandler(object):
             self.table_types = []
         #A list of all the basic types that deserve a table, maybe in the future
         # group the rest by sql type
-        self.table_types.extend(['phonenumber', 'name', 'date', 'boolean', 'entry_id', 'generic'])
+        self.table_types.extend(['phonenumber', 'name', 'date', 'boolean', 'entryid', 'generic'])
         self.create_db()
     def __repr__(self):
         return self.name
@@ -188,7 +213,8 @@ class DbHandler(object):
                                       " (" + self.db_prefix + "_" + type + "_id INTEGER PRIMARY KEY," \
                                       + self.db_prefix + \
                                       "_id REFERENCES " + self.db_prefix + \
-                                      "(" + self.db_prefix + "_id), field_name TEXT, value TEXT);" + \
+                                      "(" + self.db_prefix + "_id), field_name TEXT, value " + \
+                                      self.get_db_type_name(type) + " NOT NULL);" + \
                                       "CREATE INDEX IF NOT EXISTS " + \
                                       self.db_prefix + "_" + type + "_" + self.db_prefix + \
                                       "_id ON " + self.db_prefix + "_" + type + \
@@ -199,11 +225,11 @@ class DbHandler(object):
             cur.close()
         
         except Exception as exp:
-            print "create_db: "
             print exp
+            raise 
             
     def get_table_name(self, field):
-        if self.is_system_field(field):
+        if self.is_reserved_field(field):
             return None
         type = self.field_type_from_name(field)
         table = self.get_table_name_from_type(type)
@@ -217,6 +243,24 @@ class DbHandler(object):
             return name
         else:
             return None
+    def get_value_object(self, type, field, value):
+	 #FIMXE use field
+        if type in self.Types:
+            return self.Types[type](value)
+            
+        return str(value)
+            
+        return str(value)
+    def get_db_type_name(self, type):
+        python_type = self.Types.get(type)
+        if python_type in (int, long, bool):
+            return "INTEGER"
+        elif python_type == float:
+            return "REAL"
+        elif python_type in (str, unicode):
+            return "TEXT"
+        else:
+            return "TEXT"
          
     def add_field_type(self, name, type):
         cur = self.con.cursor()
@@ -231,7 +275,8 @@ class DbHandler(object):
                                 , (name, ))
         self.con.commit()
         cur.close()
-        
+    def is_reserved_field(self, field):
+	return (field.startswith['_'] or field.startswith['$'] or self.is_system_field(field))
     def is_system_field(self, field):
         return (field in self._SYSTEM_FIELDS)
         
@@ -241,13 +286,16 @@ class DbHandler(object):
         eid = cur.lastrowid
         for field in entry_data:
             table = self.get_table_name(field)
+            field_type = self.field_type_from_name(field)
             if table == None:
                     continue
             if type(entry_data[field]) == Array or type(entry_data[field]) == list:
                 for value in entry_data[field]:
-                    cur.execute('INSERT INTO ' + table + ' (' + self.db_prefix + '_id, Field_name, Value) VALUES (?,?,?)',(eid, field, value))
+                    cur.execute('INSERT INTO ' + table + ' (' + self.db_prefix + '_id, Field_name, Value) VALUES (?,?,?)',
+                    		(eid, field, self.get_value_object(field_type, field, value)))
             else:
-                cur.execute('INSERT INTO ' + table + ' (' + self.db_prefix + '_id, Field_name, Value) VALUES (?,?,?)',(eid, field, entry_data[field]))        
+                cur.execute('INSERT INTO ' + table + ' (' + self.db_prefix + '_id, Field_name, Value) VALUES (?,?,?)', \
+                		(eid, field, self.get_value_object(field_type, field, entry_data[field])))        
         self.con.commit()
         cur.close()
 
