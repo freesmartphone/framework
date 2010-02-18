@@ -11,10 +11,11 @@ import sqlite3
 import pickle
 
 from dbus import Array
+from sys import exit
 
 #from framework.config import rootdir
 #FIXME: Hardcoded should change
-rootdir = "/etc/freesmartphone/opim/"
+rootdir = "/etc/freesmartphone"
 rootdir = os.path.join( rootdir, 'opim' )
 
 class OldDb(object):
@@ -26,12 +27,12 @@ class OldDb(object):
         try:
             
             
-            self.load_entries_from_db('task', {0:'_backend_entry_id', 1:'Timestamp', 2:'Timezone', 3:'Title', 4:'Content', 5:'Started', 6:'Finished'})
-            self.load_entries_from_db('note', {0:'_backend_entry_id', 1:'Timestamp', 2:'Timezone', 3:'Title', 4:'Content'})
-            self.load_entries_from_db('message', {0:'_backend_entry_id', 1:'Source', 2:'Timestamp', 3:'Timezone', 4:'Direction', 5:'Title', 6:'Sender', 7:'TransmitLoc', 8:'Content', 9:'MessageRead', 10:'MessageSent', 11:'Processing'})
-            self.load_entries_from_db('date', {0:'_backend_entry_id', 1:'Begin', 2:'End', 3:'Message'})
-            self.load_entries_from_db('contact', {0:'_backend_entry_id', 1:'Name', 2:'Surname', 3:'Nickname', 4:'Birthdate', 5:'MarrDate', 6:'Partner', 7:'Spouse', 8:'MetAt', 9:'HomeLoc', 10:'Department'})
-            self.load_entries_from_db('call', {0:'_backend_entry_id', 1:'Type', 2:'Timestamp', 3:'Timezone', 4:'Direction', 5:'Duration', 6:'Cost', 7:'Answered', 8:'New', 9:'Replied'})
+            self.load_entries_from_db('task', {1:'Timestamp', 2:'Timezone', 3:'Title', 4:'Content', 5:'Started', 6:'Finished'})
+            self.load_entries_from_db('note', {1:'Timestamp', 2:'Timezone', 3:'Title', 4:'Content'})
+            self.load_entries_from_db('message', {1:'Source', 2:'Timestamp', 3:'Timezone', 4:'Direction', 5:'Title', 6:'Sender', 7:'TransmitLoc', 8:'Content', 9:'MessageRead', 10:'MessageSent', 11:'Processing'})
+            self.load_entries_from_db('date', {1:'Begin', 2:'End', 3:'Message'})
+            self.load_entries_from_db('contact', {1:'Name', 2:'Surname', 3:'Nickname', 4:'Birthdate', 5:'MarrDate', 6:'Partner', 7:'Spouse', 8:'MetAt', 9:'HomeLoc', 10:'Department'})
+            self.load_entries_from_db('call', {1:'Type', 2:'Timestamp', 3:'Timezone', 4:'Direction', 5:'Duration', 6:'Cost', 7:'Answered', 8:'New', 9:'Replied'})
 
             self.load_fields('task')
             self.load_fields('note')
@@ -62,8 +63,6 @@ class OldDb(object):
             try:
                 cur.execute('SELECT Field, Value FROM ' + prefix + '_values WHERE ' + prefix + 'Id=?',(line[0],))
                 for pair in cur:
-                    if not pair[1]:
-                       continue
                     if entry.has_key(pair[0]):
                         if type(entry[pair[0]]) == list:
                             entry[pair[0]].append(pair[1])
@@ -77,7 +76,10 @@ class OldDb(object):
 
             if entry.get('Timestamp'):
                 entry['Timestamp']=int(entry['Timestamp'])
-            
+            #Remove bad fields
+            for field in entry.keys():
+                if not entry[field]:
+                    del entry[field]
             self.entries[prefix].append(entry)
         cur.close()
     def load_fields(self, prefix):
@@ -251,6 +253,11 @@ class DbHandler(object):
 
         return eid
 
+if os.path.exists(os.path.join(rootdir, 'pim.db')):
+    print "DB file (" + os.path.join(rootdir, 'pim.db') + ") already exists, aborting..."
+    print "This usually means you already converted your db to the new format."
+    print "If you want to convert again, remove pim.db and restart this script"
+    exit(1)
 
 old_db = OldDb()
 
