@@ -213,20 +213,16 @@ class SingleQueryHandler(object):
         @return True if entry matches this query, False otherwise
 
         @todo Currently this messes up the order of the result set if a specific order was desired"""
+	return False
+        
 
-        matcher = QueryMatcher(self.query)
-        if matcher.single_entry_matches(self._entries[entry_id]):
-            self._entries = matcher.match(self.db_handler)
+        # TODO Register with the new entry to receive changes
 
-            # TODO Register with the new entry to receive changes
+        # We *should* reset all cursors *if* the result set is ordered, however
+        # in order to prevent confusion, this is left for the client to do.
+        # Rationale: clients with unordered queries can just use get_result()
+        # and be done with it. For those, theres's no need to re-read all results.
 
-            # We *should* reset all cursors *if* the result set is ordered, however
-            # in order to prevent confusion, this is left for the client to do.
-            # Rationale: clients with unordered queries can just use get_result()
-            # and be done with it. For those, theres's no need to re-read all results.
-
-            # Let clients know that this result set changed
-            return True
-        else:
-            return False
+        # Let clients know that this result set changed
+            
 
