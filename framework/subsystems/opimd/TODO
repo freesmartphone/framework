@@ -22,10 +22,8 @@
 
 -- Messages
 * Verify Ack and Nack messages (and special handling) work
-* Fix unread count + init count on load
 
 -- Calls
 * Verify Phone logging works
-* Load number of missed calls from db on init
 
 

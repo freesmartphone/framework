@@ -230,7 +230,8 @@ class MessageDomain(Domain, GenericDomain):
         self.path = _DBUS_PATH_MESSAGES
 
         self.fso_handler = MessagesFSO(self)
-        self._unread_messages = 0
+#FIXME: make not hardcoded
+        self._unread_messages = len(self.db_handler.query({'Direction': 'in', 'MessageRead':0}))      
 
     #---------------------------------------------------------------------#
     # dbus methods and signals                                            #
