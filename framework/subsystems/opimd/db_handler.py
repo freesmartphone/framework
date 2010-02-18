@@ -34,6 +34,7 @@ logger = logging.getLogger('opimd')
 from dbus import Array
 
 from domain_manager import DomainManager
+from type_manager import TypeManager
 from helpers import *
 
 import framework.patterns.tasklet as tasklet
@@ -79,7 +80,8 @@ class DbHandler(object):
             self.table_types = []
         #A list of all the basic types that deserve a table, maybe in the future
         # group the rest by sql type
-        self.table_types.extend(['phonenumber', 'name', 'date', 'boolean', 'entry_id', 'generic'])
+        
+        self.table_types.extend(['phonenumber', 'name', 'date', 'boolean', 'entryid', 'generic'])
     def __repr__(self):
         return self.name
 
@@ -119,7 +121,8 @@ class DbHandler(object):
                                       " (" + self.db_prefix + "_" + type + "_id INTEGER PRIMARY KEY," \
                                       + self.db_prefix + \
                                       "_id REFERENCES " + self.db_prefix + \
-                                      "(" + self.db_prefix + "_id), field_name TEXT, value TEXT);" + \
+                                      "(" + self.db_prefix + "_id), field_name TEXT, value " + \
+                                      self.get_db_type_name(type) + " NOT NULL);" + \
                                       "CREATE INDEX IF NOT EXISTS " + \
                                       self.db_prefix + "_" + type + "_" + self.db_prefix + \
                                       "_id ON " + self.db_prefix + "_" + type + \
@@ -131,10 +134,10 @@ class DbHandler(object):
         
         except Exception as exp:
             logger.error("""The following errors occured when trying to init db: %s\n%s""", _SQLITE_FILE_NAME, str(exp))
-            raise OperationalError
+            raise 
             
     def get_table_name(self, field):
-        if self.is_system_field(field):
+        if self.domain.is_reserved_field(field):
             return None
         type = self.domain.field_type_from_name(field)
         table = self.get_table_name_from_type(type)
@@ -158,9 +161,24 @@ class DbHandler(object):
         #FIMXE use field
         if type == "phonenumber":
             return normalize_number(str(value))
-        else:
-            return str(value)
+                    
+        return self.get_value_object(type, field, value)
+    def get_value_object(self, type, field, value):
+         #FIMXE use field
+        if type in TypeManager.Types:
+            return TypeManager.Types[type](value)
             
+        return str(value)
+    def get_db_type_name(self, type):
+        python_type = TypeManager.Types.get(type)
+        if python_type in (int, long, bool):
+            return "INTEGER"
+        elif python_type == float:
+            return "REAL"
+        elif python_type in (str, unicode):
+            return "TEXT"
+        else:
+            return "TEXT"
     def build_rerieve_query(self):
         query = ""
         not_first = False
@@ -184,7 +202,7 @@ class DbHandler(object):
         if '_at_least_one' in query_desc:
             table_join_operator = " UNION "
         else:
-	    table_join_operator = " INTERSECT "        
+            table_join_operator = " INTERSECT "        
         query = ""
         for name, value in query_desc.iteritems():
             #skip system fields
@@ -206,7 +224,6 @@ class DbHandler(object):
                 query = query + "SELECT " + self.db_prefix + "_id FROM " + \
                         self.get_table_name(name) + " WHERE field_name = ? AND ("
                 params.append(str(name))
-            #FIXME: support non strings as well (according to type)
             #If multi values, make OR connections
             comp_string = self.get_value_compare_string(field_type, name)
             
@@ -319,9 +336,6 @@ class DbHandler(object):
         for row in raw_res:
             res[row[0]] = row[1]
         return res
-    def is_system_field(self, name):
-        #check for systerm reserved names
-        return self.domain.is_system_field(name)
     def entry_exists(self, id):
         cur = self.con.cursor()
         cur.execute('SELECT ' + self.db_prefix + '_id FROM ' + self.db_prefix + ' WHERE ' + self.db_prefix + '_id = ?', (id, ))
@@ -335,21 +349,26 @@ class DbHandler(object):
         eid = cur.lastrowid
         for field in entry_data:
             table = self.get_table_name(field)
+            field_type = self.domain.field_type_from_name(field)
             if table == None:
                     continue
             if type(entry_data[field]) == Array or type(entry_data[field]) == list:
                 for value in entry_data[field]:
-                    cur.execute('INSERT INTO ' + table + ' (' + self.db_prefix + '_id, Field_name, Value) VALUES (?,?,?)',(eid, field, value))
+                    cur.execute('INSERT INTO ' + table + ' (' + self.db_prefix + '_id, Field_name, Value) VALUES (?,?,?)',
+                                (eid, field, self.get_value_object(field_type, field, value)))
             else:
-                cur.execute('INSERT INTO ' + table + ' (' + self.db_prefix + '_id, Field_name, Value) VALUES (?,?,?)',(eid, field, entry_data[field]))        
+                cur.execute('INSERT INTO ' + table + ' (' + self.db_prefix + '_id, Field_name, Value) VALUES (?,?,?)', \
+                                (eid, field, self.get_value_object(field_type, field, entry_data[field])))        
         self.con.commit()
         cur.close()
 
         return eid
     def upd_entry(self, eid, entry_data):
+        #FIXME: most of it can be merged with add_entry
         cur = self.con.cursor()
         for field in entry_data:
             table = self.get_table_name(field)
+            field_type = self.domain.field_type_from_name(field)
             if table == None:
                     continue
             #FIXME appears the API states you should delete in any case
@@ -357,11 +376,13 @@ class DbHandler(object):
                         "_id = ? AND field_name = ?", (eid, field))
             if type(entry_data[field]) == Array or type(entry_data[field]) == list:
                 for value in entry_data[field]:
-                    cur.execute("INSERT INTO " + table + " (" + self.db_prefix + "_id, Field_name, Value) VALUES (?,?,?)",(eid, field, value))
+                    cur.execute("INSERT INTO " + table + " (" + self.db_prefix + "_id, Field_name, Value) VALUES (?,?,?)",
+                                        (eid, field, self.get_value_object(field_type, field, value)))
             elif entry_data[field] == "": #is this correct?
                 pass
             else:
-                cur.execute("INSERT INTO " + table + " (" + self.db_prefix + "_id, Field_name, Value) VALUES (?,?,?)",(eid, field, entry_data[field]))
+                cur.execute("INSERT INTO " + table + " (" + self.db_prefix + "_id, Field_name, Value) VALUES (?,?,?)",
+                                (eid, field, self.get_value_object(field_type, field, entry_data[field])))
                
         self.con.commit()
         cur.close()

@@ -221,7 +221,9 @@ class GenericDomain():
     def path_to_id(self, entry_path):
         id = entry_path.rpartition('/')
         return int(id[2])
-        
+
+    def is_reserved_field(self, field):
+	return (field.startswith['_'] or field.startswith['$'] or self.is_system_field(field))
     def is_system_field(self, field):
         return (field in self._SYSTEM_FIELDS)
         
@@ -237,7 +239,7 @@ class GenericDomain():
             return 'generic'
 
     def add_new_field(self, name, type):
-        if not name in self.FieldTypes and not self.is_system_field(name) and \
+        if not name in self.FieldTypes and not self.is_reserved_field(name) and \
            type in TypeManager.Types:
 
             self.FieldTypes[str(name)] = str(type)
@@ -247,7 +249,7 @@ class GenericDomain():
         self.db_handler.add_field_type(name, type)
 
     def remove_field(self, name):
-        if name in self.FieldTypes and not self.is_system_field(name):
+        if name in self.FieldTypes and not self.is_reserved_field(name):
             #handler must be first, assumes type exists
             self.db_handler.remove_field_type(name)
             del self.FieldTypes[name]

@@ -32,7 +32,28 @@ logger = logging.getLogger('opimd')
 _DBUS_PATH_TYPES = DBUS_PATH_BASE_FSO + '/Types'
 _DIN_TYPES = DIN_BASE_FSO + '.Types'
 
-_TYPES = ['objectpath', 'phonenumber', 'number', 'integer', 'address', 'email', 'name', 'date', 'uri', 'photo', 'text', 'longtext', 'boolean', 'timezone', 'entryid', 'generic']
+#Consist of type and python type (latter is for internal use)
+#Allowed: int, str, unicode, float (and long?).
+# unicode should be used for all user related strings that may have unicode
+# in, even phonenumber
+_TYPES = {
+                'objectpath':   str,
+                'phonenumber':  unicode,
+                'number':       float,
+                'integer':      int,
+                'address':      unicode,
+                'email':        unicode,
+                'name':         unicode,
+                'date':         int,
+                'uri':          unicode,
+                'photo':        unicode,
+                'text':         unicode,
+                'longtext':     unicode,
+                'boolean':      int,
+                'timezone':     unicode,
+                'entryid':      int,
+                'generic':      unicode
+         }
 
 #----------------------------------------------------------------------------#
 class TypeManager(DBusFBObject):
