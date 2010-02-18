@@ -119,7 +119,7 @@ class NewDb(object):
         handler = DbHandler(prefix + 's', self.old_db.fields[prefix])
         print "Adding fields"
         for field in self.old_db.fields[prefix]:
-	    if handler.is_reserved_field(field):
+            if handler.is_reserved_field(field):
                 print "Not adding reserved field: " + field
                 continue
             handler.add_field_type(field, self.old_db.fields[prefix][field])
@@ -128,7 +128,6 @@ class NewDb(object):
             for entry in self.old_db.entries[prefix]:
                 handler.add_entry(entry)
         except:
-            print entry
             print "Failed on: " + str(entry)
             raise
 
@@ -137,22 +136,22 @@ class DbHandler(object):
     db_prefix = "generic"
     FieldTypes = None
     Types = {
-                'objectpath':	str,
-                'phonenumber':	unicode,
-                'number':	float,
-                'integer':	int,
-                'address':	unicode,
-                'email':	unicode,
-                'name':		unicode,
-                'date':		int,
-                'uri':		unicode,
-                'photo':	unicode,
-                'text':		unicode,
-                'longtext':	unicode,
-                'boolean':	int,
-                'timezone':	unicode,
-                'entryid':	int,
-                'generic':	unicode
+                'objectpath':   str,
+                'phonenumber':  unicode,
+                'number':       float,
+                'integer':      int,
+                'address':      unicode,
+                'email':        unicode,
+                'name':         unicode,
+                'date':         int,
+                'uri':          unicode,
+                'photo':        unicode,
+                'text':         unicode,
+                'longtext':     unicode,
+                'boolean':      int,
+                'timezone':     unicode,
+                'entryid':      int,
+                'generic':      unicode
             }
     _SYSTEM_FIELDS = {
                           'Path'    : 'objectpath',
@@ -244,7 +243,7 @@ class DbHandler(object):
         else:
             return None
     def get_value_object(self, type, field, value):
-	 #FIMXE use field
+         #FIMXE use field
         if type in self.Types:
             return self.Types[type](value)
             
@@ -276,7 +275,7 @@ class DbHandler(object):
         self.con.commit()
         cur.close()
     def is_reserved_field(self, field):
-	return (field.startswith['_'] or field.startswith['$'] or self.is_system_field(field))
+        return (field.startswith('_') or field.startswith('$') or self.is_system_field(field))
     def is_system_field(self, field):
         return (field in self._SYSTEM_FIELDS)
         
@@ -292,10 +291,10 @@ class DbHandler(object):
             if type(entry_data[field]) == Array or type(entry_data[field]) == list:
                 for value in entry_data[field]:
                     cur.execute('INSERT INTO ' + table + ' (' + self.db_prefix + '_id, Field_name, Value) VALUES (?,?,?)',
-                    		(eid, field, self.get_value_object(field_type, field, value)))
+                                (eid, field, self.get_value_object(field_type, field, value)))
             else:
                 cur.execute('INSERT INTO ' + table + ' (' + self.db_prefix + '_id, Field_name, Value) VALUES (?,?,?)', \
-                		(eid, field, self.get_value_object(field_type, field, entry_data[field])))        
+                                (eid, field, self.get_value_object(field_type, field, entry_data[field])))        
         self.con.commit()
         cur.close()
 
