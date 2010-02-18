@@ -68,7 +68,7 @@ class SingleQueryHandler(object):
 #----------------------------------------------------------------------------#
     db_handler = None
     query = None      # The query this handler is processing
-    entries = None
+    _entries = None
     cursors = None    # The next entry we'll serve, depending on the client calling us
 
     def __init__(self, query, db_handler, dbus_sender):
@@ -155,15 +155,13 @@ class SingleQueryHandler(object):
 
         # Check whether we've reached the end of the entry list
         try:
-            result = self.entries[self.cursors[dbus_sender]]
+            result = self._entries[self.cursors[dbus_sender]]
         except IndexError:
             raise NoMoreEntries( "All results have been submitted" )
 
-        entry_id = self.entries[self.cursors[dbus_sender]]
-        entry = self._entries[entry_id]
         self.cursors[dbus_sender] += 1
 
-        return entry['Path']
+        return result['Path']
 
 
     def get_result(self, dbus_sender):
@@ -181,8 +179,6 @@ class SingleQueryHandler(object):
         except IndexError:
             raise NoMoreEntries( "All results have been submitted" )
 
-        #entry_id = self.entries[self.cursors[dbus_sender]]
-        #result = self._entries[self.cursors[dbus_sender]]
         self.cursors[dbus_sender] += 1
 
 
@@ -220,7 +216,7 @@ class SingleQueryHandler(object):
 
         matcher = QueryMatcher(self.query)
         if matcher.single_entry_matches(self._entries[entry_id]):
-            self.entries = matcher.match(self.db_handler)
+            self._entries = matcher.match(self.db_handler)
 
             # TODO Register with the new entry to receive changes
 
