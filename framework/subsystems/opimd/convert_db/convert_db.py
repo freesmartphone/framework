@@ -124,18 +124,44 @@ class NewDb(object):
         dom = GenericDomain()
         dom.db_handler = TasksDbHandler(dom)
         self.save_entries_to_db('task', dom.db_handler)
+        
         dom = GenericDomain()
         dom.db_handler = NotesDbHandler(dom)
         self.save_entries_to_db('note', dom.db_handler)
+        
         dom = GenericDomain()
         dom.db_handler = MessagesDbHandler(dom)
         self.save_entries_to_db('message', dom.db_handler)
+        
         dom = GenericDomain()
         dom.db_handler = DatesDbHandler(dom)
         self.save_entries_to_db('date', dom.db_handler)
+        
         dom = GenericDomain()
         dom.db_handler = ContactsDbHandler(dom)
+        #Adding default fields to contact:
+        print "Adding default fields for contacts:"
+        fields = {
+                'Name'          : 'name',
+                'Nickname'      : 'name',
+                'Surname'       : 'name',
+                'Home phone'    : 'phonenumber',
+                'Mobile phone'  : 'phonenumber',
+                'Work phone'    : 'phonenumber',
+                'Phone'         : 'phonenumber',
+
+                'Address'       : 'address',
+                'Birthday'      : 'date',
+                'E-mail'        : 'email',
+                'Photo'         : 'photo',
+                'Affiliation'   : 'text',
+                'Note'          : 'text'
+                }
+        for field in fields:
+            if not self.old_db.fields['contact'].has_key(field):
+                self.old_db.fields['contact'][field] = fields[field]
         self.save_entries_to_db('contact', dom.db_handler)
+        
         dom = GenericDomain()
         dom.db_handler = CallsDbHandler(dom)
         self.save_entries_to_db('call', dom.db_handler)
