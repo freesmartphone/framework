@@ -4,8 +4,6 @@
 Or maybe %DOMAIN_field = true? and compare is by using %DOMAIN = compare_field. Probably best would be %DOMAIN = {} (i.e a dict with stuff)
 * Add calculated fields, either make it possible to request type and have a default "generator" for it, or make more complex stuff.
 * Add <Field to query everything that's smaller than the field + Add >Field to query everything that's bigger than the field + etc
-* Change the query system so it won't cache anything (or at least only entry ids, depends on the speed it'll work)
-* create tables/indexes specific per type
 * Discuss breaking API? for instance Peer instead of Sender/Recipient etc
 * Drop Path, got an "approvement" from mickey, first use both Path and Id, and then only Id
 * We don't allow to query system fields, but we should catch the exceptions that makes, Add log messages when doing that and when trying to add reserved field
@@ -14,7 +12,8 @@ Or maybe %DOMAIN_field = true? and compare is by using %DOMAIN = compare_field. 
 * Make queries save ids, not full entries
 * Fix missing check_single_entry
 * FSO handlers, add a timer to check again if the framework is even loaded (when opimd starts before the framework)
-* Add important indexes, like calls sort by date desecnding
+
+*** Change retrieve query to work on a couple of ids at a time
 
 -- Notes 
 * Fix Tagging
