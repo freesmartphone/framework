@@ -201,6 +201,7 @@ class GenericDomain():
 #FIXME: doesn't get called
     def __init__(self):
         """Creates a new GenericDomain instance"""
+        self.FieldTypes = {}
 
     def get_dbus_objects(self):
         """Returns a list of all d-bus objects we manage
