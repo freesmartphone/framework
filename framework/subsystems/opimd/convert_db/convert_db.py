@@ -28,9 +28,7 @@ except:
     print "Unable to find phoneutils, can't proceed"
     exit(1)
 
-#from framework.config import rootdir
-#FIXME: Hardcoded should change
-rootdir = "/etc/freesmartphone"
+from framework.config import rootdir
 rootdir = os.path.join( rootdir, 'opim' )
 
 class OldDb(object):

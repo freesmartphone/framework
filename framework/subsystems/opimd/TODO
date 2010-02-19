@@ -13,11 +13,9 @@ Or maybe %DOMAIN_field = true? and compare is by using %DOMAIN = compare_field. 
 * Fix missing check_single_entry
 
 ## Must do before release:
-* Fix the hardcoded path in the conversion script
-* Verify ALL signals work (only messages/calls) are important to check
 * Make sure this is the wanted db structure: 
  - Change the list of default types "deserving a table" per backend and handle others better
-
+* Make sure timestamp on messages is stored as int and not text
 
 
 -- Notes 
@@ -28,8 +26,5 @@ Or maybe %DOMAIN_field = true? and compare is by using %DOMAIN = compare_field. 
 
 -- Messages
 * Verify Ack and Nack messages (and special handling) work
-
--- Calls
-* Verify Phone logging works
 
 
