@@ -121,12 +121,24 @@ class NewDb(object):
     old_db = None
     def __init__(self, old_db):
         self.old_db = old_db
-        self.save_entries_to_db('task', TasksDbHandler(GenericDomain()))
-        self.save_entries_to_db('note', NotesDbHandler(GenericDomain()))
-        self.save_entries_to_db('message', MessagesDbHandler(GenericDomain()))
-        self.save_entries_to_db('date', DatesDbHandler(GenericDomain()))
-        self.save_entries_to_db('contact', ContactsDbHandler(GenericDomain()))
-        self.save_entries_to_db('call', CallsDbHandler(GenericDomain()))
+        dom = GenericDomain()
+        dom.db_handler = TasksDbHandler(dom)
+        self.save_entries_to_db('task', dom.db_handler)
+        dom = GenericDomain()
+        dom.db_handler = NotesDbHandler(dom)
+        self.save_entries_to_db('note', dom.db_handler)
+        dom = GenericDomain()
+        dom.db_handler = MessagesDbHandler(dom)
+        self.save_entries_to_db('message', dom.db_handler)
+        dom = GenericDomain()
+        dom.db_handler = DatesDbHandler(dom)
+        self.save_entries_to_db('date', dom.db_handler)
+        dom = GenericDomain()
+        dom.db_handler = ContactsDbHandler(dom)
+        self.save_entries_to_db('contact', dom.db_handler)
+        dom = GenericDomain()
+        dom.db_handler = CallsDbHandler(dom)
+        self.save_entries_to_db('call', dom.db_handler)
 
     def save_entries_to_db(self, prefix, handler):
         print "Initializing new " + prefix + " db"
