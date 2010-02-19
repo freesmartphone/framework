@@ -43,15 +43,25 @@ from framework.config import config, rootdir
 import re
 
 try:
+    import phoneutils
     from phoneutils import normalize_number
+    #Old versions do not include compare yet
+    try:
+        from phoneutils import numbers_compare
+    except:
+        def numbers_compare(a, b):
+            a = normalize_number(str(a))
+            b = normalize_number(str(b)) 
+            return cmp(a, b)
+    phoneutils.init()
 except:
-    def normalize_number(num):
-        return num
+    #Don't create a compare function so it won't try to look using index
+    logger.error("Can't find phoneutils - important for opimd, number resolving can't work without it")
+    def normalize_number(a):
+        return a
 
-def phonenumber_matches(string1, string2):
-    if normalize_number(string1) == string2:
-        return 1
-    return 0        
+
+
 
 #I use ints because there's no boolean in sqlite
 def regex_matches(string, pattern):
@@ -92,7 +102,7 @@ class DbHandler(object):
         try:
             self.con = sqlite3.connect(_SQLITE_FILE_NAME, isolation_level=None)
             self.con.text_factory = sqlite3.OptimizedUnicode
-            self.con.create_function("phonenumber_matches", 2, phonenumber_matches)
+            self.con.create_collation("compare_numbers", numbers_compare)
             self.con.create_function("regex_matches", 2, regex_matches)
             #Creates basic db structue (tables and basic indexes) more complex
             #indexes should be done per backend
@@ -129,13 +139,19 @@ class DbHandler(object):
                                       "(" + self.db_prefix + "_id);"
                                       )
                     self.tables.append(self.db_prefix + "_" + type)
+
+                    cur.execute(self.get_create_type_index(type))
             self.con.commit()
             cur.close()
         
         except Exception as exp:
             logger.error("""The following errors occured when trying to init db: %s\n%s""", _SQLITE_FILE_NAME, str(exp))
             raise 
-            
+    def get_create_type_index(self, type):
+        if type == "phonenumber":
+            return "CREATE INDEX IF NOT EXISTS " + self.db_prefix + "_" + type + \
+                   "_value ON " + self.db_prefix + "_" + type + "(value COLLATE compare_numbers)"
+        return ""
     def get_table_name(self, field):
         if self.domain.is_reserved_field(field):
             return None
@@ -154,7 +170,9 @@ class DbHandler(object):
     def get_value_compare_string(self, type, field):
         #FIXME use field
         if type == "phonenumber":
-            return " phonenumber_matches(value, ?) = 1 "
+            return " value = ? "
+        elif TypeManager.Types.get(type) in (int, float, long):
+	    return " value = ? "
         else:
             return " regex_matches(value, ?) = 1 "
     def get_value_compare_object(self, type, field, value):
@@ -170,6 +188,9 @@ class DbHandler(object):
             
         return str(value)
     def get_db_type_name(self, type):
+	if type == 'phonenumber':
+	    return "TEXT COLLATE compare_numbers"
+	    
         python_type = TypeManager.Types.get(type)
         if python_type in (int, long, bool):
             return "INTEGER"

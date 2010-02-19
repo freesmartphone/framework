@@ -2,7 +2,6 @@
 * Clean up all the old relics
 * Support "connecting" backends maybe using %DOMAIN, i.e %Contacts will be a field containing a dictionary with (list containing dicotinaries when needed?) the matching contact should find a way to say how to match?
 Or maybe %DOMAIN_field = true? and compare is by using %DOMAIN = compare_field. Probably best would be %DOMAIN = {} (i.e a dict with stuff)
-* optimize number normalization comparison
 * Change the query system so it won't cache anything (or at least only entry ids, depends on the speed it'll work)
 * create tables/indexes specific per type
 * Discuss breaking API? for instance Peer instead of Sender/Recipient etc
@@ -10,12 +9,16 @@ Or maybe %DOMAIN_field = true? and compare is by using %DOMAIN = compare_field. 
 * We don't allow to query system fields, but we should catch the exceptions that makes, Add log messages when doing that and when trying to add reserved field
 * Don't let removing default must have fields
 * Add a get_single_entry_single_field operation in db_handler that'll save us the loading of all the fields that we do now
+* Make queries save ids, not full entries
+* Fix missing check_single_entry
 
 ## Must do before release:
 * Fix the hardcoded path in the conversion script
 * Verify ALL signals work (only messages/calls) are important to check
-* Change the list of default types "deserving a table" per backend and handle others better
-* Fix cursors bug
+* Make sure this is the wanted db structure: 
+ - Change the list of default types "deserving a table" per backend and handle others better
+
+
 
 -- Notes 
 * Fix Tagging

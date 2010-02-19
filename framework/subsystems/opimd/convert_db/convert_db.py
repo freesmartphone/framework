@@ -12,6 +12,21 @@ import pickle
 
 from dbus import Array
 from sys import exit
+try:
+    import phoneutils
+    from phoneutils import normalize_number
+    #Old versions do not include compare yet
+    try:
+        from phoneutils import numbers_compare
+    except:
+        def numbers_compare(a, b):
+            a = normalize_number(str(a))
+            b = normalize_number(str(b)) 
+            return cmp(a, b)
+    phoneutils.init()
+except:
+    print "Unable to find phoneutils, can't proceed"
+    exit(1)
 
 #from framework.config import rootdir
 #FIXME: Hardcoded should change
@@ -187,6 +202,7 @@ class DbHandler(object):
             self.con.text_factory = sqlite3.OptimizedUnicode
             #Creates basic db structue (tables and basic indexes) more complex
             #indexes should be done per backend
+            self.con.create_collation("compare_numbers", numbers_compare)
             cur = self.con.cursor()
             cur.executescript("""
                     CREATE TABLE IF NOT EXISTS """ + self.db_prefix + """ (
@@ -220,13 +236,19 @@ class DbHandler(object):
                                       "(" + self.db_prefix + "_id);"
                                       )
                     self.tables.append(self.db_prefix + "_" + type)
+
+                    cur.execute(self.get_create_type_index(type))
             self.con.commit()
             cur.close()
         
         except Exception as exp:
             print exp
             raise 
-            
+    def get_create_type_index(self, type):
+        if type == "phonenumber":
+            return "CREATE INDEX IF NOT EXISTS " + self.db_prefix + "_" + type + \
+                   "_value ON " + self.db_prefix + "_" + type + "(value COLLATE compare_numbers)"
+        return ""            
     def get_table_name(self, field):
         if self.is_reserved_field(field):
             return None
@@ -248,9 +270,11 @@ class DbHandler(object):
             return self.Types[type](value)
             
         return str(value)
-            
-        return str(value)
+
     def get_db_type_name(self, type):
+        if type == 'phonenumber':
+            return "TEXT COLLATE compare_numbers"
+            
         python_type = self.Types.get(type)
         if python_type in (int, long, bool):
             return "INTEGER"
