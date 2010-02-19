@@ -67,11 +67,11 @@ except:
 #I use ints because there's no boolean in sqlite
 def regex_matches(string, pattern):
     try:
-        if re.search(str(pattern), str(string)) == None:
+        if re.search(unicode(pattern), unicode(string)) == None:
             return 0
         return 1
     except Exception as exp:
-        logger.error("While matching regex got: ", exp)
+        logger.error("While matching regex (pattern = %s, string = %s) got: %s",unicode(pattern), unicode(string), exp)
 
 
 rootdir = os.path.join( rootdir, 'opim' )
@@ -186,6 +186,8 @@ class DbHandler(object):
          #FIMXE use field
         if type in TypeManager.Types:
             return TypeManager.Types[type](value)
+        else:
+            return str(value)
             
         return str(value)
     def get_db_type_name(self, type):
