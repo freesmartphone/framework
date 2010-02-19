@@ -63,6 +63,7 @@ class ContactsDbHandler(DbHandler):
         self.domain = domain
 
         self.db_prefix = self.name.lower()
+        self.table_types = ['phonenumber', 'name', 'email']
         #Uses basic stuff already assumed to be initalized here (otherwise made generic)
         super(ContactsDbHandler, self).__init__()
 

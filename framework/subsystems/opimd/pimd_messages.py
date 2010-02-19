@@ -73,7 +73,7 @@ class MessagesDbHandler(DbHandler):
         self.domain = domain
 
         self.db_prefix = self.name.lower()
-
+        self.table_types = ['phonenumber', 'text', 'date', 'boolean']
         super(MessagesDbHandler, self).__init__()
         self.create_db()
  

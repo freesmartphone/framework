@@ -50,16 +50,16 @@ try:
         from phoneutils import numbers_compare
     except:
         logger.info("Can't get phoneutils.numbers_compare, probably using an old libphone-utils, creating our own")
-        def numbers_compare(a, b):
-            a = normalize_number(str(a))
-            b = normalize_number(str(b)) 
-            return cmp(a, b)
+        raise
     phoneutils.init()
 except:
     #Don't create a compare function so it won't try to look using index
-    logger.error("Can't find phoneutils - important for opimd, number resolving can't work without it")
     def normalize_number(a):
         return a
+    def numbers_compare(a, b):
+        a = normalize_number(str(a))
+        b = normalize_number(str(b)) 
+        return cmp(a, b)
 
 
 
@@ -92,7 +92,7 @@ class DbHandler(object):
         #A list of all the basic types that deserve a table, maybe in the future
         # group the rest by sql type
         
-        self.table_types.extend(['phonenumber', 'name', 'date', 'boolean', 'entryid', 'generic'])
+        self.table_types.extend(['entryid', 'generic'])
     def __repr__(self):
         return self.name
 
@@ -125,7 +125,7 @@ class DbHandler(object):
                         ON """ + self.db_prefix + """_fields(type);
                     """)
                     
-            #FIXME make special attributes for some tables even here
+            self.tables = []
             for type in self.table_types:
                     cur.executescript("CREATE TABLE IF NOT EXISTS " + \
                                       self.db_prefix + "_" + type + \

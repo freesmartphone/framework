@@ -66,7 +66,7 @@ class CallsDbHandler(DbHandler):
         self.domain = domain
 
         self.db_prefix = self.name.lower()
-        self.tables = ['calls_phonenumber', 'calls_generic']
+        self.table_types = ['phonenumber', 'date', 'boolean']
         super(CallsDbHandler, self).__init__()
         self.create_db()
 

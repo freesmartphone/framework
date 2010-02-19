@@ -64,7 +64,7 @@ class DatesDbHandler(DbHandler):
         self.domain = domain
 
         self.db_prefix = self.name.lower()
-
+        self.table_types = ['text', 'longtext', 'date', 'boolean']
         super(DatesDbHandler, self).__init__()
         self.create_db()
 
