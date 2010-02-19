@@ -287,7 +287,17 @@ class DbHandler(object):
 
         return {'Query':query, 'Parameters':params}
     def sanitize_result(self, raw):
-        return dict(raw)
+        map = {}
+
+        for (field, name) in raw:
+	    if field in map:
+		if type(field) == list:
+                    map[field].append(name)
+                else:
+		    map[field] = [map[field], name]
+            else:
+                map[field] = name    
+        return map
         
     def get_full_result(self, raw_result):
         if raw_result == None:
