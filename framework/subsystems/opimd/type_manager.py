@@ -16,7 +16,6 @@ DIN_BASE_FSO = "org.freesmartphone.PIM"
 from domain_manager import DomainManager
 from helpers import *
 
-import framework.patterns.tasklet as tasklet
 from framework.config import config, busmap
 
 from dbus.service import FallbackObject as DBusFBObject
