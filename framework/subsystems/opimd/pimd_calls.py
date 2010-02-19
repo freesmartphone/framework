@@ -69,7 +69,11 @@ class CallsDbHandler(DbHandler):
         self.table_types = ['phonenumber', 'date', 'boolean']
         super(CallsDbHandler, self).__init__()
         self.create_db()
-
+    def get_create_type_index(self, type):
+        if type == "date":
+            return "CREATE INDEX IF NOT EXISTS " + self.db_prefix + "_" + type + \
+                   "_value ON " + self.db_prefix + "_" + type + "(value DESC)"
+        return super(CallsDbHandler, self).get_create_type_index(type)
 #----------------------------------------------------------------------------#
 class QueryManager(DBusFBObject):
 #----------------------------------------------------------------------------#

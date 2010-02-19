@@ -76,7 +76,11 @@ class MessagesDbHandler(DbHandler):
         self.table_types = ['phonenumber', 'text', 'date', 'boolean']
         super(MessagesDbHandler, self).__init__()
         self.create_db()
- 
+    def get_create_type_index(self, type):
+        if type == "date":
+            return "CREATE INDEX IF NOT EXISTS " + self.db_prefix + "_" + type + \
+                   "_value ON " + self.db_prefix + "_" + type + "(value DESC)"
+        return super(MessagesDbHandler, self).get_create_type_index(type)
 #----------------------------------------------------------------------------#
 class QueryManager(DBusFBObject):
 #----------------------------------------------------------------------------#
