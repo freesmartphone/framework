@@ -28,7 +28,14 @@ except:
     print """Unable to find phoneutils, creating a database without indexes on phonenumbers,
              It's strongly advised to stop the conversion, fix the problems, and try again."""
 
+from framework.subsystems.opimd.pimd_contacts import ContactsDbHandler
+from framework.subsystems.opimd.pimd_calls import CallsDbHandler
+from framework.subsystems.opimd.pimd_messages import MessagesDbHandler
+from framework.subsystems.opimd.pimd_dates import DatesDbHandler
+from framework.subsystems.opimd.pimd_tasks import TasksDbHandler
+from framework.subsystems.opimd.pimd_notes import NotesDbHandler
 
+from framework.subsystems.opimd.pimd_generic import GenericDomain
 from framework.config import rootdir
 rootdir = os.path.join( rootdir, 'opim' )
 
@@ -114,29 +121,21 @@ class NewDb(object):
     old_db = None
     def __init__(self, old_db):
         self.old_db = old_db
-        try:
-            
-            
-            self.save_entries_to_db('task')
-            self.save_entries_to_db('note')
-            self.save_entries_to_db('message')
-            self.save_entries_to_db('date')
-            self.save_entries_to_db('contact')
-            self.save_entries_to_db('call')
+        self.save_entries_to_db('task', TasksDbHandler(GenericDomain()))
+        self.save_entries_to_db('note', NotesDbHandler(GenericDomain()))
+        self.save_entries_to_db('message', MessagesDbHandler(GenericDomain()))
+        self.save_entries_to_db('date', DatesDbHandler(GenericDomain()))
+        self.save_entries_to_db('contact', ContactsDbHandler(GenericDomain()))
+        self.save_entries_to_db('call', CallsDbHandler(GenericDomain()))
 
-        except Exception as exp:
-            print "save entries"
-            print exp
-
-    def save_entries_to_db(self, prefix):
+    def save_entries_to_db(self, prefix, handler):
         print "Initializing new " + prefix + " db"
-        handler = DbHandler(prefix + 's', self.old_db.fields[prefix])
         print "Adding fields"
         for field in self.old_db.fields[prefix]:
-            if handler.is_reserved_field(field):
+            if handler.domain.is_reserved_field(field):
                 print "Not adding reserved field: " + field
                 continue
-            handler.add_field_type(field, self.old_db.fields[prefix][field])
+            handler.domain.add_new_field(field, self.old_db.fields[prefix][field])
         print "Adding entries"
         try:
             for entry in self.old_db.entries[prefix]:
@@ -145,189 +144,12 @@ class NewDb(object):
             print "Failed on: " + str(entry)
             raise
 
-class DbHandler(object):
-    con = None
-    db_prefix = "generic"
-    FieldTypes = None
-    Types = {
-                'objectpath':   str,
-                'phonenumber':  unicode,
-                'number':       float,
-                'integer':      int,
-                'address':      unicode,
-                'email':        unicode,
-                'name':         unicode,
-                'date':         int,
-                'uri':          unicode,
-                'photo':        unicode,
-                'text':         unicode,
-                'longtext':     unicode,
-                'boolean':      int,
-                'timezone':     unicode,
-                'entryid':      int,
-                'generic':      unicode
-            }
-    _SYSTEM_FIELDS = {
-                          'Path'    : 'objectpath',
-                          'Id'      : 'entryid'
-                     }
-#FIXME: should change both to sets instead of lists
-    tables = None
-    table_types = None
-    def __init__(self, prefix, fields):
-        self.FieldTypes = fields
-        self.db_prefix = prefix
-        self.tables = []
-        if self.table_types == None:
-            self.table_types = []
-        #A list of all the basic types that deserve a table, maybe in the future
-        # group the rest by sql type
-        self.table_types.extend(['phonenumber', 'name', 'date', 'boolean', 'entryid', 'generic'])
-        self.create_db()
-    def __repr__(self):
-        return self.name
-
-    def __del__(self):
-        self.con.commit()
-        self.con.close()
-    def field_type_from_name(self, name):
-        if name in self.FieldTypes:
-            return self.FieldTypes[name]
-        else:
-            return 'generic'
-    def create_db(self):
-        try:
-            self.con = sqlite3.connect(os.path.join(rootdir, 'pim.db'), isolation_level=None)
-            self.con.text_factory = sqlite3.OptimizedUnicode
-            #Creates basic db structue (tables and basic indexes) more complex
-            #indexes should be done per backend
-            self.con.create_collation("compare_numbers", numbers_compare)
-            cur = self.con.cursor()
-            cur.executescript("""
-                    CREATE TABLE IF NOT EXISTS """ + self.db_prefix + """ (
-                        """ + self.db_prefix + """_id INTEGER PRIMARY KEY,
-                        name TEXT
-                    );
-
-                    
-                    CREATE TABLE IF NOT EXISTS """ + self.db_prefix + """_fields (
-                        field_name TEXT PRIMARY KEY,
-                        type TEXT
-                    );
-                    CREATE INDEX IF NOT EXISTS """ + self.db_prefix + """_fields_field_name
-                        ON """ + self.db_prefix + """_fields(field_name);
-                    CREATE INDEX IF NOT EXISTS """ + self.db_prefix + """_fields_type
-                        ON """ + self.db_prefix + """_fields(type);
-                    """)
-                    
-            #FIXME make special attributes for some tables even here
-            for type in self.table_types:
-                    cur.executescript("CREATE TABLE IF NOT EXISTS " + \
-                                      self.db_prefix + "_" + type + \
-                                      " (" + self.db_prefix + "_" + type + "_id INTEGER PRIMARY KEY," \
-                                      + self.db_prefix + \
-                                      "_id REFERENCES " + self.db_prefix + \
-                                      "(" + self.db_prefix + "_id), field_name TEXT, value " + \
-                                      self.get_db_type_name(type) + " NOT NULL);" + \
-                                      "CREATE INDEX IF NOT EXISTS " + \
-                                      self.db_prefix + "_" + type + "_" + self.db_prefix + \
-                                      "_id ON " + self.db_prefix + "_" + type + \
-                                      "(" + self.db_prefix + "_id);"
-                                      )
-                    self.tables.append(self.db_prefix + "_" + type)
-
-                    cur.execute(self.get_create_type_index(type))
-            self.con.commit()
-            cur.close()
-        
-        except Exception as exp:
-            print exp
-            raise 
-    def get_create_type_index(self, type):
-        if type == "phonenumber":
-            return "CREATE INDEX IF NOT EXISTS " + self.db_prefix + "_" + type + \
-                   "_value ON " + self.db_prefix + "_" + type + "(value COLLATE compare_numbers)"
-        return ""            
-    def get_table_name(self, field):
-        if self.is_reserved_field(field):
-            return None
-        type = self.field_type_from_name(field)
-        table = self.get_table_name_from_type(type)
-        if table:
-            return table
-        else:
-            return self.db_prefix + '_generic'
-    def get_table_name_from_type(self, type):
-        name = self.db_prefix + "_" + type
-        if name in self.tables:
-            return name
-        else:
-            return None
-    def get_value_object(self, type, field, value):
-         #FIMXE use field
-        if type in self.Types:
-            return self.Types[type](value)
-            
-        return str(value)
-
-    def get_db_type_name(self, type):
-        if type == 'phonenumber':
-            return "TEXT COLLATE compare_numbers"
-            
-        python_type = self.Types.get(type)
-        if python_type in (int, long, bool):
-            return "INTEGER"
-        elif python_type == float:
-            return "REAL"
-        elif python_type in (str, unicode):
-            return "TEXT"
-        else:
-            return "TEXT"
-         
-    def add_field_type(self, name, type):
-        cur = self.con.cursor()
-        #FIXME: add sanity checks, move from generic to the correct table
-        cur.execute("INSERT INTO " + self.db_prefix + "_fields (field_name, type) " \
-                        "VALUES (?, ?)", (name, type))
-        if self.get_table_name(name) and self.get_table_name(name) != self.db_prefix + "_generic":
-                cur.execute("INSERT INTO " + self.get_table_name(name) + " (" + self.db_prefix + "_id, field_name, value)" + \
-                                " SELECT " + self.db_prefix + "_id, field_name, value FROM " + self.db_prefix + "_generic" + \
-                                " WHERE field_name = ?;", (name, ))
-                cur.execute("DELETE FROM " + self.db_prefix + "_generic WHERE field_name = ?;"
-                                , (name, ))
-        self.con.commit()
-        cur.close()
-    def is_reserved_field(self, field):
-        return (field.startswith('_') or field.startswith('$') or self.is_system_field(field))
-    def is_system_field(self, field):
-        return (field in self._SYSTEM_FIELDS)
-        
-    def add_entry(self, entry_data):
-        cur = self.con.cursor()
-        cur.execute("INSERT INTO " + self.db_prefix + " (name) VALUES('')")
-        eid = cur.lastrowid
-        for field in entry_data:
-            table = self.get_table_name(field)
-            field_type = self.field_type_from_name(field)
-            if table == None:
-                    continue
-            if type(entry_data[field]) == Array or type(entry_data[field]) == list:
-                for value in entry_data[field]:
-                    cur.execute('INSERT INTO ' + table + ' (' + self.db_prefix + '_id, Field_name, Value) VALUES (?,?,?)',
-                                (eid, field, self.get_value_object(field_type, field, value)))
-            else:
-                cur.execute('INSERT INTO ' + table + ' (' + self.db_prefix + '_id, Field_name, Value) VALUES (?,?,?)', \
-                                (eid, field, self.get_value_object(field_type, field, entry_data[field])))        
-        self.con.commit()
-        cur.close()
-
-        return eid
-
 if os.path.exists(os.path.join(rootdir, 'pim.db')):
     print "DB file (" + os.path.join(rootdir, 'pim.db') + ") already exists, aborting..."
     print "This usually means you already converted your db to the new format."
     print "If you want to convert again, remove pim.db and restart this script"
     exit(1)
+print "Attempting to convert old pim database, any errors will be written in frameworkd's log (mostly resides in: /var/log/frameworkd.log)"
 
 old_db = OldDb()
 
