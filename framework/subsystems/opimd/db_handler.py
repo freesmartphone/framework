@@ -49,6 +49,7 @@ try:
     try:
         from phoneutils import numbers_compare
     except:
+        logger.info("Can't get phoneutils.numbers_compare, probably using an old libphone-utils, creating our own")
         def numbers_compare(a, b):
             a = normalize_number(str(a))
             b = normalize_number(str(b)) 
@@ -172,7 +173,7 @@ class DbHandler(object):
         if type == "phonenumber":
             return " value = ? "
         elif TypeManager.Types.get(type) in (int, float, long):
-	    return " value = ? "
+            return " value = ? "
         else:
             return " regex_matches(value, ?) = 1 "
     def get_value_compare_object(self, type, field, value):
@@ -188,9 +189,9 @@ class DbHandler(object):
             
         return str(value)
     def get_db_type_name(self, type):
-	if type == 'phonenumber':
-	    return "TEXT COLLATE compare_numbers"
-	    
+        if type == 'phonenumber':
+            return "TEXT COLLATE compare_numbers"
+            
         python_type = TypeManager.Types.get(type)
         if python_type in (int, long, bool):
             return "INTEGER"
