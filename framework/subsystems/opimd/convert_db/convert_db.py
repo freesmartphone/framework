@@ -25,8 +25,9 @@ try:
             return cmp(a, b)
     phoneutils.init()
 except:
-    print "Unable to find phoneutils, can't proceed"
-    exit(1)
+    print """Unable to find phoneutils, creating a database without indexes on phonenumbers,
+             It's strongly advised to stop the conversion, fix the problems, and try again."""
+
 
 from framework.config import rootdir
 rootdir = os.path.join( rootdir, 'opim' )
