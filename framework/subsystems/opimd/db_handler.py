@@ -231,7 +231,11 @@ class DbHandler(object):
         for name, value in query_desc.iteritems():
             #skip system fields
             if name.startswith('_'):
-                continue
+		#FIXME: put this in a central place!
+                if name not in ('_at_least_one', '_sortdesc', '_sortby', '_limit'):
+		    raise InvalidField("Query rule '%s' does not exist." % (name, ))
+		else:
+		    continue
             if not_first:
                 query = query + table_join_operator
 
@@ -250,7 +254,7 @@ class DbHandler(object):
                 field_type = self.domain.field_type_from_name(name)
                 table = self.get_table_name(name)
                 if not table:
-		    continue
+		    raise InvalidField("Field '%s' is reserved for internal use." % (name, ))
                 query = query + "SELECT " + self.db_prefix + "_id FROM " + \
                         table + " WHERE field_name = ? AND ("
                 params.append(str(name))
