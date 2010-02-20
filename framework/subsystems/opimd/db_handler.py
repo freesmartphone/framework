@@ -203,7 +203,7 @@ class DbHandler(object):
             return "TEXT"
         else:
             return "TEXT"
-    def build_rerieve_query(self):
+    def build_rertieve_query(self):
         query = ""
         not_first = False
         for table in self.tables:
@@ -320,7 +320,7 @@ class DbHandler(object):
     def get_content(self, ids):
         cur = self.con.cursor()
         res = []
-        query = self.build_rerieve_query()
+        query = self.build_retrieve_query()
         for id in ids:
             cur.execute(query, {'id': id})
             tmp = self.sanitize_result(cur.fetchall())
