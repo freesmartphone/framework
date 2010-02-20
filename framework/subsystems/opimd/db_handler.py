@@ -231,11 +231,11 @@ class DbHandler(object):
         for name, value in query_desc.iteritems():
             #skip system fields
             if name.startswith('_'):
-		#FIXME: put this in a central place!
+                #FIXME: put this in a central place!
                 if name not in ('_at_least_one', '_sortdesc', '_sortby', '_limit'):
-		    raise InvalidField("Query rule '%s' does not exist." % (name, ))
-		else:
-		    continue
+                    raise InvalidField("Query rule '%s' does not exist." % (name, ))
+                else:
+                    continue
             if not_first:
                 query = query + table_join_operator
 
@@ -247,14 +247,14 @@ class DbHandler(object):
                 field_type = name[1:]
                 table = self.get_table_name_from_type(field_type)
                 if not table:
-		    raise InvalidField("Type '%s' does not exist." % (field_type, ))
+                    raise InvalidField("Type '%s' does not exist." % (field_type, ))
                 query = query + "SELECT " + self.db_prefix + "_id FROM " + \
                         table + " WHERE ("
             else:
                 field_type = self.domain.field_type_from_name(name)
                 table = self.get_table_name(name)
                 if not table:
-		    raise InvalidField("Field '%s' is reserved for internal use." % (name, ))
+                    raise InvalidField("Field '%s' is reserved for internal use." % (name, ))
                 query = query + "SELECT " + self.db_prefix + "_id FROM " + \
                         table + " WHERE field_name = ? AND ("
                 params.append(str(name))
@@ -300,11 +300,11 @@ class DbHandler(object):
         map = {}
 
         for (field, name) in raw:
-	    if field in map:
-		if type(field) == list:
+            if field in map:
+                if type(field) == list:
                     map[field].append(name)
                 else:
-		    map[field] = [map[field], name]
+                    map[field] = [map[field], name]
             else:
                 map[field] = name    
         return map
@@ -336,6 +336,7 @@ class DbHandler(object):
             tmp = self.sanitize_result(cur.fetchall())
             #add path
             tmp['Path'] = self.domain.id_to_path(id)
+            tmp['EntryId'] = id
             res.append(tmp)
         cur.close()
         return res

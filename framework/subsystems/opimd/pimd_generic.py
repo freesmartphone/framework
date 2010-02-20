@@ -197,7 +197,7 @@ class GenericDomain():
     """Reserved types"""
     _SYSTEM_FIELDS = {
                           'Path'    : 'objectpath',
-                          'Id'      : 'entryid'
+                          'EntryId' : 'entryid'
                           }
 #FIXME: doesn't get called
     def __init__(self):
