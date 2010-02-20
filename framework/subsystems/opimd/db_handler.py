@@ -58,7 +58,7 @@ except:
         return a
     def numbers_compare(a, b):
         a = normalize_number(str(a))
-        b = normalize_number(str(b)) 
+        b = normalize_number(str(b))
         return cmp(a, b)
 
 
@@ -72,7 +72,7 @@ def regex_matches(string, pattern):
         return 1
     except Exception as exp:
         logger.error("While matching regex (pattern = %s, string = %s) got: %s",unicode(pattern), unicode(string), exp)
-
+    return 0
 
 rootdir = os.path.join( rootdir, 'opim' )
 
