@@ -10,15 +10,5 @@ Or maybe %DOMAIN_field = true? and compare is by using %DOMAIN = compare_field. 
 * FSO handlers, add a timer to check again if the framework is even loaded (when opimd starts before the framework)
 * Clean internal use of path, move completely to Id internally
 
-*** Change retrieve query to work on a couple of ids at a time
-
--- Notes 
-* Fix Tagging
-
 -- Tasks
 * <dos1> and Tasks is Contacts + UnfinishedTasks support :P
-
--- Messages
-* Verify Ack and Nack messages (and special handling) work
-
-
