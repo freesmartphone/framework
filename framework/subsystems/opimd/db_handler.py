@@ -241,12 +241,18 @@ class DbHandler(object):
             if name.startswith('$'):
                 #FIXME handle type doesn't exist gracefully
                 field_type = name[1:]
+                table = self.get_table_name_from_type(field_type)
+                if not table:
+		    raise InvalidField("Type '%s' does not exist." % (field_type, ))
                 query = query + "SELECT " + self.db_prefix + "_id FROM " + \
-                        self.get_table_name_from_type(field_type) + " WHERE ("
+                        table + " WHERE ("
             else:
                 field_type = self.domain.field_type_from_name(name)
+                table = self.get_table_name(name)
+                if not table:
+		    continue
                 query = query + "SELECT " + self.db_prefix + "_id FROM " + \
-                        self.get_table_name(name) + " WHERE field_name = ? AND ("
+                        table + " WHERE field_name = ? AND ("
                 params.append(str(name))
             #If multi values, make OR connections
             comp_string = self.get_value_compare_string(field_type, name)
