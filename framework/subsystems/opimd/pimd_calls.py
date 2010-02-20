@@ -235,7 +235,7 @@ class CallDomain(Domain, GenericDomain):
         # Keep frameworkd happy
         self.interface = _DIN_CALLS
         self.path = _DBUS_PATH_CALLS
-#FIXME: make not hardcoded
+
         self._new_missed_calls = len(self.db_handler.query({'Answered':0, 'Direction': 'in', 'New': 1}))
         self.fso_handler = CallsLogFSO(self)
         
@@ -340,9 +340,9 @@ class CallDomain(Domain, GenericDomain):
     @dbus_method(_DIN_ENTRY, "a{sv}", "", rel_path_keyword="rel_path")
     def Update(self, data, rel_path):
         num_id = int(rel_path[1:])
-        #FIXME: also alert missed on update
-        call = self.get_content(num_id)
         
+        call = self.get_content(num_id)
+        #FIXME: make sure we cover all cases - do like in messages
         if call.has_key('New') and data.has_key('New') and call.has_key('Answered') and call.has_key('Direction'):
             if not int(call['Answered']) and call['Direction'] == 'in':
                 if int(call['New']) and not int(data['New']):

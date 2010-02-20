@@ -2,7 +2,7 @@
 * Clean up all the old relics
 * Support "connecting" backends maybe using %DOMAIN, i.e %Contacts will be a field containing a dictionary with (list containing dicotinaries when needed?) the matching contact should find a way to say how to match?
 Or maybe %DOMAIN_field = true? and compare is by using %DOMAIN = compare_field. Probably best would be %DOMAIN = {} (i.e a dict with stuff)
-* Add calculated fields, either make it possible to request type and have a default "generator" for it, or make more complex stuff.
+* Add calculated fields, either make it possible to request type and have a default "generator" for it, or make more complex stuff. - Only on query?
 * Add <Field to query everything that's smaller than the field + Add >Field to query everything that's bigger than the field + etc
 * Discuss breaking API? for instance Peer instead of Sender/Recipient etc
 * Make queries save ids, not full entries

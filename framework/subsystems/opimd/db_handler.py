@@ -169,7 +169,6 @@ class DbHandler(object):
         else:
             return None
     def get_value_compare_string(self, type, field):
-        #FIXME use field
         if type == "phonenumber":
             return " value = ? "
         elif TypeManager.Types.get(type) in (int, float, long):
@@ -177,7 +176,6 @@ class DbHandler(object):
         else:
             return " regex_matches(value, ?) = 1 "
     def get_value_compare_object(self, type, field, value):
-        #FIMXE use field
         if type == "phonenumber":
             return normalize_number(str(value))
                     
@@ -216,13 +214,11 @@ class DbHandler(object):
     
         return query
     def build_search_query(self, query_desc):
-        #FIXME handle special comp
         """Recieves a dictionary and makes an sql query that returns all the
         id's of those who meet the dictionaries restrictions"""
         params = []
         not_first = False
         
-        #FIXME: support _sortcasesens and _pre_limit and 
         if '_at_least_one' in query_desc:
             table_join_operator = " UNION "
         else:
@@ -243,7 +239,6 @@ class DbHandler(object):
             
             #handle type searching
             if name.startswith('$'):
-                #FIXME handle type doesn't exist gracefully
                 field_type = name[1:]
                 table = self.get_table_name_from_type(field_type)
                 if not table:
@@ -319,8 +314,8 @@ class DbHandler(object):
     def query(self, query_desc):
         query = self.build_search_query(query_desc)
         if query == None:
-            #FIXME: error
-            pass
+            logger.error("Failed creating search query for %s", str(query_desc))
+            raise QueryFailed("Failed creating search query.")
         cur = self.con.cursor()
         cur.execute(query['Query'], query['Parameters'])
         res = self.get_full_result(cur.fetchall())
@@ -343,7 +338,6 @@ class DbHandler(object):
         
     def add_field_type(self, name, type):
         cur = self.con.cursor()
-        #FIXME: add sanity checks, move from generic to the correct table
         cur.execute("INSERT INTO " + self.db_prefix + "_fields (field_name, type) " \
                         "VALUES (?, ?)", (name, type))
         if self.get_table_name(name) != self.db_prefix + "_generic":
@@ -357,7 +351,6 @@ class DbHandler(object):
         
     def remove_field_type(self, name):
         cur = self.con.cursor()
-        #FIXME: add sanity checks and update fields according to type change
         cur.execute("DELETE FROM " + self.db_prefix + "_fields WHERE field_name = ?", (name, ))
         if self.get_table_name(name) != self.db_prefix + "_generic":
                 cur.execute("INSERT INTO " + self.db_prefix + "_generic (" + self.db_prefix + "_id, field_name, value)" + \
@@ -370,7 +363,6 @@ class DbHandler(object):
         
     def load_field_types(self):
         cur = self.con.cursor()
-        #FIXME: add sanity checks
         raw_res = cur.execute("SELECT * FROM " + self.db_prefix + "_fields").fetchall()
         cur.close()
         res = {}
@@ -412,14 +404,13 @@ class DbHandler(object):
             field_type = self.domain.field_type_from_name(field)
             if table == None:
                     continue
-            #FIXME appears the API states you should delete in any case
             cur.execute("DELETE FROM " + table + " WHERE " + self.db_prefix + \
                         "_id = ? AND field_name = ?", (eid, field))
             if type(entry_data[field]) == Array or type(entry_data[field]) == list:
                 for value in entry_data[field]:
                     cur.execute("INSERT INTO " + table + " (" + self.db_prefix + "_id, Field_name, Value) VALUES (?,?,?)",
                                         (eid, field, self.get_value_object(field_type, field, value)))
-            elif entry_data[field] == "": #is this correct?
+            elif entry_data[field] == "":
                 pass
             else:
                 cur.execute("INSERT INTO " + table + " (" + self.db_prefix + "_id, Field_name, Value) VALUES (?,?,?)",

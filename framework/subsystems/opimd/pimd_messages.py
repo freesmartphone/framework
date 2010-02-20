@@ -246,7 +246,7 @@ class MessageDomain(Domain, GenericDomain):
         self.path = _DBUS_PATH_MESSAGES
 
         self.fso_handler = MessagesFSO(self)
-#FIXME: make not hardcoded
+
         self._unread_messages = len(self.db_handler.query({'Direction': 'in', 'MessageRead':0}))      
 
     #---------------------------------------------------------------------#
@@ -359,7 +359,7 @@ class MessageDomain(Domain, GenericDomain):
         num_id = int(rel_path[1:])
 
         self.check_entry_id(num_id)
-#FIXME: TBD drop the internal unread count?
+
         message = self.get_content(num_id)
         read = message.get('MessageRead')
         #Make sure is boolean
@@ -393,15 +393,17 @@ class MessageDomain(Domain, GenericDomain):
 
         message = self.get_content(num_id)
 #FIXME: What if it was outgoing and is now incoming?
-        if message.has_key('MessageRead') and data.has_key('MessageRead') and message.has_key('Direction'):
-            if message['Direction'] == 'in':
-                if not int(message['MessageRead']) and int(data['MessageRead']):
-                    self._unread_messages -= 1
-                    self.UnreadMessages(self._unread_messages)
-                elif int(message['MessageRead']) and not int(data['MessageRead']):
-                    self._unread_messages += 1
-                    self.UnreadMessages(self._unread_messages)
-
+        old_read = message['MessageRead'] if message.has_key('MessageRead') else False
+        new_read = data['MessageRead'] if data.has_key('MessageRead') else False
+        old_in = message['Direction'] == 'in' if message.has_key('Direction') else False
+        new_in = data['Direction'] == 'in' if data.has_key('Direction') else old_in
+        if not old_read and old_in and new_read:
+            self._unread_messages -= 1
+            self.UnreadMessages(self._unread_messages)
+        elif (old_read and not new_read and new_in) or \
+               (not old_read and not old_in and not new_read and new_in):
+            self._unread_messages += 1
+            self.UnreadMessages(self._unread_messages)
         self.update(num_id, data)
 
     @dbus_method(_DIN_FIELDS, "ss", "")
@@ -428,7 +430,6 @@ class MessageDomain(Domain, GenericDomain):
 #----------------------------------------------------------------------------#
 class MessagesFSO(object):
 #----------------------------------------------------------------------------#
-#FIXME: Do it in a sane manner
     name = 'FSO-Messages-Handler'
     
     _gsm_sim_iface = None
