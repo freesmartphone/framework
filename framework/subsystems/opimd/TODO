@@ -7,7 +7,6 @@ Or maybe %DOMAIN_field = true? and compare is by using %DOMAIN = compare_field. 
 * Discuss breaking API? for instance Peer instead of Sender/Recipient etc
 * Drop Path, got an "approvement" from mickey, first use both Path and Id, and then only Id
 * We don't allow to query system fields, but we should catch the exceptions that makes, Add log messages when doing that and when trying to add reserved field
-* Don't let removing default must have fields
 * Add a get_single_entry_single_field operation in db_handler that'll save us the loading of all the fields that we do now
 * Make queries save ids, not full entries
 * Fix missing check_single_entry

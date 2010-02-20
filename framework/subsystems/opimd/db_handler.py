@@ -203,7 +203,7 @@ class DbHandler(object):
             return "TEXT"
         else:
             return "TEXT"
-    def build_rertieve_query(self):
+    def build_retrieve_query(self):
         query = ""
         not_first = False
         for table in self.tables:

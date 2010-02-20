@@ -193,6 +193,7 @@ class GenericDomain():
     query_manager = None
     _dbus_path = None
     FieldTypes = None
+    DEFAULT_FIELDS = []
     """Reserved types"""
     _SYSTEM_FIELDS = {
                           'Path'    : 'objectpath',
@@ -238,26 +239,32 @@ class GenericDomain():
             try:
                 self.add_new_field(field, self.DEFAULT_FIELDS[field])
             except InvalidField:
-                #If field already exists or can't add default field, just pass
+                #If field already exists or can't add default field, just continue
                 pass
     def add_new_field(self, name, type):
-        if not name in self.FieldTypes and not self.is_reserved_field(name) and \
-           type in TypeManager.Types:
+        if name in self.FieldTypes:
+            raise InvalidField ( "Field '%s' already exists." % (name, ))
+        if self.is_reserved_field(name):
+            raise InvalidField ( "Field '%s' is reserved." % (name, ))
+        if type not in TypeManager.Types:
+            raise InvalidField ( "Type '%s' is invalid." % (type,))
 
-            self.FieldTypes[str(name)] = str(type)
-        else:
-            raise InvalidField ( "Field %s does already exist or type %s is invalid." % (name, type))
+        self.FieldTypes[str(name)] = str(type)
+
         #must be last, assumes already loaded
         self.db_handler.add_field_type(name, type)
 
     def remove_field(self, name):
-        if name in self.FieldTypes and not self.is_reserved_field(name):
-            #handler must be first, assumes type exists
-            self.db_handler.remove_field_type(name)
-            del self.FieldTypes[name]
-        else:
-            raise InvalidField ("Field %s does not exist!" % name)
+        if self.is_reserved_field(name):
+            raise InvalidField ( "Field '%s' is reserved." % (name, ))
+        if name not in self.FieldTypes:
+            raise InvalidField ( "Field '%s' does not exist." % (name, ))
+        if name in self.DEFAULT_FIELDS:
+            raise InvalidField ( "Field '%s' must be defined for this domain to operate properly." % (name, ))
 
+        self.db_handler.remove_field_type(name)
+        del self.FieldTypes[name]
+        
     def list_fields(self):
         return self.FieldTypes
 
