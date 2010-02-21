@@ -243,14 +243,14 @@ class DbHandler(object):
                 table = self.get_table_name_from_type(field_type)
                 if not table:
                     raise InvalidField("Type '%s' does not exist." % (field_type, ))
-                query = query + "SELECT " + self.db_prefix + "_id FROM " + \
+                query = query + "SELECT DISTINCT " + self.db_prefix + "_id FROM " + \
                         table + " WHERE ("
             else:
                 field_type = self.domain.field_type_from_name(name)
                 table = self.get_table_name(name)
                 if not table:
                     raise InvalidField("Field '%s' is reserved for internal use." % (name, ))
-                query = query + "SELECT " + self.db_prefix + "_id FROM " + \
+                query = query + "SELECT DISTINCT" + self.db_prefix + "_id FROM " + \
                         table + " WHERE field_name = ? AND ("
                 params.append(str(name))
             #If multi values, make OR connections
