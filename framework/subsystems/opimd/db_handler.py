@@ -250,7 +250,7 @@ class DbHandler(object):
                 table = self.get_table_name(name)
                 if not table:
                     raise InvalidField("Field '%s' is reserved for internal use." % (name, ))
-                query = query + "SELECT DISTINCT" + self.db_prefix + "_id FROM " + \
+                query = query + "SELECT DISTINCT " + self.db_prefix + "_id FROM " + \
                         table + " WHERE field_name = ? AND ("
                 params.append(str(name))
             #If multi values, make OR connections
