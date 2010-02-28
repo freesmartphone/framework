@@ -22,7 +22,7 @@ setup(
     #  ],
     #cmdclass = {'build_ext': build_ext},
     packages = packages,
-    scripts = [ "framework/frameworkd", "tools/cli-framework", "tools/dump-netlink", "tools/remove-tel" ],
+    scripts = [ "framework/frameworkd", "tools/cli-framework", "tools/dump-netlink", "tools/remove-tel", "tools/opimd_convert_db" ],
     data_files = [
         ("../../etc/dbus-1/system.d", ["etc/dbus-1/system.d/frameworkd.conf"] ),
         ("../../etc/freesmartphone/opreferences/schema/",         ["etc/freesmartphone/opreferences/schema/phone.yaml"]),
@@ -40,7 +40,6 @@ setup(
             "etc/freesmartphone/ogsmd/la.db",
             "etc/freesmartphone/ogsmd/networks.tab",
         ]),
-        ("../../etc/freesmartphone/opim",                         ["etc/freesmartphone/opim/csv-contacts.txt"]),
         ("freesmartphone/examples/", getDir( "examples" ) ),
     ]
 )
