@@ -43,11 +43,19 @@
 
 -
     while: CallListContains("incoming")
-    filters: Not(CallListContains("active"))
+    filters:
+             - Not(CallListContains("active"))
+             - Not(BTHeadsetIsConnected())
     actions:
              - RingTone()
              - SetDisplayBrightness("0", 90)
-
+-
+    while: CallListContains("incoming")
+    filters:
+             - Not(CallListContains("active"))
+             - BTHeadsetIsConnected()
+    actions:
+             - SetDisplayBrightness("0", 90)
 -
     while: CallStatus()
     filters: Not(HasAttr(status, "release"))

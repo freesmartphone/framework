@@ -857,6 +857,28 @@ class SimGetPhonebookInfo( SimMediator ):
             self._ok( result )
 
 #=========================================================================#
+class SimGetPhonebookStorageInfo( SimMediator ):
+#=========================================================================#
+    def trigger( self ):
+        charset = currentModem()._charsets["DEFAULT"]
+        try:
+            self.pbcategory = const.PHONEBOOK_CATEGORY[self.category]
+        except KeyError:
+            self._error( DBusError.InvalidParameter( "valid categories are %s" % const.PHONEBOOK_CATEGORY.keys() ) )
+        else:
+            self._commchannel.enqueue( '+CPBS="%s";+CPBS?' % self.pbcategory.encode(charset), self.responseFromChannel, self.errorFromChannel )
+
+    def responseFromChannel( self, request, response ):
+        if response[-1] != "OK":
+            SimMediator.responseFromChannel( self, request, response )
+        else:
+            name, used, total  = safesplit( self._rightHandSide( response[0] ), "," )
+                used = int( used )
+                total = int( total )
+            self._ok( used , total)
+
+
+#=========================================================================#
 class SimRetrievePhonebook( SimMediator ):
 #=========================================================================#
     def trigger( self ):
@@ -866,7 +888,12 @@ class SimRetrievePhonebook( SimMediator ):
         except KeyError:
             self._error( DBusError.InvalidParameter( "valid categories are %s" % const.PHONEBOOK_CATEGORY.keys() ) )
         else:
+            if self.indexFirst != -1:
+                minimum = self.indexFirst
+                maximum = self.indexLast
+        else:
             minimum, maximum = self._object.modem.phonebookIndices( self.pbcategory )
+
             if minimum is None: # don't know yet
                 SimGetPhonebookInfo( self._object, self.tryAgain, self.reportError, category=self.category )
             else:
