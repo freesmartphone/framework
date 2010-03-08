@@ -23,12 +23,6 @@ def field_value_to_list(field_value):
         return [ field_value ]
 
 #----------------------------------------------------------------------------#
-class InvalidBackend( DBusException ):
-#----------------------------------------------------------------------------#
-    """Raised when a backend is either invalid or unsuited for a certain function call"""
-    _dbus_error_name = "org.freesmartphone.PIM.InvalidBackend"
-
-#----------------------------------------------------------------------------#
 class InvalidDomain( DBusException ):
 #----------------------------------------------------------------------------#
     """Raised when a domain is invalid"""
@@ -41,22 +35,11 @@ class InvalidField( DBusException ):
     _dbus_error_name = "org.freesmartphone.PIM.InvalidField"
 
 #----------------------------------------------------------------------------#
-class InvalidBackendID( DBusException ):
-#----------------------------------------------------------------------------#
-    """Raised when a submitted backend ID is invalid / out of range"""
-    _dbus_error_name = "org.freesmartphone.PIM.InvalidBackendID"
-
-#----------------------------------------------------------------------------#
 class InvalidQueryID( DBusException ):
 #----------------------------------------------------------------------------#
     """Raised when a submitted query ID is invalid / out of range"""
     _dbus_error_name = "org.freesmartphone.PIM.InvalidQueryID"
 
-#----------------------------------------------------------------------------#
-class UnknownFolder( DBusException ):
-#----------------------------------------------------------------------------#
-    """Raised when a given folder name is unknown"""
-    _dbus_error_name = "org.freesmartphone.PIM.UnknownFolder"
 
 #----------------------------------------------------------------------------#
 class AmbiguousKey( DBusException ):
@@ -81,4 +64,10 @@ class InvalidData( DBusException ):
 #----------------------------------------------------------------------------#
     """Raised when data passed to method are not valid"""
     _dbus_error_name = "org.freesmartphone.PIM.InvalidData"
+
+#----------------------------------------------------------------------------#
+class QueryFailed( DBusException ):
+#----------------------------------------------------------------------------#
+    """Raised when can't query for some reason"""
+    _dbus_error_name = "org.freesmartphone.PIM.QueryFailed"
 

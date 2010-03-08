@@ -9,6 +9,7 @@
 #   Copyright (C) 2008-2009 by Openmoko, Inc.
 #   Copyright (C) 2009 Michael 'Mickey' Lauer <mlauer@vanille-media.de>
 #   Copyright (C) 2009 Sebastian dos Krzyszkowiak <seba.dos1@gmail.com>
+#   Copyright (C) 2009 Tom "TAsn" Hacohen <tom@stosb.com>
 #
 #   This program is free software; you can redistribute it and/or modify
 #   it under the terms of the GNU General Public License as published by
@@ -33,6 +34,8 @@ from dbus.service import FallbackObject as DBusFBObject
 from helpers import *
 from operator import itemgetter
 
+import db_handler
+
 import logging
 logger = logging.getLogger( MODULE_NAME )
 
@@ -48,100 +51,27 @@ class QueryMatcher(object):
 
         self.query_obj = query
 
-    def single_entry_matches(self, entry):
-        assert(self.query_obj, "Query object is empty, cannot match!")
+    def match(self, db_handler):
+        """Tries to match a db_handler to the current query
 
-        if entry:
-            return entry.match_query(self.query_obj)
-        else:
-            return False
-
-    def match(self, entries):
-        """Tries to match a given set of entries to the current query
-
-        @param entries List of Entry objects
+        @param a db_handler
         @return List of entry IDs that match"""
 
         assert(self.query_obj, "Query object is empty, cannot match!")
 
-        matches = []
-        results = []
-
-        # Match all entires
-        for (entry_id, entry) in enumerate(entries):
-            match = self.single_entry_matches(entry)
-            if match:
-                matches.append((match, entry_id))
-
-        result_count = len(matches)
-        # Sort matches by relevance and return the best hits
-        if result_count > 0:
-            matches.sort(reverse = True, key=itemgetter(0))
-
-            limit = result_count
-            if self.query_obj.has_key("_pre_limit"):
-                limit = self.query_obj["_pre_limit"]
-                if limit > result_count:
-                    limit = result_count
-
-            # Append the entry IDs to the result list in the order of the sorted list
-            for i in range(limit):
-                results.append(matches[i][1])
-
-        if self.query_obj.get('_sortby'):
-            reverse = self.query_obj.get('_sortdesc')
-            if reverse:
-                reverse = True
-            else:
-                reverse = False
-            casesens = self.query_obj.get('_sortcasesens')
-            sortby = self.query_obj['_sortby']
-
-            def compare(x,y):
-                if x == None and y == None:
-                    return 0
-                elif x == None:
-                    if reverse:
-                        return -1
-                    else:
-                        return 1
-                elif y == None:
-                    if reverse:
-                        return 1
-                    else:
-                        return -1
-                if casesens:
-                    return cmp(x,y)
-                else:
-                    return cmp(x.lower(),y.lower())
-
-            def getkey(element):
-                return entries[element][sortby]
-
-            try:
-                results.sort(key=getkey, cmp=compare, reverse = reverse)
-            except AttributeError:
-                casesens = True
-                results.sort(key=getkey, cmp=compare, reverse = reverse)
-
-            limit = result_count
-            if self.query_obj.has_key("_limit"):
-                limit = self.query_obj["_limit"] - 1
-                if limit > result_count or limit < 0:
-                    limit = result_count
-                results = results[:limit]
-
-        return results
+        matches = []      
+        results = db_handler.query(self.query_obj)
+	return results
 
 #----------------------------------------------------------------------------#
 class SingleQueryHandler(object):
 #----------------------------------------------------------------------------#
-    _entries = None
+    db_handler = None
     query = None      # The query this handler is processing
-    entries = None
+    _entries = None
     cursors = None    # The next entry we'll serve, depending on the client calling us
 
-    def __init__(self, query, entries, dbus_sender):
+    def __init__(self, query, db_handler, dbus_sender):
         """Creates a new SingleQueryHandler instance
 
         @param query Query to evaluate
@@ -153,8 +83,8 @@ class SingleQueryHandler(object):
 
         matcher = QueryMatcher(self.query)
 
-        self._entries = entries
-        self.entries = matcher.match(self._entries)
+        self.db_handler = db_handler
+        self._entries = matcher.match(self.db_handler)
         self.cursors = {}
 
         # TODO Register with all entries to receive updates
@@ -193,7 +123,7 @@ class SingleQueryHandler(object):
 
         @return Number of result entries"""
 
-        return len(self.entries)
+        return len(self._entries)
 
 
     def rewind(self, dbus_sender):
@@ -225,15 +155,13 @@ class SingleQueryHandler(object):
 
         # Check whether we've reached the end of the entry list
         try:
-            result = self.entries[self.cursors[dbus_sender]]
+            result = self._entries[self.cursors[dbus_sender]]
         except IndexError:
             raise NoMoreEntries( "All results have been submitted" )
 
-        entry_id = self.entries[self.cursors[dbus_sender]]
-        entry = self._entries[entry_id]
         self.cursors[dbus_sender] += 1
 
-        return entry['Path']
+        return result['Path']
 
 
     def get_result(self, dbus_sender):
@@ -247,20 +175,12 @@ class SingleQueryHandler(object):
 
         # Check whether we've reached the end of the entry list
         try:
-            result = self.entries[self.cursors[dbus_sender]]
+            result = self._entries[self.cursors[dbus_sender]]
         except IndexError:
             raise NoMoreEntries( "All results have been submitted" )
 
-        entry_id = self.entries[self.cursors[dbus_sender]]
-        entry = self._entries[entry_id]
         self.cursors[dbus_sender] += 1
 
-        try:
-            fields = self.query['_result_fields']
-            field_list = fields.split(',')
-            result = entry.get_fields(field_list)
-        except KeyError:
-            result = entry.get_content()
 
         return result
 
@@ -293,20 +213,16 @@ class SingleQueryHandler(object):
         @return True if entry matches this query, False otherwise
 
         @todo Currently this messes up the order of the result set if a specific order was desired"""
+	return False
+        
 
-        matcher = QueryMatcher(self.query)
-        if matcher.single_entry_matches(self._entries[entry_id]):
-            self.entries = matcher.match(self._entries)
+        # TODO Register with the new entry to receive changes
 
-            # TODO Register with the new entry to receive changes
+        # We *should* reset all cursors *if* the result set is ordered, however
+        # in order to prevent confusion, this is left for the client to do.
+        # Rationale: clients with unordered queries can just use get_result()
+        # and be done with it. For those, theres's no need to re-read all results.
 
-            # We *should* reset all cursors *if* the result set is ordered, however
-            # in order to prevent confusion, this is left for the client to do.
-            # Rationale: clients with unordered queries can just use get_result()
-            # and be done with it. For those, theres's no need to re-read all results.
-
-            # Let clients know that this result set changed
-            return True
-        else:
-            return False
+        # Let clients know that this result set changed
+            
 

@@ -7,24 +7,24 @@ Open PIM Daemon
 (C) 2008 Openmoko, Inc.
 (C) 2009 Michael 'Mickey' Lauer <mlauer@vanille-media.de>
 (C) 2009 Sebastian Krzyszkowiak <seba.dos1@gmail.com>
+(C) 2009 Tom "TAsn" Hacohen <tom@stosb.com>
 GPLv2 or later
 
 Calls Domain Plugin
 
-Establishes the 'Calls' PIM domain and handles all related requests
+Establishes the 'calls' PIM domain and handles all related requests
 """
 
 from dbus.service import FallbackObject as DBusFBObject
 from dbus.service import signal as dbus_signal
 from dbus.service import method as dbus_method
+from dbus import SystemBus
+import time
 
 import re
 
 import logging
 logger = logging.getLogger('opimd')
-
-from backend_manager import BackendManager
-from backend_manager import PIMB_CAN_ADD_ENTRY, PIMB_CAN_DEL_ENTRY, PIMB_CAN_UPD_ENTRY, PIMB_CAN_UPD_ENTRY_WITH_NEW_FIELD, PIMB_NEEDS_SYNC
 
 from domain_manager import DomainManager, Domain
 from helpers import *
@@ -34,7 +34,9 @@ from query_manager import QueryMatcher, SingleQueryHandler
 
 from framework.config import config, busmap
 
-from pimd_generic import GenericEntry, GenericDomain
+from pimd_generic import GenericDomain
+
+from db_handler import DbHandler
 
 #----------------------------------------------------------------------------#
 
@@ -50,53 +52,43 @@ _DIN_ENTRY = _DIN_CALLS_BASE + '.' + 'Call'
 _DIN_QUERY = _DIN_CALLS_BASE + '.' + 'CallQuery'
 _DIN_FIELDS = _DIN_CALLS_BASE + '.' + 'Fields'
 
-_CALLS_DEFAULT_TYPES = {
-                          'Path'      : 'objectpath',
-                          'Peer'      : 'phonenumber',
-                          'Line'      : 'integer',
-                          'Type'      : 'string',
-                          'New'       : 'boolean',
-                          'Answered'  : 'boolean',
-                          'Replied'   : 'boolean',
-                          'Direction' : 'string',
-                          'Duration'  : 'number',
-                          'Timestamp' : 'date',
-                          'Timezone'  : 'timezone'
-                          }
 
 #----------------------------------------------------------------------------#
-class Call(GenericEntry):
+class CallsDbHandler(DbHandler):
 #----------------------------------------------------------------------------#
-    """Represents one single call with all the data fields it consists of.
+    name = 'Calls'
 
-    _fields[n] = [field_name, field_value, value_used_for_comparison, source]
+    domain = None
+#----------------------------------------------------------------------------#
 
-    Best way to explain the usage of _fields and _field_idx is by example:
-    _fields[3] = ["EMail", "foo@bar.com", "", "CSV-Contacts"]
-    _fields[4] = ["EMail", "moo@cow.com", "", "LDAP-Contacts"]
-    _field_idx["EMail"] = [3, 4]"""
-    
-    def __init__(self, path):
-        """Creates a new entry instance"""
-        self.domain = CallDomain
-        GenericEntry.__init__( self, path )
+    def __init__(self, domain):
+        
+        self.domain = domain
 
-
+        self.db_prefix = self.name.lower()
+        self.table_types = ['phonenumber', 'date', 'boolean']
+        super(CallsDbHandler, self).__init__()
+        self.create_db()
+    def get_create_type_index(self, type):
+        if type == "date":
+            return "CREATE INDEX IF NOT EXISTS " + self.db_prefix + "_" + type + \
+                   "_value ON " + self.db_prefix + "_" + type + "(value DESC)"
+        return super(CallsDbHandler, self).get_create_type_index(type)
 #----------------------------------------------------------------------------#
 class QueryManager(DBusFBObject):
 #----------------------------------------------------------------------------#
     _queries = None
-    _entries = None
+    db_handler = None
     _next_query_id = None
 
     # Note: _queries must be a dict so we can remove queries without messing up query IDs
 
-    def __init__(self, entries):
+    def __init__(self, db_handler):
         """Creates a new QueryManager instance
 
         @param entries Set of Entry objects to use"""
 
-        self._entries = entries
+        self.db_handler = db_handler
         self._queries = {}
         self._next_query_id = 0
 
@@ -115,7 +107,7 @@ class QueryManager(DBusFBObject):
         @param dbus_sender Sender's unique name on the bus
         @return dbus path of the query result"""
 
-        query_handler = SingleQueryHandler(query, self._entries, dbus_sender)
+        query_handler = SingleQueryHandler(query, self.db_handler, dbus_sender)
 
         query_id = self._next_query_id
         self._next_query_id += 1
@@ -128,12 +120,10 @@ class QueryManager(DBusFBObject):
     def check_new_entry(self, entry_id):
         """Checks whether a newly added entry matches one or more queries so they can signal clients
 
-        @param entry_id Entry ID of the entry that was added"""
-
+        @param entry_id Call ID of the call that was added"""
         for (query_id, query_handler) in self._queries.items():
             if query_handler.check_new_entry(entry_id):
-                entry = self._entries[entry_id]
-                entry_path = entry['Path']
+                entry_path = self.id_to_path(entry_id)
                 self.EntryAdded(entry_path, rel_path='/' + str(query_id))
 
     def check_query_id_ok( self, num_id ):
@@ -213,71 +203,42 @@ class CallDomain(Domain, GenericDomain):
 #----------------------------------------------------------------------------#
     name = _DOMAIN_NAME
 
-    _backends = None
-    _entries = None
+    db_handler = None
     query_manager = None
     _dbus_path = None
+    fso_handler = None
     _new_missed_calls = None
-    Entry = None
-    DefaultTypes = _CALLS_DEFAULT_TYPES
-
+    DEFAULT_FIELDS = {
+                        'Peer'      : 'phonenumber',
+                        'Line'      : 'integer',
+                        'Type'      : 'string',
+                        'New'       : 'boolean',
+                        'Answered'  : 'boolean',
+                        'Direction' : 'string',
+                        'Duration'  : 'number',
+                        'Timestamp' : 'date',
+                        'Timezone'  : 'timezone'
+                     }
     def __init__(self):
         """Creates a new CallDomain instance"""
 
-        self.Entry = Call
-
-        self._backends = {}
-        self._entries = []
-        self._new_missed_calls = 0
         self._dbus_path = _DBUS_PATH_CALLS
-        self.query_manager = QueryManager(self._entries)
+        self.db_handler = CallsDbHandler(self)
+        self.query_manager = QueryManager(self.db_handler)
 
         # Initialize the D-Bus-Interface
         Domain.__init__( self, conn=busmap["opimd"], object_path=DBUS_PATH_BASE_FSO + '/' + self.name )
 
+        self.load_field_types()
+
+        self.add_default_fields()
         # Keep frameworkd happy
         self.interface = _DIN_CALLS
         self.path = _DBUS_PATH_CALLS
 
-    def register_entry(self, backend, call_data):
-        new_call_id = len(self._entries)
-        call_id = GenericDomain.register_entry(self, backend, call_data)
-        if call_id == new_call_id:
-            if call_data.has_key('New') and call_data.has_key('Answered') and call_data.has_key('Direction'):
-                if call_data['New'] and not call_data['Answered'] and call_data['Direction'] == 'in':
-                    self._new_missed_calls += 1
-                    self.NewMissedCalls(self._new_missed_calls)
-        return call_id
-
-    def register_missed_call(self, backend, call_data, stored_on_input_backend = False):
-        logger.debug("Registering missed call...")
-        if stored_on_input_backend:
-            call_id = self.register_entry(backend, call_data)
-        else:
-            # FIXME: now it's just copied from Add method.
-            # Make some checking, fallbacking etc.
-
-            dbackend = BackendManager.get_default_backend(_DOMAIN_NAME)
-
-            if not PIMB_CAN_ADD_ENTRY in dbackend.properties:
-            #    raise InvalidBackend( "This backend does not feature PIMB_CAN_ADD_ENTRY" )
-                 logger.error('Couldn\'t store new missed call (properties)!')
-                 return -1
-
-            try:
-                call_id = dbackend.add_entry(call_data)
-            except AttributeError:
-            #    raise InvalidBackend( "This backend does not feature add_call" )
-                 logger.error('Couldn\'t store new missed call (add_entry)!')
-                 return -1
-
-            #call = self._entries[call_id]
-
-            # As we just added a new message, we check it against all queries to see if it matches
-            self.query_manager.check_new_entry(call_id)
-            
-        self.MissedCall(_DBUS_PATH_CALLS+ '/' + str(call_id))
-        return call_id
+        self._new_missed_calls = len(self.db_handler.query({'Answered':0, 'Direction': 'in', 'New': 1}))
+        self.fso_handler = CallsLogFSO(self)
+        
 
  
     #---------------------------------------------------------------------#
@@ -291,27 +252,20 @@ class CallDomain(Domain, GenericDomain):
     def NewCall(self, path):
         pass
 
-    @dbus_signal(_DIN_CALLS, "i")
-    def NewMissedCalls(self, amount):
-        pass
-
-    @dbus_method(_DIN_CALLS, "", "i")
-    def GetNewMissedCalls(self):
-        return self._new_missed_calls
-
-    @dbus_signal(_DIN_CALLS, "s")
-    def MissedCall(self, path):
-        pass
-
     @dbus_method(_DIN_CALLS, "a{sv}", "s")
     def Add(self, entry_data):
         """Adds a entry to the list, assigning it to the default backend and saving it
 
         @param entry_data List of fields; format is [Key:Value, Key:Value, ...]
         @return Path of the newly created d-bus entry object"""
-
+        #FIXME: move to a better place (function) and fix the reject bug
+        if entry_data.has_key('Direction') and entry_data.has_key('Answered') and \
+              entry_data['Direction'] == 'in' and not entry_data['Answered']:
+            self._new_missed_calls += 1
+            self.MissedCall(_DBUS_PATH_CALLS+ '/' + str(id))
+            self.NewMissedCalls(self._new_missed_calls)
         return self.add(entry_data)
-
+        
     @dbus_method(_DIN_CALLS, "a{sv}s", "s")
     def GetSingleEntrySingleField(self, query, field_name):
         """Returns the first entry found for a query, making it real easy to query simple things
@@ -340,16 +294,7 @@ class CallDomain(Domain, GenericDomain):
         # Make sure the requested entry exists
         self.check_entry_id(num_id)
 
-        return self._entries[num_id].get_content()
-
-    @dbus_method(_DIN_ENTRY, "", "as", rel_path_keyword="rel_path")
-    def GetUsedBackends(self, rel_path):
-        num_id = int(rel_path[1:])
-                
-        # Make sure the requested entry exists
-        self.check_entry_id(num_id)
-        
-        return self._entries[num_id]._used_backends
+        return self.get_content(num_id)
 
     @dbus_method(_DIN_ENTRY, "s", "a{sv}", rel_path_keyword="rel_path")
     def GetMultipleFields(self, field_list, rel_path):
@@ -372,24 +317,21 @@ class CallDomain(Domain, GenericDomain):
     @dbus_method(_DIN_ENTRY, "", "", rel_path_keyword="rel_path")
     def Delete(self, rel_path):
         num_id = int(rel_path[1:])
+        call = self.get_content(num_id)
 
-        self.check_entry_id(num_id)
-
-        call = self._entries[num_id].get_fields(self._entries[num_id]._field_idx)
-        if call.get('New') and not call.get('Answered') and call.get('Direction') == 'in':
+        if int(call.get('New')) and not call.get('Answered') and call.get('Direction') == 'in':
             self._new_missed_calls -= 1
             self.NewMissedCalls(self._new_missed_calls)
-
+ 
         self.delete(num_id)
-
-
-    @dbus_signal(_DIN_CALLS, "sa{sv}")
-    def UpdatedCall(self, path, data):
-        pass
 
     def EntryUpdated(self, data, rel_path=None):
         self.CallUpdated(data, rel_path=rel_path)
         self.UpdatedCall(_DBUS_PATH_CALLS+rel_path, data)
+
+    @dbus_signal(_DIN_CALLS, "sa{sv}")
+    def UpdatedCall(self, path, data):
+        pass
 
     @dbus_signal(_DIN_ENTRY, "a{sv}", rel_path_keyword="rel_path")
     def CallUpdated(self, data, rel_path=None):
@@ -398,22 +340,19 @@ class CallDomain(Domain, GenericDomain):
     @dbus_method(_DIN_ENTRY, "a{sv}", "", rel_path_keyword="rel_path")
     def Update(self, data, rel_path):
         num_id = int(rel_path[1:])
-
-        self.check_entry_id(num_id)
-
-        callif = self._entries[num_id]
-        call = callif.get_fields(callif._field_idx)
-
+        
+        call = self.get_content(num_id)
+        #FIXME: make sure we cover all cases - do like in messages
         if call.has_key('New') and data.has_key('New') and call.has_key('Answered') and call.has_key('Direction'):
-            if not call['Answered'] and call['Direction'] == 'in':
-                if call['New'] and not data['New']:
+            if not int(call['Answered']) and call['Direction'] == 'in':
+                if int(call['New']) and not int(data['New']):
                     self._new_missed_calls -= 1
                     self.NewMissedCalls(self._new_missed_calls)
-                elif not call['New'] and data['New']:
+                elif not int(call['New']) and int(data['New']):
                     self._new_missed_calls += 1
                     self.NewMissedCalls(self._new_missed_calls)
-
-        self.update(num_id, data, entryif = callif, entry = call)
+                    self.MissedCall(_DBUS_PATH_CALLS+ '/' + str(num_id))
+        self.update(num_id, data)
 
     @dbus_method(_DIN_FIELDS, "ss", "")
     def AddField(self, name, type):
@@ -435,3 +374,83 @@ class CallDomain(Domain, GenericDomain):
     def GetType(self, name):
         return self.field_type_from_name(name)
 
+    @dbus_signal(_DIN_CALLS, "s")
+    def MissedCall(self, path):
+        pass
+ 
+    @dbus_signal(_DIN_CALLS, "i")
+    def NewMissedCalls(self, amount):
+        pass
+
+    @dbus_method(_DIN_CALLS, "", "i")
+    def GetNewMissedCalls(self):
+        return self._new_missed_calls
+
+#----------------------------------------------------------------------------#
+class CallsLogFSO(object):
+#----------------------------------------------------------------------------#
+    name = 'FSO-CallsLog-Handler'
+    domain = None
+    props = None
+    handler = None
+#----------------------------------------------------------------------------#
+
+    def __init__(self, domain):
+        self.domain = domain
+        self.props = {}
+        self.handler = False
+        
+        self.enable()
+    def __repr__(self):
+        return self.name
+
+    def handle_call_status(self, line, call_status, call_props):
+
+        if not self.props.has_key(line):
+            self.props[line] = {}
+            self.props[line]['Line'] = str(line)
+
+        if not self.props[line].has_key('Answered'):
+            self.props[line]['Answered']=0
+        if call_props.has_key('mode'):
+            self.props[line]['Type']='gsm_'+call_props['mode']
+        if call_props.has_key('peer'):
+            peer = call_props["peer"]
+        elif self.props[line].has_key('Peer'):
+            peer = self.props[line]['Peer']
+
+        if call_status == "incoming":
+            try:
+                self.props[line]['Peer'] = peer
+            except:
+                pass
+            self.props[line]['Direction'] = 'in'
+        elif call_status == "outgoing":
+            self.props[line]['Peer'] = peer
+            self.props[line]['Direction'] = 'out'
+        elif call_status == "active":
+            self.props[line]['Answered'] = 1
+            self.props[line]['Timestamp'] = int(time.time())
+        elif call_status == "release":
+            if self.props[line].has_key('Timestamp'):
+                self.props[line]['Duration'] = int(time.time() - self.props[line]['Timestamp'])
+            else:
+                self.props[line]['Timestamp'] = int(time.time())
+            self.props[line]['Timezone'] = time.tzname[time.daylight]
+            self.props[line]['New']=1
+            #FIXME: Bug when rejecting call, fix
+            self.domain.Add(self.props[line])
+
+            del self.props[line]
+
+    def disable(self):
+        if self.handler:
+            self.signal.remove()
+            self.handler = False
+
+    def enable(self):
+        bus = SystemBus()
+        if not self.handler:
+            self.signal = bus.add_signal_receiver(self.handle_call_status, signal_name='CallStatus', dbus_interface='org.freesmartphone.GSM.Call', bus_name='org.freesmartphone.ogsmd')
+            self.handler = True
+        self._initialized = True

@@ -11,6 +11,7 @@
 #   (C) 2008-2009 Openmoko, Inc.
 #   (C) 2009 Michael 'Mickey' Lauer <mlauer@vanille-media.de>
 #   (C) 2009 by Sebastian Krzyszkowiak <seba.dos1@gmail.com>
+#   (C) 2009 Tom "TAsn" Hacohen <tom@stosb.com>
 #
 #   This program is free software; you can redistribute it and/or modify
 #   it under the terms of the GNU General Public License as published by
@@ -48,19 +49,7 @@ import pimd_calls
 import pimd_dates
 import pimd_notes
 import pimd_tasks
-# Same thing for the backend modules
-import pimb_sim_contacts_fso
-import pimb_sim_messages_fso
-import pimb_csv_contacts
-import pimb_sqlite_contacts
-import pimb_sqlite_messages
-import pimb_sqlite_calls
-import pimb_sqlite_dates
-import pimb_sqlite_notes
-import pimb_sqlite_tasks
-import pimb_ogsmd_calls
 
-from backend_manager import BackendManager
 
 from domain_manager import DomainManager
 
@@ -87,7 +76,6 @@ def factory( prefix, subsystem ):
         logger.error('Failed to init libphone-utils!')
 
     DomainManager.init()
-    backend_manager = BackendManager()
     type_manager = TypeManager()
 
     dbus_objects = []
@@ -97,7 +85,6 @@ def factory( prefix, subsystem ):
         logger.debug( "adding object %s" % dbus_obj )
         dbus_objects.append(dbus_obj)
 
-    dbus_objects.append(backend_manager)
     dbus_objects.append(type_manager)
 
     INIT = True

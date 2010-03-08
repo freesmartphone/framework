@@ -7,11 +7,12 @@ Open PIM Daemon
 (C) 2008 Openmoko, Inc.
 (C) 2009 Michael 'Mickey' Lauer <mlauer@vanille-media.de>
 (C) 2009 Sebastian Krzyszkowiak <seba.dos1@gmail.com>
+(C) 2009 Tom "TAsn" Hacohen <tom@stosb.com>
 GPLv2 or later
 
 Tasks Domain Plugin
 
-Establishes the 'Tasks' PIM domain and handles all related requests
+Establishes the 'tasks' PIM domain and handles all related requests
 """
 
 from dbus.service import FallbackObject as DBusFBObject
@@ -23,9 +24,6 @@ import re
 import logging
 logger = logging.getLogger('opimd')
 
-from backend_manager import BackendManager
-from backend_manager import PIMB_CAN_ADD_ENTRY, PIMB_CAN_DEL_ENTRY, PIMB_CAN_UPD_ENTRY, PIMB_CAN_UPD_ENTRY_WITH_NEW_FIELD, PIMB_NEEDS_SYNC
-
 from domain_manager import DomainManager, Domain
 from helpers import *
 from opimd import *
@@ -34,7 +32,9 @@ from query_manager import QueryMatcher, SingleQueryHandler
 
 from framework.config import config, busmap
 
-from pimd_generic import GenericEntry, GenericDomain
+from pimd_generic import GenericDomain
+
+from db_handler import DbHandler
 
 #----------------------------------------------------------------------------#
 
@@ -51,39 +51,36 @@ _DIN_QUERY = _DIN_TASKS_BASE + '.' + 'TaskQuery'
 _DIN_FIELDS = _DIN_TASKS_BASE + '.' + 'Fields'
 
 #----------------------------------------------------------------------------#
-class Task(GenericEntry):
+class TasksDbHandler(DbHandler):
 #----------------------------------------------------------------------------#
-    """Represents one single task with all the data fields it consists of.
+    name = 'Tasks'
 
-    _fields[n] = [field_name, field_value, value_used_for_comparison, source]
+    domain = None
+#----------------------------------------------------------------------------#
 
-    Best way to explain the usage of _fields and _field_idx is by example:
-    _fields[3] = ["EMail", "foo@bar.com", "", "CSV-Contacts"]
-    _fields[4] = ["EMail", "moo@cow.com", "", "LDAP-Contacts"]
-    _field_idx["EMail"] = [3, 4]"""
-    
-    def __init__(self, path):
-        """Creates a new entry instance"""
-        self.domain = TaskDomain
-        GenericEntry.__init__( self, path )
+    def __init__(self, domain):
+        self.domain = domain
 
-
+        self.db_prefix = self.name.lower()
+        self.table_types = ['text', 'longtext', 'date', 'boolean']
+        super(TasksDbHandler, self).__init__()
+        self.create_db()
 
 #----------------------------------------------------------------------------#
 class QueryManager(DBusFBObject):
 #----------------------------------------------------------------------------#
     _queries = None
-    _entries = None
+    db_handler = None
     _next_query_id = None
 
     # Note: _queries must be a dict so we can remove queries without messing up query IDs
 
-    def __init__(self, entries):
+    def __init__(self, db_handler):
         """Creates a new QueryManager instance
 
         @param entries Set of Entry objects to use"""
 
-        self._entries = entries
+        self.db_handler = db_handler
         self._queries = {}
         self._next_query_id = 0
 
@@ -102,7 +99,7 @@ class QueryManager(DBusFBObject):
         @param dbus_sender Sender's unique name on the bus
         @return dbus path of the query result"""
 
-        query_handler = SingleQueryHandler(query, self._entries, dbus_sender)
+        query_handler = SingleQueryHandler(query, self.db_handler, dbus_sender)
 
         query_id = self._next_query_id
         self._next_query_id += 1
@@ -116,11 +113,9 @@ class QueryManager(DBusFBObject):
         """Checks whether a newly added entry matches one or more queries so they can signal clients
 
         @param entry_id Task ID of the task that was added"""
-
         for (query_id, query_handler) in self._queries.items():
             if query_handler.check_new_entry(entry_id):
-                entry = self._entries[entry_id]
-                entry_path = entry['Path']
+                entry_path = self.id_to_path(entry_id)
                 self.EntryAdded(entry_path, rel_path='/' + str(query_id))
 
     def check_query_id_ok( self, num_id ):
@@ -200,39 +195,26 @@ class TaskDomain(Domain, GenericDomain):
 #----------------------------------------------------------------------------#
     name = _DOMAIN_NAME
 
-    _backends = None
-    _entries = None
+    db_handler = None
     query_manager = None
     _dbus_path = None
-    Entry = None
-    _unfinished_tasks = None
 
     def __init__(self):
         """Creates a new TaskDomain instance"""
 
-        self.Entry = Task
-
-        self._backends = {}
-        self._entries = []
         self._dbus_path = _DBUS_PATH_TASKS
-        self.query_manager = QueryManager(self._entries)
-        self._unfinished_tasks = 0
+        self.db_handler = TasksDbHandler(self)
+        self.query_manager = QueryManager(self.db_handler)
 
         # Initialize the D-Bus-Interface
         Domain.__init__( self, conn=busmap["opimd"], object_path=DBUS_PATH_BASE_FSO + '/' + self.name )
 
+        self.load_field_types()
+
         # Keep frameworkd happy
         self.interface = _DIN_TASKS
         self.path = _DBUS_PATH_TASKS
-
-    def register_entry(self, backend, task_data):
-        new_task_id = len(self._entries)
-        task_id = GenericDomain.register_entry(self, backend, task_data)
-        if task_id == new_task_id:
-            if not task_data.get('Finished'):
-                self._unfinished_tasks += 1
-                self.UnfinishedTasks(self._unfinished_tasks)
-        return task_id
+        
 
  
     #---------------------------------------------------------------------#
@@ -245,14 +227,6 @@ class TaskDomain(Domain, GenericDomain):
     @dbus_signal(_DIN_TASKS, "s")
     def NewTask(self, path):
         pass
-
-    @dbus_signal(_DIN_TASKS, "i")
-    def UnfinishedTasks(self, amount):
-        pass
-
-    @dbus_method(_DIN_TASKS, "", "i")
-    def GetUnfinishedTasks(self):
-        return self._unfinished_tasks
 
     @dbus_method(_DIN_TASKS, "a{sv}", "s")
     def Add(self, entry_data):
@@ -291,22 +265,17 @@ class TaskDomain(Domain, GenericDomain):
         # Make sure the requested entry exists
         self.check_entry_id(num_id)
 
-        return self._entries[num_id].get_content()
-
-    @dbus_method(_DIN_ENTRY, "", "as", rel_path_keyword="rel_path")
-    def GetUsedBackends(self, rel_path):
-        num_id = int(rel_path[1:])
-                
-        # Make sure the requested entry exists
-        self.check_entry_id(num_id)
-        
-        return self._entries[num_id]._used_backends
+        return self.get_content(num_id)
 
     @dbus_method(_DIN_ENTRY, "s", "a{sv}", rel_path_keyword="rel_path")
     def GetMultipleFields(self, field_list, rel_path):
         num_id = int(rel_path[1:])
 
         return self.get_multiple_fields(num_id, field_list)
+
+    @dbus_signal(_DIN_TASKS, "s")
+    def DeletedTask(self, path):
+        pass
 
     @dbus_signal(_DIN_ENTRY, "", rel_path_keyword="rel_path")
     def TaskDeleted(self, rel_path=None):
@@ -316,23 +285,11 @@ class TaskDomain(Domain, GenericDomain):
         self.TaskDeleted(rel_path=rel_path)
         self.DeletedTask(_DBUS_PATH_TASKS+rel_path)
 
-    @dbus_signal(_DIN_TASKS, "s")
-    def DeletedTask(self, path):
-        pass
-
     @dbus_method(_DIN_ENTRY, "", "", rel_path_keyword="rel_path")
     def Delete(self, rel_path):
         num_id = int(rel_path[1:])
 
-        self.check_entry_id(num_id)
-
-        task = self._entries[num_id].get_fields(self._entries[num_id]._field_idx)
-        if not task.get('Finished'):
-            self._unfinished_tasks -= 1
-            self.UnfinishedTasks(self._unfinished_tasks)
-
         self.delete(num_id)
-
 
     def EntryUpdated(self, data, rel_path=None):
         self.TaskUpdated(data, rel_path=rel_path)
@@ -351,25 +308,6 @@ class TaskDomain(Domain, GenericDomain):
         num_id = int(rel_path[1:])
 
         self.update(num_id, data)
-
-    @dbus_method(_DIN_ENTRY, "a{sv}", "", rel_path_keyword="rel_path")
-    def Update(self, data, rel_path):
-        num_id = int(rel_path[1:])
-
-        self.check_entry_id(num_id)
-
-        taskif = self._entries[num_id]
-        task = taskif.get_fields(taskif._field_idx)
-
-        if task.has_key('Finished') or data.has_key('Finished'):
-            if task.get('Finished') and not data.get('Finished'):
-                self._unfinished_tasks -= 1
-                self.UnfinishedTasks(self._unfinished_tasks)
-            elif not task.get('Finished') and data.get('Finished'):
-                self._unfinished_tasks += 1
-                self.UnfinishedTasks(self._unfinished_tasks)
-
-        self.update(num_id, data, entryif = taskif, entry = task)
 
     @dbus_method(_DIN_FIELDS, "ss", "")
     def AddField(self, name, type):

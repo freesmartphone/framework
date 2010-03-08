@@ -1,0 +1,16 @@
+* Fix FIXMEs
+* Clean up all the old relics
+* Support "connecting" backends maybe using %DOMAIN, i.e %Contacts will be a field containing a dictionary with (list containing dicotinaries when needed?) the matching contact should find a way to say how to match?
+Or maybe %DOMAIN_field = true? and compare is by using %DOMAIN = compare_field. Probably best would be %DOMAIN = {} (i.e a dict with stuff)
+* Add calculated fields, either make it possible to request type and have a default "generator" for it, or make more complex stuff. - Only on query?
+* Add <Field to query everything that's smaller than the field + Add >Field to query everything that's bigger than the field + etc
+* Discuss breaking API? for instance Peer instead of Sender/Recipient etc
+* Make queries save ids, not full entries
+* Fix missing check_single_entry
+* FSO handlers, add a timer to check again if the framework is even loaded (when opimd starts before the framework)
+* Clean internal use of path, move completely to Id internally
+* Add auto/requsted reload of configs (and typse)
+* Fix the bug that allowes user set field "" by adding a list
+
+-- Tasks
+* <dos1> and Tasks is Contacts + UnfinishedTasks support :P

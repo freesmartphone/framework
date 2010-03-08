@@ -16,18 +16,11 @@ DIN_BASE_FSO = "org.freesmartphone.PIM"
 from domain_manager import DomainManager
 from helpers import *
 
-import framework.patterns.tasklet as tasklet
 from framework.config import config, busmap
 
 from dbus.service import FallbackObject as DBusFBObject
 from dbus.service import signal as dbus_signal
 from dbus.service import method as dbus_method
-
-try:
-    from phoneutils import normalize_number
-except:
-    def normalize_number(num):
-        return num
 
 import re
 import logging
@@ -38,7 +31,28 @@ logger = logging.getLogger('opimd')
 _DBUS_PATH_TYPES = DBUS_PATH_BASE_FSO + '/Types'
 _DIN_TYPES = DIN_BASE_FSO + '.Types'
 
-_TYPES = ['objectpath', 'phonenumber', 'number', 'integer', 'address', 'email', 'name', 'date', 'uri', 'photo', 'text', 'longtext', 'boolean', 'timezone', 'generic']
+#Consist of type and python type (latter is for internal use)
+#Allowed: int, str, unicode, float (and long?).
+# unicode should be used for all user related strings that may have unicode
+# in, even phonenumber
+_TYPES = {
+                'objectpath':   str,
+                'phonenumber':  unicode,
+                'number':       float,
+                'integer':      int,
+                'address':      unicode,
+                'email':        unicode,
+                'name':         unicode,
+                'date':         int,
+                'uri':          unicode,
+                'photo':        unicode,
+                'text':         unicode,
+                'longtext':     unicode,
+                'boolean':      int,
+                'timezone':     unicode,
+                'entryid':      int,
+                'generic':      unicode
+         }
 
 #----------------------------------------------------------------------------#
 class TypeManager(DBusFBObject):
@@ -56,16 +70,6 @@ class TypeManager(DBusFBObject):
         self.interface = _DIN_TYPES
         self.path = _DBUS_PATH_TYPES
 
-    @classmethod
-    def make_comp_value(self, field_type, field_value, from_query = False):
-        if field_type=='phonenumber':
-            if from_query:
-                return re.escape(normalize_number(field_value)) # +'$'
-            else:
-                return normalize_number(field_value)
-        else:
-            return str(field_value)
-
     @dbus_method(_DIN_TYPES, "", "as")
     def List(self):
-        return _TYPES
+        return self.Types

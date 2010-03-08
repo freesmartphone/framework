@@ -7,6 +7,7 @@ Open PIM Daemon
 (C) 2008 Openmoko, Inc.
 (C) 2009 Michael 'Mickey' Lauer <mlauer@vanille-media.de>
 (C) 2009 Sebastian Krzyszkowiak <seba.dos1@gmail.com>
+(C) 2009 Tom "TAsn" Hacohen <tom@stosb.com>
 GPLv2 or later
 
 Contacts Domain Plugin
@@ -23,9 +24,6 @@ import re
 import logging
 logger = logging.getLogger('opimd')
 
-from backend_manager import BackendManager
-from backend_manager import PIMB_CAN_ADD_ENTRY, PIMB_CAN_DEL_ENTRY, PIMB_CAN_UPD_ENTRY, PIMB_CAN_UPD_ENTRY_WITH_NEW_FIELD, PIMB_NEEDS_SYNC
-
 from domain_manager import DomainManager, Domain
 from helpers import *
 from opimd import *
@@ -34,7 +32,9 @@ from query_manager import QueryMatcher, SingleQueryHandler
 
 from framework.config import config, busmap
 
-from pimd_generic import GenericEntry, GenericDomain
+from pimd_generic import GenericDomain
+
+from db_handler import DbHandler
 
 #----------------------------------------------------------------------------#
 
@@ -50,52 +50,45 @@ _DIN_ENTRY = _DIN_CONTACTS_BASE + '.' + 'Contact'
 _DIN_QUERY = _DIN_CONTACTS_BASE + '.' + 'ContactQuery'
 _DIN_FIELDS = _DIN_CONTACTS_BASE + '.' + 'Fields'
 
-_CONTACTS_DEFAULT_TYPES = {
-                          'Path'    : 'objectpath',
-                          'Phone'   : 'phonenumber',
-                          'E-mail'  : 'email',
-                          'Name'    : 'name',
-                          'Surname' : 'name',
-                          'Nickname': 'name',
-                          'Birthday': 'date',
-                          'Photo'   : 'photo',
-                          'Address' : 'address'
-                          }
 
 #----------------------------------------------------------------------------#
-class Contact(GenericEntry):
+class ContactsDbHandler(DbHandler):
 #----------------------------------------------------------------------------#
-    """Represents one single contact with all the data fields it consists of.
+    name = 'Contacts'
 
-    _fields[n] = [field_name, field_value, value_used_for_comparison, source]
+    domain = None
+#----------------------------------------------------------------------------#
 
-    Best way to explain the usage of _fields and _field_idx is by example:
-    _fields[3] = ["EMail", "foo@bar.com", "", "CSV-Contacts"]
-    _fields[4] = ["EMail", "moo@cow.com", "", "LDAP-Contacts"]
-    _field_idx["EMail"] = [3, 4]"""
+    def __init__(self, domain):
+        self.domain = domain
+
+        self.db_prefix = self.name.lower()
+        self.table_types = ['phonenumber', 'name', 'email']
+        #Uses basic stuff already assumed to be initalized here (otherwise made generic)
+        super(ContactsDbHandler, self).__init__()
+
+        self.create_db()
+        cur = self.con.cursor()
+
+        self.con.commit()
+        cur.close()
     
-    def __init__(self, path):
-        """Creates a new entry instance"""
-        self.domain = ContactDomain
-        GenericEntry.__init__( self, path )
-
-
 
 #----------------------------------------------------------------------------#
 class QueryManager(DBusFBObject):
 #----------------------------------------------------------------------------#
     _queries = None
-    _entries = None
+    db_handler = None
     _next_query_id = None
 
     # Note: _queries must be a dict so we can remove queries without messing up query IDs
 
-    def __init__(self, entries):
+    def __init__(self, db_handler):
         """Creates a new QueryManager instance
 
         @param entries Set of Entry objects to use"""
 
-        self._entries = entries
+        self.db_handler = db_handler
         self._queries = {}
         self._next_query_id = 0
 
@@ -114,7 +107,7 @@ class QueryManager(DBusFBObject):
         @param dbus_sender Sender's unique name on the bus
         @return dbus path of the query result"""
 
-        query_handler = SingleQueryHandler(query, self._entries, dbus_sender)
+        query_handler = SingleQueryHandler(query, self.db_handler, dbus_sender)
 
         query_id = self._next_query_id
         self._next_query_id += 1
@@ -128,11 +121,9 @@ class QueryManager(DBusFBObject):
         """Checks whether a newly added entry matches one or more queries so they can signal clients
 
         @param entry_id Contact ID of the contact that was added"""
-
         for (query_id, query_handler) in self._queries.items():
             if query_handler.check_new_entry(entry_id):
-                entry = self._entries[entry_id]
-                entry_path = entry['Path']
+                entry_path = self.id_to_path(entry_id)
                 self.EntryAdded(entry_path, rel_path='/' + str(query_id))
 
     def check_query_id_ok( self, num_id ):
@@ -212,29 +203,44 @@ class ContactDomain(Domain, GenericDomain):
 #----------------------------------------------------------------------------#
     name = _DOMAIN_NAME
 
-    _backends = None
-    _entries = None
+    db_handler = None
     query_manager = None
     _dbus_path = None
-    Entry = None
-    DefaultTypes = _CONTACTS_DEFAULT_TYPES
+    DEFAULT_FIELDS = {}
+    """
+                        'Name'          : 'name',
+                        'Nickname'      : 'name',
+                        'Surname'       : 'name',
 
+                        'Home phone'    : 'phonenumber',
+                        'Mobile phone'  : 'phonenumber',
+                        'Work phone'    : 'phonenumber',
+                        'Phone'         : 'phonenumber',
+
+                        'Address'       : 'address',
+                        'Birthday'      : 'date',
+                        'E-mail'        : 'email',
+                        'Photo'         : 'photo',
+                        'Affiliation'   : 'text',
+                        'Note'          : 'text'
+    """
     def __init__(self):
         """Creates a new ContactDomain instance"""
 
-        self.Entry = Contact
-
-        self._backends = {}
-        self._entries = []
         self._dbus_path = _DBUS_PATH_CONTACTS
-        self.query_manager = QueryManager(self._entries)
+        self.db_handler = ContactsDbHandler(self)
+        self.query_manager = QueryManager(self.db_handler)
 
         # Initialize the D-Bus-Interface
         Domain.__init__( self, conn=busmap["opimd"], object_path=DBUS_PATH_BASE_FSO + '/' + self.name )
 
+        self.load_field_types()
+
+        self.add_default_fields()
         # Keep frameworkd happy
         self.interface = _DIN_CONTACTS
         self.path = _DBUS_PATH_CONTACTS
+        
 
  
     #---------------------------------------------------------------------#
@@ -285,16 +291,8 @@ class ContactDomain(Domain, GenericDomain):
         # Make sure the requested entry exists
         self.check_entry_id(num_id)
 
-        return self._entries[num_id].get_content()
-
-    @dbus_method(_DIN_ENTRY, "", "as", rel_path_keyword="rel_path")
-    def GetUsedBackends(self, rel_path):
-        num_id = int(rel_path[1:])
-                
-        # Make sure the requested entry exists
-        self.check_entry_id(num_id)
-        
-        return self._entries[num_id]._used_backends
+        res = self.get_content(num_id)
+        return res
 
     @dbus_method(_DIN_ENTRY, "s", "a{sv}", rel_path_keyword="rel_path")
     def GetMultipleFields(self, field_list, rel_path):

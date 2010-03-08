@@ -7,7 +7,7 @@ Open PIM Daemon
 (C) 2008 Openmoko, Inc.
 (C) 2009 Michael 'Mickey' Lauer <mlauer@vanille-media.de>
 (C) 2009 Sebastian Krzyszkowiak <seba.dos1@gmail.com>
-(C) 2009 Thomas Zimmermann <zimmermann@vdm-design.de>
+(C) 2009 Tom "TAsn" Hacohen <tom@stosb.com>
 GPLv2 or later
 
 Dates Domain Plugin
@@ -24,9 +24,6 @@ import re
 import logging
 logger = logging.getLogger('opimd')
 
-from backend_manager import BackendManager
-from backend_manager import PIMB_CAN_ADD_ENTRY, PIMB_CAN_DEL_ENTRY, PIMB_CAN_UPD_ENTRY, PIMB_CAN_UPD_ENTRY_WITH_NEW_FIELD, PIMB_NEEDS_SYNC
-
 from domain_manager import DomainManager, Domain
 from helpers import *
 from opimd import *
@@ -35,7 +32,9 @@ from query_manager import QueryMatcher, SingleQueryHandler
 
 from framework.config import config, busmap
 
-from pimd_generic import GenericEntry, GenericDomain
+from pimd_generic import GenericDomain
+
+from db_handler import DbHandler
 
 #----------------------------------------------------------------------------#
 
@@ -51,38 +50,39 @@ _DIN_ENTRY = _DIN_DATES_BASE + '.' + 'Date'
 _DIN_QUERY = _DIN_DATES_BASE + '.' + 'DateQuery'
 _DIN_FIELDS = _DIN_DATES_BASE + '.' + 'Fields'
 
-#----------------------------------------------------------------------------#
-class Date(GenericEntry):
-#----------------------------------------------------------------------------#
-    """Represents one single calendar entry with all the data fields it consists of.
 
-    _fields[n] = [field_name, field_value, value_used_for_comparison, source]
+#----------------------------------------------------------------------------#
+class DatesDbHandler(DbHandler):
+#----------------------------------------------------------------------------#
+    name = 'Dates'
 
-    Best way to explain the usage of _fields and _field_idx is by example:
-    _fields[3] = ["EMail", "foo@bar.com", "", "CSV-Contacts"]
-    _fields[4] = ["EMail", "moo@cow.com", "", "LDAP-Contacts"]
-    _field_idx["EMail"] = [3, 4]"""
-    
-    def __init__(self, path):
-        """Creates a new entry instance"""
-        self.domain = DateDomain
-        GenericEntry.__init__( self, path )
+    domain = None
+#----------------------------------------------------------------------------#
+
+    def __init__(self, domain):
+        
+        self.domain = domain
+
+        self.db_prefix = self.name.lower()
+        self.table_types = ['text', 'longtext', 'date', 'boolean']
+        super(DatesDbHandler, self).__init__()
+        self.create_db()
 
 #----------------------------------------------------------------------------#
 class QueryManager(DBusFBObject):
 #----------------------------------------------------------------------------#
     _queries = None
-    _entries = None
+    db_handler = None
     _next_query_id = None
 
     # Note: _queries must be a dict so we can remove queries without messing up query IDs
 
-    def __init__(self, entries):
+    def __init__(self, db_handler):
         """Creates a new QueryManager instance
 
-        @param entries Set of Date objects to use"""
+        @param entries Set of Entry objects to use"""
 
-        self._entries = entries
+        self.db_handler = db_handler
         self._queries = {}
         self._next_query_id = 0
 
@@ -101,7 +101,7 @@ class QueryManager(DBusFBObject):
         @param dbus_sender Sender's unique name on the bus
         @return dbus path of the query result"""
 
-        query_handler = SingleQueryHandler(query, self._entries, dbus_sender)
+        query_handler = SingleQueryHandler(query, self.db_handler, dbus_sender)
 
         query_id = self._next_query_id
         self._next_query_id += 1
@@ -112,14 +112,12 @@ class QueryManager(DBusFBObject):
 
 
     def check_new_entry(self, entry_id):
-        """Checks whether a newly added date matches one or more queries so they can signal clients
+        """Checks whether a newly added entry matches one or more queries so they can signal clients
 
-        @param entry_id Date ID of the datethat was added"""
-
+        @param entry_id Date ID of the date that was added"""
         for (query_id, query_handler) in self._queries.items():
             if query_handler.check_new_entry(entry_id):
-                entry = self._entries[entry_id]
-                entry_path = entry['Path']
+                entry_path = self.id_to_path(entry_id)
                 self.EntryAdded(entry_path, rel_path='/' + str(query_id))
 
     def check_query_id_ok( self, num_id ):
@@ -199,28 +197,26 @@ class DateDomain(Domain, GenericDomain):
 #----------------------------------------------------------------------------#
     name = _DOMAIN_NAME
 
-    _backends = None
-    _entries = None
+    db_handler = None
     query_manager = None
     _dbus_path = None
-    Entry = None
 
     def __init__(self):
         """Creates a new DateDomain instance"""
 
-        self.Entry = Date
-
-        self._backends = {}
-        self._entries = []
         self._dbus_path = _DBUS_PATH_DATES
-        self.query_manager = QueryManager(self._entries)
+        self.db_handler = DatesDbHandler(self)
+        self.query_manager = QueryManager(self.db_handler)
 
         # Initialize the D-Bus-Interface
         Domain.__init__( self, conn=busmap["opimd"], object_path=DBUS_PATH_BASE_FSO + '/' + self.name )
 
+        self.load_field_types()
+
         # Keep frameworkd happy
         self.interface = _DIN_DATES
         self.path = _DBUS_PATH_DATES
+        
 
  
     #---------------------------------------------------------------------#
@@ -241,23 +237,17 @@ class DateDomain(Domain, GenericDomain):
         @param entry_data List of fields; format is [Key:Value, Key:Value, ...]
         @return Path of the newly created d-bus entry object"""
 
-        begin = False
-        end = False
-        # Required fields: Begin, End
-        for key in entry_data:
-            if key == "Begin":
-                begin = True
-            if key == "End":
-                end = True
-
-        if not begin:
-            raise InvalidData( "Begin field missing!" )
-        elif not end:
-            raise InvalidData( "End field missing!" )
-        elif not begin and not end:
-            raise InvalidData( "Begin and End fields missing!" )
-
         return self.add(entry_data)
+
+    @dbus_method(_DIN_DATES, "a{sv}s", "s")
+    def GetSingleEntrySingleField(self, query, field_name):
+        """Returns the first entry found for a query, making it real easy to query simple things
+
+        @param query The query object
+        @param field_name The name of the field to return
+        @return The requested data"""
+
+        return self.get_single_entry_single_field(query, field_name)
 
     @dbus_method(_DIN_DATES, "a{sv}", "s", sender_keyword="sender")
     def Query(self, query, sender):
@@ -269,6 +259,7 @@ class DateDomain(Domain, GenericDomain):
 
         return self.query_manager.process_query(query, sender)
 
+
     @dbus_method(_DIN_ENTRY, "", "a{sv}", rel_path_keyword="rel_path")
     def GetContent(self, rel_path):
         num_id = int(rel_path[1:])
@@ -276,16 +267,7 @@ class DateDomain(Domain, GenericDomain):
         # Make sure the requested entry exists
         self.check_entry_id(num_id)
 
-        return self._entries[num_id].get_content()
-
-    @dbus_method(_DIN_ENTRY, "", "as", rel_path_keyword="rel_path")
-    def GetUsedBackends(self, rel_path):
-        num_id = int(rel_path[1:])
-                
-        # Make sure the requested entry exists
-        self.check_entry_id(num_id)
-        
-        return self._entries[num_id]._used_backends
+        return self.get_content(num_id)
 
     @dbus_method(_DIN_ENTRY, "s", "a{sv}", rel_path_keyword="rel_path")
     def GetMultipleFields(self, field_list, rel_path):
