@@ -34,13 +34,11 @@ class HeadsetManager( object ):
         self.pcm_device = "hw:0,1"
         self.pcm_play = None
         self.pcm_cap = None
+        self.enabled = False
         self.connected = False
         self.playing = False
         self._kickPCM()
         self.monitor = gobject.timeout_add_seconds( 10, self._handleMonitorTimeout )
-        usage = self.bus.get_object( 'org.freesmartphone.ousaged', '/org/freesmartphone/Usage', follow_name_owner_changes=True )
-        self.usageiface = dbus.Interface( usage, 'org.freesmartphone.Usage' )
-        logger.info( "usage ok: %s" % self.usageiface )
 
     def _kickPCM( self ):
         try:
@@ -127,21 +125,21 @@ class HeadsetManager( object ):
         if self._matchAnswerRequested:
             self._matchAnswerRequested.remove()
             self._matchAnswerRequested = None
-        # if disconnect fails for any reason, we
-        # still cancel all BT, such that the audio
-        # will get routed back to the headset
-        try:
-           self.bluez_device_headset.Disconnect()
-        except:
-           pass
+        self.bluez_device_headset.Disconnect()
         self.bluez_device_headset = None
         self.bluez_adapter = None
         self.bluez_manager = None
 
     def _updateConnected( self ):
-        if self.address and not self.connected:
+        # FIXME: handle disappearing BT device
+        if self.enabled and not self.connected:
             self._connectBT()
             self.connected = True
+            if self._onConnectionStatus:
+                self._onConnectionStatus( self.connected )
+        elif not self.enabled and self.connected:
+            self._disconnectBT()
+            self.connected = False
             if self._onConnectionStatus:
                 self._onConnectionStatus( self.connected )
 
@@ -153,51 +151,29 @@ class HeadsetManager( object ):
         return True
 
     def setAddress( self, address ):
-        if self.address != address:
-            if self.connected:
-            self.setPlaying( False )
-                self._disconnectBT()
-                self.connected = False
-                if self._onConnectionStatus:
-                    self._onConnectionStatus( self.connected )
-        if self.address and not address:
-            self.usageiface.ReleaseResource(
-                "Bluetooth",
-                reply_handler=self.cbReleaseReply,
-                error_handler=self.cbReleaseError,
-            )
+        if self.enabled:
+            raise HeadsetError("Can't change address while enabled")
         self.address = address
-        if self.address:
-            try:
-                self.usageiface.RequestResource(
-                    "Bluetooth",
-                    reply_handler=self.cbRequestReply,
-                    error_handler=self.cbRequestError,
-                )
-            except:
-                pass
 
-    def cbRequestReply( self ):
-        logger.info( "Requested Bluetooth" )
+    def setEnabled( self, enabled ):
+        if not self.enabled and enabled:
+            if not self.address:
+                raise HeadsetError("Address not set")
+            self.enabled = True
+        elif self.enabled and not enabled:
+            self.setPlaying( False )
+            self.enabled = False
 
-    def cbRequestError( self, e ):
-        log_dbus_error( e, "error while requesting Bluetooth"  )
-        logger.info( "Requested Bluetooth with error" )
-
-    def cbReleaseReply( self ):
-        logger.info( "Released Bluetooth" )
-
-    def cbReleaseError( self, e ):
-        log_dbus_error( e, "error while releasing Bluetooth" )
-        logger.info( "Released Bluetooth with error" )
+    def getEnabled( self ):
+        return self.enabled
 
     def getConnected( self ):
         return self.connected
 
     def setPlaying( self, playing ):
         if not self.playing and playing:
-            if not self.connected:
-                raise HeadsetError("No connected")
+            if not self.enabled:
+                raise HeadsetError("Not enabled")
             self._startPCM()
             self._startBT()
             self.playing = True
