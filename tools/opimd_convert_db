@@ -188,7 +188,7 @@ if os.path.exists(os.path.join(rootdir, 'pim.db')):
     print "If you want to convert again, remove pim.db and restart this script"
     exit(1)
 print "Attempting to convert old pim database, any errors will be written in frameworkd's log (mostly resides in: /var/log/frameworkd.log)"
-
+print "You can stop the conversion script whenever you want to, just send a keyboard interrupt (^C).\nAlthough the conversion is not resumable, you can stop when you feel you converted all you needed to convert.\nThis is useful for stopping the conversion if converting the calls domain takes too long,\n and you don't want to save all your of your call history."
 old_db = OldDb()
 
 new_db = NewDb(old_db)
