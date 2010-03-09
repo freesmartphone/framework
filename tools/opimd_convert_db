@@ -96,7 +96,7 @@ class OldDb(object):
                 raise 
 
             if entry.get('Timestamp'):
-                entry['Timestamp']=int(entry['Timestamp'])
+                entry['Timestamp']=int(float(entry['Timestamp']))
             #Remove bad fields
             for field in entry.keys():
                 #convert those nulls to false
