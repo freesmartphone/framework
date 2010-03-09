@@ -51,19 +51,10 @@ class Phone(dbus.service.Object):
         gobject.idle_add( self.on_startup )
 
     def on_startup( self ):
-        self.bus.add_signal_receiver(
-            self.on_preferences_changed, 'Notify', 'org.freesmartphone.Preferences.Service',
-            'org.freesmartphone.opreferencesd', '/org/freesmartphone/Preferences/phone'
-        )
-
         opreferencesd = Controller.object( "/org/freesmartphone/Preferences" )
         self.preferences = opreferencesd.GetService( "phone" )
         address = self.preferences.GetValue( "bt-headset-address" )
-        enabled = self.preferences.GetValue( "bt-headset-enabled" )
         self.headset.setAddress( address )
-        if address and enabled:
-            self.headset.setEnabled( True )
-            self.BTHeadsetEnabled( True )
 
         self.bus.add_signal_receiver(
             self.on_preferences_changed, 'Notify', 'org.freesmartphone.Preferences.Service',
@@ -73,9 +64,6 @@ class Phone(dbus.service.Object):
     def on_preferences_changed (self, key, value ):
         if key == "bt-headset-address":
             self.headset.setAddress( value )
-        elif key == "bt-headset-enabled":
-            self.headset.setEnabled( value )
-            self.BTHeadsetEnabled( value )
 
     def on_resource_changed( self, resourcename, state, attributes ):
         if resourcename == "GSM":
@@ -126,10 +114,6 @@ class Phone(dbus.service.Object):
     @dbus.service.method('org.freesmartphone.Phone', in_signature='b', out_signature='')
     def SetBTHeadsetPlaying( self, playing ):
         self.headset.setPlaying( playing )
-
-    @dbus.service.signal('org.freesmartphone.Phone', signature='b')
-    def BTHeadsetEnabled(self, enabled):
-        pass
 
     @dbus.service.signal('org.freesmartphone.Phone', signature='b')
     def BTHeadsetConnected(self, connected):

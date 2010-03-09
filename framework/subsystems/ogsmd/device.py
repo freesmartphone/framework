@@ -315,11 +315,17 @@ class Device( resource.Resource ):
     def GetPhonebookInfo( self, category, dbus_ok, dbus_error ):
         mediator.SimGetPhonebookInfo( self, dbus_ok, dbus_error, category=category )
 
-    @dbus.service.method( DBUS_INTERFACE_SIM, "s", "a(iss)",
+    @dbus.service.method( DBUS_INTERFACE_SIM, "s", "ii",
                           async_callbacks=( "dbus_ok", "dbus_error" ) )
     @resource.checkedmethod
-    def RetrievePhonebook( self, category, dbus_ok, dbus_error ):
-        mediator.SimRetrievePhonebook( self, dbus_ok, dbus_error, category=category )
+    def GetPhonebookStorageInfo( self, category, dbus_ok, dbus_error ):
+        mediator.SimGetPhonebookStorageInfo( self, dbus_ok, dbus_error, category=category )
+
+    @dbus.service.method( DBUS_INTERFACE_SIM, "sii", "a(iss)",
+                          async_callbacks=( "dbus_ok", "dbus_error" ) )
+    @resource.checkedmethod
+    def RetrievePhonebook( self, category, indexFirst, indexLast, dbus_ok, dbus_error ):
+        mediator.SimRetrievePhonebook( self, dbus_ok, dbus_error, category=category, indexFirst=indexFirst, indexLast=indexLast )
 
     @dbus.service.method( DBUS_INTERFACE_SIM, "si", "",
                           async_callbacks=( "dbus_ok", "dbus_error" ) )
