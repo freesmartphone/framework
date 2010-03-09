@@ -80,10 +80,13 @@ class OldDb(object):
         for line in lines:
             entry = {}
             for key in keys:
-                entry[keys[key]] = line[key]
+                if line[key]:
+                    entry[keys[key]] = line[key]
             try:
                 cur.execute('SELECT Field, Value FROM ' + prefix + '_values WHERE ' + prefix + 'Id=?',(line[0],))
                 for pair in cur:
+                    if not pair[1]:
+                        continue
                     if entry.has_key(pair[0]):
                         if type(entry[pair[0]]) == list:
                             entry[pair[0]].append(pair[1])
