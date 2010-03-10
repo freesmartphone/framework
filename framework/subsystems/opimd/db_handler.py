@@ -387,10 +387,12 @@ class DbHandler(object):
                     continue
             if type(entry_data[field]) == Array or type(entry_data[field]) == list:
                 for value in entry_data[field]:
-                    cur.execute('INSERT INTO ' + table + ' (' + self.db_prefix + '_id, Field_name, Value) VALUES (?,?,?)',
+                    if value != "" and value != None:
+                        cur.execute('INSERT INTO ' + table + ' (' + self.db_prefix + '_id, Field_name, Value) VALUES (?,?,?)',
                                 (eid, field, self.get_value_object(field_type, field, value)))
             else:
-                cur.execute('INSERT INTO ' + table + ' (' + self.db_prefix + '_id, Field_name, Value) VALUES (?,?,?)', \
+                if entry_data[field] != "" and entry_data[field] != None:
+                    cur.execute('INSERT INTO ' + table + ' (' + self.db_prefix + '_id, Field_name, Value) VALUES (?,?,?)', \
                                 (eid, field, self.get_value_object(field_type, field, entry_data[field])))        
         self.con.commit()
         cur.close()
@@ -408,9 +410,10 @@ class DbHandler(object):
                         "_id = ? AND field_name = ?", (eid, field))
             if type(entry_data[field]) == Array or type(entry_data[field]) == list:
                 for value in entry_data[field]:
-                    cur.execute("INSERT INTO " + table + " (" + self.db_prefix + "_id, Field_name, Value) VALUES (?,?,?)",
+                    if value != "" and value != None:
+                        cur.execute("INSERT INTO " + table + " (" + self.db_prefix + "_id, Field_name, Value) VALUES (?,?,?)",
                                         (eid, field, self.get_value_object(field_type, field, value)))
-            elif entry_data[field] == "":
+            elif entry_data[field] == "" or entry_data[field] == None:
                 pass
             else:
                 cur.execute("INSERT INTO " + table + " (" + self.db_prefix + "_id, Field_name, Value) VALUES (?,?,?)",
