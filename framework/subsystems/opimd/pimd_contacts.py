@@ -206,8 +206,7 @@ class ContactDomain(Domain, GenericDomain):
     db_handler = None
     query_manager = None
     _dbus_path = None
-    DEFAULT_FIELDS = {}
-    """
+    DEFAULT_FIELDS = {
                         'Name'          : 'name',
                         'Nickname'      : 'name',
                         'Surname'       : 'name',
@@ -223,7 +222,7 @@ class ContactDomain(Domain, GenericDomain):
                         'Photo'         : 'photo',
                         'Affiliation'   : 'text',
                         'Note'          : 'text'
-    """
+    }
     def __init__(self):
         """Creates a new ContactDomain instance"""
 
