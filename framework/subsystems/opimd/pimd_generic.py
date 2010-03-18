@@ -321,7 +321,7 @@ class GenericDomain():
         entry = self.get_content(num_id)
 
         for key in entry.keys():
-            if key not in fields:
+            if key not in fields and "$" + self.field_type_from_name(key) not in fields:
                 del entry[key]
 
         return entry
