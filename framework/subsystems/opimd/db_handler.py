@@ -296,7 +296,7 @@ class DbHandler(object):
 
         for (field, name) in raw:
             if field in map:
-                if type(field) == list:
+                if type(map[field]) == list:
                     map[field].append(name)
                 else:
                     map[field] = [map[field], name]
