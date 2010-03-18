@@ -317,8 +317,8 @@ class GenericDomain():
         # Break the string up into a list
         fields = field_list.split(',')
         #strip all the fields
-        map(lambda x: field_name.strip(), fields)
-        entry = self.get_content(numb_id)
+        map(lambda x: x.strip(), fields)
+        entry = self.get_content(num_id)
 
         for key in entry.keys():
             if key not in fields:
