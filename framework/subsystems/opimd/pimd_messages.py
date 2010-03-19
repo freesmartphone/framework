@@ -584,10 +584,13 @@ class MessagesFSO(object):
                     logger.error("%s: Could not install signal handler!", self.name)
     def process_incoming_stored_entry(self, status, number, text, props, message_id):
         self.process_single_entry((status, number, text, props))
-        
+        self.gsm_sim_iface.DeleteMessage(message_id, reply_handler=self.dbus_ok, error_handler=self.dbus_err)
+
     def handle_incoming_stored_message(self, message_id):
-        logger.error("Got incoming stored message, shouldn't happen")
-        #SHOLUD WE HANDLE?
+        logger.error("Got incoming stored message, shouldn't happen - Storing ourselves and deleting from sim")
+        logger.info("After previous error, trying to take back control for messages")
+        self.gsm_device_iface.SetSimBuffersSms(False, reply_handler=self.dbus_ok, error_handler=self.dbus_err)
+        #SHOLUD WE DELETE AFTERWARDS?
         self.gsm_sim_iface.RetrieveMessage(
             message_id,
             reply_handler=partial(self.process_incoming_stored_entry, message_id=message_id),
