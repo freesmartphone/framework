@@ -151,8 +151,8 @@ class VibratorAction(Action):
     A dbus action on the Openmoko Neo Vibrator device
     """
     function_name = 'Vibration'
-    # FIXME: device specific, needs to go away from here / made generic (parametric? just take the first?)
-    def __init__(self, target = 'neo1973_vibrator', mode = "continuous"):
+    # FIXME: ATM it just takes the first and runs at full power, should fix.
+    def __init__(self, target = 0, mode = "continuous"):
         self.mode = mode
         self.target = target
 
@@ -160,24 +160,24 @@ class VibratorAction(Action):
         if self.mode == "continuous":
             DBusAction(dbus.SystemBus(),
                         'org.freesmartphone.odeviced',
-                        '/org/freesmartphone/Device/LED/%s' % self.target,
-                        'org.freesmartphone.Device.LED',
-                        'SetBlinking', 300, 700).trigger()
+                        '/org/freesmartphone/Device/Vibrator/%s' % self.target,
+                        'org.freesmartphone.Device.Vibrator',
+                        'VibratePattern', 999, 300, 700, 100).trigger()
         elif self.mode == "oneshot":
             DBusAction(dbus.SystemBus(),
                         'org.freesmartphone.odeviced',
-                        '/org/freesmartphone/Device/LED/%s' % self.target,
-                        'org.freesmartphone.Device.LED',
-                        'BlinkSeconds', 1, 300, 700).trigger()
+                        '/org/freesmartphone/Device/Vibrator/%s' % self.target,
+                        'org.freesmartphone.Device.Vibrator',
+                        'Vibrate', 1, 100).trigger()
         else:
             logger.warning( "invalid vibration mode '%s', valid are 'continuous' or 'oneshot'" )
 
     def untrigger(self, **kargs):
         DBusAction(dbus.SystemBus(),
                     'org.freesmartphone.odeviced',
-                    '/org/freesmartphone/Device/LED/%s' % self.target,
-                    'org.freesmartphone.Device.LED',
-                    'SetBrightness', 0).trigger()
+                    '/org/freesmartphone/Device/Vibrator/%s' % self.target,
+                    'org.freesmartphone.Device.Vibrator',
+                    'Stop').trigger()
 
 #============================================================================#
 class BTHeadsetPlayingAction(Action):
