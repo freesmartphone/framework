@@ -556,6 +556,7 @@ class MessagesFSO(object):
             self.imsignal.remove()
             self.ismsignal.remove()
             self.imrsignal.remove()
+            self.itmsignal.remove()
             self.signals = False
 
     def enable(self):
@@ -589,7 +590,10 @@ class MessagesFSO(object):
     def handle_incoming_stored_message(self, message_id):
         logger.error("Got incoming stored message, shouldn't happen - Storing ourselves and deleting from sim")
         logger.info("After previous error, trying to take back control for messages")
-        self.gsm_device_iface.SetSimBuffersSms(False, reply_handler=self.dbus_ok, error_handler=self.dbus_err)
+        try:
+            self.gsm_device_iface.SetSimBuffersSms(False, reply_handler=self.dbus_ok, error_handler=self.dbus_err)
+        except:
+            logger.warning("Couldn't set sim buffers. This is bad even if you use fsogsmd.")
         #SHOLUD WE DELETE AFTERWARDS?
         self.gsm_sim_iface.RetrieveMessage(
             message_id,
@@ -612,9 +616,13 @@ class MessagesFSO(object):
                 self.imsignal = self.gsm_sms_iface.connect_to_signal("IncomingMessage", self.handle_incoming_message)
                 self.ismsignal = self.gsm_sim_iface.connect_to_signal("IncomingStoredMessage", self.handle_incoming_stored_message)
                 self.imrsignal = self.gsm_sms_iface.connect_to_signal("IncomingMessageReceipt", self.handle_incoming_message_receipt)
+                self.itmsignal = self.gsm_sms_iface.connect_to_signal("IncomingTextMessage", self.handle_incoming_text_message)
                 logger.info("%s: Installed signal handlers", self.name)
                 self.signals = True
-                self.gsm_device_iface.SetSimBuffersSms(False, reply_handler=self.dbus_ok, error_handler=self.dbus_err)
+                try:
+                    self.gsm_device_iface.SetSimBuffersSms(False, reply_handler=self.dbus_ok, error_handler=self.dbus_err)
+                except:
+                    logger.warning("Couldn't set sim buffers. Either you are using fsogsmd or something went wrong")
             except:
                 logger.error("%s: Could not install signal handlers!", self.name)
 
@@ -624,6 +632,21 @@ class MessagesFSO(object):
 
     def handle_sim_ready(self, ready):
         return 
+    def handle_incoming_text_message(self, number, timestamp, msg):
+        logger.debug("Adding incoming text message.")
+        entry = {}
+        entry['Content'] = msg
+        entry['Sender'] = numer
+        entry['Direction'] = 'in'
+        entry['MessageRead'] = 0
+        entry['Source'] = 'SMS'
+        # We get number of quarters of an hours, convert to minutes:
+        zone = int(timestamp[18:]) * 15
+        hours = int(zone / 60)
+        minutes = zone - (hours * 60)
+        entry['Timezone'] = '+' + str(hours).zfill(2) + str(minutes).zfill(2)
+        entry['Timestamp'] = int(time.mktime(time.strptime(timestamp[:17], "%d/%m/%y,%H:%M:%S")))
+        self.domain.AddIncoming(entry)
 
     def handle_incoming_message_receipt(self, number, text, props):
         path = self.domain.GetSingleEntrySingleField({'SMS-message-reference':props['message-reference'], 'Direction':'out', 'Source':'SMS', 'SMS-status-report-request':1},'Path')
