@@ -636,7 +636,7 @@ class MessagesFSO(object):
         logger.debug("Adding incoming text message.")
         entry = {}
         entry['Content'] = msg
-        entry['Sender'] = numer
+        entry['Sender'] = number
         entry['Direction'] = 'in'
         entry['MessageRead'] = 0
         entry['Source'] = 'SMS'
