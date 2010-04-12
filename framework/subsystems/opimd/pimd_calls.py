@@ -419,19 +419,19 @@ class CallsLogFSO(object):
         elif self.props[line].has_key('Peer'):
             peer = self.props[line]['Peer']
 
-        if call_status == "incoming":
+        if call_status.lower() == "incoming":
             try:
                 self.props[line]['Peer'] = peer
             except:
                 pass
             self.props[line]['Direction'] = 'in'
-        elif call_status == "outgoing":
+        elif call_status.lower() == "outgoing":
             self.props[line]['Peer'] = peer
             self.props[line]['Direction'] = 'out'
-        elif call_status == "active":
+        elif call_status.lower() == "active":
             self.props[line]['Answered'] = 1
             self.props[line]['Timestamp'] = int(time.time())
-        elif call_status == "release":
+        elif call_status.lower() == "release":
             if self.props[line].has_key('Timestamp'):
                 self.props[line]['Duration'] = int(time.time() - self.props[line]['Timestamp'])
             else:
