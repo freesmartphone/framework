@@ -28,7 +28,22 @@ from .unsolicited import UnsolicitedResponseDelegate
 from ogsmd.gsm.decor import logged
 from ogsmd.gsm.channel import AtCommandChannel
 
+import logging
+logger = logging.getLogger( MODULE_NAME )
+
 import types
+
+import os
+import sys
+import errno
+import fcntl
+import termios
+import array
+import time
+import subprocess
+
+muxfds = []
+initDone = False
 
 #=========================================================================#
 class FreescaleNeptune( AbstractModem ):
@@ -64,21 +79,26 @@ class FreescaleNeptune( AbstractModem ):
     def __init__( self, *args, **kwargs ):
         AbstractModem.__init__( self, *args, **kwargs )
 
+        global initDone
+        if not initDone:
+            ret = self._freescale_neptune_modemOn()
+            if not ret:
+                return False
+            initDone = True
+
         # /dev/mux0
-        self._channels[ "CallAndNetwork" ] = CallAndNetworkChannel( self.pathfactory, "/dev/mux0", modem=self )
+        self._channels[ "CallAndNetwork" ] = CallAndNetworkChannel( self.pathfactory, "/dev/mux1", modem=self )
         # /dev/mux2
-        self._channels[ "Sms" ] = SmsChannel( self.pathfactory, "/dev/mux2", modem=self )
+        self._channels[ "Sms" ] = SmsChannel( self.pathfactory, "/dev/mux3", modem=self )
         # /dev/mux4
         self._channels[ "Sim" ] = SimChannel( self.pathfactory, "/dev/mux4", modem=self )
         # /dev/mux6
-        self._channels[ "Misc" ] = MiscChannel( self.pathfactory, "/dev/mux6", modem=self )
+        self._channels[ "Misc" ] = MiscChannel( self.pathfactory, "/dev/mux5", modem=self )
 
         # configure channels
         self._channels["CallAndNetwork"].setDelegate( UnsolicitedResponseDelegate( self._object, mediator ) )
         self._channels["Sms"].setDelegate( UnsolicitedResponseDelegate( self._object, mediator ) )
         self._channels["Sim"].setDelegate( UnsolicitedResponseDelegate( self._object, mediator ) )
-
-        self._initDone = None
 
     def numberToPhonebookTuple( self, nstring ):
         """
@@ -104,11 +124,55 @@ class FreescaleNeptune( AbstractModem ):
         else:
             return self._channels["Misc"]
 
-    def pathfactory( self, name ):
-        """
-        Overridden for internal purposes. Shut down OpenEZX lowlevel initialization daemon.
-        """
-        if self._initDone is None:
-            self._initDone = True
-            killall( EZXD_PROCESS_NAME )
+    def pathfactory(self, name):
         return name
+
+    def _freescale_neptune_modemOn(self):
+        global muxfds
+        logger.debug("********************** Modem init **********************")
+        subprocess.check_call(['modprobe', 'ohci-hcd'])
+        time.sleep(2)
+        subprocess.check_call(['modprobe', 'moto-usb-ipc'])
+        subprocess.check_call(['modprobe', 'ts27010mux'])
+
+        N_TS2710 = 19
+        dlci_lines = [0, 1, 2, 3, 4, 5, 6, 7, 8]
+        devpath  = "/dev/ttyIPC0"
+        counter = 10
+
+        # Loop when opening /dev/ttyIPC0 to have some tolerance
+        ipc = None
+        while True:
+            logger.debug("Trying to open %s..." % devpath)
+            counter -= 1
+            try:
+                ipc = os.open(devpath, os.O_RDWR)
+            except OSError as e:
+                if e.errno == errno.ENODEV:
+                    continue
+
+            if ipc or counter == 0:
+                break
+
+        if not ipc:
+            logger.error("Error opening %s" % devpath)
+            return False
+
+        logger.debug("Setting ldisc")
+        line = array.array('i', [N_TS2710])
+        ret = fcntl.ioctl(ipc, termios.TIOCSETD, line, 1)
+        if ret != 0:
+            logger.error("ioctl error %s" % devpath)
+            return False
+
+        for dlci in dlci_lines:
+            devpath = "/dev/mux%d" % dlci
+            try:
+                fd = os.open(devpath, os.O_RDWR | os.O_NOCTTY)
+            except OSError as e:
+                logger.error("%s: %s" % (devpath, e.strerror))
+                return False
+
+            logger.debug("Opened %s" % devpath)
+            muxfds.append(fd)
+        return True
