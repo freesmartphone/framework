@@ -70,7 +70,7 @@ def regex_matches(string, pattern):
         if re.search(unicode(pattern), unicode(string)) == None:
             return 0
         return 1
-    except Exception as exp:
+    except Exception, exp:
         logger.error("While matching regex (pattern = %s, string = %s) got: %s",unicode(pattern), unicode(string), exp)
     return 0
 
@@ -145,7 +145,7 @@ class DbHandler(object):
             self.con.commit()
             cur.close()
         
-        except Exception as exp:
+        except Exception, exp:
             logger.error("""The following errors occured when trying to init db: %s\n%s""", _SQLITE_FILE_NAME, str(exp))
             raise 
     def get_create_type_index(self, type):

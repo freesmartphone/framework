@@ -594,7 +594,7 @@ class MessagesFSO(object):
             self.gsm_device_iface.SetSimBuffersSms(False, reply_handler=self.dbus_ok, error_handler=self.dbus_err)
         except:
             logger.warning("Couldn't set sim buffers. This is bad even if you use fsogsmd.")
-        #SHOLUD WE DELETE AFTERWARDS?
+        #SHOULD WE DELETE AFTERWARDS?
         self.gsm_sim_iface.RetrieveMessage(
             message_id,
             reply_handler=partial(self.process_incoming_stored_entry, message_id=message_id),
@@ -605,7 +605,7 @@ class MessagesFSO(object):
         try:
             self.process_single_entry(("unread", number, text, props))
             self.gsm_sms_iface.AckMessage('', {}, reply_handler=self.dbus_ok, error_handler=self.dbus_err)
-        except Exception as exp:
+        except Exception, exp:
             self.gsm_sms_iface.NackMessage('', {}, reply_handler=self.dbus_ok, error_handler=self.dbus_err)
             logger.error("Message nacked! - Reason: %s", str(exp))
 

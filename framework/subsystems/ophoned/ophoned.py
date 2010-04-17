@@ -1,3 +1,4 @@
+# -*- coding: UTF-8 -*-
 """
 The Open Phone Daemon - Python Implementation
 
