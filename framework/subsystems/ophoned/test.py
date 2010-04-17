@@ -1,3 +1,15 @@
+# -*- coding: UTF-8 -*-
+"""
+The Open Phone Daemon - Python Implementation
+
+(C) 2008 Guillaume "Charlie" Chereau
+(C) 2008 Openmoko, Inc.
+GPLv2 or later
+
+Package: ophoned
+
+Implementation of the dbus objects.
+"""
 
 import gobject
 
