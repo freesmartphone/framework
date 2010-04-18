@@ -201,7 +201,7 @@ class DbHandler(object):
             return "TEXT"
         else:
             return "TEXT"
-    def build_retrieve_query(self):
+    def build_retrieve_query(self, join_parameters):
         query = ""
         not_first = False
         for table in self.tables:
@@ -211,7 +211,12 @@ class DbHandler(object):
             not_first = True
             query = query + "SELECT field_name, value FROM " + table + \
                         " WHERE " + self.db_prefix + "_id=:id"
-    
+            #FIXME: sholud be a nice hash table and not a boolean
+            if table == self.db_prefix + "_phonenumber" and join_parameters:
+                query = query + " UNION SELECT '@ContactId', contacts_id FROM " \
+                        + table + " JOIN contacts_phonenumber USING (value)" \
+                        + " WHERE " + self.db_prefix + "_id=:id "
+                print query
         return query
     def build_search_query(self, query_desc):
         """Recieves a dictionary and makes an sql query that returns all the
@@ -228,7 +233,7 @@ class DbHandler(object):
             #skip system fields
             if name.startswith('_'):
                 #FIXME: put this in a central place!
-                if name not in ('_at_least_one', '_sortdesc', '_sortby', '_limit'):
+                if name not in ('_at_least_one', '_sortdesc', '_sortby', '_limit', '_resolve_phonenumber'):
                     raise InvalidField("Query rule '%s' does not exist." % (name, ))
                 else:
                     continue
@@ -304,28 +309,32 @@ class DbHandler(object):
                 map[field] = name    
         return map
         
-    def get_full_result(self, raw_result):
+    def get_full_result(self, raw_result, join_parameters):
         if raw_result == None:
             return None
         #convert from a list of tuples of ids to a list of ids
         ids = map(lambda x: x[0], raw_result)
-        return self.get_content(ids)
+        return self.get_content(ids, join_parameters)
         
     def query(self, query_desc):
+        #FIXME: join_parametrs should be cool, and not just a boolean.
+        join_parameters = False
         query = self.build_search_query(query_desc)
         if query == None:
             logger.error("Failed creating search query for %s", str(query_desc))
             raise QueryFailed("Failed creating search query.")
+        if query_desc.has_key('_resolve_phonenumber'):
+            join_parameters = True
         cur = self.con.cursor()
         cur.execute(query['Query'], query['Parameters'])
-        res = self.get_full_result(cur.fetchall())
+        res = self.get_full_result(cur.fetchall(), join_parameters)
         cur.close()
         return res
         
-    def get_content(self, ids):
+    def get_content(self, ids, join_parameters):
         cur = self.con.cursor()
         res = []
-        query = self.build_retrieve_query()
+        query = self.build_retrieve_query(join_parameters)
         for id in ids:
             cur.execute(query, {'id': id})
             tmp = self.sanitize_result(cur.fetchall())

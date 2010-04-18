@@ -12,6 +12,7 @@ Or maybe %DOMAIN_field = true? and compare is by using %DOMAIN = compare_field. 
 * Add auto reload of configs
 * Fix the bug that allowes user set field "" by adding a list
 * Figure out why GetMultipleFields works with , delimited text instead of with a list. - Should change this inconsistency.
+* Restrict @prefixed fields as it's reserved for joins.
 
 -- Tasks
 * <dos1> and Tasks is Contacts + UnfinishedTasks support :P
