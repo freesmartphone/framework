@@ -1,8 +1,9 @@
 * Fix FIXMEs
+* Make more distinct differenation between data and validation. ATM they are mixed (faster), but this shouldn't be that much of an overhead anyway, since there are only a small number of "items" in a query.
 * Clean up all the old relics
-* Support "connecting" backends maybe using %DOMAIN, i.e %Contacts will be a field containing a dictionary with (list containing dicotinaries when needed?) the matching contact should find a way to say how to match?
-Or maybe %DOMAIN_field = true? and compare is by using %DOMAIN = compare_field. Probably best would be %DOMAIN = {} (i.e a dict with stuff)
-* Add calculated fields, either make it possible to request type and have a default "generator" for it, or make more complex stuff. - Only on query?
+* Support "connecting" backends maybe using @DOMAIN, i.e @Contacts will be a field containing a dictionary with (list containing dicotinaries when needed?) the matching contact should find a way to say how to match? Or maybe @DOMAIN_field = true? and compare is by using @DOMAIN = compare_field. Probably best would be @DOMAIN = {} (i.e a dict with stuff)
+* When connecting domains should support restriction based on the connected domain.
+* Add calculated fields, either make it possible to request type and have a default "generator" for it, or make more complex stuff. - Only on query, can't compare.
 * Add <Field to query everything that's smaller than the field + Add >Field to query everything that's bigger than the field + etc
 * Discuss breaking API? for instance Peer instead of Sender/Recipient etc
 * Make queries save ids, not full entries
@@ -10,9 +11,8 @@ Or maybe %DOMAIN_field = true? and compare is by using %DOMAIN = compare_field. 
 * FSO handlers, add a timer to check again if the framework is even loaded (when opimd starts before the framework)
 * Clean internal use of path, move completely to Id internally
 * Add auto reload of configs
-* Fix the bug that allowes user set field "" by adding a list
 * Figure out why GetMultipleFields works with , delimited text instead of with a list. - Should change this inconsistency.
-* Restrict @prefixed fields as it's reserved for joins.
+* When updating Queries, we should do something fancier, since if the query is a "connected" query, we should do a lot to make sure everything works.
 
 -- Tasks
 * <dos1> and Tasks is Contacts + UnfinishedTasks support :P
