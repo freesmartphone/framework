@@ -71,6 +71,10 @@ class DomainManager(object):
         return cls._domains[domain] if (domain in cls._domains) else None
 
     @classmethod
+    def get_domains(cls):
+        return cls._domains.keys()
+
+    @classmethod
     def enumerate_dbus_objects(cls):
         for handler in cls._domains.values():
             for obj in handler.get_dbus_objects():

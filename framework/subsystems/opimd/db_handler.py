@@ -236,6 +236,12 @@ class DbHandler(object):
                     raise InvalidField("Query rule '%s' does not exist." % (name, ))
                 else:
                     continue
+            elif name.startswith('@'):
+                if name[1:] not in DomainManager.get_domains():
+                    raise InvalidField("Domain '%s' does not exist." % (name[1:], ))
+                else:
+                    continue
+
             if not_first:
                 query = query + table_join_operator
 
