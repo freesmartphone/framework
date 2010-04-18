@@ -313,11 +313,13 @@ class GenericDomain():
     def get_multiple_fields(self, num_id, field_list):
         # Make sure the requested entry exists
         self.check_entry_id(num_id)
+        #We leave legacy support for , delimited list
+        if type(field_list) == Array or type(field_list) == list:
+            fields = field_list
+        else:
+            fields = field_list.split(',')
+            map(lambda x: x.strip(), fields)
 
-        # Break the string up into a list
-        fields = field_list.split(',')
-        #strip all the fields
-        map(lambda x: x.strip(), fields)
         entry = self.get_content(num_id)
 
         for key in entry.keys():
