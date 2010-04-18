@@ -216,7 +216,6 @@ class DbHandler(object):
                 query = query + " UNION SELECT '@ContactId', contacts_id FROM " \
                         + table + " JOIN contacts_phonenumber USING (value)" \
                         + " WHERE " + self.db_prefix + "_id=:id "
-                print query
         return query
     def build_search_query(self, query_desc):
         """Recieves a dictionary and makes an sql query that returns all the
