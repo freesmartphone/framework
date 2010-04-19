@@ -212,8 +212,8 @@ class DbHandler(object):
             query = query + "SELECT field_name, value FROM " + table + \
                         " WHERE " + self.db_prefix + "_id=:id"
             #FIXME: sholud be a nice hash table and not a boolean
-            if table == self.db_prefix + "_phonenumber" and join_parameters:
-                query = query + " UNION SELECT '@ContactId', contacts_id FROM " \
+            if table == self.db_prefix + "_phonenumber" and join_parameters.get('resolve'):
+                query = query + " UNION SELECT '@contacts', contacts_id FROM " \
                         + table + " JOIN contacts_phonenumber USING (value)" \
                         + " WHERE " + self.db_prefix + "_id=:id "
         return query
@@ -232,7 +232,7 @@ class DbHandler(object):
             #skip system fields
             if name.startswith('_'):
                 #FIXME: put this in a central place!
-                if name not in ('_at_least_one', '_sortdesc', '_sortby', '_limit', '_resolve_phonenumber'):
+                if name not in ('_at_least_one', '_sortdesc', '_sortby', '_limit', '_resolve_phonenumber', '_retrieve_full_contact'):
                     raise InvalidField("Query rule '%s' does not exist." % (name, ))
                 else:
                     continue
@@ -322,14 +322,17 @@ class DbHandler(object):
         return self.get_content(ids, join_parameters)
         
     def query(self, query_desc):
-        #FIXME: join_parametrs should be cool, and not just a boolean.
-        join_parameters = False
+        #FIXME: join_parametrs should be cool, and not just a simple hash
+        join_parameters = {}
         query = self.build_search_query(query_desc)
         if query == None:
             logger.error("Failed creating search query for %s", str(query_desc))
             raise QueryFailed("Failed creating search query.")
-        if query_desc.has_key('_resolve_phonenumber'):
-            join_parameters = True
+        if query_desc.get('_resolve_phonenumber'):
+            join_parameters['resolve'] = True
+            if query_desc.get('_retrieve_full_contact'):
+                join_parametrs['full'] = True
+
         cur = self.con.cursor()
         cur.execute(query['Query'], query['Parameters'])
         res = self.get_full_result(cur.fetchall(), join_parameters)
@@ -343,7 +346,11 @@ class DbHandler(object):
         for id in ids:
             cur.execute(query, {'id': id})
             tmp = self.sanitize_result(cur.fetchall())
-            #add path
+
+            #FIXME: Here we check for @contacts, but we should handle crazier joins.
+            if join_parameters.get('full') and tmp.has_key('@contacts'):
+                #get full contact content!
+                pass
             tmp['Path'] = self.domain.id_to_path(id)
             tmp['EntryId'] = id
             res.append(tmp)
