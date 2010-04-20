@@ -331,7 +331,7 @@ class DbHandler(object):
         if query_desc.get('_resolve_phonenumber'):
             join_parameters['resolve'] = True
             if query_desc.get('_retrieve_full_contact'):
-                join_parametrs['full'] = True
+                join_parameters['full'] = True
 
         cur = self.con.cursor()
         cur.execute(query['Query'], query['Parameters'])

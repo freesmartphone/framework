@@ -342,7 +342,7 @@ class GenericDomain():
     def get_content(self, num_id):
         self.check_entry_id(num_id)
         #FIXME: should I do something instead of this none? do we need extra filtering here?
-        res = self.db_handler.get_content([num_id, ], None)
+        res = self.db_handler.get_content([num_id, ], {})
         if len(res) > 0:
             return res[0]
         else:
