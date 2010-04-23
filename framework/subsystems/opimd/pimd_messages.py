@@ -645,7 +645,7 @@ class MessagesFSO(object):
         hours = int(zone / 60)
         minutes = zone - (hours * 60)
         entry['Timezone'] = timestamp[17:18] + str(hours).zfill(2) + str(minutes).zfill(2)
-        entry['Timestamp'] = int(time.mktime(time.strptime(timestamp[:17], "%d/%m/%y,%H:%M:%S")))
+        entry['Timestamp'] = int(time.mktime(time.strptime(timestamp[:17], "%y/%m/%d,%H:%M:%S")))
         self.domain.AddIncoming(entry)
 
     def handle_incoming_message_receipt(self, number, text, props):
