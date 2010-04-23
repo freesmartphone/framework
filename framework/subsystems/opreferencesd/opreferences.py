@@ -102,7 +102,7 @@ class PreferencesManager(dbus.service.Object):
         for s in self.services.itervalues():
             s.on_profile_changed(profile)
         
-        self.Notify(profile) # Let the system know the profile changed
+        self.Changed(profile) # Let the system know the profile changed
 
     @dbus.service.method("org.freesmartphone.Preferences", in_signature='', out_signature='as')
     def GetProfiles(self):
@@ -111,7 +111,7 @@ class PreferencesManager(dbus.service.Object):
         return profiles_service.GetValue('profiles')
 
     @dbus.service.signal("org.freesmartphone.Preferences", signature='s')
-    def Notify(self, profile):
+    def Changed(self, profile):
         """Signal used to notify of a profile change"""
         logger.debug("Notify change in profile to '%s'", profile)
         
