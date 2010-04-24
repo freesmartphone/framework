@@ -1,4 +1,5 @@
 * Fix FIXMEs
+* Remove the EntryUpdated and UpdatedEntry signals, that is, keep only one.
 * Make more distinct differenation between data and validation. ATM they are mixed (faster), but this shouldn't be that much of an overhead anyway, since there are only a small number of "items" in a query.
 * Clean up all the old relics
 * Support "connecting" backends maybe using @DOMAIN, i.e @Contacts will be a field containing a dictionary with (list containing dicotinaries when needed?) the matching contact should find a way to say how to match? Or maybe @DOMAIN_field = true? and compare is by using @DOMAIN = compare_field. Probably best would be @DOMAIN = {} (i.e a dict with stuff)
