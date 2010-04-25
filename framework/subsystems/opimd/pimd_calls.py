@@ -259,12 +259,13 @@ class CallDomain(Domain, GenericDomain):
         @param entry_data List of fields; format is [Key:Value, Key:Value, ...]
         @return Path of the newly created d-bus entry object"""
         #FIXME: move to a better place (function) and fix the reject bug
+	id = self.add(entry_data)
         if entry_data.has_key('Direction') and entry_data.has_key('Answered') and \
-              entry_data['Direction'] == 'in' and not entry_data['Answered']:
+              entry_data['Direction'] == 'in' and not int(entry_data['Answered']):
             self._new_missed_calls += 1
             self.MissedCall(_DBUS_PATH_CALLS+ '/' + str(id))
             self.NewMissedCalls(self._new_missed_calls)
-        return self.add(entry_data)
+        return id
         
     @dbus_method(_DIN_CALLS, "a{sv}s", "s")
     def GetSingleEntrySingleField(self, query, field_name):
@@ -319,7 +320,7 @@ class CallDomain(Domain, GenericDomain):
         num_id = int(rel_path[1:])
         call = self.get_content(num_id)
 
-        if int(call.get('New')) and not call.get('Answered') and call.get('Direction') == 'in':
+        if call.has_key('New') and int(call.get('New')) and not call.get('Answered') and call.get('Direction') == 'in':
             self._new_missed_calls -= 1
             self.NewMissedCalls(self._new_missed_calls)
  
