@@ -162,13 +162,13 @@ class VibratorAction(Action):
                         'org.freesmartphone.odeviced',
                         '/org/freesmartphone/Device/Vibrator/%s' % self.target,
                         'org.freesmartphone.Device.Vibrator',
-                        'VibratePattern', 999, 300, 700, 100).trigger()
+                        'VibratePattern', 999, 300, 700, 90).trigger()
         elif self.mode == "oneshot":
             DBusAction(dbus.SystemBus(),
                         'org.freesmartphone.odeviced',
                         '/org/freesmartphone/Device/Vibrator/%s' % self.target,
                         'org.freesmartphone.Device.Vibrator',
-                        'Vibrate', 1, 100).trigger()
+                        'Vibrate', 400, 90).trigger()
         else:
             logger.warning( "invalid vibration mode '%s', valid are 'continuous' or 'oneshot'" )
 
