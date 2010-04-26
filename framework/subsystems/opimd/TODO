@@ -1,4 +1,5 @@
 * Fix FIXMEs
+* Add a BLOB type
 * Fix bug that Adding a new missed call doesn't check if it's really New, or just an already read one added later.
 * Remove the EntryUpdated and UpdatedEntry signals, that is, keep only one. (Not sure it's needed, must check)
 * For some reason EntryUpdated/UpdatedEntry signals return an empty hash table, should verify what happened.
