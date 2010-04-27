@@ -194,6 +194,8 @@ class SingleQueryHandler(object):
         @return List of dicts with field_name/field_value pairs"""
 
         result = []
+        if num_entries < 0:
+            num_entries = self.get_result_count()
 
         for i in range(num_entries):
             try:
