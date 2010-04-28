@@ -217,8 +217,7 @@ class MessageDomain(Domain, GenericDomain):
     
     _unread_messages = None
     DEFAULT_FIELDS = {
-                        'Recipient'   : 'phonenumber',
-                        'Sender'      : 'phonenumber',
+                        'Peer'        : 'phonenumber',
                         'Source'      : 'text',
                         'Direction'   : 'text',
                         'MessageSent' : 'boolean',
@@ -473,10 +472,7 @@ class MessagesFSO(object):
         if status == 'read': entry['MessageRead'] = 1
         if status == 'sent': entry['MessageSent'] = 1
         
-        if entry['Direction'] == 'in':
-            entry['Sender'] = number
-        else:
-            entry['Recipient'] = number
+        entry['Peer'] = number
         
         # TODO Handle text properly, i.e. make it on-demand if >1KiB
         entry['Content'] = text
