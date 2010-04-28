@@ -32,6 +32,7 @@ import logging
 logger = logging.getLogger('opimd')
 
 from dbus import Array
+import dbus
 
 from domain_manager import DomainManager
 from type_manager import TypeManager
@@ -353,7 +354,6 @@ class DbHandler(object):
                 if type(tmp.get('@Contacts')) != list:
                     #make it a list for easier handling
                     tmp['@Contacts'] = [tmp['@Contacts'],]
-                import dbus
                 tmp['@Contacts'] = map(lambda x: dbus.Dictionary(x, signature='sv'), contact_domain.db_handler.get_content(tmp['@Contacts'], {}))
                 if len(tmp['@Contacts']) == 1:
                     tmp['@Contacts'] = tmp['@Contacts'][0]
