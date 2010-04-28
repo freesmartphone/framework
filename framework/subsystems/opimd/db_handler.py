@@ -213,7 +213,7 @@ class DbHandler(object):
                         " WHERE " + self.db_prefix + "_id=:id"
             #FIXME: sholud be a nice hash table and not a boolean
             if table == self.db_prefix + "_phonenumber" and join_parameters.get('resolve'):
-                query = query + " UNION SELECT '@contacts', contacts_id FROM " \
+                query = query + " UNION SELECT '@Contacts', contacts_id FROM " \
                         + table + " JOIN contacts_phonenumber USING (value)" \
                         + " WHERE " + self.db_prefix + "_id=:id "
         return query
@@ -347,8 +347,16 @@ class DbHandler(object):
             cur.execute(query, {'id': id})
             tmp = self.sanitize_result(cur.fetchall())
 
-            #FIXME: Here we check for @contacts, but we should handle crazier joins.
-            if join_parameters.get('full') and tmp.has_key('@contacts'):
+            #FIXME: Here we check for @Contacts, but we should handle crazier joins.
+            if join_parameters.get('full') and tmp.has_key('@Contacts'):
+                contact_domain = DomainManager.get_domain_handler('Contacts')
+                if type(tmp.get('@Contacts')) != list:
+                    #make it a list for easier handling
+                    tmp['@Contacts'] = [tmp['@Contacts'],]
+                import dbus
+                tmp['@Contacts'] = map(lambda x: dbus.Dictionary(x, signature='sv'), contact_domain.db_handler.get_content(tmp['@Contacts'], {}))
+                if len(tmp['@Contacts']) == 1:
+                    tmp['@Contacts'] = tmp['@Contacts'][0]
                 #get full contact content!
                 pass
             tmp['Path'] = self.domain.id_to_path(id)
