@@ -552,6 +552,7 @@ class MessagesFSO(object):
             self.imsignal.remove()
             self.ismsignal.remove()
             self.imrsignal.remove()
+            self.imrsignal2.remove()
             self.itmsignal.remove()
             self.signals = False
 
@@ -612,6 +613,7 @@ class MessagesFSO(object):
                 self.imsignal = self.gsm_sms_iface.connect_to_signal("IncomingMessage", self.handle_incoming_message)
                 self.ismsignal = self.gsm_sim_iface.connect_to_signal("IncomingStoredMessage", self.handle_incoming_stored_message)
                 self.imrsignal = self.gsm_sms_iface.connect_to_signal("IncomingMessageReceipt", self.handle_incoming_message_receipt)
+                self.imrsignal2 =self.gsm_sms_iface.connect_to_signal("IncomingMessageReport", self.handle_incoming_message_report)
                 self.itmsignal = self.gsm_sms_iface.connect_to_signal("IncomingTextMessage", self.handle_incoming_text_message)
                 logger.info("%s: Installed signal handlers", self.name)
                 self.signals = True
@@ -645,14 +647,28 @@ class MessagesFSO(object):
         self.domain.AddIncoming(entry)
 
     def handle_incoming_message_receipt(self, number, text, props):
-        path = self.domain.GetSingleEntrySingleField({'SMS-message-reference':props['message-reference'], 'Direction':'out', 'Source':'SMS', 'SMS-status-report-request':1},'Path')
+        path = self.domain.GetSingleEntrySingleField({'SMS-message-reference':props['message-reference'], 'Direction':'out', 'Source':'SMS', 'SMS-status-report-request':1, '$phonenumber':number},'Path')
         if path:
             rel_path = path.replace('/org/freesmartphone/PIM/Messages','')
             try:
                 if props['status']==0:
                     self.domain.Update({'SMS-delivered':1, 'SMS-message-reference':''}, rel_path)
                 else:
-                    self.domain.Update({'SMS-delivered':0, 'SMS-message-reference':''}, rel_path)
+                    self.domain.Update({'SMS-delivered':0, 'SMS-delivery-status':status, 'SMS-message-reference':''}, rel_path)
+            except:
+                logger.error("%s: Could not store information about delivery report for message %s!", self.name, path)
+        else:
+            logger.info("%s: Delivery report about non-existient message!", self.name)
+
+    def handle_incoming_message_report(self, id, status, number, contents):
+        path = self.domain.GetSingleEntrySingleField({'SMS-message-reference':id, 'Direction':'out', 'Source':'SMS', 'SMS-status-report-request':1, '$phonenumber':number},'Path')
+        if path:
+            rel_path = path.replace('/org/freesmartphone/PIM/Messages','')
+            try:
+                if status=='SMS_ST_COMPLETED_RECEIVED':
+                    self.domain.Update({'SMS-delivered':1, 'SMS-message-reference':''}, rel_path)
+                else:
+                    self.domain.Update({'SMS-delivered':0, 'SMS-delivery-status': status, 'SMS-message-reference':''}, rel_path)
             except:
                 logger.error("%s: Could not store information about delivery report for message %s!", self.name, path)
         else:
