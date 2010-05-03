@@ -219,7 +219,7 @@ class GenericDomain():
         return int(id[2])
 
     def is_reserved_field(self, field):
-        return (field.startswith('_') or field.startswith('$') or field.startswith('@') or self.is_system_field(field))
+        return field[:1] in ('_', '<', '>', '$', '@') or self.is_system_field(field)
     def is_system_field(self, field):
         return (field in self._SYSTEM_FIELDS)
         
