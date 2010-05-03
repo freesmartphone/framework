@@ -169,12 +169,11 @@ class DbHandler(object):
             return name
         else:
             return None
-    def get_value_compare_string(self, type, field):
-        if type == "phonenumber":
-            return " value = ? "
-        elif TypeManager.Types.get(type) in (int, float, long):
-            return " value = ? "
+    def get_value_compare_string(self, type, field, operator):
+        if type == "phonenumber" or TypeManager.Types.get(type) in (int, float, long, bool):
+            return " value " + operator + " ? "
         else:
+            #FIXME: raise error if operator is not '='
             return " regex_matches(value, ?) = 1 "
     def get_value_compare_object(self, type, field, value):
         if type == "phonenumber":
@@ -249,6 +248,12 @@ class DbHandler(object):
             not_first = True
             
             #handle type searching
+            if name.startswith('<') or name.startswith('>'):
+                operator = name[:1]
+                name = name[1:]
+            else:
+                operator = '='
+
             if name.startswith('$'):
                 field_type = name[1:]
                 table = self.get_table_name_from_type(field_type)
@@ -265,7 +270,7 @@ class DbHandler(object):
                         table + " WHERE field_name = ? AND ("
                 params.append(str(name))
             #If multi values, make OR connections
-            comp_string = self.get_value_compare_string(field_type, name)
+            comp_string = self.get_value_compare_string(field_type, name, operator)
             
             if type(value) == Array or type(value) == list:
                 first_val = True
@@ -300,7 +305,6 @@ class DbHandler(object):
         if '_limit' in query_desc:
             query = query + " LIMIT ?"
             params.append(int(query_desc['_limit']))
-
         return {'Query':query, 'Parameters':params}
     def sanitize_result(self, raw):
         map = {}
