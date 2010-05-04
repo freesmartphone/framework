@@ -16,6 +16,8 @@
 * Clean internal use of path, move completely to Id internally
 * Add auto reload of configs
 * When updating Queries, we should do something fancier, since if the query is a "connected" query, we should do a lot to make sure everything works.
+* Add GetComplexContent for do complex connections (i.e number resolving) for a single contact.
+* Add signals about fields addition/deletion.
 
 -- Tasks
 * <dos1> and Tasks is Contacts + UnfinishedTasks support :P
