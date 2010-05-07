@@ -610,11 +610,11 @@ class MessagesFSO(object):
         """Hooks to some d-bus signals that are of interest to us"""
         if not self.signals:
             try:
-                self.imsignal = self.gsm_sms_iface.connect_to_signal("IncomingMessage", self.handle_incoming_message)
-                self.ismsignal = self.gsm_sim_iface.connect_to_signal("IncomingStoredMessage", self.handle_incoming_stored_message)
-                self.imrsignal = self.gsm_sms_iface.connect_to_signal("IncomingMessageReceipt", self.handle_incoming_message_receipt)
-                self.imrsignal2 =self.gsm_sms_iface.connect_to_signal("IncomingMessageReport", self.handle_incoming_message_report)
-                self.itmsignal = self.gsm_sms_iface.connect_to_signal("IncomingTextMessage", self.handle_incoming_text_message)
+                self.imsignal = self.bus.add_signal_receiver(self.handle_incoming_message, signal_name='IncomingMessage', dbus_interface='org.freesmartphone.GSM.SMS', bus_name='org.freesmartphone.ogsmd')
+                self.ismsignal = self.bus.add_signal_receiver(self.handle_incoming_stored_message, signal_name='IncomingStoredMessage', dbus_interface='org.freesmartphone.GSM.SIM', bus_name='org.freesmartphone.ogsmd')
+                self.imrsignal = self.bus.add_signal_receiver(self.handle_incoming_message_receipt, signal_name='IncomingMessageReceipt', dbus_interface='org.freesmartphone.GSM.SMS', bus_name='org.freesmartphone.ogsmd')
+                self.imrsignal2 = self.bus.add_signal_receiver(self.handle_incoming_message_report, signal_name='IncomingMessageReport', dbus_interface='org.freesmartphone.GSM.SMS', bus_name='org.freesmartphone.ogsmd')
+                self.itmsignal = self.bus.add_signal_receiver(self.handle_incoming_text_message, signal_name='IncomingTextMessage', dbus_interface='org.freesmartphone.GSM.SMS', bus_name='org.freesmartphone.ogsmd')
                 logger.info("%s: Installed signal handlers", self.name)
                 self.signals = True
                 try:
