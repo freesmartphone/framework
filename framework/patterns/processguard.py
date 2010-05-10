@@ -2,7 +2,7 @@
 """
 freesmartphone.org Framework Daemon
 
-(C) 2008-2009 Michael 'Mickey' Lauer <mlauer@vanille-media.de>
+(C) 2008-2010 Michael 'Mickey' Lauer <mlauer@vanille-media.de>
 (C) 2008-2009 Openmoko, Inc.
 GPLv2 or later
 
@@ -155,6 +155,16 @@ class ProcessGuard( object ):
                 os.kill( self.pid, sig )
             except OSError:
                 logger.info( "shutdown: process already vanished" )
+                return
+
+            try:
+                os.waitpid( self.pid, os.WNOHANG )
+            except OSError:
+                logger.info( "shutdown: waitpid failed" )
+                return
+
+            # is GLib.process_close_pid bound?
+
         else:
             logger.info( "shutdown: process already vanished" )
 
@@ -174,14 +184,28 @@ if __name__ == "__main__":
     def secondExit( pid, exitcode, exitsignal ):
         print "second exit"
 
+    def thirdExit( pid, exitcode, exitsignal ):
+        print "third exit"
+        loop.quit()
+
+    def killit():
+        print "killing..."
+        p2.shutdown()
+        return False
+
     loop = gobject.MainLoop()
 
     p = ProcessGuard( "/bin/ls ." )
     p.execute( onExit=firstExit )
+
+    p2 = ProcessGuard( "/bin/sleep 10" )
+    p2.execute( onExit=thirdExit )
+
+    gobject.timeout_add_seconds( 3, killit )
 
     try:
         loop.run()
     except KeyboardInterrupt:
         loop.quit()
     else:
-        print "oK"
+        print "OK"
