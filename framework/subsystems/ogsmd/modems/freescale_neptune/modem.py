@@ -136,19 +136,20 @@ class FreescaleNeptune( AbstractModem ):
         subprocess.check_call(['modprobe', 'ts27010mux'])
 
         N_TS2710 = 19
-        dlci_lines = [0, 1, 2, 3, 4, 5, 6, 7, 8]
+        dlci_lines = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
         devpath  = "/dev/ttyIPC0"
         counter = 10
 
         # Loop when opening /dev/ttyIPC0 to have some tolerance
         ipc = None
         while True:
-            logger.debug("Trying to open %s..." % devpath)
+            logger.debug("Trying to open %s... (%d)" % (devpath, counter))
             counter -= 1
             try:
                 ipc = os.open(devpath, os.O_RDWR)
             except OSError as e:
-                if e.errno == errno.ENODEV:
+                if e.errno == errno.ENODEV and counter > 0:
+                    time.sleep(2)
                     continue
 
             if ipc or counter == 0:
@@ -171,7 +172,7 @@ class FreescaleNeptune( AbstractModem ):
                 fd = os.open(devpath, os.O_RDWR | os.O_NOCTTY)
             except OSError as e:
                 logger.error("%s: %s" % (devpath, e.strerror))
-                return False
+                #return False
 
             logger.debug("Opened %s" % devpath)
             muxfds.append(fd)
