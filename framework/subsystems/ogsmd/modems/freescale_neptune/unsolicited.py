@@ -10,6 +10,7 @@ __version__ = "0.8.2.0"
 MODULE_NAME = "ogsmd.modems.freescale_neptune.unsolicited"
 
 from ogsmd.modems.abstract.unsolicited import AbstractUnsolicitedResponseDelegate
+from ogsmd.gsm.decor import logged
 from ogsmd.gsm import const
 from ogsmd.helpers import safesplit
 import ogsmd.gsm.sms
@@ -36,7 +37,7 @@ class UnsolicitedResponseDelegate( AbstractUnsolicitedResponseDelegate ):
 
     # +CESS: 3, 14
     def plusCESS( self, righthandside ):
-        print "EZX: CESS", righthandside
+        logger.debug("EZX: CESS", righthandside)
 
     def plusCIEV( self, righthandside ):
         """
@@ -61,35 +62,35 @@ class UnsolicitedResponseDelegate( AbstractUnsolicitedResponseDelegate ):
         try:
             method = getattr( self, "CIEV_%d" % indicator )
         except AttributeError:
-            print "EZX: unhandled CIEV", indicator, value
+            logger.debug("EZX: unhandled CIEV", indicator, value)
         else:
             method( value )
 
     def CIEV_0( self, chargelevel ):
-        print "EZX: CHARGE LEVEL:", chargelevel
+        logger.debug("EZX: CHARGE LEVEL:", chargelevel)
 
     def CIEV_1( self, signallevel ):
         self._object.SignalStrength( 20*signallevel )
-        print "EZX: SIGNAL: ", signallevel
+        logger.debug("EZX: SIGNAL: ", signallevel)
 
     def CIEV_2( self, service ):
-        print "EZX: SERVICE:", bool(service)
+        logger.debug("EZX: SERVICE:", bool(service))
 
     def CIEV_3( self, present ):
-        print "EZX: CALL PRESENT:", bool(present)
+        logger.debug("EZX: CALL PRESENT:", bool(present))
         self._syncCallStatus( "CIEV" )
 
     def CIEV_4( self, voicemail ):
-        print "EZX: VOICEMAIL:", bool(voicemail)
+        logger.debug("EZX: VOICEMAIL:", bool(voicemail))
 
     def CIEV_5( self, voice_activity ):
-        print "EZX: VOICE ACTIVITY:", bool(voice_activity)
+        logger.debug("EZX: VOICE ACTIVITY:", bool(voice_activity))
 
     def CIEV_6( self, call_progress ):
-        print "EZX: CALL PROGRESS:", call_progress
+        logger.debug("EZX: CALL PROGRESS:", call_progress)
 
     def CIEV_7( self, roaming ):
-        print "EZX: ROAMING:", roaming
+        logger.debug("EZX: ROAMING:", roaming)
         self._object.modem.setData( "network:roaming", bool(roaming) )
 
     # +CLIP: "+4969123456789",145
