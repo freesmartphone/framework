@@ -76,15 +76,19 @@ class FreescaleNeptune( AbstractModem ):
     """
 
     @logged
-    def __init__( self, *args, **kwargs ):
-        AbstractModem.__init__( self, *args, **kwargs )
-
+    def __new__( cls, *args, **kwargs ):
         global initDone
         if not initDone:
-            ret = self._freescale_neptune_modemOn()
-            if not ret:
-                return False
+            ret = cls._freescale_neptune_modemOn()
+            if ret == False:
+                return None
             initDone = True
+
+        return AbstractModem.__new__( cls, *args, **kwargs )
+
+    @logged
+    def __init__( self, *args, **kwargs ):
+        AbstractModem.__init__( self, *args, **kwargs )
 
         # /dev/mux0
         self._channels[ "CallAndNetwork" ] = CallAndNetworkChannel( self.pathfactory, "/dev/mux1", modem=self )
@@ -128,7 +132,8 @@ class FreescaleNeptune( AbstractModem ):
     def pathfactory(self, name):
         return name
 
-    def _freescale_neptune_modemOn(self):
+    @staticmethod
+    def _freescale_neptune_modemOn():
         global muxfds
         logger.debug("********************** Modem init **********************")
         subprocess.check_call(['modprobe', 'ohci-hcd'])
