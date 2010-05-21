@@ -99,6 +99,7 @@ class FreescaleNeptune( AbstractModem ):
         self._channels["CallAndNetwork"].setDelegate( UnsolicitedResponseDelegate( self._object, mediator ) )
         self._channels["Sms"].setDelegate( UnsolicitedResponseDelegate( self._object, mediator ) )
         self._channels["Sim"].setDelegate( UnsolicitedResponseDelegate( self._object, mediator ) )
+        self._channels["Misc"].setDelegate( UnsolicitedResponseDelegate( self._object, mediator ) )
 
     def numberToPhonebookTuple( self, nstring ):
         """
