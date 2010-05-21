@@ -86,24 +86,22 @@ class SimGetAuthStatus( SimMediator ):
 class DeviceSetAntennaPower( AbstractMediator.DeviceSetAntennaPower ):
 #=========================================================================#
     """
-    We want to receive all initial status commands, so we always send +CFUN=0 first.
-
     In contrast to AbstractMediator.DeviceSetAntennaPower, PIN handling
     has been removed here, since after powercycling we will get an URC
     indicating the PIN status.
     """
 
     def trigger( self ):
-        self._commchannel.enqueue( "+CFUN=0", self.responseFromChannel1, self.errorFromChannel )
+        if not self.power:
+            time.sleep(2.0)
 
-    def responseFromChannel1( self, request, response ):
-        # FIXME: make async
-        time.sleep( 2.0 )
         cmd = "+CFUN=%d" % ( 1 if self.power else 0 )
         self._commchannel.enqueue( cmd, self.responseFromChannel, self.errorFromChannel )
 
     def responseFromChannel( self, request, response ):
         if response[-1] == "OK":
+            if self.power:
+                time.sleep( 2.0 )
             self._ok()
         else:
             DeviceMediator.responseFromChannel( self, request, response )
@@ -139,6 +137,27 @@ class SimListPhonebooks( SimMediator ):
     """
     def trigger( self ):
         self._ok( "contacts own fixed".split() )
+
+#=========================================================================#
+class NetworkRegister( NetworkMediator ):
+#=========================================================================#
+    def trigger( self ):
+        time.sleep( 4.0 )
+        self._commchannel.enqueue( "+COPS=0,0", self.responseFromChannel, self.errorFromChannel )
+
+#=========================================================================#
+class NetworkUnregister( NetworkMediator ):
+#=========================================================================#
+    def trigger( self ):
+        self._commchannel.enqueue( "+COPS=2,0", self.responseFromChannel, self.errorFromChannel )
+
+    @logged
+    def responseFromChannel( self, request, response ):
+        if response[-1] == "OK":
+            time.sleep( 4.0 )
+            self._ok()
+        else:
+            NetworkMediator.responseFromChannel( self, request, response )
 
 #=========================================================================#
 class NetworkGetStatus( NetworkMediator ):
