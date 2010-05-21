@@ -81,6 +81,11 @@ class Device( resource.Resource ):
             on_error( resource.ResourceError( estring ) )
         else:
             self.modem = Modem( self, self.bus )
+            if self.modem is None:
+                estring = "Cannot create Modem %s" % ( self.modemtype )
+                logger.error( estring )
+                on_error( resource.ResourceError( estring ) )
+                return
             setCurrentModem( self.modem )
             self.modem.open( on_ok, on_error )
 
