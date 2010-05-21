@@ -94,7 +94,10 @@ class UnsolicitedResponseDelegate( AbstractUnsolicitedResponseDelegate ):
 
     # +CLIP: "+4969123456789",145
     def plusCLIP( self, righthandside ):
-        pass
+        number, ntype = safesplit( righthandside, ',' )
+        if number and ntype:
+            peer = const.phonebookTupleToNumber( number[1:-1], int(ntype) )
+            self._mediator.Call.clip( self._object, peer)
 
     # +CMT: 139
     # 07919471060040340409D041767A5C060000903021417134408A41767A5C0625DDE6B70E247D87DB69F719947683C86539A858D581C2E273195D7693CBA0A05B5E37974130568D062A56A5AF66DAED6285DDEB77BB5D7693CBA0A05B5E3797413096CC062A56A5AF66DAED0235CB683928E936BFE7A0BA9B5E968356B45CEC66C3E170369A8C5673818E757A19242DA7E7E510 
