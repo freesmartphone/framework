@@ -29,8 +29,13 @@ class EzxMuxChannel( AbstractModemChannel ):
         AbstractModemChannel._populateCommands( self ) # default command init
 
         c = self._commands["init"]
-        # GSM unsolicited
         c.append( '+USBSTAT=255,1' )           # charge
+
+        c.append( '+EPOM=1,0' ) # Ezx Power On Modem
+        c.append( '+EAPF=12,1,0' ) # ??
+
+        # GSM unsolicited
+        c.append( '+CRC=1' ) # Extended ring report
         c.append( '+CLIP=1' ) # calling line identification presentation enable
         c.append( '+COLP=1' ) # connected line identification presentation enable
         c.append( '+CCWA=1' ) # call waiting
