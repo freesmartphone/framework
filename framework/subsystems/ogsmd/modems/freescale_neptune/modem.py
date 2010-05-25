@@ -120,7 +120,7 @@ class FreescaleNeptune( AbstractModem ):
             return nstring, 129
 
     def channel( self, category ):
-        if category == "CallMediator":
+        if category == "CallMediator" or category == "DeviceMediator" :
             return self._channels["CallAndNetwork"]
         elif category == "UnsolicitedMediator":
             return self._channels["Sms"]
