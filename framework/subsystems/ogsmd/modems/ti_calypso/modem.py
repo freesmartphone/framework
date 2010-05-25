@@ -15,9 +15,9 @@ __version__ = "0.9.9.10"
 MODULE_NAME = "ogsmd.modems.ti_calypso"
 
 DEVICE_CALYPSO_PATH             = "/dev/ttySAC0"
-SYSFS_CALYPSO_POWER_PATH        = "/sys/bus/platform/devices/neo1973-pm-gsm.0/power_on"
-SYSFS_CALYPSO_RESET_PATH        = "/sys/bus/platform/devices/neo1973-pm-gsm.0/reset"
-SYSFS_CALYPSO_FLOW_CONTROL_PATH = "/sys/bus/platform/devices/neo1973-pm-gsm.0/flowcontrolled"
+SYSFS_CALYPSO_POWER_PATH        = "/sys/bus/platform/devices/gta02-pm-gsm.0/power_on"
+SYSFS_CALYPSO_RESET_PATH        = "/sys/bus/platform/devices/gta02-pm-gsm.0/reset"
+SYSFS_CALYPSO_FLOW_CONTROL_PATH = "/sys/bus/platform/devices/gta02-pm-gsm.0/flowcontrolled"
 
 import mediator
 
