@@ -13,7 +13,7 @@ __version__ = "0.9.9.4"
 MODULE_NAME = "ogpsd"
 
 DEVICE_POWER_PATH_OLD = "/sys/bus/platform/devices/neo1973-pm-gps.0/pwron"
-DEVICE_POWER_PATH_NEW = "/sys/bus/platform/devices/neo1973-pm-gps.0/power_on"
+DEVICE_POWER_PATH_NEW = "/sys/bus/platform/devices/gta02-pm-gps.0/power_on"
 
 from ubx import UBXDevice
 from ubx import CLIDPAIR
