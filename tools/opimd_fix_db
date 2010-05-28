@@ -1,0 +1,84 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+#
+#   Fix an opim database file.
+#
+#   Copyright (C) 2010 Tom "TAsn" Hacohen (tom@stosb.com)
+#
+#   This program is free software; you can redistribute it and/or modify
+#   it under the terms of the GNU General Public License as published by
+#   the Free Software Foundation; either version 2 of the License, or
+#   (at your option) any later version.
+#
+#   This program is distributed in the hope that it will be useful,
+#   but WITHOUT ANY WARRANTY; without even the implied warranty of
+#   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#   GNU General Public License for more details.
+#
+#   You should have received a copy of the GNU General Public License
+#   along with this program; if not, write to the Free Software
+#   Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
+#
+
+import os
+import sqlite3
+
+try:
+    import phoneutils
+    from phoneutils import normalize_number
+    #Old versions do not include compare yet
+    try:
+        from phoneutils import numbers_compare
+    except:
+        logger.info("Can't get phoneutils.numbers_compare, probably using an old libphone-utils, creating our own")
+        raise
+    phoneutils.init()
+except:
+    #Don't create a compare function so it won't try to look using index
+    def normalize_number(a):
+        return a
+    def numbers_compare(a, b):
+        a = normalize_number(str(a))
+        b = normalize_number(str(b))
+        return cmp(a, b)
+
+
+##########################################################
+
+
+rootdir = './'
+
+_SQLITE_FILE_NAME = os.path.join(rootdir,'pim.db')
+
+print "This script fixes a corrupted database file located at: " + _SQLITE_FILE_NAME
+print "and saves the fixed file at: " + _SQLITE_FILE_NAME + '-fixed'
+print "The script might output a list of errors found in the database."
+
+if not os.path.exists(_SQLITE_FILE_NAME):
+	print _SQLITE_FILE_NAME + " not found, exiting."
+	exit(1)
+
+con_old = sqlite3.connect(_SQLITE_FILE_NAME, isolation_level=None)
+con_new = sqlite3.connect(_SQLITE_FILE_NAME + '-fixed', isolation_level=None)
+con_new.text_factory = sqlite3.OptimizedUnicode
+con_new.create_collation("compare_numbers", numbers_compare)
+#Creates basic db structue (tables and basic indexes) more complex
+#indexes should be done per backend
+
+cur = con_new.cursor()
+iter = con_old.iterdump()
+while 1:
+	try:
+		line = iter.next()
+		cur.execute(line)
+	except StopIteration:
+		break
+	except Exception as exp:
+		print exp
+		pass
+con_new.commit()
+
+cur.close()
+
+print "Finished fixing database. New database at: " + _SQLITE_FILE_NAME + '-fixed'
+print "Copy it to the opimd dir and restart opimd."
