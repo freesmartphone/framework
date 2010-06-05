@@ -561,7 +561,7 @@ class MessagesFSO(object):
 
                 
         try:
-            self.gsm = self.bus.get_object('org.freesmartphone.ogsmd', '/org/freesmartphone/GSM/Device')
+            self.gsm = self.bus.get_object('org.freesmartphone.ogsmd', '/org/freesmartphone/GSM/Device', True, True)
             self.gsm_sim_iface = Interface(self.gsm, 'org.freesmartphone.GSM.SIM')
             self.gsm_sms_iface = Interface(self.gsm, 'org.freesmartphone.GSM.SMS')
             self.gsm_device_iface = Interface(self.gsm, 'org.freesmartphone.GSM.Device')
