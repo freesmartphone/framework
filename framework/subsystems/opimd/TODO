@@ -1,3 +1,4 @@
+* Disable "no-buffering" mode and start using "commit" when a write is wanted instead of all the time. Might fix the corruptions.
 * Fix FIXMEs
 * Add a BLOB type
 * Fix bug that Adding a new missed call doesn't check if it's really New, or just an already read one added later.
