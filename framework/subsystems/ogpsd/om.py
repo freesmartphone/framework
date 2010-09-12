@@ -13,7 +13,7 @@ __version__ = "0.9.9.4"
 MODULE_NAME = "ogpsd"
 
 DEVICE_POWER_PATH_OLD = "/sys/bus/platform/devices/neo1973-pm-gps.0/pwron"
-DEVICE_POWER_PATH_NEW = "/sys/bus/platform/devices/gta02-pm-gps.0/power_on"
+DEVICE_POWER_PATH_NEW = "/sys/bus/platform/devices/neo1973-pm-gps.0/power_on"
 
 from ubx import UBXDevice
 from ubx import CLIDPAIR
@@ -32,6 +32,12 @@ class GTA02Device( UBXDevice ):
     """GTA02 specific GPS device"""
 
     def __init__( self, bus, channel ):
+
+        # Kernel specific paths
+        kernel_release = os.uname()[2]
+        if kernel_release >= "2.6.32":
+           DEVICE_POWER_PATH_NEW = "/sys/bus/platform/devices/gta02-pm-gps.0/power_on"
+           logger.info( "Kernel >= 2.6.32, gps sysfs updated" )
 
         # Make sure the GPS is off
         helpers.writeToFile( DEVICE_POWER_PATH_OLD, "1" )
