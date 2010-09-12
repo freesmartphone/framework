@@ -30,6 +30,7 @@ class HeadsetManager( object ):
         self._onAnswerRequested = onAnswerRequested
         self._matchAnswerRequested = None
         self._onConnectionStatus = onConnectionStatus
+        self._matchDisconnected = None
         self.address = None
         self.pcm_device = "hw:0,1"
         self.pcm_play = None
@@ -37,7 +38,6 @@ class HeadsetManager( object ):
         self.connected = False
         self.playing = False
         self._kickPCM()
-        self.monitor = gobject.timeout_add_seconds( 10, self._handleMonitorTimeout )
         usage = self.bus.get_object( 'org.freesmartphone.ousaged', '/org/freesmartphone/Usage', follow_name_owner_changes=True )
         self.usageiface = dbus.Interface( usage, 'org.freesmartphone.Usage' )
         logger.info( "usage ok: %s" % self.usageiface )
@@ -102,15 +102,21 @@ class HeadsetManager( object ):
         )
         try:
             self.bluez_device_headset.Connect()
-            if self._onAnswerRequested:
-                self._matchAnswerRequested = self.bluez_device_headset.connect_to_signal(
-                    'AnswerRequested', self._onAnswerRequested
-                )
         except dbus.exceptions.DBusException, e:
             if e.get_dbus_name() == "org.bluez.Error.AlreadyConnected":
                 pass
             else:
                 raise
+        if self._onAnswerRequested:
+            self._matchAnswerRequested = self.bluez_device_headset.connect_to_signal(
+                'AnswerRequested', self._onAnswerRequested
+            )
+        self._matchDisconnected = self.bluez_device_headset.connect_to_signal(
+                'Disconnected', self._onDisconnected
+        ) 
+        self.connected = True                                                                                               
+        if self._onConnectionStatus:                                                                                        
+            self._onConnectionStatus( self.connected )
 
     def _startBT( self ):
         try:
@@ -128,47 +134,55 @@ class HeadsetManager( object ):
         if self._matchAnswerRequested:
             self._matchAnswerRequested.remove()
             self._matchAnswerRequested = None
+        if self._matchDisconnected:                                                                                             
+            self._matchDisconnected.remove()                                                                                     
+            self._matchDisconnected = None 
         # if disconnect fails for any reason, we
         # still cancel all BT, such that the audio
         # will get routed back to the headset
         try:
-           self.bluez_device_headset.Disconnect()
+            self.bluez_device_headset.Disconnect()
         except:
-           pass
+            pass
         self.bluez_device_headset = None
         self.bluez_adapter = None
         self.bluez_manager = None
+        self.connected = False
+        if self._onConnectionStatus:                                           
+            self._onConnectionStatus( self.connected )
+
+    def _onDisconnected( self ):
+        self._disconnectBT()
+        logger.info( "got disconnected" )
+        if self.address:
+           self.monitor = gobject.timeout_add_seconds( 10, self._handleMonitorTimeout )
 
     def _updateConnected( self ):
         if self.address and not self.connected:
             self._connectBT()
-            self.connected = True
-            if self._onConnectionStatus:
-                self._onConnectionStatus( self.connected )
 
     def _handleMonitorTimeout( self ):
         try:
             self._updateConnected()
         except:
             logger.debug( "_handleMonitorTimeout failed:", exc_info=True )
-        return True
+        if self.address and not self.connected:
+           return True
+        else:
+           return False
 
     def setAddress( self, address ):
         if self.address != address:
             if self.connected:
                 self.setPlaying( False )
                 self._disconnectBT()
-                self.connected = False
-                if self._onConnectionStatus:
-                    self._onConnectionStatus( self.connected )
         if self.address and not address:
             self.usageiface.ReleaseResource(
                 "Bluetooth",
                 reply_handler=self.cbReleaseReply,
                 error_handler=self.cbReleaseError,
             )
-        self.address = address
-        if self.address:
+        if not self.address and address:
             try:
                 self.usageiface.RequestResource(
                     "Bluetooth",
@@ -177,6 +191,8 @@ class HeadsetManager( object ):
                 )
             except:
                 pass
+            self.monitor = gobject.timeout_add_seconds( 10, self._handleMonitorTimeout )
+        self.address = address
 
     def cbRequestReply( self ):
         logger.info( "Requested Bluetooth" )
