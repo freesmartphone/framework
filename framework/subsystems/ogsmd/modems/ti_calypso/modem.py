@@ -49,6 +49,9 @@ class TiCalypso( AbstractModem ):
 
     def __init__( self, *args, **kwargs ):
         # kernel specific paths                                                                                  
+        global SYSFS_CALYPSO_POWER_PATH
+        global SYSFS_CALYPSO_RESET_PATH
+        global SYSFS_CALYPSO_FLOW_CONTROL_PATH
         kernel_release = os.uname()[2]                                                                           
         if kernel_release >= "2.6.32":                                                                           
            SYSFS_CALYPSO_POWER_PATH        = "/sys/bus/platform/devices/gta02-pm-gsm.0/power_on"                 
