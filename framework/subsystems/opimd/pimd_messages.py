@@ -131,24 +131,24 @@ class QueryManager(DBusFBObject):
 
         db_prefix = self.db_handler.db_prefix
         query['sql'] = """
-SELECT m.messages_id messages_id,
+SELECT m.""" + db_prefix + """_id """ + db_prefix + """_id,
     (
-        SELECT count(*) FROM messages_phonenumber
+        SELECT count(*) FROM """ + db_prefix + """_phonenumber
         WHERE field_name = 'Peer'
         and value = p1.value
     ) TotalCount,
     (
         SELECT count(*) FROM
             (
-            messages_boolean b
+            """ + db_prefix + """_boolean b
             OUTER LEFT JOIN
-            messages_phonenumber p
-            ON b.messages_id = p.messages_id AND
+            """ + db_prefix + """_phonenumber p
+            ON b.""" + db_prefix + """_id = p.""" + db_prefix + """_id AND
             b.field_name = 'New'
             )
             OUTER LEFT JOIN
-            messages_text x
-            ON b.messages_id = x.messages_id
+            """ + db_prefix + """_text x
+            ON b.""" + db_prefix + """_id = x.""" + db_prefix + """_id
             AND x.field_name = 'Direction'
             WHERE
             b.value = '1' AND
@@ -156,23 +156,23 @@ SELECT m.messages_id messages_id,
             p.field_name = 'Peer' AND p.value = p1.value
     ) UnreadCount
     FROM (
-        messages m
+        """ + db_prefix + """ m
         JOIN
-        messages_date t
-        USING (messages_id)
-    ) JOIN messages_phonenumber p1
-        USING (messages_id)
+        """ + db_prefix + """_date t
+        USING (""" + db_prefix + """_id)
+    ) JOIN """ + db_prefix + """_phonenumber p1
+        USING (""" + db_prefix + """_id)
 
     WHERE t.field_name = 'Timestamp' AND
     t.value IN (
         SELECT max(timestamp) timestamp FROM (
         (
-        SELECT date_t.messages_id AS messages_id, date_t.value AS timestamp FROM
-            messages_date AS date_t
+        SELECT date_t.""" + db_prefix + """_id AS """ + db_prefix + """_id, date_t.value AS timestamp FROM
+            """ + db_prefix + """_date AS date_t
         WHERE date_t.field_name = 'Timestamp'
         ) res_t
-        JOIN messages_phonenumber num_t ON
-            res_t.messages_id = num_t.messages_id AND num_t.field_name = 'Peer'
+        JOIN """ + db_prefix + """_phonenumber num_t ON
+            res_t.""" + db_prefix + """_id = num_t.""" + db_prefix + """_id AND num_t.field_name = 'Peer'
         )
         GROUP BY num_t.value
     )

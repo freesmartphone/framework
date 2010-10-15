@@ -162,7 +162,7 @@ class DbHandler(object):
                 cur.execute("insert into info values(?, ?)", ('version', _SQLITE_DATABASE_VERSION))
                 self.con.commit()
             elif version_info[0] != _SQLITE_DATABASE_VERSION:
-                raise Exception("Database version mismatch, needed %s, current is %s" % (_SQLITE_DATABASE_VERSION, version_info[0]));
+                raise Exception("Database version mismatch, needed %s, current is %s" % (_SQLITE_DATABASE_VERSION, version_info[0]))
 
             cur.close()
         
