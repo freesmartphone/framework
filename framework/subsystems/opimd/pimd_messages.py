@@ -133,6 +133,11 @@ class QueryManager(DBusFBObject):
         query['sql'] = """
 SELECT m.messages_id messages_id,
     (
+        SELECT count(*) FROM messages_phonenumber
+        WHERE field_name = 'Peer'
+        and value = p1.value
+    ) TotalCount,
+    (
         SELECT count(*) FROM
             messages_boolean b
             OUTER LEFT JOIN

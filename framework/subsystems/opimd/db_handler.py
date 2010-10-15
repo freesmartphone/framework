@@ -359,8 +359,9 @@ class DbHandler(object):
         ids = map(lambda x: x[0], raw_result)
         if cursor:
             try:
-                skip_field = cursor.description[0][0]
-            except IndexError:
+                columns = map(lambda x: x[0], cursor.description)
+                skip_field = columns[0]
+            except:
                 skip_field = None
             other_fields = map(lambda x: dict_factory(cursor, x, skip_field), raw_result)
         else:
