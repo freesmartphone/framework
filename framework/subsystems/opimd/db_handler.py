@@ -79,6 +79,12 @@ rootdir = os.path.join( rootdir, 'opim' )
 
 _SQLITE_FILE_NAME = os.path.join(rootdir,'pim.db')
 
+def dict_factory(cursor, row, skip_field = None):
+    d = {}
+    for idx, col in enumerate(cursor.description):
+        if col[0] != skip_field:
+            d[col[0]] = row[idx]
+    return d
 
 class DbHandler(object):
     con = None
@@ -306,6 +312,33 @@ class DbHandler(object):
             query = query + " LIMIT ?"
             params.append(int(query_desc['_limit']))
         return {'Query':query, 'Parameters':params}
+
+    def build_sql_query(self, query_desc):
+        """Modify a raw SQL query with some others rules."""
+
+        query = query_desc['sql']
+        params = []
+
+        for name, value in query_desc.iteritems():
+            #skip system fields
+            if name.startswith('_'):
+                #FIXME: put this in a central place!
+                if name not in ('_limit', '_resolve_phonenumber', '_retrieve_full_contact'):
+                    raise InvalidField("Query rule '%s' does not exist." % (name, ))
+                else:
+                    continue
+            elif name.startswith('@'):
+                if name[1:] not in DomainManager.get_domains():
+                    raise InvalidField("Domain '%s' does not exist." % (name[1:], ))
+                else:
+                    continue
+
+        if '_limit' in query_desc:
+            query = query + " LIMIT ?"
+            params.append(int(query_desc['_limit']))
+
+        return {'Query':query, 'Parameters':params}
+
     def sanitize_result(self, raw):
         map = {}
 
@@ -319,13 +352,22 @@ class DbHandler(object):
                 map[field] = name    
         return map
         
-    def get_full_result(self, raw_result, join_parameters):
+    def get_full_result(self, raw_result, join_parameters, cursor = None):
         if raw_result == None:
             return None
         #convert from a list of tuples of ids to a list of ids
         ids = map(lambda x: x[0], raw_result)
-        return self.get_content(ids, join_parameters)
-        
+        if cursor:
+            try:
+                skip_field = cursor.description[0][0]
+            except IndexError:
+                skip_field = None
+            other_fields = map(lambda x: dict_factory(cursor, x, skip_field), raw_result)
+        else:
+            other_fields = []
+
+        return self.get_content(ids, join_parameters, other_fields)
+
     def query(self, query_desc):
         #FIXME: join_parametrs should be cool, and not just a simple hash
         join_parameters = {}
@@ -340,14 +382,33 @@ class DbHandler(object):
 
         cur = self.con.cursor()
         cur.execute(query['Query'], query['Parameters'])
-        res = self.get_full_result(cur.fetchall(), join_parameters)
+        res = self.get_full_result(cur.fetchall(), join_parameters, cur)
         cur.close()
         return res
-        
-    def get_content(self, ids, join_parameters):
+
+    def raw_sql(self, query_desc):
+        #FIXME: join_parametrs should be cool, and not just a simple hash
+        join_parameters = {}
+        query = self.build_sql_query(query_desc)
+        if query == None:
+            logger.error("Failed creating threads query for %s", str(query_desc))
+            raise QueryFailed("Failed creating threads query.")
+        if query_desc.get('_resolve_phonenumber'):
+            join_parameters['resolve'] = True
+            if query_desc.get('_retrieve_full_contact'):
+                join_parameters['full'] = True
+
+        cur = self.con.cursor()
+        cur.execute(query['Query'], query['Parameters'])
+        res = self.get_full_result(cur.fetchall(), join_parameters, cur)
+        cur.close()
+        return res
+
+    def get_content(self, ids, join_parameters, other_fields = []):
         cur = self.con.cursor()
         res = []
         query = self.build_retrieve_query(join_parameters)
+        row_index = 0
         for id in ids:
             cur.execute(query, {'id': id})
             tmp = self.sanitize_result(cur.fetchall())
@@ -365,6 +426,13 @@ class DbHandler(object):
                 pass
             tmp['Path'] = self.domain.id_to_path(id)
             tmp['EntryId'] = id
+            try:
+                for field, value in other_fields[row_index].iteritems():
+                    tmp[field] = value
+            except IndexError:
+                pass
+
+            row_index += 1
             res.append(tmp)
         cur.close()
         return res

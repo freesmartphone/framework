@@ -39,9 +39,7 @@ import db_handler
 import logging
 logger = logging.getLogger( MODULE_NAME )
 
-#----------------------------------------------------------------------------#
-class QueryMatcher(object):
-#----------------------------------------------------------------------------#
+class BaseQueryMatcher(object):
     query_obj = None
 
     def __init__(self, query):
@@ -59,29 +57,57 @@ class QueryMatcher(object):
 
         assert(self.query_obj, "Query object is empty, cannot match!")
 
-        matches = []      
-        results = db_handler.query(self.query_obj)
-	return results
+        matches = []
 
 #----------------------------------------------------------------------------#
-class SingleQueryHandler(object):
+class QueryMatcher(BaseQueryMatcher):
+#----------------------------------------------------------------------------#
+    def match(self, db_handler):
+        """Tries to match a db_handler to the current query
+
+        @param a db_handler
+        @return List of entry IDs that match"""
+
+        BaseQueryMatcher.match(self, db_handler)
+        return db_handler.query(self.query_obj)
+
+#----------------------------------------------------------------------------#
+class RawSQLQueryMatcher(BaseQueryMatcher):
+#----------------------------------------------------------------------------#
+    def match(self, db_handler):
+        """Tries to match a db_handler to the current query
+
+        @param a db_handler
+        @return List of entry IDs that match"""
+
+    def match(self, db_handler):
+        """Tries to match a db_handler to the current query
+
+        @param a db_handler
+        @return List of entry IDs that match"""
+
+        BaseQueryMatcher.match(self, db_handler)
+        return db_handler.raw_sql(self.query_obj)
+
+#----------------------------------------------------------------------------#
+class BaseQueryHandler(object):
+    """A base query handler to extend from."""
 #----------------------------------------------------------------------------#
     db_handler = None
     query = None      # The query this handler is processing
     _entries = None
     cursors = None    # The next entry we'll serve, depending on the client calling us
 
-    def __init__(self, query, db_handler, dbus_sender):
-        """Creates a new SingleQueryHandler instance
+    def __init__(self, query, db_handler, matcher, dbus_sender):
+        """Creates a new BaseQueryHandler instance
 
         @param query Query to evaluate
-        @param entries Set of Entry objects to use
+        @param db_handler database handler
+        @param matcher prebuilt query matcher
         @param dbus_sender Sender's unique name on the bus"""
 
         self.query = query
         self.sanitize_query()
-
-        matcher = QueryMatcher(self.query)
 
         self.db_handler = db_handler
         self._entries = matcher.match(self.db_handler)
@@ -215,8 +241,8 @@ class SingleQueryHandler(object):
         @return True if entry matches this query, False otherwise
 
         @todo Currently this messes up the order of the result set if a specific order was desired"""
-	return False
-        
+        return False
+
 
         # TODO Register with the new entry to receive changes
 
@@ -226,5 +252,27 @@ class SingleQueryHandler(object):
         # and be done with it. For those, theres's no need to re-read all results.
 
         # Let clients know that this result set changed
-            
 
+#----------------------------------------------------------------------------#
+class SingleQueryHandler(BaseQueryHandler):
+    """Handles a single dictionary based query."""
+#----------------------------------------------------------------------------#
+    def __init__(self, query, db_handler, dbus_sender):
+        """Creates a new SingleQueryHandler instance
+
+        @param query Query to evaluate
+        @param entries Set of Entry objects to use
+        @param dbus_sender Sender's unique name on the bus"""
+        BaseQueryHandler.__init__(self, query, db_handler, QueryMatcher(query), dbus_sender)
+
+
+class SingleRawSQLQueryHandler(BaseQueryHandler):
+    """Handles a single raw SQL based query."""
+    def __init__(self, query, db_handler, dbus_sender):
+        """Creates a new SingleRawSQLQueryHandler instance
+
+        @param query Query to evaluate
+        @param db_handler database handler
+        @param dbus_sender Sender's unique name on the bus"""
+
+        BaseQueryHandler.__init__(self, query, db_handler, RawSQLQueryMatcher(query), dbus_sender)
