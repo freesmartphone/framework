@@ -75,16 +75,17 @@ def regex_matches(string, pattern):
         logger.error("While matching regex (pattern = %s, string = %s) got: %s",unicode(pattern), unicode(string), exp)
     return 0
 
-rootdir = os.path.join( rootdir, 'opim' )
-
-_SQLITE_FILE_NAME = os.path.join(rootdir,'pim.db')
-
 def dict_factory(cursor, row, skip_field = None):
     d = {}
     for idx, col in enumerate(cursor.description):
         if col[0] != skip_field:
             d[col[0]] = row[idx]
     return d
+
+rootdir = os.path.join( rootdir, 'opim' )
+
+_SQLITE_FILE_NAME = os.path.join(rootdir,'pim.db')
+_SQLITE_DATABASE_VERSION = '2.1'
 
 class DbHandler(object):
     con = None
@@ -121,6 +122,10 @@ class DbHandler(object):
                         name TEXT
                     );
 
+                    CREATE TABLE IF NOT EXISTS info (
+                        field_name TEXT PRIMARY KEY,
+                        value TEXT NOT NULL
+                    );
                     
                     CREATE TABLE IF NOT EXISTS """ + self.db_prefix + """_fields (
                         field_name TEXT PRIMARY KEY,
@@ -150,6 +155,15 @@ class DbHandler(object):
 
                     cur.execute(self.get_create_type_index(type))
             self.con.commit()
+
+            cur.execute("select value from info where field_name = 'version'")
+            version_info = cur.fetchone()
+            if version_info == None:
+                cur.execute("insert into info values(?, ?)", ('version', _SQLITE_DATABASE_VERSION))
+                self.con.commit()
+            elif version_info[0] != _SQLITE_DATABASE_VERSION:
+                raise Exception("Database version mismatch, needed %s, current is %s" % (_SQLITE_DATABASE_VERSION, version_info[0]));
+
             cur.close()
         
         except Exception, exp:

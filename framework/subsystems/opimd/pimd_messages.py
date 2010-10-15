@@ -139,12 +139,20 @@ SELECT m.messages_id messages_id,
     ) TotalCount,
     (
         SELECT count(*) FROM
+            (
             messages_boolean b
             OUTER LEFT JOIN
             messages_phonenumber p
             ON b.messages_id = p.messages_id AND
-            b.field_name = 'MessageUnread'
-            WHERE b.value = '1' AND
+            b.field_name = 'New'
+            )
+            OUTER LEFT JOIN
+            messages_text x
+            ON b.messages_id = x.messages_id
+            AND x.field_name = 'Direction'
+            WHERE
+            b.value = '1' AND
+            x.value = 'in' AND
             p.field_name = 'Peer' AND p.value = p1.value
     ) UnreadCount
     FROM (
@@ -277,8 +285,7 @@ class MessageDomain(Domain, GenericDomain):
                         'Peer'          : 'phonenumber',
                         'Source'        : 'text',
                         'Direction'     : 'text',
-                        'MessageSent'   : 'boolean',
-                        'MessageUnread' : 'boolean',
+                        'New'           : 'boolean',
                         'Timestamp'     : 'date',
                         'Timezone'      : 'timezone',
                         'Content'       : 'text'
@@ -303,7 +310,7 @@ class MessageDomain(Domain, GenericDomain):
 
         self.fso_handler = MessagesFSO(self)
 
-        self._unread_messages = len(self.db_handler.query({'Direction': 'in', 'MessageUnread':1}))
+        self._unread_messages = len(self.db_handler.query({'Direction': 'in', 'New':1}))
 
     #---------------------------------------------------------------------#
     # dbus methods and signals                                            #
@@ -323,7 +330,7 @@ class MessageDomain(Domain, GenericDomain):
         @param message_data List of fields; format is [Key:Value, Key:Value, ...]
         @return URI of the newly created d-bus message object"""
 
-        unread = entry_data.get('MessageUnread')
+        unread = entry_data.get('New')
         #Make sure is boolean
         if unread == None:
            unread = 0
@@ -426,7 +433,7 @@ class MessageDomain(Domain, GenericDomain):
         self.check_entry_id(num_id)
 
         message = self.get_content(num_id)
-        unread = message.get('MessageUnread')
+        unread = message.get('New')
         #Make sure is boolean
         if unread == None:
            unread = 0
@@ -458,8 +465,8 @@ class MessageDomain(Domain, GenericDomain):
 
         message = self.get_content(num_id)
 #FIXME: What if it was outgoing and is now incoming?
-        old_unread = message['MessageUnread'] if message.has_key('MessageUnread') else False
-        new_unread = data['MessageUnread'] if data.has_key('MessageUnread') else False
+        old_unread = message['New'] if message.has_key('New') else False
+        new_unread = data['New'] if data.has_key('New') else False
         old_in = message['Direction'] == 'in' if message.has_key('Direction') else False
         new_in = data['Direction'] == 'in' if data.has_key('Direction') else old_in
         if old_unread and old_in and not new_unread:
@@ -528,21 +535,20 @@ class MessagesFSO(object):
 
         logger.debug("Processing entry \"%s\"...", text)
 
+        entry['New'] = 1
         if status in ('read', 'unread'):
             entry['Direction'] = 'in'
-            entry['MessageUnread'] = 1
         else:
             entry['Direction'] = 'out'
-            entry['MessageSent'] = 0
-            
-        if status == 'read': entry['MessageUnread'] = 0
-        if status == 'sent': entry['MessageSent'] = 1
-        
+
+        if status == 'read': entry['New'] = 1
+        if status == 'sent': entry['New'] = 0
+
         entry['Peer'] = number
-        
+
         # TODO Handle text properly, i.e. make it on-demand if >1KiB
         entry['Content'] = text
-              
+
         entry['Source'] = 'SMS'
 
         entry['SMS-combined_message'] = 0
@@ -589,7 +595,7 @@ class MessagesFSO(object):
                     if complete:
                         edit_data['SMS-complete_message']=1
                     edit_data['Content'] = new_content
-                    edit_data['MessageUnread'] = 1
+                    edit_data['New'] = 1
                     self.domain.Update(edit_data, '/' + str(id))
                 else:
                     register = 1
@@ -702,7 +708,7 @@ class MessagesFSO(object):
         entry['Content'] = msg
         entry['Peer'] = number
         entry['Direction'] = 'in'
-        entry['MessageUnread'] = 1
+        entry['New'] = 1
         entry['Source'] = 'SMS'
         # We get number of quarters of an hours, convert to minutes:
         zone = int(timestamp[18:]) * 15
