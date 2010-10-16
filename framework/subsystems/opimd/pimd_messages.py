@@ -141,12 +141,12 @@ SELECT m.""" + db_prefix + """_id """ + db_prefix + """_id,
         SELECT count(*) FROM
             (
             """ + db_prefix + """_boolean b
-            OUTER LEFT JOIN
+            JOIN
             """ + db_prefix + """_phonenumber p
             ON b.""" + db_prefix + """_id = p.""" + db_prefix + """_id AND
             b.field_name = 'New'
             )
-            OUTER LEFT JOIN
+            JOIN
             """ + db_prefix + """_text x
             ON b.""" + db_prefix + """_id = x.""" + db_prefix + """_id
             AND x.field_name = 'Direction'
