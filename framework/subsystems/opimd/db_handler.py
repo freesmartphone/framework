@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 #
 #   Openmoko PIM Daemon
-#   SQLite-Contacts Backend Plugin
+#   SQLite Backend Plugin
 #
 #   http://openmoko.org/
 #
@@ -24,7 +24,7 @@
 #   Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
 #
 
-"""opimd SQLite-Contacts Backend Plugin"""
+"""opimd SQLite Backend Plugin"""
 import os
 import sqlite3
 
