@@ -133,12 +133,12 @@ class QueryManager(DBusFBObject):
         query['sql'] = """
 SELECT m.""" + db_prefix + """_id """ + db_prefix + """_id,
     (
-        SELECT count(*) FROM """ + db_prefix + """_phonenumber
+        SELECT COUNT(*) FROM """ + db_prefix + """_phonenumber
         WHERE field_name = 'Peer'
-        and value = p1.value
+        AND value = p1.value
     ) TotalCount,
     (
-        SELECT count(*) FROM
+        SELECT COUNT(*) FROM
             (
             """ + db_prefix + """_boolean b
             JOIN
@@ -165,7 +165,7 @@ SELECT m.""" + db_prefix + """_id """ + db_prefix + """_id,
 
     WHERE t.field_name = 'Timestamp' AND
     t.value IN (
-        SELECT max(timestamp) timestamp FROM (
+        SELECT MAX(timestamp) timestamp FROM (
         (
         SELECT date_t.""" + db_prefix + """_id AS """ + db_prefix + """_id, date_t.value AS timestamp FROM
             """ + db_prefix + """_date AS date_t
@@ -541,8 +541,8 @@ class MessagesFSO(object):
         else:
             entry['Direction'] = 'out'
 
-        if status == 'read': entry['New'] = 1
-        if status == 'sent': entry['New'] = 0
+        if status in ('read', 'sent'):
+            entry['New'] = 0
 
         entry['Peer'] = number
 

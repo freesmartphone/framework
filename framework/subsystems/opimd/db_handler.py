@@ -75,9 +75,9 @@ def regex_matches(string, pattern):
         logger.error("While matching regex (pattern = %s, string = %s) got: %s",unicode(pattern), unicode(string), exp)
     return 0
 
-def dict_factory(cursor, row, skip_field = None):
+def dict_factory(description, row, skip_field = None):
     d = {}
-    for idx, col in enumerate(cursor.description):
+    for idx, col in enumerate(description):
         if col[0] != skip_field:
             d[col[0]] = row[idx]
     return d
@@ -156,10 +156,10 @@ class DbHandler(object):
                     cur.execute(self.get_create_type_index(type))
             self.con.commit()
 
-            cur.execute("select value from info where field_name = 'version'")
+            cur.execute("SELECT value FROM info WHERE field_name = 'version'")
             version_info = cur.fetchone()
             if version_info == None:
-                cur.execute("insert into info values(?, ?)", ('version', _SQLITE_DATABASE_VERSION))
+                cur.execute("INSERT INTO info VALUES(?, ?)", ('version', _SQLITE_DATABASE_VERSION))
                 self.con.commit()
             elif version_info[0] != _SQLITE_DATABASE_VERSION:
                 raise Exception("Database version mismatch, needed %s, current is %s" % (_SQLITE_DATABASE_VERSION, version_info[0]))
@@ -348,7 +348,7 @@ class DbHandler(object):
                     continue
 
         if '_limit' in query_desc:
-            query = query + " LIMIT ?"
+            query = "SELECT * FROM (" + query + ") LIMIT ?"
             params.append(int(query_desc['_limit']))
 
         return {'Query':query, 'Parameters':params}
@@ -366,18 +366,21 @@ class DbHandler(object):
                 map[field] = name    
         return map
         
-    def get_full_result(self, raw_result, join_parameters, cursor = None):
+    def get_full_result(self, raw_result, join_parameters, description = None):
         if raw_result == None:
             return None
         #convert from a list of tuples of ids to a list of ids
         ids = map(lambda x: x[0], raw_result)
-        if cursor:
+
+        # if we have 'description' we can pass other columns to get_content()
+        # to be included in the returned result set through dbus response
+        if description:
             try:
                 columns = map(lambda x: x[0], cursor.description)
                 skip_field = columns[0]
             except:
                 skip_field = None
-            other_fields = map(lambda x: dict_factory(cursor, x, skip_field), raw_result)
+            other_fields = map(lambda x: dict_factory(description, x, skip_field), raw_result)
         else:
             other_fields = []
 
@@ -397,7 +400,7 @@ class DbHandler(object):
 
         cur = self.con.cursor()
         cur.execute(query['Query'], query['Parameters'])
-        res = self.get_full_result(cur.fetchall(), join_parameters, cur)
+        res = self.get_full_result(cur.fetchall(), join_parameters, cur.description)
         cur.close()
         return res
 
@@ -441,6 +444,7 @@ class DbHandler(object):
                 pass
             tmp['Path'] = self.domain.id_to_path(id)
             tmp['EntryId'] = id
+            # include any other custom field from query
             try:
                 for field, value in other_fields[row_index].iteritems():
                     tmp[field] = value
