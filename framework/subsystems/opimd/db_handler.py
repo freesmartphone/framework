@@ -42,6 +42,7 @@ import framework.patterns.tasklet as tasklet
 from framework.config import config, rootdir
 
 import re
+import db_upgrade
 
 try:
     import phoneutils
@@ -76,6 +77,7 @@ def regex_matches(string, pattern):
     return 0
 
 def dict_factory(description, row, skip_field = None):
+    """Used for creating column-based dictionaries from simple resultset rows (ie lists)"""
     d = {}
     for idx, col in enumerate(description):
         if col[0] != skip_field:
@@ -85,7 +87,6 @@ def dict_factory(description, row, skip_field = None):
 rootdir = os.path.join( rootdir, 'opim' )
 
 _SQLITE_FILE_NAME = os.path.join(rootdir,'pim.db')
-_SQLITE_DATABASE_VERSION = '2.1'
 
 class DbHandler(object):
     con = None
@@ -156,16 +157,15 @@ class DbHandler(object):
                     cur.execute(self.get_create_type_index(type))
             self.con.commit()
 
-            cur.execute("SELECT value FROM info WHERE field_name = 'version'")
-            version_info = cur.fetchone()
-            if version_info == None:
-                cur.execute("INSERT INTO info VALUES(?, ?)", ('version', _SQLITE_DATABASE_VERSION))
-                self.con.commit()
-            elif version_info[0] != _SQLITE_DATABASE_VERSION:
-                raise Exception("Database version mismatch, needed %s, current is %s" % (_SQLITE_DATABASE_VERSION, version_info[0]))
+            check, version = db_upgrade.check_version(cur)
+
+            if check == db_upgrade.DB_UNSUPPORTED:
+                raise Exception("Unsupported database version %s" % (version))
+            elif check == db_upgrade.DB_NEEDS_UPGRADE:
+                db_upgrade.upgrade(version, cur, self.con)
 
             cur.close()
-        
+
         except Exception, exp:
             logger.error("""The following errors occured when trying to init db: %s\n%s""", _SQLITE_FILE_NAME, str(exp))
             raise 
