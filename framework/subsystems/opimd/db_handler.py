@@ -418,7 +418,7 @@ class DbHandler(object):
 
         cur = self.con.cursor()
         cur.execute(query['Query'], query['Parameters'])
-        res = self.get_full_result(cur.fetchall(), join_parameters, cur)
+        res = self.get_full_result(cur.fetchall(), join_parameters, cur.description)
         cur.close()
         return res
 
