@@ -102,30 +102,57 @@ class DbHandler(object):
         # group the rest by sql type
         
         self.table_types.extend(['entryid', 'generic'])
+        self.init_db()
     def __repr__(self):
         return self.name
 
     def __del__(self):
         self.con.commit()
         self.con.close()
-    def create_db(self):
+
+    def init_db(self):
         try:
+            new_db = not os.path.isfile(_SQLITE_FILE_NAME)
             self.con = sqlite3.connect(_SQLITE_FILE_NAME, isolation_level=None)
             self.con.text_factory = sqlite3.OptimizedUnicode
             self.con.create_collation("compare_numbers", numbers_compare)
             self.con.create_function("regex_matches", 2, regex_matches)
+
+            cur = self.con.cursor()
+            cur.execute("""
+                    CREATE TABLE IF NOT EXISTS info (
+                        field_name TEXT PRIMARY KEY,
+                        value TEXT NOT NULL
+                    )
+            """)
+
+            if new_db:
+                cur.execute("INSERT INTO info VALUES('version', ?)", (db_upgrade.DB_VERSIONS[-1], ))
+
+            self.con.commit()
+            cur.close()
+        except Exception, exp:
+            logger.error("""The following errors occured when trying to init db: %s\n%s""", _SQLITE_FILE_NAME, str(exp))
+            raise
+    def create_db(self):
+        try:
+            cur = self.con.cursor()
+
+            check, version = db_upgrade.check_version(cur)
+
+            if check == db_upgrade.DB_UNSUPPORTED:
+                raise Exception("Unsupported database version %s" % (version))
+            elif check == db_upgrade.DB_NEEDS_UPGRADE:
+                db_upgrade.upgrade(version, cur, self.con)
+
+            self.con.commit()
+
             #Creates basic db structue (tables and basic indexes) more complex
             #indexes should be done per backend
-            cur = self.con.cursor()
             cur.executescript("""
                     CREATE TABLE IF NOT EXISTS """ + self.db_prefix + """ (
                         """ + self.db_prefix + """_id INTEGER PRIMARY KEY,
                         name TEXT
-                    );
-
-                    CREATE TABLE IF NOT EXISTS info (
-                        field_name TEXT PRIMARY KEY,
-                        value TEXT NOT NULL
                     );
                     
                     CREATE TABLE IF NOT EXISTS """ + self.db_prefix + """_fields (
@@ -155,19 +182,12 @@ class DbHandler(object):
                     self.tables.append(self.db_prefix + "_" + type)
 
                     cur.execute(self.get_create_type_index(type))
+
             self.con.commit()
-
-            check, version = db_upgrade.check_version(cur)
-
-            if check == db_upgrade.DB_UNSUPPORTED:
-                raise Exception("Unsupported database version %s" % (version))
-            elif check == db_upgrade.DB_NEEDS_UPGRADE:
-                db_upgrade.upgrade(version, cur, self.con)
-
             cur.close()
 
         except Exception, exp:
-            logger.error("""The following errors occured when trying to init db: %s\n%s""", _SQLITE_FILE_NAME, str(exp))
+            logger.error("""The following errors occured when trying to create db: %s\n%s""", _SQLITE_FILE_NAME, str(exp))
             raise 
     def get_create_type_index(self, type):
         if type == "phonenumber":
