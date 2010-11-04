@@ -35,7 +35,7 @@ from domain_manager import DomainManager, Domain
 from helpers import *
 from opimd import *
 
-from query_manager import QueryMatcher, SingleQueryHandler
+from query_manager import SingleQueryHandler, SingleRawSQLQueryHandler
 
 import framework.patterns.tasklet as tasklet
 from framework.config import config, busmap
@@ -115,6 +115,71 @@ class QueryManager(DBusFBObject):
         @return dbus path of the query result"""
 
         query_handler = SingleQueryHandler(query, self.db_handler, dbus_sender)
+
+        query_id = self._next_query_id
+        self._next_query_id += 1
+
+        self._queries[query_id] = query_handler
+
+        return _DBUS_PATH_QUERIES + '/' + str(query_id)
+
+    def process_query_threads(self, query, dbus_sender):
+        """Handles a query for threads and returns the dbus path of the newly created query result
+
+        @param dbus_sender Sender's unique name on the bus
+        @return dbus path of the query result"""
+
+        db_prefix = self.db_handler.db_prefix
+        query['sql'] = """
+SELECT m.""" + db_prefix + """_id """ + db_prefix + """_id,
+    (
+        SELECT COUNT(*) FROM """ + db_prefix + """_phonenumber
+        WHERE field_name = 'Peer'
+        AND value = p1.value
+    ) TotalCount,
+    (
+        SELECT COUNT(*) FROM
+            (
+            """ + db_prefix + """_boolean b
+            JOIN
+            """ + db_prefix + """_phonenumber p
+            ON b.""" + db_prefix + """_id = p.""" + db_prefix + """_id AND
+            b.field_name = 'New'
+            )
+            JOIN
+            """ + db_prefix + """_text x
+            ON b.""" + db_prefix + """_id = x.""" + db_prefix + """_id
+            AND x.field_name = 'Direction'
+            WHERE
+            b.value = '1' AND
+            x.value = 'in' AND
+            p.field_name = 'Peer' AND p.value = p1.value
+    ) UnreadCount
+    FROM (
+        """ + db_prefix + """ m
+        JOIN
+        """ + db_prefix + """_date t
+        USING (""" + db_prefix + """_id)
+    ) JOIN """ + db_prefix + """_phonenumber p1
+        USING (""" + db_prefix + """_id)
+
+    WHERE t.field_name = 'Timestamp' AND
+    t.value IN (
+        SELECT MAX(timestamp) timestamp FROM (
+        (
+        SELECT date_t.""" + db_prefix + """_id AS """ + db_prefix + """_id, date_t.value AS timestamp FROM
+            """ + db_prefix + """_date AS date_t
+        WHERE date_t.field_name = 'Timestamp'
+        ) res_t
+        JOIN """ + db_prefix + """_phonenumber num_t ON
+            res_t.""" + db_prefix + """_id = num_t.""" + db_prefix + """_id AND num_t.field_name = 'Peer'
+        )
+        GROUP BY num_t.value
+    )
+    ORDER BY t.value DESC
+        """
+
+        query_handler = SingleRawSQLQueryHandler(query, self.db_handler, dbus_sender)
 
         query_id = self._next_query_id
         self._next_query_id += 1
@@ -217,14 +282,13 @@ class MessageDomain(Domain, GenericDomain):
     
     _unread_messages = None
     DEFAULT_FIELDS = {
-                        'Peer'        : 'phonenumber',
-                        'Source'      : 'text',
-                        'Direction'   : 'text',
-                        'MessageSent' : 'boolean',
-                        'MessageRead' : 'boolean',
-                        'Timestamp'   : 'date',
-                        'Timezone'    : 'timezone',
-                        'Content'     : 'text'
+                        'Peer'          : 'phonenumber',
+                        'Source'        : 'text',
+                        'Direction'     : 'text',
+                        'New'           : 'boolean',
+                        'Timestamp'     : 'date',
+                        'Timezone'      : 'timezone',
+                        'Content'       : 'text'
                      }
     def __init__(self):
         """Creates a new MessageDomain instance"""
@@ -246,7 +310,7 @@ class MessageDomain(Domain, GenericDomain):
 
         self.fso_handler = MessagesFSO(self)
 
-        self._unread_messages = len(self.db_handler.query({'Direction': 'in', 'MessageRead':0}))      
+        self._unread_messages = len(self.db_handler.query({'Direction': 'in', 'New':1}))
 
     #---------------------------------------------------------------------#
     # dbus methods and signals                                            #
@@ -266,14 +330,14 @@ class MessageDomain(Domain, GenericDomain):
         @param message_data List of fields; format is [Key:Value, Key:Value, ...]
         @return URI of the newly created d-bus message object"""
 
-        read = entry_data.get('MessageRead')
+        unread = entry_data.get('New')
         #Make sure is boolean
-        if read == None:
-           read = 0
+        if unread == None:
+           unread = 0
         else:
-           read = int(entry_data.get('MessageRead'))
+           unread = int(unread)
            
-        if entry_data.get('Direction') == 'in' and not read:
+        if entry_data.get('Direction') == 'in' and unread:
            self._unread_messages += 1
            self.UnreadMessages(self._unread_messages)
            
@@ -313,6 +377,15 @@ class MessageDomain(Domain, GenericDomain):
         @return URI of the query object, e.g. /org.pyneo.PIM/Messages/Queries/4"""
 
         return self.query_manager.process_query(query, sender)
+
+    @dbus_method(_DIN_MESSAGES, "a{sv}", "s", sender_keyword="sender")
+    def QueryThreads(self, query, sender):
+        """Creates a new query for threads and returns the URI of the resulting query object
+
+        @param sender Unique name of the query sender on the bus
+        @return URI of the query object, e.g. /org.pyneo.PIM/Messages/Queries/4"""
+
+        return self.query_manager.process_query_threads(query, sender)
 
 
     @dbus_method(_DIN_MESSAGES, "", "i")
@@ -360,14 +433,14 @@ class MessageDomain(Domain, GenericDomain):
         self.check_entry_id(num_id)
 
         message = self.get_content(num_id)
-        read = message.get('MessageRead')
+        unread = message.get('New')
         #Make sure is boolean
-        if read == None:
-           read = 0
+        if unread == None:
+           unread = 0
         else:
-           read = int(message.get('MessageRead'))
+           unread = int(unread)
            
-        if not read and message.get('Direction') == 'in':
+        if unread and message.get('Direction') == 'in':
             self._unread_messages -= 1
             self.UnreadMessages(self._unread_messages)
 
@@ -392,15 +465,15 @@ class MessageDomain(Domain, GenericDomain):
 
         message = self.get_content(num_id)
 #FIXME: What if it was outgoing and is now incoming?
-        old_read = message['MessageRead'] if message.has_key('MessageRead') else False
-        new_read = data['MessageRead'] if data.has_key('MessageRead') else False
+        old_unread = message['New'] if message.has_key('New') else False
+        new_unread = data['New'] if data.has_key('New') else False
         old_in = message['Direction'] == 'in' if message.has_key('Direction') else False
         new_in = data['Direction'] == 'in' if data.has_key('Direction') else old_in
-        if not old_read and old_in and new_read:
+        if old_unread and old_in and not new_unread:
             self._unread_messages -= 1
             self.UnreadMessages(self._unread_messages)
-        elif (old_read and not new_read and new_in) or \
-               (not old_read and not old_in and not new_read and new_in):
+        elif (not old_unread and new_unread and new_in) or \
+               (old_unread and not old_in and new_unread and new_in):
             self._unread_messages += 1
             self.UnreadMessages(self._unread_messages)
         self.update(num_id, data)
@@ -462,21 +535,20 @@ class MessagesFSO(object):
 
         logger.debug("Processing entry \"%s\"...", text)
 
+        entry['New'] = 1
         if status in ('read', 'unread'):
             entry['Direction'] = 'in'
-            entry['MessageRead'] = 0
         else:
             entry['Direction'] = 'out'
-            entry['MessageSent'] = 0
-            
-        if status == 'read': entry['MessageRead'] = 1
-        if status == 'sent': entry['MessageSent'] = 1
-        
+
+        if status in ('read', 'sent'):
+            entry['New'] = 0
+
         entry['Peer'] = number
-        
+
         # TODO Handle text properly, i.e. make it on-demand if >1KiB
         entry['Content'] = text
-              
+
         entry['Source'] = 'SMS'
 
         entry['SMS-combined_message'] = 0
@@ -523,7 +595,7 @@ class MessagesFSO(object):
                     if complete:
                         edit_data['SMS-complete_message']=1
                     edit_data['Content'] = new_content
-                    edit_data['MessageRead'] = 0
+                    edit_data['New'] = 1
                     self.domain.Update(edit_data, '/' + str(id))
                 else:
                     register = 1
@@ -636,7 +708,7 @@ class MessagesFSO(object):
         entry['Content'] = msg
         entry['Peer'] = number
         entry['Direction'] = 'in'
-        entry['MessageRead'] = 0
+        entry['New'] = 1
         entry['Source'] = 'SMS'
         # We get number of quarters of an hours, convert to minutes:
         zone = int(timestamp[18:]) * 15

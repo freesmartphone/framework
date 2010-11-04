@@ -33,6 +33,13 @@ class GTA02Device( UBXDevice ):
 
     def __init__( self, bus, channel ):
 
+        # Kernel specific paths
+        global DEVICE_POWER_PATH_NEW
+        kernel_release = os.uname()[2]
+        if kernel_release >= "2.6.32":
+           DEVICE_POWER_PATH_NEW = "/sys/bus/platform/devices/gta02-pm-gps.0/power_on"
+           logger.info( "Kernel >= 2.6.32, gps sysfs updated" )
+
         # Make sure the GPS is off
         helpers.writeToFile( DEVICE_POWER_PATH_OLD, "1" )
         helpers.writeToFile( DEVICE_POWER_PATH_NEW, "1" )

@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 #
 #   Openmoko PIM Daemon
-#   SQLite-Contacts Backend Plugin
+#   SQLite Backend Plugin
 #
 #   http://openmoko.org/
 #
@@ -24,7 +24,7 @@
 #   Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
 #
 
-"""opimd SQLite-Contacts Backend Plugin"""
+"""opimd SQLite Backend Plugin"""
 import os
 import sqlite3
 
@@ -42,6 +42,7 @@ import framework.patterns.tasklet as tasklet
 from framework.config import config, rootdir
 
 import re
+import db_upgrade
 
 try:
     import phoneutils
@@ -75,10 +76,17 @@ def regex_matches(string, pattern):
         logger.error("While matching regex (pattern = %s, string = %s) got: %s",unicode(pattern), unicode(string), exp)
     return 0
 
+def dict_factory(description, row, skip_field = None):
+    """Used for creating column-based dictionaries from simple resultset rows (ie lists)"""
+    d = {}
+    for idx, col in enumerate(description):
+        if col[0] != skip_field:
+            d[col[0]] = row[idx]
+    return d
+
 rootdir = os.path.join( rootdir, 'opim' )
 
 _SQLITE_FILE_NAME = os.path.join(rootdir,'pim.db')
-
 
 class DbHandler(object):
     con = None
@@ -94,27 +102,58 @@ class DbHandler(object):
         # group the rest by sql type
         
         self.table_types.extend(['entryid', 'generic'])
+        self.init_db()
     def __repr__(self):
         return self.name
 
     def __del__(self):
         self.con.commit()
         self.con.close()
-    def create_db(self):
+
+    def init_db(self):
         try:
+            new_db = not os.path.isfile(_SQLITE_FILE_NAME)
             self.con = sqlite3.connect(_SQLITE_FILE_NAME, isolation_level=None)
             self.con.text_factory = sqlite3.OptimizedUnicode
             self.con.create_collation("compare_numbers", numbers_compare)
             self.con.create_function("regex_matches", 2, regex_matches)
+
+            cur = self.con.cursor()
+            cur.execute("""
+                    CREATE TABLE IF NOT EXISTS info (
+                        field_name TEXT PRIMARY KEY,
+                        value TEXT NOT NULL
+                    )
+            """)
+
+            if new_db:
+                cur.execute("INSERT INTO info VALUES('version', ?)", (db_upgrade.DB_VERSIONS[-1], ))
+
+            self.con.commit()
+            cur.close()
+        except Exception, exp:
+            logger.error("""The following errors occured when trying to init db: %s\n%s""", _SQLITE_FILE_NAME, str(exp))
+            raise
+    def create_db(self):
+        try:
+            cur = self.con.cursor()
+
+            check, version = db_upgrade.check_version(cur)
+
+            if check == db_upgrade.DB_UNSUPPORTED:
+                raise Exception("Unsupported database version %s" % (version))
+            elif check == db_upgrade.DB_NEEDS_UPGRADE:
+                db_upgrade.upgrade(version, cur, self.con)
+
+            self.con.commit()
+
             #Creates basic db structue (tables and basic indexes) more complex
             #indexes should be done per backend
-            cur = self.con.cursor()
             cur.executescript("""
                     CREATE TABLE IF NOT EXISTS """ + self.db_prefix + """ (
                         """ + self.db_prefix + """_id INTEGER PRIMARY KEY,
                         name TEXT
                     );
-
                     
                     CREATE TABLE IF NOT EXISTS """ + self.db_prefix + """_fields (
                         field_name TEXT PRIMARY KEY,
@@ -143,11 +182,12 @@ class DbHandler(object):
                     self.tables.append(self.db_prefix + "_" + type)
 
                     cur.execute(self.get_create_type_index(type))
+
             self.con.commit()
             cur.close()
-        
+
         except Exception, exp:
-            logger.error("""The following errors occured when trying to init db: %s\n%s""", _SQLITE_FILE_NAME, str(exp))
+            logger.error("""The following errors occured when trying to create db: %s\n%s""", _SQLITE_FILE_NAME, str(exp))
             raise 
     def get_create_type_index(self, type):
         if type == "phonenumber":
@@ -306,6 +346,33 @@ class DbHandler(object):
             query = query + " LIMIT ?"
             params.append(int(query_desc['_limit']))
         return {'Query':query, 'Parameters':params}
+
+    def build_sql_query(self, query_desc):
+        """Modify a raw SQL query with some others rules."""
+
+        query = query_desc['sql']
+        params = []
+
+        for name, value in query_desc.iteritems():
+            #skip system fields
+            if name.startswith('_'):
+                #FIXME: put this in a central place!
+                if name not in ('_limit', '_resolve_phonenumber', '_retrieve_full_contact'):
+                    raise InvalidField("Query rule '%s' does not exist." % (name, ))
+                else:
+                    continue
+            elif name.startswith('@'):
+                if name[1:] not in DomainManager.get_domains():
+                    raise InvalidField("Domain '%s' does not exist." % (name[1:], ))
+                else:
+                    continue
+
+        if '_limit' in query_desc:
+            query = "SELECT * FROM (" + query + ") LIMIT ?"
+            params.append(int(query_desc['_limit']))
+
+        return {'Query':query, 'Parameters':params}
+
     def sanitize_result(self, raw):
         map = {}
 
@@ -319,13 +386,26 @@ class DbHandler(object):
                 map[field] = name    
         return map
         
-    def get_full_result(self, raw_result, join_parameters):
+    def get_full_result(self, raw_result, join_parameters, description = None):
         if raw_result == None:
             return None
         #convert from a list of tuples of ids to a list of ids
         ids = map(lambda x: x[0], raw_result)
-        return self.get_content(ids, join_parameters)
-        
+
+        # if we have 'description' we can pass other columns to get_content()
+        # to be included in the returned result set through dbus response
+        if description:
+            try:
+                columns = map(lambda x: x[0], cursor.description)
+                skip_field = columns[0]
+            except:
+                skip_field = None
+            other_fields = map(lambda x: dict_factory(description, x, skip_field), raw_result)
+        else:
+            other_fields = []
+
+        return self.get_content(ids, join_parameters, other_fields)
+
     def query(self, query_desc):
         #FIXME: join_parametrs should be cool, and not just a simple hash
         join_parameters = {}
@@ -340,14 +420,33 @@ class DbHandler(object):
 
         cur = self.con.cursor()
         cur.execute(query['Query'], query['Parameters'])
-        res = self.get_full_result(cur.fetchall(), join_parameters)
+        res = self.get_full_result(cur.fetchall(), join_parameters, cur.description)
         cur.close()
         return res
-        
-    def get_content(self, ids, join_parameters):
+
+    def raw_sql(self, query_desc):
+        #FIXME: join_parametrs should be cool, and not just a simple hash
+        join_parameters = {}
+        query = self.build_sql_query(query_desc)
+        if query == None:
+            logger.error("Failed creating threads query for %s", str(query_desc))
+            raise QueryFailed("Failed creating threads query.")
+        if query_desc.get('_resolve_phonenumber'):
+            join_parameters['resolve'] = True
+            if query_desc.get('_retrieve_full_contact'):
+                join_parameters['full'] = True
+
+        cur = self.con.cursor()
+        cur.execute(query['Query'], query['Parameters'])
+        res = self.get_full_result(cur.fetchall(), join_parameters, cur.description)
+        cur.close()
+        return res
+
+    def get_content(self, ids, join_parameters, other_fields = []):
         cur = self.con.cursor()
         res = []
         query = self.build_retrieve_query(join_parameters)
+        row_index = 0
         for id in ids:
             cur.execute(query, {'id': id})
             tmp = self.sanitize_result(cur.fetchall())
@@ -365,6 +464,14 @@ class DbHandler(object):
                 pass
             tmp['Path'] = self.domain.id_to_path(id)
             tmp['EntryId'] = id
+            # include any other custom field from query
+            try:
+                for field, value in other_fields[row_index].iteritems():
+                    tmp[field] = value
+            except IndexError:
+                pass
+
+            row_index += 1
             res.append(tmp)
         cur.close()
         return res

@@ -20,6 +20,7 @@ from nmea import NMEADevice
 from ubx import UBXDevice
 from om import GTA02Device
 from eten import EtenDevice
+from msm import MSMDevice
 from gpschannel import *
 
 NEEDS_BUSNAMES = [ "org.freedesktop.Gypsy" ]

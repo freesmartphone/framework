@@ -22,6 +22,7 @@ setup(
     #  ],
     #cmdclass = {'build_ext': build_ext},
     packages = packages,
+    package_data={'framework/subsystems/opimd': ["db/*.sql"]},
     scripts = [ "framework/frameworkd", "tools/cli-framework", "tools/dump-netlink", "tools/remove-tel", "tools/opimd_fix_db", "tools/opimd_convert_db" ],
     data_files = [
         ("../../etc/dbus-1/system.d", ["etc/dbus-1/system.d/frameworkd.conf"] ),
