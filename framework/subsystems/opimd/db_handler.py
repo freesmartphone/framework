@@ -272,7 +272,7 @@ class DbHandler(object):
             #skip system fields
             if name.startswith('_'):
                 #FIXME: put this in a central place!
-                if name not in ('_at_least_one', '_sortdesc', '_sortby', '_limit', '_resolve_phonenumber', '_retrieve_full_contact'):
+                if name not in ('_at_least_one', '_sortdesc', '_sortby', '_limit', '_limit_start', '_resolve_phonenumber', '_retrieve_full_contact'):
                     raise InvalidField("Query rule '%s' does not exist." % (name, ))
                 else:
                     continue
@@ -342,9 +342,25 @@ class DbHandler(object):
             params.append(sortby)
             if '_sortdesc' in query_desc:
                 query = query + " DESC"
+
+        limit_start = 0
+        if '_limit_start' in query_desc:
+            try:
+                limit_start = int(query_desc['_limit_start'])
+            except:
+                raise InvalidField("_limit_start should be an integer value")
+
+        limit_end = -1
         if '_limit' in query_desc:
-            query = query + " LIMIT ?"
-            params.append(int(query_desc['_limit']))
+            try:
+                limit_end = int(query_desc['_limit'])
+            except:
+                raise InvalidField("_limit should be an integer value")
+
+        if (limit_start != 0 or limit_end != -1):
+            query = query + " LIMIT ?,?"
+            params.extend([limit_start, limit_end])
+
         return {'Query':query, 'Parameters':params}
 
     def build_sql_query(self, query_desc):
@@ -357,7 +373,7 @@ class DbHandler(object):
             #skip system fields
             if name.startswith('_'):
                 #FIXME: put this in a central place!
-                if name not in ('_limit', '_resolve_phonenumber', '_retrieve_full_contact'):
+                if name not in ('_limit', '_limit_start', '_resolve_phonenumber', '_retrieve_full_contact'):
                     raise InvalidField("Query rule '%s' does not exist." % (name, ))
                 else:
                     continue
@@ -367,9 +383,24 @@ class DbHandler(object):
                 else:
                     continue
 
+        limit_start = 0
+        if '_limit_start' in query_desc:
+            try:
+                limit_start = int(query_desc['_limit_start'])
+            except:
+                raise InvalidField("_limit_start should be an integer value")
+
+        limit_end = -1
         if '_limit' in query_desc:
-            query = "SELECT * FROM (" + query + ") LIMIT ?"
-            params.append(int(query_desc['_limit']))
+            try:
+                limit_end = int(query_desc['_limit'])
+            except:
+                raise InvalidField("_limit should be an integer value")
+
+        if (limit_start != 0 or limit_end != -1):
+            query = query + " LIMIT ?,?"
+            params.extend([limit_start, limit_end])
+
 
         return {'Query':query, 'Parameters':params}
 
