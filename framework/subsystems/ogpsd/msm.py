@@ -10,6 +10,7 @@ Open GPS Daemon
 (C) 2008 Openmoko, Inc.
 GPLv2 or later
 """
+import os,subprocess
 
 from nmea import NMEADevice
 
@@ -22,20 +23,20 @@ class MSMDevice( NMEADevice ):
     """MSM SOC specific GPS device"""
 
     def __init__( self, bus, channel ):
-
-        #TODO: stop "gps" from android-rpc if already launched
-
         NMEADevice.__init__( self, bus, channel )
+        self.dev_null = os.open("/dev/null",777)
+        self.gps = None
 
     def initializeDevice( self ):
-        #TODO: launch "gps" from android-rpc
-
         NMEADevice.initializeDevice( self )
+        if not self.gps:
+            self.gps = subprocess.Popen(["gps"],stderr=self.dev_null,stdout=self.dev_null, shell=False)
 
     def shutdownDevice( self ):
-
+	if self.gps:
+            self.gps.kill()
+            self.gps.wait()
+            self.gps = None
         NMEADevice.shutdownDevice( self )
-
-        #TODO: stop "gps" from android-rpc
 
 #vim: expandtab
