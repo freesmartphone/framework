@@ -214,7 +214,8 @@ class DbHandler(object):
             return " value " + operator + " ? "
         else:
             #FIXME: raise error if operator is not '='
-            return " regex_matches(value, ?) = 1 "
+            if (operator == '!=' or operator == "="):
+                return " regex_matches(value, ?) "+operator+" 1 "
     def get_value_compare_object(self, type, field, value):
         if type == "phonenumber":
             return normalize_number(str(value))
@@ -289,7 +290,13 @@ class DbHandler(object):
             
             #handle type searching
             if name.startswith('<') or name.startswith('>'):
-                operator = name[:1]
+                pos = 1
+                if (name[1] == '='):
+                    pos = 2
+                operator = name[:pos]
+                name = name[pos:]
+            elif name.startswith('!'):
+                operator = '!='
                 name = name[1:]
             else:
                 operator = '='
