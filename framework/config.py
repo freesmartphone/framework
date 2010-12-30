@@ -2,7 +2,7 @@
 """
 freesmartphone.org Framework Daemon
 
-(C) 2008 Michael 'Mickey' Lauer <mlauer@vanille-media.de>
+(C) 2008-2010 Michael 'Mickey' Lauer <mlauer@vanille-media.de>
 (C) 2008 Openmoko, Inc.
 GPLv2 or later
 
@@ -84,10 +84,10 @@ for handler in rootlogger.handlers:
 # now that we are clean, setup our actual handler and configure formatter
 if debugto == "stderr":
     handler = logging.StreamHandler() # default=stderr
-    handler.setFormatter( logging.Formatter( "%(asctime)s.%(msecs)d %(name)-20s %(levelname)-8s %(message)s", datefmt="%Y.%m.%d %H:%M:%S" ) )
+    handler.setFormatter( logging.Formatter( "%(asctime)s.%(msecs)03d %(name)-20s %(levelname)-8s %(message)s", datefmt="%Y.%m.%d %H:%M:%S" ) )
 elif debugto == "file":
     handler = logging.FileHandler( debugdest )
-    handler.setFormatter( logging.Formatter( "%(asctime)s.%(msecs)d %(name)-20s %(levelname)-8s %(message)s", datefmt="%Y.%m.%d %H:%M:%S" ) )
+    handler.setFormatter( logging.Formatter( "%(asctime)s.%(msecs)03d %(name)-20s %(levelname)-8s %(message)s", datefmt="%Y.%m.%d %H:%M:%S" ) )
 elif debugto == "syslog":
     handler = logging.handlers.SysLogHandler( address = "/dev/log" )
     # timestamps are not needed with syslog
