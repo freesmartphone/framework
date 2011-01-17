@@ -26,6 +26,7 @@ setup(
     scripts = [ "framework/frameworkd", "tools/cli-framework", "tools/dump-netlink", "tools/remove-tel", "tools/opimd_fix_db", "tools/opimd_convert_db" ],
     data_files = [
         ("../../etc/dbus-1/system.d", ["etc/dbus-1/system.d/frameworkd.conf"] ),
+        ("../../etc/init.d", ["etc/init.d/frameworkd"] ),
         ("../../etc/freesmartphone/opreferences/schema/",         ["etc/freesmartphone/opreferences/schema/phone.yaml"]),
         ("../../etc/freesmartphone/opreferences/schema/",         ["etc/freesmartphone/opreferences/schema/profiles.yaml"]),
         ("../../etc/freesmartphone/opreferences/schema/",         ["etc/freesmartphone/opreferences/schema/rules.yaml"]),
