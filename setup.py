@@ -32,15 +32,14 @@ setup(
         ("../../etc/freesmartphone/opreferences/conf/profiles/",  ["etc/freesmartphone/opreferences/conf/profiles/default.yaml"]),
         ("../../etc/freesmartphone/opreferences/conf/phone",      ["etc/freesmartphone/opreferences/conf/phone/default.yaml"]),
         ("../../etc/freesmartphone/opreferences/conf/phone",      ["etc/freesmartphone/opreferences/conf/phone/silent.yaml"]),
+        ("../../etc/freesmartphone/opreferences/conf/phone",      ["etc/freesmartphone/opreferences/conf/phone/vibrate.yaml"]),
+        ("../../etc/freesmartphone/opreferences/conf/phone",      ["etc/freesmartphone/opreferences/conf/phone/ring.yaml"]),
         ("../../etc/freesmartphone/opreferences/conf/rules",      ["etc/freesmartphone/opreferences/conf/rules/default.yaml"]),
         ("../../etc/freesmartphone/opreferences/conf/rules",      ["etc/freesmartphone/opreferences/conf/rules/silent.yaml"]),
+        ("../../etc/freesmartphone/opreferences/conf/rules",      ["etc/freesmartphone/opreferences/conf/rules/vibrate.yaml"]),
+        ("../../etc/freesmartphone/opreferences/conf/rules",      ["etc/freesmartphone/opreferences/conf/rules/ring.yaml"]),
         ("../../etc/freesmartphone/oevents",                      ["etc/freesmartphone/oevents/rules.yaml"]),
         ("../../etc/freesmartphone/persist",                      ["etc/freesmartphone/persist/README"]),
-        ("../../etc/freesmartphone/ogsmd", [
-            "etc/freesmartphone/ogsmd/cell.db",
-            "etc/freesmartphone/ogsmd/la.db",
-            "etc/freesmartphone/ogsmd/networks.tab",
-        ]),
         ("freesmartphone/examples/", getDir( "examples" ) ),
     ]
 )
