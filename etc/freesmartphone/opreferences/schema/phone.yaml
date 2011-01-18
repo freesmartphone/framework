@@ -2,6 +2,11 @@ ring-tone:
     type: str
     profilable: yes
     
+ring-volume:
+    type: int
+    profilable: yes
+    default: 10
+
 ring-loop:
     type: bool
     profilable: yes
@@ -20,6 +25,11 @@ ring-vibration:
 message-tone:
     type: str
     profilable: yes
+
+message-volume:
+    type: int
+    profilable: yes
+    default: 10
 
 message-loop:
     type: bool
