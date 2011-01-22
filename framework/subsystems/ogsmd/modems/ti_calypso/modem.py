@@ -167,7 +167,9 @@ class TiCalypso( AbstractModem ):
         # call default implementation (closing all channels)
         AbstractModem.close( self )
         killall( self._muxercommand )
-        self._modemOff()
+        # don't let two processes kill the power
+        if self._muxercommand != "gsm0710muxd":
+            self._modemOff()
 
     def channel( self, category ):
         """
