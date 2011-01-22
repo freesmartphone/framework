@@ -156,8 +156,9 @@ class CalypsoModemChannel( AbstractModemChannel ):
     #
 
     def _hookPreReading( self ):
-        if CalypsoModemChannel.modem_communication_timestamp:
-            CalypsoModemChannel.modem_communication_timestamp = time.time()
+        pass
+        # only writes should reset the timer
+        # this fixes finally ticket #435
 
     def _hookPostReading( self ):
         pass
