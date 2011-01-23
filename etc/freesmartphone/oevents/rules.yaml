@@ -152,3 +152,14 @@
     trigger: IdleState()
     filters: HasAttr(status, "idle_prelock")
     actions: SetDisplayBrightness("0", 0)
+-
+    #
+    # AUX Handling
+    #
+    trigger: InputEvent()
+    filters:
+             - HasAttr(switch, "AUX")
+             - HasAttr(event, "released")
+             - HasAttr(duration, 0)
+    actions: Command('/media/card/bin/hstoggle.sh')
+
