@@ -848,6 +848,7 @@ class SimGetPhonebookInfo( SimMediator ):
             try:
                 result["number_length"] = int(match.groupdict()["numlen"])
                 result["name_length"] = int(match.groupdict()["textlen"])
+                self._object.modem.setPhonebookSizes( self.pbcategory, result["number_length"], result["name_length"] )
             except KeyError:
                 pass
 
@@ -950,7 +951,15 @@ class SimStoreEntry( SimMediator ):
             self._error( DBusError.InvalidParameter( "valid categories are %s" % const.PHONEBOOK_CATEGORY.keys() ) )
         else:
             number, ntype = currentModem().numberToPhonebookTuple( self.number )
-            name = self.name.strip('"').encode(charset)
+            name = self.name.strip('"')
+            numlength, textlength = self._object.modem.phonebookSizes( self.pbcategory )
+            if numlength is not None:
+                if len(number) > numlength:
+                   number = number[:numlength]
+            if textlength is not None:
+                if len(name) > textlength:
+                   name = name[:textlength]
+            name = name.encode(charset)
             self._commchannel.enqueue( '+CPBS="%s";+CPBW=%d,"%s",%d,"%s"' % ( self.pbcategory.encode(defcharset), self.index, number, ntype, name ), self.responseFromChannel, self.errorFromChannel )
 
 #=========================================================================#

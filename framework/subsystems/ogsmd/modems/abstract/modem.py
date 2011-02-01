@@ -47,6 +47,7 @@ class AbstractModem( object ):
         self._simReady = "unknown"              # SIM data access state
         self._data = {}                         # misc modem-wide data, set/get from channels
         self._phonebookIndices = {}             # min. index, max. index
+        self._phonebookSizes = {}               # number length, name length
 
         self._data["sim-buffers-sms"] = True
         self._data["sms-buffered-cb"] = "2,1,2,1,1"
@@ -210,6 +211,20 @@ class AbstractModem( object ):
             return None, None
         else:
             return first, last
+
+    def setPhonebookSizes( self, category, numlength, textlength ):             
+        """        
+        Set phonebook names and number sizes for a given phonebook
+        """                                                 
+        self._phonebookSizes[category] = numlength, textlength
+                                                                                       
+    def phonebookSizes( self, category ):                              
+        try:                                                                                     
+            numlength, textlength = self._phonebookSizes[category]
+        except KeyError:                      
+            return None, None                                              
+        else:                                                                    
+            return numlength, textlength                                          
 
     def prepareForSuspend( self, ok_callback, error_callback ):
         """
