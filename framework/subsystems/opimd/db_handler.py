@@ -405,9 +405,8 @@ class DbHandler(object):
                 raise InvalidField("_limit should be an integer value")
 
         if (limit_start != 0 or limit_end != -1):
-            query = query + " LIMIT ?,?"
+            query = "SELECT * FROM (" + query + ") LIMIT ?,?"
             params.extend([limit_start, limit_end])
-
 
         return {'Query':query, 'Parameters':params}
 
