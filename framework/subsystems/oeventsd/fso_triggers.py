@@ -371,3 +371,30 @@ class KeypadTrigger(DBusTrigger):
 
     def __repr__(self):
         return "KeypadTrigger"
+
+#============================================================================#
+class BacklightPowerTrigger(DBusTrigger):
+#============================================================================#
+    """
+    A dbus trigger for org.freesmartphone.Device.Display.BacklightPower
+    """
+
+    function_name = 'BacklightPower'
+
+    def __init__(self):
+        bus = dbus.SystemBus()
+        super(BacklightPowerTrigger, self).__init__(
+            bus,
+            'org.freesmartphone.odeviced',
+            None,
+            'org.freesmartphone.Device.Display',
+            'BacklightPower'
+        )
+
+    def on_signal(self, status):
+        logger.info("Receive BacklightPower, status = %s", status)
+        self._trigger(status=status)
+
+    def __repr__(self):
+        return "BacklightPower"
+
