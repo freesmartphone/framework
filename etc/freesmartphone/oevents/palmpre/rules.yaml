@@ -48,11 +48,11 @@
     trigger: BacklightPower()
     filters:
              - HasAttr(status, 0)
-    actions: Command("/usr/bin/tsmd_disable")
+    actions: Command("/usr/bin/tsmd_control disable")
 -
     trigger: BacklightPower()
     filters:
              - HasAttr(status, 1)
-    actions: Command("/usr/bin/tsmd_enable")
+    actions: Command("/usr/bin/tsmd_control enable")
 
 
