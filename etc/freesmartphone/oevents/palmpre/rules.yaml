@@ -1,0 +1,58 @@
+# This file is in YAML format (http://www.yaml.org/)
+# We define a list of rules that will be automatically loaded
+# When we start the oevents module of the framework daemon
+#
+# The attributes of a rule are :
+# - trigger     : trigger object
+# - filters     : filters object or list of filters objects
+# - actions     : action object or list of actions objects
+#
+# We define the following functions :
+# - CallStatus()            : create a trigger object activated on a call status event
+# - PowerStatus()           : create a trigger object activated on a power status event
+# - HasAttr(name, value)    : create a filter that accept signal with a given attribute
+# - Not(filter)             : create a neg filter
+# - PlaySound(file)         : Action that starts to play an audio file
+# - StopSound(file)         : Action that stop an audio file
+# - SetScenario(name)       : Action that sets an audio scenario
+# - StartVibration
+# - StopVibration
+# - RingTone(cmd)           : cmd can be 'start' or 'stop'
+# - Time(hour, min)         : create a trigger activated at the given time
+# - Debug(msg)              : Action that prints a debug message (only for debuging)
+
+#
+# On incomming messages play some nice sound
+#
+-
+    trigger: IncomingMessage()
+    actions: MessageTone(play)
+
+#
+# Handle some call events
+#
+-
+    while: CallListContains("INCOMING")
+    filters: Not(CallListContains("ACTIVE"))
+    actions:
+             - RingTone()
+             - OccupyResource(Display)
+
+#
+# Handle changes to the backlight power (display turns on/off). Here we need to tell our
+# touchscreen management daemon to enable/disable touchscreen access as it will otherwise
+# read invalid values which lets the touchscreen to not work anymore until we restart it
+# completly.
+#
+- 
+    trigger: BacklightPower()
+    filters:
+             - HasAttr(status, 0)
+    actions: Command("/usr/bin/tsmd_disable")
+-
+    trigger: BacklightPower()
+    filters:
+             - HasAttr(status, 1)
+    actions: Command("/usr/bin/tsmd_enable")
+
+
