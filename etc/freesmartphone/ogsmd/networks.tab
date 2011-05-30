@@ -1431,19 +1431,20 @@ PH	Philippines
 # ISO	Country
 PL	Poland
 # 	MCC 	MNC 	Brand 	Operator 	Status 	Bands 	Notes
-	260 	01 	Plus 	Polkomtel 	Operational 	GSM 900 / GSM 1800 / UMTS 2100 	[98]
-	260 	02 	Era 	Polska Telefonia Cyfrowa (PTC) 	Operational 	GSM 900 / GSM 1800 / UMTS 2100
-	260 	03 	Orange 	PTK Centertel 	Operational 	GSM 900 / GSM 1800 / UMTS 2100
-	260 	04 	Tele2 	Tele2 Polska 	Not operational 	Unknown
-	260 	06 	Play 	P4 Sp. z o.o 	Operational 	GSM 900 / UMTS 2100 	Also roaming on Polkomtel 2G network
-	260 	07 		Premium Internet 	Not operational 	Unknown
+	260 	01 	Plus 	Polkomtel 	Operational 	GSM 900 / GSM 1800 / UMTS 2100
+	260 	02 	T-Mobile 	Polska Telefonia Cyfrowa (PTC) 	Operational 	GSM 900 / GSM 1800 / UMTS 2100	Former Era
+	260 	03 	Orange 	PTK Centertel 	Operational 	GSM 900 / GSM 1800 / UMTS 2100	Former Idea
+	260	05		PTK Centertel	Operational	UMTS 2100	Not in use, using MNC 03
+	260 	06 	Play 	P4 Sp. z o.o 	Operational 	GSM 900 / UMTS 2100 	Also roaming on Polkomtel 2G/3G network
+	260 	07 	Netia	Netia S.A. 	Operational 	GSM 900 / UMTS 2100 	MVNO roaming on Play (P4) network
 	260 	08 		E-Telko 	Not operational 	Unknown
-	260 	09 		Telekomunikacja Kolejowa 	Not operational 	GSM-R 900
-	260 	10 		Telefony Opalenickie 	Not operational 	Unknown
-	260 	11 		Nordisk Polska 	Not operational 	CDMA
-	260 	12 	Cyfrowy Polsat 	Cyfrowy Polsat 	Operational 	GSM 900 / GSM 1800 / UMTS 2100 	MVNO roaming on PTC network
-	260 	14	Sferia 	Sferia S.A. 	Operational 	CDMA2000 850
-	260 	15 	CenterNet 	CenterNet S.A. 	Operational 	GSM 1800 	Also roaming on PTC network
+	260 	09 		Telekomunikacja Kolejowa 	Not operational 	GSM-R 900	railways communication
+	260 	10 	Sferia	Sferia S.A. 	Operational 	UMTS 850 	Formerly assigned to Telefony Opalenickie S.A.
+	260 	11 	Nordisk Polska	Nordisk Polska Sp. z o.o. 	Operational 	CDMA 420
+	260 	12 	Cyfrowy Polsat 	Cyfrowy Polsat S.A. 	Operational 	GSM 900 / GSM 1800 / UMTS 2100 	MVNO using national roaming with several operators
+	260 	14	CenterNet 	CenterNet S.A. 	Operational 	UMTS 1800	LTE1800 with 20 MHz channels. Used wRodzinie brand cards until 2010, now data transmission only.
+	260 	15 	Mobyland 	Mobyland Sp. z o.o. 	Operational 	UMTS 1800 	LTE1800 with 20 MHz channels
+	260	16	Aero2	Aero 2 Sp. z o.o.	Operational 	UMTS 900
 
 # ISO	Country
 PT	Portugal
