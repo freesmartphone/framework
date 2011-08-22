@@ -37,11 +37,11 @@
 
 #-
 #    while: NewMissedCalls()
-#    actions: SetLed("lp5523_b", "blink")
+#    actions: SetLed("lp5523_channel4", "blink") # blue led
 #
 -
     while: UnreadMessages()
-    actions: SetLed("lp5523_b", "blink")
+    actions: SetLed("lp5523_channel4", "blink") # blue led
 
 -
 #    while: CallStatus()
@@ -61,15 +61,15 @@
 -
     while: PowerStatus()
     filters: HasAttr(status, "charging")
-    actions: SetLed("lp5523_r", "light")
+    actions: SetLed("lp5523_channel6", "light") # red led
 -
     while: PowerStatus()
     filters: HasAttr(status, "critical")
-    actions: SetLed("lp5523_r", "blink")
+    actions: SetLed("lp5523_channel6", "blink") # red led
 -
     while: PowerStatus()
     filters: HasAttr(status, "full")
-    actions: SetLed("lp5523_g", "light")
+    actions: SetLed("lp5523_channel5", "light") # green led
 -
     trigger: PowerStatus()
     filters: HasAttr(status, "empty")
@@ -78,11 +78,11 @@
     while: InputEvent()
     filters:
              - HasAttr(switch, "SLIDER")
-             - HasAttr(event, "pressed")
+             - HasAttr(event, "released")
     actions:
-             - SetLed("lp5523_kb1", "light")
-             - SetLed("lp5523_kb2", "light")
-             - SetLed("lp5523_kb3", "light")
-             - SetLed("lp5523_kb4", "light")
-             - SetLed("lp5523_kb5", "light")
-             - SetLed("lp5523_kb6", "light")
+             - SetLed("lp5523_channel0", "light")
+             - SetLed("lp5523_channel1", "light")
+             - SetLed("lp5523_channel2", "light")
+             - SetLed("lp5523_channel3", "light")
+             - SetLed("lp5523_channel7", "light")
+             - SetLed("lp5523_channel8", "light") # keyboard leds
