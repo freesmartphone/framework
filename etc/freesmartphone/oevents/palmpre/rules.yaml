@@ -37,5 +37,11 @@
     filters:
              - HasAttr(status, 1)
     actions: Command("/usr/bin/tsmd_control enable")
-
+-
+    trigger: InputEvent()
+    filters:
+             - HasAttr(switch, "POWER")
+             - HasAttr(event, "released")
+             - HasAttr(duration, 0)
+    actions: Command("/usr/bin/phoneui-quick-settings")
 
