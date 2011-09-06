@@ -251,7 +251,10 @@ class GSMZoneSource( object ):
         self.zone = zones[0]
         logger.info( "GSM: timezone '%s'", self.zone )
         try:
-            os.remove( "/etc/localtime" )
+            try:
+                os.remove( "/etc/localtime" )
+            except:
+                pass
             shutil.copyfile( "/usr/share/zoneinfo/"+self.zone, "/etc/localtime" )
         except:
             logger.warning( "failed to install time zone file to /etc/localtime" )
