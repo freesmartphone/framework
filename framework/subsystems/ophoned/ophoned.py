@@ -47,7 +47,10 @@ class Phone(dbus.service.Object):
             introspect = False,
             follow_name_owner_changes = True
         )
-        self.gsm.connect_to_signal( 'ResourceChanged', self.on_resource_changed )
+        # FIXME
+        # FxH disbled because no clients are there yet to remove to call objects (see remark in gsm.py)
+        # Moreover, the removal of the GSM protocol when suspending causes exceptions after resume (stale references?)  
+        # self.gsm.connect_to_signal( 'ResourceChanged', self.on_resource_changed )
         self.headset = HeadsetManager( self.bus, self.on_bt_answer_requested, self.on_bt_connection_status )
         gobject.idle_add( self.on_startup )
 
