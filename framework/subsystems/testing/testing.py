@@ -33,6 +33,7 @@ class Resource( resource.Resource ):
     def __init__( self, bus ):
         self.path = DBUS_OBJECT_PATH
         self.bus = bus
+        self.virgin = True
         dbus.service.Object.__init__( self, bus, self.path )
         resource.Resource.__init__( self, bus, "TEST" )
         logger.info("%s %s at %s initialized.", self.__class__.__name__, __version__, self.path )
@@ -53,7 +54,10 @@ class Resource( resource.Resource ):
 
     def _disable( self, on_ok, on_error ):
         logger.info( "disabling" )
-        time.sleep( 5.0 )
+        if self.virgin == True:
+            self.virgin = False
+        else:
+            time.sleep( 5.0 )
         self._doit( "disabling", on_ok, on_error )
 
     def _suspend( self, on_ok, on_error ):
