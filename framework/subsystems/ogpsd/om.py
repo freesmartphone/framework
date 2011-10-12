@@ -36,7 +36,10 @@ class GTA02Device( UBXDevice ):
         # Kernel specific paths
         global DEVICE_POWER_PATH_NEW
         kernel_release = os.uname()[2]
-        if kernel_release >= "2.6.32":
+        if kernel_release >= "2.6.39":
+           DEVICE_POWER_PATH_NEW = "/sys/bus/platform/drivers/gta02-pm-gps/gta02-pm-gps.0/power_on"
+           logger.info( "Kernel >= 2.6.39, gps sysfs updated" )
+        elif kernel_release >= "2.6.32":
            DEVICE_POWER_PATH_NEW = "/sys/bus/platform/devices/gta02-pm-gps.0/power_on"
            logger.info( "Kernel >= 2.6.32, gps sysfs updated" )
 
