@@ -23,17 +23,34 @@
 # - Debug(msg)              : Action that prints a debug message (only for debuging)
 -
     #
-    # Idleness Brightness Handling
+    # Call -> Audio Scenario Handling
     #
-    trigger: IdleState()
-    filters: HasAttr(status, "busy")
-    actions: SetDisplayBrightness("0", 90)
+    trigger: IncomingMessage()
+    actions: MessageTone(play)
+
 -
-    trigger: IdleState()
-    filters: HasAttr(status, "idle_dim")
-    actions: SetDisplayBrightness("0", 20)
+    while: CallListContains("INCOMING")
+    filters: Not(CallListContains("ACTIVE"))
+    actions:
+             - RingTone()
+             - OccupyResource(Display)
+
 -
-    trigger: IdleState()
-    filters: HasAttr(status, "idle_prelock")
-    actions: SetDisplayBrightness("0", 0)
+    while: CallStatus()
+    filters:
+            - Or(Or(HasAttr(status, "OUTGOING"), HasAttr(status, "ACTIVE")), And(HasAttr(status, "INCOMING"), CallListContains("ACTIVE")))
+            - BTHeadsetIsConnected()
+    actions:
+            - SetScenario(gsmbluetooth)
+            - BTHeadsetPlaying()   
 -
+    trigger: PowerStatus()
+    filters: HasAttr(status, "empty")
+    actions: Command('poweroff')
+-
+    trigger: InputEvent()
+    filters:
+             - HasAttr(switch, "POWER")
+             - HasAttr(event, "released")
+             - HasAttr(duration, 0)
+    actions: Command("/usr/bin/phoneui-quick-settings")
