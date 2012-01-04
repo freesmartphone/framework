@@ -36,6 +36,7 @@ class CallStatusTrigger(DBusTrigger):
             'org.freesmartphone.GSM.Call',
             'CallStatus'
         )
+
     def on_signal(self, id, status, properties):
         logger.info("Receive CallStatus, status = %s", status)
         self._trigger(id=id, status=status, properties=properties)
@@ -62,6 +63,16 @@ class CallListContains(WhileRule):
             super(CallListContains, self).trigger()
         else:
             super(CallListContains, self).untrigger()
+
+    # needed to fix Bug #2305                                                          
+    # The filter functions need a patch, because they evaluate 
+    # from outside to inside, that would not corerctly evaluate terms like
+    # Or(CallListContains("outgoing"), CallListContains("active"))
+    # because the CallListContains status gets updates after Or was called
+    def filter( self, id=None, status=None, properties=None, **kargs ):
+        """The filter is True if the rule is triggered"""                                                
+        self.trigger(id, status, properties, **kargs)
+        return self.triggered                                                                            
 
     def __repr__(self):
         return "CallListContains(%s)" % self.status

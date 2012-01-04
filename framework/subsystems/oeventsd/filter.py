@@ -36,6 +36,7 @@ class Filter( object ):
 
     def filter( self, **kargs ):
         # The default filter is always True
+        # Fixme: unnecessary and time consuming call due to outside to inside evaluations
         return True
 
     def __invert__( self ):
@@ -64,6 +65,9 @@ class Filter( object ):
     def disable( self ):
         """disable the filter"""
         pass
+
+    def __repr__( self ):
+        return "base filter"
 
 #============================================================================#
 class AttributeFilter( Filter ):

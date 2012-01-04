@@ -104,7 +104,7 @@ class WhileRule( Rule, Filter ):
 
     def untrigger( self, **kargs ):
         if not self.triggered:
-            logger.warning( "Untrigger for '%s' called, but not yet triggered. Not untriggering", self )
+            #being untriggerd while not triggered is not an error
             return
         self._untrigger( **kargs )
         self.triggered = False

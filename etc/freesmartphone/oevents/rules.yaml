@@ -57,21 +57,32 @@
     actions:
              - SetDisplayBrightness("0", 90)
 -
+    # fix Bug #2305                                                           
+    # we must keep the scenario and COU as long as there is a call left, not when     
+    # any call indicates release                                                
+    # IMPORTANT
+    # For this to work, the filter function in fso_triggers.py needs a patch,
+    # because the evaluation is from outside to inside.
+    # Note to the "vala reimplementors":
+    # The filter parser should be in such a
+    # way that the inner terms get called first, because the current implementation
+    # slows down excecution by repeatedly calling already evaluated and even empty functions
     while: CallStatus()
-    filters: Not(HasAttr(status, "release"))
+    filters:
+            - Or(CallListContains("outgoing"), CallListContains("active"))
     actions:
             - OccupyResource(CPU)
 -
     while: CallStatus()
     filters:
-            - Or(HasAttr(status, "outgoing"), HasAttr(status, "active"))
+            - Or(CallListContains("outgoing"), CallListContains("active"))
             - Not(BTHeadsetIsConnected())
     actions:
             - SetScenario(gsmhandset)
 -
     while: CallStatus()
     filters:
-            - Or(HasAttr(status, "outgoing"), HasAttr(status, "active"))
+            - Or(CallListContains("outgoing"), CallListContains("active"))
             - BTHeadsetIsConnected()
     actions:
             - SetScenario(gsmbluetooth)

@@ -37,13 +37,18 @@ class Action(AutoFunction):
     #
     # public
     #
+    # Fixme: the outside to inside evaluation unnecessarily
+    # calls theese, consuming only time
     def __init__( self ):
         AutoFunction.__init__( self )
+        logger.debug("UnamedAction : init")
 
     def trigger( self, **kwargs ):
+        logger.debug("UnamedAction : trigger")
         pass
 
     def untrigger( self, **kwargs ):
+        logger.debug("UnamedAction : untrigger")
         pass
 
     def __repr__( self ):
