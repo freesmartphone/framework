@@ -15,6 +15,8 @@ New style abstract call handling
 __version__ = "0.9.1.4"
 MODULE_NAME = "ogsmd.callhandler"
 
+import mediator
+
 from ogsmd import error
 from ogsmd.gsm import const
 
@@ -40,6 +42,7 @@ class CallHandler( object ):
         self._calls = {}
         self._calls[1] = { "status": "release" }
         self._calls[2] = { "status": "release" }
+        # we can have at least 2 calls, more will be added when coming in
 
         self.unsetHook()
 
@@ -117,6 +120,11 @@ class CallHandler( object ):
         self._hook( "activate", result )
         return result
 
+    def activateConference( self, index, commchannel ):
+        result = self.feedUserInput( "conference", index=index, channel=commchannel )
+        self._hook( "conference", result )
+        return result
+
     def release( self, index, commchannel ):
         result = self.feedUserInput( "release", index=index, channel=commchannel )
         self._hook( "release", result )
@@ -144,6 +152,8 @@ class CallHandler( object ):
                 # FIXME is the above comment really true?
 
     def statusChangeFromNetwork( self, callId, info ):
+        if not self._calls.has_key(callId):
+            self._calls[callId] = { "status": "release" }
         lastStatus = self._calls[callId].copy()
         self._calls[callId].update( info )
 
@@ -200,15 +210,17 @@ class CallHandler( object ):
     # synchronize status
     #
     def syncStatus( self, request, response ):
-        CallListCalls( Object.instance(), self.syncStatus_ok, self.syncStatus_err )
+        mediator.CallListCalls( self._object, self.syncStatus_ok, self.syncStatus_err )
 
     def syncStatus_ok( self, calls ):
         if len( calls ) > 1:
             logger.warning( "unhandled case" )
-            return
+            logger.warning( "calls is %s", calls)
+            #return
         # synthesize status change from network
-        callid, status, properties = calls[0]
-        self.statusChangeFromNetwork( callid, {"status": status} )
+        for call in calls:
+            callid, status, properties = call
+            self.statusChangeFromNetwork( callid, {"status": status} )
 
     def syncStatus_err( self, request, error ):
         logger.error( "error from channel to %s = %s", request, error )
@@ -264,6 +276,7 @@ class CallHandler( object ):
         elif action == "hold":
             # put active call on hold without accepting any waiting or held
             # this is not supported by all modems / networks
+            # thus we must call syncStatus to check
             self.channel = kwargs["channel"]
             kwargs["channel"].enqueue( "+CHLD=2", self.syncStatus )
             return True
@@ -280,6 +293,10 @@ class CallHandler( object ):
             self.channel = kwargs["channel"]
             kwargs["channel"].enqueue( "+CHLD=2", self.syncStatus )
             return True
+        elif action == "initiate":
+            dialstring, commchannel = args
+            commchannel.enqueue( "D%s" % dialstring, self.onInitiateResult, self.errorFromChannel )
+            return 2
 
     #
     # 1st call active, 2nd call call incoming or on hold
@@ -314,11 +331,14 @@ class CallHandler( object ):
                 # release held call
                 kwargs["channel"].enqueue( "+CHLD=12" )
                 return True
+            else:
+                # Fixme: we can have a 3rd call incoming that cannot be accepted, however, but still rejected
+                # TI Calypso indicates the 3rd call, but refuses the index on commanding???
+                logger.warning("FIXME: callid >2 (%s), don't know what to do", kwargs["index"])
         elif action == "activate":
-            if kwargs["index"] == 2:
-                # put active call on hold, activate held call
-                kwargs["channel"].enqueue( "+CHLD=2" )
-                return True
+            # put active call on hold, activate held call
+            kwargs["channel"].enqueue( "+CHLD=2" )
+            return True
         elif action == "conference":
             kwargs["channel"].enqueue( "+CHLD=3" )
             return True
@@ -328,7 +348,7 @@ class CallHandler( object ):
 
     def state_held_active( self, action, *args, **kwargs ):
         # should be the same as the reversed state
-        return state_active_held( self, action, *args, **kwargs )
+        return self.state_active_held( action, *args, **kwargs )
 
     # both calls active
     def state_active_active( self, action, *args, **kwargs ):
@@ -352,3 +372,4 @@ class CallHandler( object ):
         elif action == "connect":
             kwargs["channel"].enqueue( "+CHLD=4" )
             return True
+

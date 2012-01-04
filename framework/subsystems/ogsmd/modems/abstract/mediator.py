@@ -1627,6 +1627,15 @@ class CallActivate( CallMediator ):
             self._error( DBusError.CallNotFound( "no such call to activate" ) )
 
 #=========================================================================#
+class CallActivateConference( CallMediator ):                         
+#=========================================================================#
+    def trigger( self ):
+        if CallHandler.getInstance().activateConference( self.index, self._commchannel ) is not None:
+            self._ok()                        
+        else:
+            self._error( DBusError.CallNotFound( "no such calls to put into conference" ) )
+                                    
+#=========================================================================#
 class CallHoldActive( CallMediator ):
 #=========================================================================#
     def trigger( self ):
@@ -1807,6 +1816,7 @@ class DebugCommand( DebugMediator ):
 
     def responseFromChannel( self, request, response ):
         self._ok( response )
+
 
 #=========================================================================#
 if __name__ == "__main__":

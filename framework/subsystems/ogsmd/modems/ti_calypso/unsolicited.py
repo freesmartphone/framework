@@ -122,6 +122,14 @@ class UnsolicitedResponseDelegate( AbstractUnsolicitedResponseDelegate ):
         pass
 
     # +CSSU: 2,,"",128
+    # 0 Forwarded call
+    # 1 CUG (plus index)
+    # 2 remotely put on hold
+    # 3 remote hold released
+    # 4 Multiparty call entered
+    # 5 Call on hold has been released
+    # 6 -
+    # 7,8 ?
     def plusCSSU( self, righthandside ):
         code, index, number, type = safesplit( righthandside, "," )
         info = {}
@@ -136,7 +144,11 @@ class UnsolicitedResponseDelegate( AbstractUnsolicitedResponseDelegate ):
         else:
             logger.info( "unhandled +CSSU code '%s'" % code )
         if info:
-            self._callHandler.statusChangeFromNetworkByStatus( "incoming", info )
+            # This is not failsafe since we don't know the call ID
+            if code in "23":
+                self._callHandler.statusChangeFromNetworkByStatus( "active", info )
+            else:
+                self._callHandler.statusChangeFromNetworkByStatus( "incoming", info )
 
     #
     # TI Calypso proprietary
@@ -144,6 +156,22 @@ class UnsolicitedResponseDelegate( AbstractUnsolicitedResponseDelegate ):
 
     # %CCCN: 0,0,A10E02010402011030068101428F0101
 
+    # FIXME: need decoder for this
+    # reponses to conference AT+CHLD=3 with one call held and one active:
+    # failed (with e-plus)
+    # %CCCN: 1,1,A10602010002017C
+    #                     ^ fail ?
+    # +CMS ERROR: 320          HEX data packet: 7e 0d ef 0d 0a 2b 43...
+    #                                               ^ channel 3(MISC)? TI firmware bug? 
+    # %CCCN: 0,1,A306020100020112
+    #
+    #
+    # succeded (with D2)
+    # %CCCN: 1,1,A10602010102017C
+    #                     ^ ok ?
+    # %CCCN: 0,1,A203020101 
+    #
+    #
     # call to homezone number while in homezone
     # this is sent while the call is incoming
     # %CCCN: 0,0,A10E0201000201103006810120850101
@@ -221,8 +249,14 @@ class UnsolicitedResponseDelegate( AbstractUnsolicitedResponseDelegate ):
         ... case B.3: local cancel ...
         ?
 
+        ... case C.1: first call active, second incoming and accepted (puts first on hold)
+        %CPI: 1,10,0,1,0,0,"+496912345678",145,,,0
+        %CPI: 2,6,0,1,1,0,"+496912345679",129,,,0
+
         """
         callId, msgType, ibt, tch, direction, mode, number, ntype, alpha, cause, line = safesplit( righthandside, "," )
+        if msgType == "10":
+            msgType ="A"  # stupid hack to have single char types
 
         #devchannel = self._object.modem.communicationChannel( "DeviceMediator" )
         #devchannel.enqueue( "+CPAS;+CEER" )
@@ -262,7 +296,9 @@ class UnsolicitedResponseDelegate( AbstractUnsolicitedResponseDelegate ):
             info.update( { "status": "outgoing" } )
         elif msgType == "3": # Sometimes setup is not sent?!
             info.update( { "status": info["direction"] } )
-        if msgType in "013689":
+        elif msgType == "A": # hold
+            info.update( { "status": "held" } )
+        if msgType in "013689A":
             self._callHandler.statusChangeFromNetwork( int(callId), info )
 
         # DSP bandaid
