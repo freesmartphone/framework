@@ -100,22 +100,29 @@ class HeadsetManager( object ):
             bluez_device_proxy,
             "org.bluez.Headset",
         )
-        try:
-            self.bluez_device_headset.Connect()
-        except dbus.exceptions.DBusException, e:
-            if e.get_dbus_name() == "org.bluez.Error.AlreadyConnected":
-                pass
-            else:
-                raise
+        self.bluez_device_headset.Connect(
+            reply_handler=self.cbHeadsetConnetReply,
+            error_handler=self.cbHeadsetConnectError
+        )
+
+    def cbHeadsetConnectError( self, e ):
+        if e.get_dbus_name() == "org.bluez.Error.AlreadyConnected":
+            self.cbHeadsetConnetReply()
+        else:
+            logger.info( "BT connect error" )
+            raise
+
+    def cbHeadsetConnetReply( self ):
+        logger.info( "BT connect ok" )
         if self._onAnswerRequested:
             self._matchAnswerRequested = self.bluez_device_headset.connect_to_signal(
                 'AnswerRequested', self._onAnswerRequested
             )
         self._matchDisconnected = self.bluez_device_headset.connect_to_signal(
                 'Disconnected', self._onDisconnected
-        ) 
-        self.connected = True                                                                                               
-        if self._onConnectionStatus:                                                                                        
+        )
+        self.connected = True
+        if self._onConnectionStatus:
             self._onConnectionStatus( self.connected )
 
     def _startBT( self ):
