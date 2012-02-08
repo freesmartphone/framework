@@ -32,11 +32,12 @@ MODULE_NAME = "opimd"
 from dbus.service import FallbackObject as DBusFBObject
 
 import logging
+
 logger = logging.getLogger( MODULE_NAME )
 
 # We use a meta class to automaticaly register all the domain subclasses
 #----------------------------------------------------------------------------#
-class DomainMetaClass(DBusFBObject.__metaclass__):
+class DomainMetaClass(type(DBusFBObject)):
 #----------------------------------------------------------------------------#
     def __init__(cls, name, bases, dict):
         super(DomainMetaClass, cls).__init__(name, bases, dict)
