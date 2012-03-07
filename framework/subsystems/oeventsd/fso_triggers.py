@@ -409,3 +409,27 @@ class BacklightPowerTrigger(DBusTrigger):
     def __repr__(self):
         return "BacklightPower"
 
+#============================================================================#
+class ResourceStateTrigger(DBusTrigger):
+#============================================================================#
+    """
+    A dbus trigger for org.freesmartphone.Usage.ResourceChanged
+    """
+    function_name = 'ResourceState'
+
+    def __init__(self):
+        bus = dbus.SystemBus()
+        super(ResourceStateTrigger, self).__init__(
+            bus,
+            'org.freesmartphone.ousaged',
+            '/org/freesmartphone/Usage',
+            'org.freesmartphone.Usage',
+            'ResourceChanged'
+        )
+    def on_signal(self,resource,state,attributes):
+        power_status = "enabled" if state  else "disabled"
+        logger.info("%s is now %s", resource, power_status)
+        self._trigger(resource=resource,power_state=power_status)
+    def __repr__(self):
+        return "ResourceState"
+
