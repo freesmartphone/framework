@@ -74,4 +74,12 @@
     trigger: PowerStatus()
     filters: HasAttr(status, "empty")
     actions: Command('poweroff')
+-
+    trigger: ResourceState()
+    filters: And(HasAttr(resource, "GPS"),HasAttr(power_state, "enabled"))
+    actions: Command('/usr/bin/gps_handler.py start')
+-
+    trigger: ResourceState()
+    filters: And(HasAttr(resource, "GPS"),HasAttr(power_state, "disabled"))
+    actions: Command('/usr/bin/gps_handler.py stop')
 
