@@ -13,7 +13,7 @@ packages = [ x[0] for x in os.walk( "framework" ) ]
 
 setup(
     name = "The FreeSmartphone Framework Daemon",
-    version = "0.10.0",
+    version = "0.10.1",
     author = "Michael 'Mickey' Lauer et. al.",
     author_email = "mlauer@vanille-media.de",
     url = "http://www.freesmartphone.org",
