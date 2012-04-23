@@ -1,3 +1,11 @@
+2012-04-23  Simon Busch  <morphis@gravedo.de>
+
+	Bump version to 0.10.1
+
+	Add systemd service file from meta-fso
+
+	Update relevant components for a 0.10.0 release
+
 2012-03-21  Denis 'GNUtoo' Carikli  <GNUtoo@no-log.org>
 
 	om-gta04 oeventsd rules.yaml: Handle GPS resource
