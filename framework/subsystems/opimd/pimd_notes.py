@@ -59,11 +59,20 @@ class NotesDbHandler(DbHandler):
     domain = None
 #----------------------------------------------------------------------------#
 
+    def get_used_tags(self):
+        cur = self.con.cursor()
+        raw_res = cur.execute("SELECT DISTINCT value FROM " + self.db_prefix + "_tag").fetchall()
+        cur.close()
+        res = []
+        for row in raw_res:
+            res.append(row[0])
+        return res
+
     def __init__(self, domain):
         self.domain = domain
 
         self.db_prefix = self.name.lower()
-        self.table_types = ['text', 'longtext', 'date', 'boolean']
+        self.table_types = ['text', 'longtext', 'date', 'boolean', 'tag']
         super(NotesDbHandler, self).__init__()
         self.create_db()
 
@@ -199,6 +208,12 @@ class NoteDomain(Domain, GenericDomain):
     db_handler = None
     query_manager = None
     _dbus_path = None
+    DEFAULT_FIELDS = {
+                        'Title'         : 'text',
+                        'Timestamp'     : 'date',
+                        'Content'       : 'longtext',
+                        'Tag'           : 'tag'
+    }
 
     def __init__(self):
         """Creates a new NoteDomain instance"""
@@ -212,6 +227,7 @@ class NoteDomain(Domain, GenericDomain):
 
         self.load_field_types()
 
+        self.add_default_fields()
         # Keep frameworkd happy
         self.interface = _DIN_NOTES
         self.path = _DBUS_PATH_NOTES
@@ -228,6 +244,13 @@ class NoteDomain(Domain, GenericDomain):
     @dbus_signal(_DIN_NOTES, "s")
     def NewNote(self, path):
         pass
+
+    @dbus_method(_DIN_NOTES, "", "as")
+    def GetUsedTags(self):
+        """Returns list of tags used in stored notes.
+
+        @return The requested data"""
+        return self.db_handler.get_used_tags()
 
     @dbus_method(_DIN_NOTES, "a{sv}", "s")
     def Add(self, entry_data):
