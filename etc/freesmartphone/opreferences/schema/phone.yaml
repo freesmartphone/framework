@@ -53,6 +53,6 @@ bt-headset-enabled:
 
 bt-headset-address:
     type: str
-    profilable: no
+    profilable: yes
     default: ""
 
