@@ -141,11 +141,13 @@ class UnsolicitedResponseDelegate( AbstractUnsolicitedResponseDelegate ):
             info["remotehold"] = True
         elif code == "3":
             info["remotehold"] = False
+        elif code == "4":
+            info["conference"] = True
         else:
             logger.info( "unhandled +CSSU code '%s'" % code )
         if info:
             # This is not failsafe since we don't know the call ID
-            if code in "23":
+            if code in "234":
                 self._callHandler.statusChangeFromNetworkByStatus( "active", info )
             else:
                 self._callHandler.statusChangeFromNetworkByStatus( "incoming", info )
