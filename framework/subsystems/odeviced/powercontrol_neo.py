@@ -89,6 +89,9 @@ def factory( prefix, controller ):
     if "neo1973-pm-bt.0" in devices:
         objects.append( NeoBluetoothPowerControl( bus, "%s/%s" % ( DEVICE_DIR, "neo1973-pm-bt.0" ) ) )
 
+    if "gta02-pm-bt.0" in devices:                                                                  
+        objects.append( NeoBluetoothPowerControl( bus, "%s/%s" % ( DEVICE_DIR, "gta02-pm-bt.0" ) ) )
+
     if "s3c-ohci" in devices:
         objects.append( NeoUsbHostPowerControl( bus, "%s/%s" % ( DEVICE_DIR, "s3c-ohci" ) ) )
 
@@ -97,6 +100,9 @@ def factory( prefix, controller ):
 
     if "s3c2440-sdi" in drivers:
         objects.append( NeoWifiPowerControl( bus, "%s/%s" % ( DRIVER_DIR, "s3c2440-sdi" ) ) )
+
+    if "gta02-pm-wlan" in drivers:                                                             
+        objects.append( NeoWifiPowerControl( bus, "%s/%s" % ( DRIVER_DIR, "gta02-pm-wlan" ) ) )
 
     return objects
 
