@@ -52,14 +52,16 @@ class CallListContains(WhileRule):
     function_name = "CallListContains"
 
     def __init__(self, status):
-        self.status = status
+        self.status = status.lower()
         self.calls = {} # The list of current call object
         super(CallListContains, self).__init__(CallStatusTrigger())
 
     def trigger(self, id=None, status=None, properties=None, **kargs):
         logger.debug("Trigger %s", self)
-        self.calls[id] = status
-        if ( self.status in self.calls.values() ) or ( self.status.lower() in self.calls.values() ):
+        self.calls[id] = None
+        if status:
+            self.calls[id] = status.lower()
+        if self.status in self.calls.values()
             super(CallListContains, self).trigger()
         else:
             super(CallListContains, self).untrigger()
