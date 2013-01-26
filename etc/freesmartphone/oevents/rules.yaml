@@ -75,6 +75,12 @@
 -
     while: CallStatus()
     filters:
+            - CallListContains("incoming")
+    actions:
+            - OccupyResource(CPU)
+-
+    while: CallStatus()
+    filters:
             - Or(CallListContains("outgoing"), CallListContains("active"))
             - Not(BTHeadsetIsConnected())
     actions:
@@ -87,7 +93,6 @@
     actions:
             - SetScenario(gsmbluetooth)
             - BTHeadsetPlaying()
-
 -
     while: PowerStatus()
     filters: HasAttr(status, "charging")
