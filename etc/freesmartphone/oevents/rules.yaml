@@ -158,7 +158,7 @@
     # Idleness Brightness Handling
     #
     trigger: IdleState()
-    filters: HasAttr(status, "busy")
+    filters: Or(HasAttr(status, "busy"),HasAttr(status, "idle"))
     actions: SetDisplayBrightness("0", 90)
 -
     trigger: IdleState()
