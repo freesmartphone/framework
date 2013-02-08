@@ -1,4 +1,4 @@
-message-loop: true
+message-loop: false
 message-tone: "female_message.wav"
 message-volume: 10
 message-vibration: true
