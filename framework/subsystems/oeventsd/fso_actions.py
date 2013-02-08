@@ -330,7 +330,7 @@ class UserAlertAction(Action):
         elif k == "%s-volume" % self.eventname:
             self.volume = int(value)
         elif k == "%s-loop" % self.eventname:
-            self.loop = int(value)
+            self.loop = 1024 if bool(self.loop) else 0
         elif k == "%s-length" % self.eventname:
             self.length = int(value)
         elif k == "%s-vibration" % self.eventname:
@@ -379,7 +379,7 @@ class UserAlertAction(Action):
 
             self.tone = str(self.tone)
             self.volume = int(self.volume)
-            self.loop = int(self.loop)
+            self.loop = 1024 if bool(self.loop) else 0
             self.length = int(self.length)
             self.vibrate = int(self.vibrate)
 
