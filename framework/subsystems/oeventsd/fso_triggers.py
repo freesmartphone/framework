@@ -210,8 +210,7 @@ class UnreadMessages(WhileRule):
 class IncomingMessageTrigger(DBusTrigger):
 #============================================================================#
     """
-    A custom dbus trigger for org.freesmartphone.GSM.SIM.IncomingStoredMessage
-    TODO: change to opimd interface
+    A custom dbus trigger for org.freesmartphone.GSM.SMS.IncomingTextMessage
     """
 
     function_name = 'IncomingMessage'
@@ -221,13 +220,13 @@ class IncomingMessageTrigger(DBusTrigger):
         super(IncomingMessageTrigger, self).__init__(
             bus,
             'org.freesmartphone.ogsmd',
-            '/org/freesmartphone/GSM/Device',
-            'org.freesmartphone.GSM.SIM',
-            'IncomingStoredMessage'
+            '/org/freesmartphone/GSM/SMS',
+            'org.freesmartphone.GSM.SMS',
+            'IncomingTextMessage'
         )
-    def on_signal(self, index):
-        logger.info("Receive IncomingMessage on index = %s" % index)
-        self._trigger(index=index)
+    def on_signal(self, number, timestamp, contents):
+        logger.info("Received IncomingMessage from = %s" % number)
+        self._trigger(number=number)
 
     def __repr__(self):
         return "IncomingMessage"
