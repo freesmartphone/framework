@@ -61,7 +61,7 @@ class CallListContains(WhileRule):
         self.calls[id] = None
         if status:
             self.calls[id] = status.lower()
-        if self.status in self.calls.values()
+        if self.status in self.calls.values():
             super(CallListContains, self).trigger()
         else:
             super(CallListContains, self).untrigger()
