@@ -1,5 +1,5 @@
 [Unit]
-Description=FSO1 daemon used for opimd
+Description=FSO1 daemon
 After=dbus.socket
 
 [Service]
