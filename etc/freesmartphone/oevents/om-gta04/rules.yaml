@@ -35,10 +35,9 @@
              - RingTone()
              - OccupyResource(Display)
 
-#-
-#    while: NewMissedCalls()
-#    actions: SetLed("gta02_red_aux", "blink")
-#
+-
+    while: NewMissedCalls()
+    actions: SetLed("gta04_green_aux", "blink")
 -
     while: UnreadMessages()
     actions: SetLed("gta04_red_aux", "blink")
