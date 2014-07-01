@@ -78,7 +78,7 @@ class Led(object):
 
     def __blink(self):
         logger.info("blink led %s", self)
-        self.interface.SetBlinking(100, 1500, reply_handler=self.on_reply, error_handler=self.on_error)
+        self.interface.SetBlinking(self.durationOn, self.durationOff, reply_handler=self.on_reply, error_handler=self.on_error)
 
     def turn_on(self, user):
         self.users[user] = 'on'
@@ -91,8 +91,10 @@ class Led(object):
             logger.warning("try to turn off led %s before having turing it on", self)
         self.__update()
 
-    def blink(self, user):
+    def blink(self, user, durationOn, durationOff):
         self.users[user] = 'blink'
+        self.durationOn = durationOn
+        self.durationOff = durationOff
         self.__update()
 
     def __update(self):
@@ -113,7 +115,7 @@ class LedAction(Action):
     """
     function_name = 'SetLed'
 
-    def __init__(self, device, action):
+    def __init__(self, device, action, onDuration = 100, offDuration = 1500):
         Action.__init__( self )
         self.led = Led(device)
         self.action = action
@@ -124,7 +126,7 @@ class LedAction(Action):
         if self.action == 'light':
             self.led.turn_on(self)
         elif self.action == 'blink':
-            self.led.blink(self)
+            self.led.blink(self, onDuration, offDuration)
 
     def untrigger(self, **kargs):
         self.led.turn_off(self)
