@@ -160,13 +160,13 @@ class VibratorAction(Action):
         if self.mode == "continuous":
             DBusAction(dbus.SystemBus(),
                         'org.freesmartphone.odeviced',
-                        '/org/freesmartphone/Device/Vibrator/%s' % self.target,
+                        '/org/freesmartphone/Device/Vibrator',
                         'org.freesmartphone.Device.Vibrator',
                         'VibratePattern', 999, 300, 700, 90).trigger()
         elif self.mode == "oneshot":
             DBusAction(dbus.SystemBus(),
                         'org.freesmartphone.odeviced',
-                        '/org/freesmartphone/Device/Vibrator/%s' % self.target,
+                        '/org/freesmartphone/Device/Vibrator',
                         'org.freesmartphone.Device.Vibrator',
                         'Vibrate', 400, 90).trigger()
         else:
@@ -175,7 +175,7 @@ class VibratorAction(Action):
     def untrigger(self, **kargs):
         DBusAction(dbus.SystemBus(),
                     'org.freesmartphone.odeviced',
-                    '/org/freesmartphone/Device/Vibrator/%s' % self.target,
+                    '/org/freesmartphone/Device/Vibrator',
                     'org.freesmartphone.Device.Vibrator',
                     'Stop').trigger()
 
