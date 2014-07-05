@@ -37,10 +37,10 @@
 
 -
     while: NewMissedCalls()
-    actions: SetLed("gta04_green_aux", "blink")
+    actions: SetLed("gta04_green_aux", "blink", 128, 1024)
 -
     while: UnreadMessages()
-    actions: SetLed("gta04_red_aux", "blink")
+    actions: SetLed("gta04_red_aux", "blink", 128, 1024)
 -
     while: CallStatus()
     filters:
@@ -75,7 +75,7 @@
 -
     while: PowerStatus()
     filters: HasAttr(status, "critical")
-    actions: SetLed("gta04_red_power", "blink")
+    actions: SetLed("gta04_red_power", "blink", 512, 512)
 -
     while: PowerStatus()
     filters: HasAttr(status, "full")
